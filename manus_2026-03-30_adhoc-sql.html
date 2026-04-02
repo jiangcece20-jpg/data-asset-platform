@@ -2523,6 +2523,7 @@
                 <thead><tr style="background:var(--gray-50);">
                   <th style="padding:8px 12px;font-size:12px;text-align:left;">资源名称</th>
                   <th style="padding:8px 12px;font-size:12px;text-align:left;width:60px;">类型</th>
+                  <th style="padding:8px 12px;font-size:12px;text-align:left;width:120px;">平台/来源</th>
                   <th style="padding:8px 12px;font-size:12px;text-align:left;width:80px;">状态</th>
                   <th style="padding:8px 12px;font-size:12px;text-align:left;width:80px;">健康度</th>
                   <th style="padding:8px 12px;font-size:12px;text-align:left;width:140px;">最近变更</th>
@@ -2947,6 +2948,27 @@
 
         <!-- 我收藏的 -->
         <div class="my-panel active" id="my-panel-favorites">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <input type="text" class="input" id="my-fav-search" placeholder="搜索资源名称…" style="width:200px;height:30px;font-size:12px;" oninput="renderMyFavorites()" />
+            <select class="select" id="my-fav-type-filter" onchange="renderMyFavorites()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部类型</option>
+              <option value="table">表</option>
+              <option value="api">API</option>
+              <option value="report">报表</option>
+              <option value="metric">指标</option>
+              <option value="label">标签</option>
+            </select>
+            <select class="select" id="my-fav-source-filter" onchange="renderMyFavorites()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部来源</option>
+              <option value="warehouse_engine">数仓引擎</option>
+              <option value="biz_database">业务数据库</option>
+              <option value="report_system">报表系统</option>
+              <option value="api_service">API服务</option>
+              <option value="metric_platform">指标平台</option>
+              <option value="label_system">画像标签系统</option>
+              <option value="message_stream">消息队列</option>
+            </select>
+          </div>
           <div class="card" style="padding:0;">
             <div class="table-wrap">
               <table class="table">
@@ -2955,6 +2977,7 @@
                     <th style="width:36px;"></th>
                     <th>名称</th>
                     <th>类型</th>
+                    <th>平台/来源</th>
                     <th>目录</th>
                     <th>负责人</th>
                     <th>收藏时间</th>
@@ -2970,12 +2993,21 @@
         <!-- 我申请的 -->
         <div class="my-panel" id="my-panel-applies">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+            <input type="text" class="input" id="my-apply-search" placeholder="搜索资产名称…" style="width:200px;height:30px;font-size:12px;" oninput="renderMyApplies()" />
             <div class="my-filter-tabs">
               <span class="my-filter-tab active" id="apply-filter-all" onclick="filterApplies('all',this)">全部</span>
               <span class="my-filter-tab" id="apply-filter-pending" onclick="filterApplies('pending',this)">审批中</span>
               <span class="my-filter-tab" id="apply-filter-granted" onclick="filterApplies('granted',this)">已通过</span>
               <span class="my-filter-tab" id="apply-filter-rejected" onclick="filterApplies('rejected',this)">已拒绝</span>
             </div>
+            <select class="select" id="my-apply-type-filter" onchange="renderMyApplies()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部类型</option>
+              <option value="table">表</option>
+              <option value="api">API</option>
+              <option value="report">报表</option>
+              <option value="metric">指标</option>
+              <option value="label">标签</option>
+            </select>
           </div>
           <div class="card" style="padding:0;">
             <div class="table-wrap">
@@ -2984,6 +3016,7 @@
                   <tr>
                     <th>资产名称</th>
                     <th>类型</th>
+                    <th>平台/来源</th>
                     <th>申请原因</th>
                     <th>申请时间</th>
                     <th>状态</th>
@@ -2998,8 +3031,21 @@
 
         <!-- 我有权限的 -->
         <div class="my-panel" id="my-panel-permissions">
-          <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:2px;">
-            <input type="text" class="input" id="my-perm-search" placeholder="搜索资产名称…" style="width:220px;" oninput="renderMyPermissions()" />
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+            <input type="text" class="input" id="my-perm-search" placeholder="搜索资产名称…" style="width:200px;height:30px;font-size:12px;" oninput="renderMyPermissions()" />
+            <select class="select" id="my-perm-type-filter" onchange="renderMyPermissions()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部类型</option>
+              <option value="table">表</option>
+              <option value="api">API</option>
+              <option value="report">报表</option>
+              <option value="metric">指标</option>
+              <option value="label">标签</option>
+            </select>
+            <select class="select" id="my-perm-ptype-filter" onchange="renderMyPermissions()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部权限</option>
+              <option value="读">读权限</option>
+              <option value="读写">读写权限</option>
+            </select>
           </div>
           <div class="card" style="padding:0;">
             <div class="table-wrap">
@@ -3008,6 +3054,7 @@
                   <tr>
                     <th>名称</th>
                     <th>类型</th>
+                    <th>平台/来源</th>
                     <th>目录</th>
                     <th>权限类型</th>
                     <th>生效时间</th>
@@ -3028,14 +3075,35 @@
             <span>需要对资源进行上下架、信息修改等管理操作？</span>
             <button class="btn btn-primary btn-sm" onclick="goToResourceMgmt()">前往资源管理 →</button>
           </div>
-          <!-- 工具栏 -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div id="my-owned-batch-bar" style="display:flex;align-items:center;gap:8px;">
-              <span id="my-owned-batch-count" style="font-size:13px;color:var(--gray-500);">已选 0 条</span>
-              <button class="btn btn-default btn-sm" id="my-owned-batch-transfer-btn" style="display:none;" onclick="openMyOwnedBatchTransfer()">批量交接负责人</button>
-              <button class="btn btn-default btn-sm" id="my-owned-batch-cancel-btn" style="display:none;" onclick="clearMyOwnedSelection()">取消选择</button>
-            </div>
-            <input type="text" class="input" id="my-owned-search" placeholder="搜索资源名称…" style="width:220px;" oninput="renderMyOwned()" />
+          <!-- 筛选栏 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <input type="text" class="input" id="my-owned-search" placeholder="搜索资源名称…" style="width:200px;height:30px;font-size:12px;" oninput="renderMyOwned()" />
+            <select class="select" id="my-owned-type-filter" onchange="renderMyOwned()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部类型</option>
+              <option value="table">表</option>
+              <option value="api">API</option>
+              <option value="report">报表</option>
+              <option value="metric">指标</option>
+              <option value="label">标签</option>
+            </select>
+            <select class="select" id="my-owned-status-filter" onchange="renderMyOwned()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部状态</option>
+              <option value="已上架">已上架</option>
+              <option value="待维护">待维护</option>
+              <option value="不上架">不上架</option>
+            </select>
+            <select class="select" id="my-owned-role-filter" onchange="renderMyOwned()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部角色</option>
+              <option value="tech">技术负责人</option>
+              <option value="biz">业务负责人</option>
+              <option value="both">技术+业务</option>
+            </select>
+          </div>
+          <!-- 批量操作栏 -->
+          <div id="my-owned-batch-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span id="my-owned-batch-count" style="font-size:13px;color:var(--gray-500);">已选 0 条</span>
+            <button class="btn btn-default btn-sm" id="my-owned-batch-transfer-btn" style="display:none;" onclick="openMyOwnedBatchTransfer()">批量交接负责人</button>
+            <button class="btn btn-default btn-sm" id="my-owned-batch-cancel-btn" style="display:none;" onclick="clearMyOwnedSelection()">取消选择</button>
           </div>
           <div class="card" style="padding:0;">
             <div class="table-wrap">
@@ -3045,6 +3113,7 @@
                     <th style="width:36px;"><input type="checkbox" id="my-owned-select-all" onchange="toggleMyOwnedSelectAll(this)" /></th>
                     <th>资源名称</th>
                     <th>类型</th>
+                    <th>平台/来源</th>
                     <th>当前状态</th>
                     <th>目录归属</th>
                     <th>我的角色</th>
@@ -6880,11 +6949,15 @@ function renderWorkbenchMyResources() {
       <td style="padding:8px 12px;">
         <div style="cursor:pointer;" onclick="openDetail('${r.id}')">
           <div style="font-size:13px;font-weight:500;color:var(--primary);line-height:1.4;">${r.displayName||r.name}</div>
-          <div style="font-size:11px;color:var(--gray-400);line-height:1.3;margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.summary||r.name}</div>
+          <div style="font-size:11px;color:var(--gray-500);line-height:1.3;margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.summary||r.name}</div>
         </div>
         ${isAnomaly ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2" style="margin-left:4px;vertical-align:-1px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ''}
       </td>
       <td style="padding:8px 12px;font-size:11px;color:var(--gray-500);">${r.type==='table'?'表':r.type==='report'?'报表':r.type==='api'?'API':r.type==='metric'?'指标':r.type==='label'?'标签':r.type}</td>
+      <td style="padding:8px 12px;font-size:12px;">
+        <div style="font-weight:500;color:var(--gray-700);">${({'warehouse_engine':'数仓引擎','message_stream':'消息队列','report_system':'报表系统','biz_database':'业务数据库','api_service':'API服务','label_system':'画像标签系统','metric_platform':'指标平台'})[r.source_type]||r.source_type||'-'}</div>
+        <div style="font-size:11px;color:var(--gray-400);">${r.source_system||''}</div>
+      </td>
       <td style="padding:8px 12px;">${statusMap[r.status]||r.status}</td>
       <td style="padding:8px 12px;font-size:12px;"><span style="color:${hColor};font-weight:500;">${h}%</span></td>
       <td style="padding:8px 12px;font-size:11px;color:var(--gray-400);white-space:nowrap;">${changesMock[i]||'03-25 12:00'}</td>
@@ -11126,20 +11199,20 @@ document.head.appendChild(style);
 
 // Mock数据：我申请的
 const MOCK_APPLIES = [
-  { id:'ap1', assetId:'dwd_order_detail', assetName:'dwd_order_detail', assetDisplay:'订单明细宿表', type:'table', reason:'数据分析需要订单明细数据', applyTime:'2026-03-20 10:30', status:'granted', remark:'已批准，有效期90天' },
-  { id:'ap2', assetId:'ads_user_profile', assetName:'ads_user_profile', assetDisplay:'用户画像汇总表', type:'table', reason:'用户画像分析项目使用', applyTime:'2026-03-22 14:15', status:'pending', remark:'待审批中' },
-  { id:'ap3', assetId:'api_user_info', assetName:'api_user_info', assetDisplay:'用户信息查询API', type:'api', reason:'对接用户中心接口', applyTime:'2026-03-18 09:00', status:'rejected', remark:'请联系用户中心审批人确认权限范围' },
-  { id:'ap4', assetId:'metric_gmv_daily', assetName:'metric_gmv_daily', assetDisplay:'GMV日指标', type:'metric', reason:'经营分析看板需要', applyTime:'2026-03-25 16:40', status:'pending', remark:'待审批中' },
-  { id:'ap5', assetId:'rpt_sales_daily', assetName:'rpt_sales_daily', assetDisplay:'销售日报', type:'report', reason:'销售经营周报制作', applyTime:'2026-03-10 11:20', status:'granted', remark:'已批准' },
+  { id:'ap1', assetId:'dwd_order_detail', assetName:'dwd_order_detail', assetDisplay:'订单明细宿表', type:'table', reason:'数据分析需要订单明细数据', applyTime:'2026-03-20 10:30', status:'granted', remark:'已批准，有效期90天' , source_type:'warehouse_engine', source_system:'MaxCompute'},
+  { id:'ap2', assetId:'ads_user_profile', assetName:'ads_user_profile', assetDisplay:'用户画像汇总表', type:'table', reason:'用户画像分析项目使用', applyTime:'2026-03-22 14:15', status:'pending', remark:'待审批中' , source_type:'warehouse_engine', source_system:'MaxCompute'},
+  { id:'ap3', assetId:'api_user_info', assetName:'api_user_info', assetDisplay:'用户信息查询API', type:'api', reason:'对接用户中心接口', applyTime:'2026-03-18 09:00', status:'rejected', remark:'请联系用户中心审批人确认权限范围' , source_type:'api_service', source_system:'内部微服务'},
+  { id:'ap4', assetId:'metric_gmv_daily', assetName:'metric_gmv_daily', assetDisplay:'GMV日指标', type:'metric', reason:'经营分析看板需要', applyTime:'2026-03-25 16:40', status:'pending', remark:'待审批中' , source_type:'metric_platform', source_system:'指标平台'},
+  { id:'ap5', assetId:'rpt_sales_daily', assetName:'rpt_sales_daily', assetDisplay:'销售日报', type:'report', reason:'销售经营周报制作', applyTime:'2026-03-10 11:20', status:'granted', remark:'已批准' , source_type:'report_system', source_system:'万联灵析'},
 ];
 
 // Mock数据：我有权限的
 const MOCK_PERMISSIONS = [
-  { id:'pm1', assetId:'dwd_order_detail', assetName:'dwd_order_detail', assetDisplay:'订单明细宿表', type:'table', catalog:'交易域/订单/订单明细', permType:'查询权限', grantTime:'2026-03-20' },
-  { id:'pm2', assetId:'metric_gmv_daily', assetName:'metric_gmv_daily', assetDisplay:'GMV日指标', type:'metric', catalog:'交易域/指标/核心指标', permType:'查询权限', grantTime:'2026-03-15' },
-  { id:'pm3', assetId:'rpt_sales_daily', assetName:'rpt_sales_daily', assetDisplay:'销售日报', type:'report', catalog:'交易域/报表/销售报表', permType:'读权限', grantTime:'2026-03-10' },
-  { id:'pm4', assetId:'api_user_info', assetName:'api_user_info', assetDisplay:'用户信息查询API', type:'api', catalog:'用户域/API/基础API', permType:'调用权限', grantTime:'2026-03-01' },
-  { id:'pm5', assetId:'wlyd_mc_beijing.dwd_ctps_product', assetName:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', assetDisplay:'订单浏览行为明细宿表', type:'table', catalog:'交易域/订单/订单明细', permType:'查询权限', grantTime:'2026-03-05' },
+  { id:'pm1', assetId:'dwd_order_detail', assetName:'dwd_order_detail', assetDisplay:'订单明细宿表', type:'table', catalog:'交易域/订单/订单明细', permType:'查询权限', grantTime:'2026-03-20' , source_type:'warehouse_engine', source_system:'MaxCompute'},
+  { id:'pm2', assetId:'metric_gmv_daily', assetName:'metric_gmv_daily', assetDisplay:'GMV日指标', type:'metric', catalog:'交易域/指标/核心指标', permType:'查询权限', grantTime:'2026-03-15' , source_type:'metric_platform', source_system:'指标平台'},
+  { id:'pm3', assetId:'rpt_sales_daily', assetName:'rpt_sales_daily', assetDisplay:'销售日报', type:'report', catalog:'交易域/报表/销售报表', permType:'读权限', grantTime:'2026-03-10' , source_type:'report_system', source_system:'万联灵析'},
+  { id:'pm4', assetId:'api_user_info', assetName:'api_user_info', assetDisplay:'用户信息查询API', type:'api', catalog:'用户域/API/基础API', permType:'调用权限', grantTime:'2026-03-01' , source_type:'api_service', source_system:'内部微服务'},
+  { id:'pm5', assetId:'wlyd_mc_beijing.dwd_ctps_product', assetName:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', assetDisplay:'订单浏览行为明细宿表', type:'table', catalog:'交易域/订单/订单明细', permType:'查询权限', grantTime:'2026-03-05' , source_type:'warehouse_engine', source_system:'MaxCompute'},
 ];
 
 // 当前申请筛选状态
@@ -11164,16 +11237,22 @@ function renderMyFavorites() {
   const tbody = document.getElementById('my-favorites-body');
   if (!tbody) return;
   const typeIconMap = { table:'🗃️', api:'🔌', report:'📊', label:'🏷️', metric:'📈', default:'📦' };
+  const favTypeFilter = (document.getElementById('my-fav-type-filter')||{}).value || 'all';
+  const favSourceFilter = (document.getElementById('my-fav-source-filter')||{}).value || 'all';
+  const favKw = ((document.getElementById('my-fav-search')||{}).value || '').toLowerCase();
   // 收藏的资产（MOCK_ASSETS中 favorite:true）
   const favAssets = (typeof MOCK_ASSETS !== 'undefined' ? MOCK_ASSETS : []).filter(a => a.favorite);
   // 收藏的资源（MOCK_RESOURCES中 favorite:true）
   const favResources = MOCK_RESOURCES.filter(r => r.favorite);
-  const all = [
-    ...favAssets.map(a => ({ id:a.id, name:a.name, display:a.display||a.name, type:a.type, catalog:a.catalog, owner:a.tech_owner, domain:'asset', favTime:'2026-03-20' })),
-    ...favResources.map(r => ({ id:r.id, name:r.name, display:r.name, type:r.type, catalog:r.catalog||'未归属', owner:r.tech_owner, domain:'resource', favTime:'2026-03-19' }))
+  let all = [
+    ...favAssets.map(a => ({ id:a.id, name:a.name, display:a.display||a.name, type:a.type, catalog:a.catalog, owner:a.tech_owner, domain:'asset', favTime:'2026-03-20', source_type:a.source_type||'', source_system:a.source_system||'' })),
+    ...favResources.map(r => ({ id:r.id, name:r.name, display:r.name, type:r.type, catalog:r.catalog||'未归属', owner:r.tech_owner, domain:'resource', favTime:'2026-03-19', source_type:r.source_type||'', source_system:r.source_system||'' }))
   ];
+  if (favTypeFilter !== 'all') all = all.filter(x => x.type === favTypeFilter);
+  if (favSourceFilter !== 'all') all = all.filter(x => x.source_type === favSourceFilter);
+  if (favKw) all = all.filter(x => x.name.toLowerCase().includes(favKw) || (x.display||'').toLowerCase().includes(favKw));
   if (all.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray-400);">暂无收藏内容</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400);">暂无收藏内容</td></tr>`;
     return;
   }
   const typeLabel = t => ({ table:'表', api:'API', report:'报表', label:'标签', metric:'指标' }[t] || t);
@@ -11185,10 +11264,14 @@ function renderMyFavorites() {
         <td>
           <div style="cursor:pointer;" onclick="openDetail('${item.domain}','${item.id}')">
             <div style="font-size:13px;font-weight:500;color:var(--primary);line-height:1.4;">${item.type==='table' && item.name.includes('.') ? '<span style="color:var(--gray-400);font-weight:400;">'+item.name.split('.')[0]+'.</span>'+item.name.split('.').slice(1).join('.') : item.name}</div>
-            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${item.display||''}</div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">${item.display||''}</div>
           </div>
         </td>
         <td><span class="tag tag-gray">${typeLabel(item.type)}</span></td>
+        <td style="font-size:12px;">
+            <div style="font-weight:500;color:var(--gray-700);">${({'warehouse_engine':'数仓引擎','message_stream':'消息队列','report_system':'报表系统','biz_database':'业务数据库','api_service':'API服务','label_system':'画像标签系统','metric_platform':'指标平台'})[item.source_type]||item.source_type||'-'}</div>
+            <div style="font-size:11px;color:var(--gray-400);">${item.source_system||''}</div>
+          </td>
         <td style="font-size:12px;color:var(--gray-500);">${item.catalog||'-'}</td>
         <td style="font-size:12px;">${item.owner||'-'}</td>
         <td style="font-size:12px;color:var(--gray-400);">${item.favTime}</td>
@@ -11237,9 +11320,16 @@ function filterApplies(status, btn) {
 function renderMyApplies() {
   const tbody = document.getElementById('my-applies-body');
   if (!tbody) return;
-  const data = MOCK_APPLIES.filter(a => myApplyFilter === 'all' || a.status === myApplyFilter);
+  const applyTypeFilter = (document.getElementById('my-apply-type-filter')||{}).value || 'all';
+  const applyKw = ((document.getElementById('my-apply-search')||{}).value || '').toLowerCase();
+  const data = MOCK_APPLIES.filter(a => {
+    if (myApplyFilter !== 'all' && a.status !== myApplyFilter) return false;
+    if (applyTypeFilter !== 'all' && a.type !== applyTypeFilter) return false;
+    if (applyKw && !(a.assetName||'').toLowerCase().includes(applyKw) && !(a.assetDisplay||'').toLowerCase().includes(applyKw)) return false;
+    return true;
+  });
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray-400);">暂无申请记录</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray-400);">暂无申请记录</td></tr>`;
     return;
   }
   const statusBadgeApply = s => {
@@ -11252,10 +11342,14 @@ function renderMyApplies() {
       <td>
         <div style="cursor:pointer;" onclick="openDetail('asset','${a.assetId}')">
           <div style="font-size:13px;font-weight:500;color:var(--primary);line-height:1.4;">${a.type==='table' && a.assetName.includes('.') ? '<span style="color:var(--gray-400);font-weight:400;">'+a.assetName.split('.')[0]+'.</span>'+a.assetName.split('.').slice(1).join('.') : a.assetName}</div>
-          <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${a.assetDisplay||''}</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">${a.assetDisplay||''}</div>
         </div>
       </td>
       <td><span class="tag tag-gray">${typeLabel(a.type)}</span></td>
+      <td style="font-size:12px;">
+          <div style="font-weight:500;color:var(--gray-700);">${({'warehouse_engine':'数仓引擎','message_stream':'消息队列','report_system':'报表系统','biz_database':'业务数据库','api_service':'API服务','label_system':'画像标签系统','metric_platform':'指标平台'})[a.source_type]||a.source_type||'-'}</div>
+          <div style="font-size:11px;color:var(--gray-400);">${a.source_system||''}</div>
+        </td>
       <td style="font-size:12px;color:var(--gray-600);max-width:200px;">${a.reason}</td>
       <td style="font-size:12px;color:var(--gray-400);">${a.applyTime}</td>
       <td>${statusBadgeApply(a.status)}</td>
@@ -11268,9 +11362,16 @@ function renderMyPermissions() {
   const tbody = document.getElementById('my-permissions-body');
   if (!tbody) return;
   const kw = (document.getElementById('my-perm-search')?.value || '').toLowerCase();
-  const data = MOCK_PERMISSIONS.filter(p => !kw || p.assetDisplay.toLowerCase().includes(kw) || p.assetName.toLowerCase().includes(kw));
+  const permTypeFilter = (document.getElementById('my-perm-type-filter')||{}).value || 'all';
+  const permPtypeFilter = (document.getElementById('my-perm-ptype-filter')||{}).value || 'all';
+  const data = MOCK_PERMISSIONS.filter(p => {
+    if (kw && !p.assetDisplay.toLowerCase().includes(kw) && !p.assetName.toLowerCase().includes(kw)) return false;
+    if (permTypeFilter !== 'all' && p.type !== permTypeFilter) return false;
+    if (permPtypeFilter !== 'all' && !p.permType.includes(permPtypeFilter)) return false;
+    return true;
+  });
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray-400);">暂无权限记录</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--gray-400);">暂无权限记录</td></tr>`;
     return;
   }
   const typeLabel = t => ({ table:'表', api:'API', report:'报表', label:'标签', metric:'指标' }[t] || t);
@@ -11279,10 +11380,14 @@ function renderMyPermissions() {
       <td>
         <div style="cursor:pointer;" onclick="openDetail('asset','${p.assetId}')">
           <div style="font-size:13px;font-weight:500;color:var(--primary);line-height:1.4;">${p.type==='table' && p.assetName.includes('.') ? '<span style="color:var(--gray-400);font-weight:400;">'+p.assetName.split('.')[0]+'.</span>'+p.assetName.split('.').slice(1).join('.') : p.assetName}</div>
-          <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${p.assetDisplay||''}</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:2px;">${p.assetDisplay||''}</div>
         </div>
       </td>
       <td><span class="tag tag-gray">${typeLabel(p.type)}</span></td>
+      <td style="font-size:12px;">
+          <div style="font-weight:500;color:var(--gray-700);">${({'warehouse_engine':'数仓引擎','message_stream':'消息队列','report_system':'报表系统','biz_database':'业务数据库','api_service':'API服务','label_system':'画像标签系统','metric_platform':'指标平台'})[p.source_type]||p.source_type||'-'}</div>
+          <div style="font-size:11px;color:var(--gray-400);">${p.source_system||''}</div>
+        </td>
       <td style="font-size:12px;color:var(--gray-500);">${p.catalog}</td>
       <td><span class="badge badge-info" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">${p.permType}</span></td>
       <td style="font-size:12px;color:var(--gray-400);">${p.grantTime}</td>
@@ -11355,14 +11460,23 @@ function renderMyOwned() {
   const tbody = document.getElementById('my-owned-body');
   if (!tbody) return;
   const kw = (document.getElementById('my-owned-search')?.value || '').toLowerCase();
+  const ownedTypeFilter = (document.getElementById('my-owned-type-filter')||{}).value || 'all';
+  const ownedStatusFilter = (document.getElementById('my-owned-status-filter')||{}).value || 'all';
+  const ownedRoleFilter = (document.getElementById('my-owned-role-filter')||{}).value || 'all';
   const data = MOCK_RESOURCES.filter(r => {
-    const isMine = r.tech_owner === CURRENT_USER || (r.biz_owner && r.biz_owner === CURRENT_USER);
-    if (!isMine) return false;
-    if (kw && !r.name.toLowerCase().includes(kw)) return false;
+    const isTech = r.tech_owner === CURRENT_USER;
+    const isBiz = r.biz_owner && r.biz_owner === CURRENT_USER;
+    if (!isTech && !isBiz) return false;
+    if (kw && !r.name.toLowerCase().includes(kw) && !(r.summary||'').toLowerCase().includes(kw)) return false;
+    if (ownedTypeFilter !== 'all' && r.type !== ownedTypeFilter) return false;
+    if (ownedStatusFilter !== 'all' && r.status !== ownedStatusFilter) return false;
+    if (ownedRoleFilter === 'tech' && !isTech) return false;
+    if (ownedRoleFilter === 'biz' && !isBiz) return false;
+    if (ownedRoleFilter === 'both' && !(isTech && isBiz)) return false;
     return true;
   });
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400);">暂无负责的资源</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--gray-400);">暂无负责的资源</td></tr>`;
     return;
   }
   const typeLabel = t => ({ table:'表', api:'API', report:'报表', label:'标签', metric:'指标' }[t] || t);
@@ -11382,10 +11496,14 @@ function renderMyOwned() {
         <td>
           <div style="cursor:pointer;" onclick="openDetail('resource','${r.id}')">
             <div style="font-size:13px;font-weight:500;color:var(--primary);line-height:1.4;">${r.type==='table' && r.name.includes('.') ? '<span style="color:var(--gray-400);font-weight:400;">'+r.name.split('.')[0]+'.</span>'+r.name.split('.').slice(1).join('.') : r.name}</div>
-            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.summary||r.name}</div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:2px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.summary||r.name}</div>
           </div>
         </td>
         <td><span class="tag tag-gray">${typeLabel(r.type)}</span></td>
+        <td style="font-size:12px;">
+            <div style="font-weight:500;color:var(--gray-700);">${({'warehouse_engine':'数仓引擎','message_stream':'消息队列','report_system':'报表系统','biz_database':'业务数据库','api_service':'API服务','label_system':'画像标签系统','metric_platform':'指标平台'})[r.source_type]||r.source_type||'-'}</div>
+            <div style="font-size:11px;color:var(--gray-400);">${r.source_system||''}</div>
+          </td>
         <td>${statusBadge(r.status)}</td>
         <td style="font-size:12px;color:var(--gray-500);">${catalog}</td>
         <td>${myRole}</td>
