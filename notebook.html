@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>即席查询 - 数据资产管理平台</title>
+<style>
+/* === CSS Variables === */
+:root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --primary-bg: #e6f4ff;
+    --primary-border: #91caff;
+    --success: #52c41a;
+    --success-bg: #f6ffed;
+    --warning: #faad14;
+    --danger: #ff4d4f;
+    --danger-bg: #fff2f0;
+    --text-primary: rgba(0,0,0,0.88);
+    --text-secondary: rgba(0,0,0,0.65);
+    --text-tertiary: rgba(0,0,0,0.45);
+    --text-quaternary: rgba(0,0,0,0.25);
+    --border-color: #e8e8e8;
+    --border-color-light: #f0f0f0;
+    --bg-layout: #f5f5f5;
+    --bg-container: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-hover: #f5f5f5;
+    --bg-active: #e6f4ff;
+    --header-bg: #001529;
+    --header-height: 56px;
+    --sidebar-width: 260px;
+    --statusbar-height: 28px;
+    --toolbar-height: 48px;
+    --cell-radius: 8px;
+    --cell-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --cell-shadow-hover: 0 2px 8px rgba(0,0,0,0.12);
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+    --font-size-xs: 11px;
+    --font-size-sm: 12px;
+    --font-size-base: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s ease;
+}
+
+/* === Reset & Base === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font-family); font-size: var(--font-size-base); color: var(--text-primary); background: var(--bg-layout); line-height: 1.5; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+/* === App Layout === */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* === Header (matches manus style) === */
+.header { height: var(--header-height); background: var(--header-bg); display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0; z-index: 100; }
+.header-menu-trigger { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.08); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all var(--transition-fast); }
+.header-menu-trigger:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.24); }
+.header-menu-trigger svg { width: 18px; height: 18px; }
+.header-logo { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.header-logo svg { width: 24px; height: 24px; }
+.header-nav { display: flex; gap: 4px; flex: 1; }
+.header-nav-item { color: rgba(255,255,255,.65); padding: 6px 14px; border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition-fast); font-size: 14px; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; }
+.header-nav-item:hover { color: #fff; background: rgba(255,255,255,.1); }
+.header-nav-item.active { color: #fff; background: var(--primary); }
+.header-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.header-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; }
+.header-username { color: rgba(255,255,255,.85); font-size: 13px; }
+
+/* === Main === */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* === Sidebar === */
+.sidebar { width: var(--sidebar-width); border-right: 1px solid var(--border-color); background: var(--bg-container); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.sidebar-section { display: flex; flex-direction: column; overflow: hidden; }
+.sidebar-section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; flex-shrink: 0; }
+.sidebar-section-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.sidebar-section-action { width: 24px; height: 24px; border: none; background: none; color: var(--text-tertiary); cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all var(--transition-fast); }
+.sidebar-section-action:hover { background: var(--bg-hover); color: var(--primary); }
+.sidebar-search { margin: 0 12px 8px; }
+.sidebar-search input { width: 100%; height: 28px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 8px; font-size: var(--font-size-sm); outline: none; transition: border-color var(--transition-fast); }
+.sidebar-search input:focus { border-color: var(--primary); }
+.sidebar-search input::placeholder { color: var(--text-quaternary); }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+.sidebar-group-label { font-size: var(--font-size-xs); color: var(--text-tertiary); padding: 8px 8px 4px; font-weight: 500; }
+
+/* Notebook list item */
+.nb-item { padding: 8px 10px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast); margin-bottom: 2px; }
+.nb-item:hover { background: var(--bg-hover); }
+.nb-item.active { background: var(--bg-active); }
+.nb-item-title { font-size: var(--font-size-base); color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+.nb-item-title::before { content: '📓'; font-size: 14px; flex-shrink: 0; }
+.nb-item.shared .nb-item-title::before { content: '📄'; }
+.nb-item-meta { font-size: var(--font-size-xs); color: var(--text-tertiary); margin-top: 2px; padding-left: 22px; }
+.nb-item-actions { display: none; margin-left: auto; }
+.nb-item:hover .nb-item-actions { display: flex; }
+
+/* Sidebar divider (draggable) */
+.sidebar-divider { height: 5px; background: var(--border-color-light); cursor: row-resize; flex-shrink: 0; position: relative; }
+.sidebar-divider::after { content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 24px; height: 2px; background: var(--text-quaternary); border-radius: 1px; }
+.sidebar-divider:hover { background: var(--primary-bg); }
+.sidebar-divider:hover::after { background: var(--primary); }
+
+/* Table list */
+.table-item { padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: background var(--transition-fast); }
+.table-item:hover { background: var(--bg-hover); }
+.table-item-header { display: flex; align-items: center; gap: 6px; font-size: var(--font-size-sm); }
+.table-item-icon { color: var(--text-tertiary); font-size: 12px; transition: transform var(--transition-fast); }
+.table-item-icon.expanded { transform: rotate(90deg); }
+.table-item-name { font-weight: 500; color: var(--text-primary); }
+.table-item-comment { color: var(--text-tertiary); font-size: var(--font-size-xs); margin-left: auto; }
+.table-fields { padding: 4px 0 4px 22px; display: none; }
+.table-fields.show { display: block; }
+.field-item { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-xs); transition: background var(--transition-fast); }
+.field-item:hover { background: var(--primary-bg); }
+.field-name { color: var(--text-primary); }
+.field-type { color: var(--primary); background: var(--primary-bg); padding: 0 4px; border-radius: 2px; font-size: 10px; }
+.field-comment { color: var(--text-tertiary); margin-left: auto; }
+
+/* === Content Area === */
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Toolbar */
+.toolbar { height: var(--toolbar-height); border-bottom: 1px solid var(--border-color); background: var(--bg-container); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+.toolbar-title { border: none; background: none; font-size: var(--font-size-lg); font-weight: 600; color: var(--text-primary); outline: none; min-width: 120px; max-width: 400px; padding: 4px 8px; border-radius: var(--radius-sm); transition: background var(--transition-fast); }
+.toolbar-title:hover { background: var(--bg-hover); }
+.toolbar-title:focus { background: var(--bg-hover); box-shadow: 0 0 0 2px var(--primary-bg); }
+.toolbar-divider { width: 1px; height: 20px; background: var(--border-color); }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 30px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-container); color: var(--text-primary); font-size: var(--font-size-sm); cursor: pointer; transition: all var(--transition-fast); white-space: nowrap; }
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+.btn-sm { height: 24px; padding: 0 8px; font-size: var(--font-size-xs); }
+.btn-text { border: none; background: none; padding: 0 6px; }
+.btn-text:hover { background: var(--bg-hover); border: none; }
+.btn-icon { width: 30px; padding: 0; justify-content: center; }
+.btn-icon.btn-sm { width: 24px; }
+
+/* === Notebook Area === */
+.notebook-area { flex: 1; overflow-y: auto; padding: 20px 40px 60px; }
+
+/* Welcome page */
+.welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary); text-align: center; }
+.welcome-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.6; }
+.welcome-title { font-size: var(--font-size-xl); color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+.welcome-desc { font-size: var(--font-size-sm); margin-bottom: 24px; max-width: 360px; line-height: 1.8; }
+
+/* === Cells === */
+.cell { background: var(--bg-container); border-radius: var(--cell-radius); box-shadow: var(--cell-shadow); margin-bottom: 4px; position: relative; transition: box-shadow var(--transition-normal); border: 1px solid transparent; }
+.cell:hover { box-shadow: var(--cell-shadow-hover); }
+.cell.focused { border-color: var(--primary-border); }
+.cell.focused .cell-indicator { background: var(--primary); }
+.cell-indicator { position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; transition: background var(--transition-fast); }
+.cell-header { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--border-color-light); gap: 8px; min-height: 36px; }
+.cell-drag-handle { cursor: grab; color: var(--text-quaternary); font-size: 14px; padding: 2px; user-select: none; opacity: 0; transition: opacity var(--transition-fast); }
+.cell:hover .cell-drag-handle { opacity: 1; }
+.cell-type-badge { font-size: var(--font-size-xs); padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+.cell-type-badge.sql { background: #e6f4ff; color: #1677ff; }
+.cell-type-badge.markdown { background: #f6ffed; color: #52c41a; }
+.cell-type-badge.chart { background: #fff7e6; color: #fa8c16; }
+.cell-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; opacity: 0; transition: opacity var(--transition-fast); }
+.cell:hover .cell-actions, .cell.focused .cell-actions { opacity: 1; }
+.cell-body { min-height: 60px; position: relative; }
+.cell-output { border-top: 1px solid var(--border-color-light); }
+.cell-output:empty { display: none; border: none; }
+
+/* Cell add button */
+.cell-add-wrapper { display: flex; align-items: center; justify-content: center; height: 28px; opacity: 0; transition: opacity var(--transition-fast); position: relative; }
+.cell-add-wrapper:hover { opacity: 1; }
+.cell-add-wrapper::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border-color); }
+.cell-add-btn { position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; padding: 2px 12px; font-size: var(--font-size-xs); color: var(--text-tertiary); background: var(--bg-layout); border: 1px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all var(--transition-fast); }
+.cell-add-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-bg); }
+
+/* Cell add dropdown */
+.cell-add-dropdown { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--bg-container); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 4px; display: none; z-index: 50; min-width: 140px; }
+.cell-add-dropdown.show { display: block; }
+.cell-add-dropdown-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: var(--font-size-sm); color: var(--text-primary); transition: background var(--transition-fast); }
+.cell-add-dropdown-item:hover { background: var(--bg-hover); }
+
+/* SQL result */
+.cell-result-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: var(--font-size-sm); }
+.cell-result-status.success { color: var(--success); }
+.cell-result-status.error { color: var(--danger); }
+.cell-result-status.running { color: var(--primary); }
+.cell-result-actions { display: flex; gap: 6px; margin-left: auto; }
+.result-table-wrapper { max-height: 320px; overflow: auto; margin: 0 12px 12px; border: 1px solid var(--border-color-light); border-radius: var(--radius-sm); }
+.result-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+.result-table th { background: var(--bg-layout); padding: 6px 12px; text-align: left; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 1; }
+.result-table td { padding: 5px 12px; border-bottom: 1px solid var(--border-color-light); color: var(--text-primary); }
+.result-table tr:nth-child(even) td { background: rgba(0,0,0,0.01); }
+.result-table tr:hover td { background: var(--primary-bg); }
+
+/* Skeleton loading */
+.skeleton { background: linear-gradient(90deg, var(--bg-layout) 25%, #e8e8e8 50%, var(--bg-layout) 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; border-radius: var(--radius-sm); }
+@keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Markdown rendered */
+.markdown-rendered { padding: 12px 16px; font-size: var(--font-size-md); line-height: 1.7; color: var(--text-primary); }
+.markdown-rendered h1 { font-size: 22px; margin: 16px 0 8px; }
+.markdown-rendered h2 { font-size: 18px; margin: 14px 0 6px; }
+.markdown-rendered h3 { font-size: 16px; margin: 12px 0 4px; }
+.markdown-rendered p { margin: 6px 0; }
+.markdown-rendered code { background: var(--bg-layout); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+.markdown-rendered pre { background: var(--bg-layout); padding: 12px; border-radius: var(--radius-sm); overflow-x: auto; margin: 8px 0; }
+.markdown-rendered pre code { background: none; padding: 0; }
+.markdown-rendered table { border-collapse: collapse; margin: 8px 0; }
+.markdown-rendered th, .markdown-rendered td { border: 1px solid var(--border-color); padding: 6px 12px; }
+.markdown-rendered th { background: var(--bg-layout); }
+.markdown-placeholder { padding: 12px 16px; color: var(--text-quaternary); font-size: var(--font-size-sm); cursor: pointer; }
+.markdown-edit-area { width: 100%; min-height: 80px; border: none; outline: none; padding: 12px 16px; font-family: var(--font-family); font-size: var(--font-size-md); line-height: 1.7; resize: vertical; }
+
+/* Chart cell */
+.chart-container { height: 300px; padding: 12px; }
+.chart-settings { display: flex; align-items: center; gap: 12px; padding: 8px 12px; font-size: var(--font-size-sm); flex-wrap: wrap; }
+.chart-settings label { color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+.chart-settings select { height: 26px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 6px; font-size: var(--font-size-xs); outline: none; }
+.chart-settings select:focus { border-color: var(--primary); }
+
+/* Share modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-overlay.hidden { display: none; }
+.modal { background: var(--bg-container); border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: 480px; max-width: 90vw; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color-light); }
+.modal-title { font-size: var(--font-size-lg); font-weight: 600; }
+.modal-close { width: 28px; height: 28px; border: none; background: none; cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 18px; }
+.modal-close:hover { background: var(--bg-hover); }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border-color-light); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Readonly banner */
+.readonly-banner { background: var(--primary-bg); border-bottom: 1px solid var(--primary-border); padding: 6px 20px; font-size: var(--font-size-sm); color: var(--primary); display: flex; align-items: center; gap: 8px; }
+.readonly-banner.hidden { display: none; }
+
+/* Toast */
+.toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--bg-container); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 8px 16px; font-size: var(--font-size-sm); z-index: 2000; display: flex; align-items: center; gap: 8px; transition: opacity var(--transition-normal), transform var(--transition-normal); }
+.toast.hidden { opacity: 0; transform: translateX(-50%) translateY(-10px); pointer-events: none; }
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--danger); }
+
+/* Statusbar */
+.statusbar { height: var(--statusbar-height); border-top: 1px solid var(--border-color); background: var(--bg-container); display: flex; align-items: center; padding: 0 16px; font-size: var(--font-size-xs); color: var(--text-tertiary); gap: 16px; flex-shrink: 0; }
+.statusbar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block; }
+.statusbar-dot.disconnected { background: var(--danger); }
+
+/* Confirm dialog */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1100; display: flex; align-items: center; justify-content: center; }
+.confirm-overlay.hidden { display: none; }
+.confirm-box { background: var(--bg-container); border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 24px; width: 360px; text-align: center; }
+.confirm-msg { font-size: var(--font-size-md); margin-bottom: 20px; color: var(--text-primary); }
+.confirm-actions { display: flex; justify-content: center; gap: 12px; }
+
+/* Form elements */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: var(--font-size-sm); color: var(--text-secondary); margin-bottom: 6px; }
+.form-input { width: 100%; height: 32px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 10px; font-size: var(--font-size-sm); outline: none; }
+.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-bg); }
+.radio-group { display: flex; gap: 16px; }
+.radio-group label { display: flex; align-items: center; gap: 4px; font-size: var(--font-size-sm); color: var(--text-primary); cursor: pointer; }
+.copy-input-group { display: flex; gap: 8px; }
+.copy-input-group input { flex: 1; }
+</style>
+</head>
+<body>
+<!-- PLACEHOLDER: body content will be added via StrReplace -->
+<div class="app">
+    <!-- Header -->
+    <header class="header">
+        <button class="header-menu-trigger" type="button" title="菜单">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="5" r="1.8"/><circle cx="12" cy="5" r="1.8"/><circle cx="19" cy="5" r="1.8"/>
+                <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+                <circle cx="5" cy="19" r="1.8"/><circle cx="12" cy="19" r="1.8"/><circle cx="19" cy="19" r="1.8"/>
+            </svg>
+        </button>
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#1677ff" stroke-width="2">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+                <path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/>
+            </svg>
+            数据资产管理平台
+        </div>
+        <nav class="header-nav">
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#search'">资产检索</div>
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#asset-catalog'">资产目录</div>
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#resource-catalog'">资源发现</div>
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#resource-mgmt'">资源管理</div>
+            <div class="header-nav-item active">即席查询</div>
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#my'">我的</div>
+            <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#permission'">权限管理</div>
+            <div class="header-nav-item" style="opacity:.5;cursor:default;">资产分析 <span style="font-size:10px;padding:0 4px;margin-left:2px;background:#f0f0f0;border-radius:2px;color:rgba(0,0,0,0.45);">占位</span></div>
+        </nav>
+        <div class="header-right">
+            <span class="header-username">张三</span>
+            <div class="header-avatar">张</div>
+        </div>
+    </header>
+
+    <!-- Readonly Banner -->
+    <div class="readonly-banner hidden" id="readonlyBanner">
+        🔒 只读模式 · 来自 <span id="readonlyFrom"></span> 的分享
+        <div style="margin-left:auto"><button class="btn btn-sm btn-primary" onclick="forkNotebook()">复制到我的 Notebook</button></div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Notebook List -->
+            <div class="sidebar-section" id="sidebarTop" style="flex:1;min-height:120px">
+                <div class="sidebar-section-header">
+                    <span class="sidebar-section-title">Notebook</span>
+                    <button class="sidebar-section-action" onclick="createNotebook()" title="新建 Notebook">+</button>
+                </div>
+                <div class="sidebar-search">
+                    <input type="text" placeholder="搜索 Notebook..." id="nbSearch" oninput="renderNotebookList()">
+                </div>
+                <div class="sidebar-list" id="nbList"></div>
+            </div>
+
+            <!-- Draggable Divider -->
+            <div class="sidebar-divider" id="sidebarDivider"></div>
+
+            <!-- Table/Field Helper -->
+            <div class="sidebar-section" id="sidebarBottom" style="flex:1;min-height:120px">
+                <div class="sidebar-section-header">
+                    <span class="sidebar-section-title">数据表</span>
+                </div>
+                <div class="sidebar-list" id="tableList"></div>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Toolbar -->
+            <div class="toolbar" id="toolbar">
+                <input class="toolbar-title" id="nbTitle" value="" placeholder="未命名 Notebook" onchange="updateNotebookTitle(this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-actions">
+                    <button class="btn" onclick="saveNotebook(true)">💾 保存</button>
+                    <button class="btn" onclick="showShareModal()">🔗 分享</button>
+                    <button class="btn btn-primary" onclick="runAllCells()">▶ 全部运行</button>
+                </div>
+            </div>
+
+            <!-- Notebook Area -->
+            <div class="notebook-area" id="notebookArea"></div>
+
+            <!-- Statusbar -->
+            <div class="statusbar" id="statusbar">
+                <span><span class="statusbar-dot" id="statusDot"></span> 已连接</span>
+                <span id="statusSaved">未保存</span>
+                <span id="statusCells">0 个 Cell</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-overlay hidden" id="shareModal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">分享 Notebook</span>
+            <button class="modal-close" onclick="hideShareModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">只读链接</label>
+                <div class="copy-input-group">
+                    <input class="form-input" id="shareLink" readonly>
+                    <button class="btn" onclick="copyShareLink()">复制</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">有效期</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="shareExpiry" value="7" checked> 7天</label>
+                    <label><input type="radio" name="shareExpiry" value="30"> 30天</label>
+                    <label><input type="radio" name="shareExpiry" value="0"> 永久</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" onclick="hideShareModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay hidden" id="confirmDialog">
+    <div class="confirm-box">
+        <div class="confirm-msg" id="confirmMsg"></div>
+        <div class="confirm-actions">
+            <button class="btn" id="confirmCancel">取消</button>
+            <button class="btn btn-primary" id="confirmOk">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+<script>
+/* ============================================
+   Part 1: Mock Data + State + Utility Functions
+   ============================================ */
+
+// ---- Mock Tables ----
+const MOCK_TABLES = [
+    { id:'tbl-1', name:'users', comment:'用户主表', fields:[
+        {name:'id',type:'BIGINT',comment:'用户ID'},{name:'name',type:'VARCHAR(64)',comment:'用户名'},
+        {name:'email',type:'VARCHAR(128)',comment:'邮箱'},{name:'channel',type:'VARCHAR(32)',comment:'注册渠道'},
+        {name:'created_at',type:'DATETIME',comment:'注册时间'}
+    ]},
+    { id:'tbl-2', name:'orders', comment:'订单表', fields:[
+        {name:'id',type:'BIGINT',comment:'订单ID'},{name:'user_id',type:'BIGINT',comment:'用户ID'},
+        {name:'amount',type:'DECIMAL(10,2)',comment:'订单金额'},{name:'status',type:'VARCHAR(16)',comment:'订单状态'},
+        {name:'created_at',type:'DATETIME',comment:'下单时间'}
+    ]},
+    { id:'tbl-3', name:'user_events', comment:'用户行为事件表', fields:[
+        {name:'id',type:'BIGINT',comment:'事件ID'},{name:'user_id',type:'BIGINT',comment:'用户ID'},
+        {name:'event_type',type:'VARCHAR(32)',comment:'事件类型'},{name:'event_date',type:'DATE',comment:'事件日期'},
+        {name:'properties',type:'JSON',comment:'事件属性'}
+    ]},
+    { id:'tbl-4', name:'products', comment:'商品表', fields:[
+        {name:'id',type:'BIGINT',comment:'商品ID'},{name:'name',type:'VARCHAR(128)',comment:'商品名称'},
+        {name:'category',type:'VARCHAR(32)',comment:'分类'},{name:'price',type:'DECIMAL(10,2)',comment:'价格'}
+    ]}
+];
+
+// ---- Mock Notebooks ----
+const MOCK_NOTEBOOKS = [
+    {
+        id: 'nb-1',
+        title: '用户行为分析',
+        createdAt: '2026-03-28T10:30:00',
+        updatedAt: '2026-04-01T14:20:00',
+        cells: [
+            { id:'cell-1-1', type:'markdown', source:'## 用户行为分析\n\n本 Notebook 用于分析用户注册渠道和行为事件分布。', output:null },
+            { id:'cell-1-2', type:'sql', source:'SELECT channel, COUNT(*) AS user_count\nFROM users\nGROUP BY channel\nORDER BY user_count DESC;', output:null, status:'idle' },
+            { id:'cell-1-3', type:'sql', source:'SELECT event_type, COUNT(*) AS cnt, COUNT(DISTINCT user_id) AS uv\nFROM user_events\nWHERE event_date >= \'2026-03-01\'\nGROUP BY event_type\nORDER BY cnt DESC\nLIMIT 20;', output:null, status:'idle' },
+            { id:'cell-1-4', type:'markdown', source:'### 小结\n\n- 注册渠道以自然搜索和微信为主\n- 页面浏览和点击事件占比最高', output:null }
+        ]
+    },
+    {
+        id: 'nb-2',
+        title: '订单数据探查',
+        createdAt: '2026-03-30T09:00:00',
+        updatedAt: '2026-04-01T11:05:00',
+        cells: [
+            { id:'cell-2-1', type:'markdown', source:'## 订单数据探查\n\n快速查看订单表数据质量和分布。', output:null },
+            { id:'cell-2-2', type:'sql', source:'SELECT status, COUNT(*) AS order_count, SUM(amount) AS total_amount\nFROM orders\nGROUP BY status;', output:null, status:'idle' },
+            { id:'cell-2-3', type:'sql', source:'SELECT u.name, COUNT(o.id) AS order_count, SUM(o.amount) AS total_spent\nFROM users u\nJOIN orders o ON u.id = o.user_id\nGROUP BY u.name\nORDER BY total_spent DESC\nLIMIT 10;', output:null, status:'idle' }
+        ]
+    }
+];
+
+// ---- Mock Shared ----
+const MOCK_SHARED = [
+    {
+        id: 'nb-shared-1',
+        title: '月度GMV分析',
+        createdAt: '2026-03-25T16:00:00',
+        updatedAt: '2026-03-31T18:30:00',
+        sharedBy: '王磊',
+        cells: [
+            { id:'cell-s-1', type:'markdown', source:'## 月度 GMV 分析\n\n> 由王磊分享，仅供参考', output:null },
+            { id:'cell-s-2', type:'sql', source:'SELECT DATE_FORMAT(created_at, \'%Y-%m\') AS month,\n       COUNT(*) AS order_count,\n       SUM(amount) AS gmv\nFROM orders\nWHERE status = \'completed\'\nGROUP BY month\nORDER BY month;', output:null, status:'idle' }
+        ]
+    }
+];
+
+// ---- State ----
+const state = {
+    notebooks: [...MOCK_NOTEBOOKS],
+    shared: [...MOCK_SHARED],
+    currentNotebookId: null,
+    focusedCellId: null,
+    lastSavedAt: null,
+    autoSaveTimer: null,
+    isReadonly: false,
+    monacoEditors: {},
+    echartInstances: {}
+};
+
+// ---- Utility Functions ----
+let _idCounter = Date.now();
+function genId() { return 'id-' + (++_idCounter).toString(36); }
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' ' + type : '');
+    setTimeout(() => { t.classList.add('hidden'); }, 2200);
+}
+
+function showConfirm(msg) {
+    return new Promise((resolve) => {
+        const dlg = document.getElementById('confirmDialog');
+        document.getElementById('confirmMsg').textContent = msg;
+        dlg.classList.remove('hidden');
+        const ok = document.getElementById('confirmOk');
+        const cancel = document.getElementById('confirmCancel');
+        function cleanup(val) { dlg.classList.add('hidden'); ok.onclick = null; cancel.onclick = null; resolve(val); }
+        ok.onclick = () => cleanup(true);
+        cancel.onclick = () => cleanup(false);
+    });
+}
+
+function formatTime(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const hm = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    if (target.getTime() === today.getTime()) return '今天 ' + hm;
+    if (target.getTime() === yesterday.getTime()) return '昨天 ' + hm;
+    return (d.getMonth()+1) + '/' + d.getDate() + ' ' + hm;
+}
+
+function triggerAutoSave() {
+    if (state.autoSaveTimer) clearTimeout(state.autoSaveTimer);
+    state.autoSaveTimer = setTimeout(() => saveNotebook(false), 3000);
+}
+
+function getNotebook(id) {
+    return state.notebooks.find(n => n.id === id) || state.shared.find(n => n.id === id);
+}
+
+function getCurrentNotebook() {
+    return getNotebook(state.currentNotebookId);
+}
+
+
+/* ============================================
+   Part 2: Notebook Management + Storage
+   ============================================ */
+
+function loadFromStorage() {
+    try {
+        const saved = localStorage.getItem('sql_notebook_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.notebooks) state.notebooks = data.notebooks;
+            if (data.shared) state.shared = data.shared;
+        }
+    } catch(e) { console.warn('loadFromStorage failed', e); }
+}
+
+function saveToStorage() {
+    try {
+        localStorage.setItem('sql_notebook_data', JSON.stringify({
+            notebooks: state.notebooks,
+            shared: state.shared
+        }));
+    } catch(e) { console.warn('saveToStorage failed', e); }
+}
+
+function createNotebook() {
+    const nb = {
+        id: genId(),
+        title: '未命名 Notebook',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        cells: [
+            { id: genId(), type: 'sql', source: '', output: null, status: 'idle' }
+        ]
+    };
+    state.notebooks.unshift(nb);
+    openNotebook(nb.id);
+    renderNotebookList();
+    saveToStorage();
+    // 聚焦标题
+    setTimeout(() => {
+        const titleEl = document.getElementById('nbTitle');
+        if (titleEl) { titleEl.focus(); titleEl.select(); }
+    }, 100);
+}
+
+function openNotebook(id) {
+    state.isReadonly = false;
+    state.currentNotebookId = id;
+    state.focusedCellId = null;
+    document.getElementById('readonlyBanner').classList.add('hidden');
+    const nb = getCurrentNotebook();
+    if (!nb) { renderWelcome(); return; }
+    document.getElementById('nbTitle').value = nb.title;
+    document.getElementById('nbTitle').disabled = false;
+    renderCells();
+    renderNotebookList();
+    updateStatusbar();
+    // 设置 toolbar 可见
+    document.getElementById('toolbar').style.display = '';
+}
+
+function openSharedNotebook(id) {
+    state.currentNotebookId = id;
+    state.isReadonly = true;
+    state.focusedCellId = null;
+    const nb = getNotebook(id);
+    if (!nb) return;
+    document.getElementById('readonlyBanner').classList.remove('hidden');
+    document.getElementById('readonlyFrom').textContent = nb.sharedBy || '未知';
+    document.getElementById('nbTitle').value = nb.title;
+    document.getElementById('nbTitle').disabled = true;
+    renderCells();
+    renderNotebookList();
+    updateStatusbar();
+}
+
+function saveNotebook(manual) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    nb.updatedAt = new Date().toISOString();
+    state.lastSavedAt = nb.updatedAt;
+    saveToStorage();
+    updateStatusbar();
+    if (manual) showToast('已保存', 'success');
+}
+
+async function deleteNotebook(id) {
+    const nb = getNotebook(id);
+    if (!nb) return;
+    const ok = await showConfirm('确定删除「' + nb.title + '」？此操作不可恢复。');
+    if (!ok) return;
+    // 销毁相关 editor/chart
+    nb.cells.forEach(c => {
+        if (state.monacoEditors[c.id]) { state.monacoEditors[c.id].dispose(); delete state.monacoEditors[c.id]; }
+        if (state.echartInstances[c.id]) { state.echartInstances[c.id].dispose(); delete state.echartInstances[c.id]; }
+    });
+    state.notebooks = state.notebooks.filter(n => n.id !== id);
+    state.shared = state.shared.filter(n => n.id !== id);
+    saveToStorage();
+    if (state.currentNotebookId === id) {
+        if (state.notebooks.length > 0) {
+            openNotebook(state.notebooks[0].id);
+        } else {
+            state.currentNotebookId = null;
+            renderWelcome();
+        }
+    }
+    renderNotebookList();
+}
+
+function updateNotebookTitle(title) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    nb.title = title || '未命名 Notebook';
+    renderNotebookList();
+    triggerAutoSave();
+}
+
+function forkNotebook() {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const copy = JSON.parse(JSON.stringify(nb));
+    copy.id = genId();
+    copy.title = nb.title + ' (副本)';
+    copy.createdAt = new Date().toISOString();
+    copy.updatedAt = new Date().toISOString();
+    delete copy.sharedBy;
+    copy.cells.forEach(c => { c.id = genId(); });
+    state.notebooks.unshift(copy);
+    openNotebook(copy.id);
+    renderNotebookList();
+    saveToStorage();
+    showToast('已复制到我的 Notebook', 'success');
+}
+
+
+/* ============================================
+   Part 3: Render Functions (Lists, Welcome, Statusbar)
+   ============================================ */
+
+function renderNotebookList() {
+    const listEl = document.getElementById('nbList');
+    const keyword = (document.getElementById('nbSearch').value || '').trim().toLowerCase();
+    let html = '';
+    // 我的 Notebook
+    const myNbs = state.notebooks.filter(n => !keyword || n.title.toLowerCase().includes(keyword));
+    if (myNbs.length > 0) {
+        html += '<div class="sidebar-group-label">我的</div>';
+        myNbs.forEach(n => {
+            const active = n.id === state.currentNotebookId ? ' active' : '';
+            html += '<div class="nb-item' + active + '" onclick="openNotebook(\'' + n.id + '\')" data-id="' + n.id + '">'
+                + '<div class="nb-item-title">' + escapeHtml(n.title) + '</div>'
+                + '<div class="nb-item-meta">' + formatTime(n.updatedAt) + ' · ' + n.cells.length + ' cells</div>'
+                + '</div>';
+        });
+    }
+    // 收到的分享
+    const sharedNbs = state.shared.filter(n => !keyword || n.title.toLowerCase().includes(keyword));
+    if (sharedNbs.length > 0) {
+        html += '<div class="sidebar-group-label">收到的分享</div>';
+        sharedNbs.forEach(n => {
+            const active = n.id === state.currentNotebookId ? ' active' : '';
+            html += '<div class="nb-item shared' + active + '" onclick="openSharedNotebook(\'' + n.id + '\')" data-id="' + n.id + '">'
+                + '<div class="nb-item-title">' + escapeHtml(n.title) + '</div>'
+                + '<div class="nb-item-meta">来自 ' + escapeHtml(n.sharedBy || '') + ' · ' + formatTime(n.updatedAt) + '</div>'
+                + '</div>';
+        });
+    }
+    if (!html) {
+        html = '<div style="padding:20px;text-align:center;color:var(--text-quaternary);font-size:12px;">暂无 Notebook</div>';
+    }
+    listEl.innerHTML = html;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function renderTableList() {
+    const listEl = document.getElementById('tableList');
+    let html = '';
+    MOCK_TABLES.forEach(t => {
+        html += '<div class="table-item" data-id="' + t.id + '">'
+            + '<div class="table-item-header" onclick="toggleTableFields(\'' + t.id + '\')">'
+            + '<span class="table-item-icon" id="ticon-' + t.id + '">▶</span>'
+            + '<span class="table-item-name">' + t.name + '</span>'
+            + '<span class="table-item-comment">' + t.comment + '</span>'
+            + '</div>'
+            + '<div class="table-fields" id="tfields-' + t.id + '">';
+        t.fields.forEach(f => {
+            html += '<div class="field-item" onclick="insertFieldToEditor(\'' + t.name + '.' + f.name + '\')">'
+                + '<span class="field-name">' + f.name + '</span>'
+                + '<span class="field-type">' + f.type + '</span>'
+                + '<span class="field-comment">' + f.comment + '</span>'
+                + '</div>';
+        });
+        html += '</div></div>';
+    });
+    listEl.innerHTML = html;
+}
+
+function toggleTableFields(tableId) {
+    const fieldsEl = document.getElementById('tfields-' + tableId);
+    const iconEl = document.getElementById('ticon-' + tableId);
+    if (fieldsEl.classList.contains('show')) {
+        fieldsEl.classList.remove('show');
+        iconEl.classList.remove('expanded');
+    } else {
+        fieldsEl.classList.add('show');
+        iconEl.classList.add('expanded');
+    }
+}
+
+function insertFieldToEditor(fieldName) {
+    if (!state.focusedCellId || !state.monacoEditors[state.focusedCellId]) return;
+    const editor = state.monacoEditors[state.focusedCellId];
+    const pos = editor.getPosition();
+    editor.executeEdits('insert-field', [{
+        range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+        text: fieldName
+    }]);
+    editor.focus();
+}
+
+function renderWelcome() {
+    document.getElementById('toolbar').style.display = 'none';
+    document.getElementById('readonlyBanner').classList.add('hidden');
+    const area = document.getElementById('notebookArea');
+    area.innerHTML = '<div class="welcome">'
+        + '<div class="welcome-icon">📒</div>'
+        + '<div class="welcome-title">SQL Notebook 工作台</div>'
+        + '<div class="welcome-desc">像 Jupyter Notebook 一样编写和运行 SQL，支持 Markdown 笔记和图表可视化。</div>'
+        + '<button class="btn btn-primary" onclick="createNotebook()">+ 新建 Notebook</button>'
+        + '</div>';
+    updateStatusbar();
+}
+
+function renderEmptyNotebook() {
+    const area = document.getElementById('notebookArea');
+    area.innerHTML = '<div class="welcome">'
+        + '<div class="welcome-icon">📝</div>'
+        + '<div class="welcome-title">空 Notebook</div>'
+        + '<div class="welcome-desc">点击下方按钮添加第一个 Cell</div>'
+        + '<button class="btn btn-primary" onclick="addCell(null,\'sql\')">+ 添加 SQL Cell</button>'
+        + '</div>';
+}
+
+function updateStatusbar() {
+    const nb = getCurrentNotebook();
+    const savedEl = document.getElementById('statusSaved');
+    const cellsEl = document.getElementById('statusCells');
+    if (nb) {
+        savedEl.textContent = state.lastSavedAt ? '已保存 ' + formatTime(state.lastSavedAt) : '未保存';
+        cellsEl.textContent = nb.cells.length + ' 个 Cell';
+    } else {
+        savedEl.textContent = '';
+        cellsEl.textContent = '';
+    }
+}
+
+
+/* ============================================
+   Part 4: Cell Management + renderCells
+   ============================================ */
+
+function renderCells() {
+    const nb = getCurrentNotebook();
+    if (!nb) { renderWelcome(); return; }
+    if (nb.cells.length === 0) { renderEmptyNotebook(); return; }
+    const area = document.getElementById('notebookArea');
+    // 清理旧 editors/charts
+    Object.keys(state.monacoEditors).forEach(k => {
+        if (!nb.cells.find(c => c.id === k)) { state.monacoEditors[k].dispose(); delete state.monacoEditors[k]; }
+    });
+    Object.keys(state.echartInstances).forEach(k => {
+        if (!nb.cells.find(c => c.id === k)) { state.echartInstances[k].dispose(); delete state.echartInstances[k]; }
+    });
+    area.innerHTML = '';
+    nb.cells.forEach((cell, idx) => {
+        // Cell add wrapper (before each cell except first)
+        if (idx === 0) {
+            const addW = createCellAddWrapper(null);
+            area.appendChild(addW);
+        }
+        const cellEl = document.createElement('div');
+        cellEl.className = 'cell' + (cell.id === state.focusedCellId ? ' focused' : '');
+        cellEl.id = 'cell-' + cell.id;
+        cellEl.setAttribute('draggable', !state.isReadonly);
+        cellEl.onclick = (e) => { if (!e.target.closest('.cell-actions') && !e.target.closest('.cell-add-wrapper')) focusCell(cell.id); };
+
+        // Drag events
+        if (!state.isReadonly) {
+            cellEl.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', cell.id); cellEl.style.opacity = '0.4'; });
+            cellEl.addEventListener('dragend', () => { cellEl.style.opacity = '1'; });
+            cellEl.addEventListener('dragover', (e) => { e.preventDefault(); cellEl.style.borderTop = '2px solid var(--primary)'; });
+            cellEl.addEventListener('dragleave', () => { cellEl.style.borderTop = ''; });
+            cellEl.addEventListener('drop', (e) => {
+                e.preventDefault(); cellEl.style.borderTop = '';
+                const draggedId = e.dataTransfer.getData('text/plain');
+                if (draggedId && draggedId !== cell.id) reorderCell(draggedId, cell.id);
+            });
+        }
+
+        // Indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'cell-indicator';
+        cellEl.appendChild(indicator);
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'cell-header';
+        const dragHandle = '<span class="cell-drag-handle" title="拖拽排序">⠿</span>';
+        const typeBadge = '<span class="cell-type-badge ' + cell.type + '">' + cell.type.toUpperCase() + '</span>';
+        const runNum = cell.type === 'sql' ? '<span style="font-size:11px;color:var(--text-tertiary)">[' + (idx+1) + ']</span>' : '';
+        let actionsHtml = '';
+        if (!state.isReadonly) {
+            actionsHtml = '<div class="cell-actions">';
+            if (cell.type === 'sql') actionsHtml += '<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();executeSQLCell(\'' + cell.id + '\')">▶ 运行</button>';
+            actionsHtml += '<button class="btn btn-sm btn-icon" onclick="event.stopPropagation();moveCellUp(\'' + cell.id + '\')" title="上移">↑</button>';
+            actionsHtml += '<button class="btn btn-sm btn-icon" onclick="event.stopPropagation();moveCellDown(\'' + cell.id + '\')" title="下移">↓</button>';
+            actionsHtml += '<button class="btn btn-sm btn-icon" onclick="event.stopPropagation();deleteCell(\'' + cell.id + '\')" title="删除" style="color:var(--danger)">✕</button>';
+            actionsHtml += '</div>';
+        }
+        header.innerHTML = dragHandle + typeBadge + runNum + actionsHtml;
+        cellEl.appendChild(header);
+
+        // Body
+        const body = document.createElement('div');
+        body.className = 'cell-body';
+        body.id = 'cellbody-' + cell.id;
+        cellEl.appendChild(body);
+
+        // Output
+        const output = document.createElement('div');
+        output.className = 'cell-output';
+        output.id = 'celloutput-' + cell.id;
+        cellEl.appendChild(output);
+
+        area.appendChild(cellEl);
+
+        // Render cell content
+        if (cell.type === 'sql') renderSQLCell(cell, body, output);
+        else if (cell.type === 'markdown') renderMarkdownCell(cell, body);
+        else if (cell.type === 'chart') renderChartCell(cell, body);
+
+        // Cell add wrapper after each cell
+        const addW = createCellAddWrapper(cell.id);
+        area.appendChild(addW);
+    });
+}
+
+function createCellAddWrapper(afterCellId) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cell-add-wrapper';
+    if (state.isReadonly) return wrapper;
+    wrapper.innerHTML = '<button class="cell-add-btn" onclick="showCellAddDropdown(\'' + (afterCellId||'') + '\', event)">+ 添加</button>'
+        + '<div class="cell-add-dropdown" id="dropdown-' + (afterCellId||'top') + '">'
+        + '<div class="cell-add-dropdown-item" onclick="addCell(\'' + (afterCellId||'') + '\',\'sql\');hideCellAddDropdown()">📊 SQL</div>'
+        + '<div class="cell-add-dropdown-item" onclick="addCell(\'' + (afterCellId||'') + '\',\'markdown\');hideCellAddDropdown()">📝 Markdown</div>'
+        + '</div>';
+    return wrapper;
+}
+
+function showCellAddDropdown(afterCellId, event) {
+    event.stopPropagation();
+    hideCellAddDropdown();
+    const dd = document.getElementById('dropdown-' + (afterCellId || 'top'));
+    if (dd) dd.classList.add('show');
+}
+
+function hideCellAddDropdown() {
+    document.querySelectorAll('.cell-add-dropdown.show').forEach(el => el.classList.remove('show'));
+}
+
+function addCell(afterCellId, type) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    const newCell = { id: genId(), type: type, source: '', output: null };
+    if (type === 'sql') newCell.status = 'idle';
+    if (type === 'chart') { newCell.sourceCell = null; newCell.chartType = 'bar'; newCell.xField = null; newCell.yField = null; }
+    if (!afterCellId) {
+        nb.cells.unshift(newCell);
+    } else {
+        const idx = nb.cells.findIndex(c => c.id === afterCellId);
+        nb.cells.splice(idx + 1, 0, newCell);
+    }
+    state.focusedCellId = newCell.id;
+    renderCells();
+    triggerAutoSave();
+    // 滚动到新 cell
+    setTimeout(() => {
+        const el = document.getElementById('cell-' + newCell.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+}
+
+async function deleteCell(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    if (nb.cells.length <= 1) { showToast('至少保留一个 Cell', 'error'); return; }
+    if (state.monacoEditors[cellId]) { state.monacoEditors[cellId].dispose(); delete state.monacoEditors[cellId]; }
+    if (state.echartInstances[cellId]) { state.echartInstances[cellId].dispose(); delete state.echartInstances[cellId]; }
+    nb.cells = nb.cells.filter(c => c.id !== cellId);
+    if (state.focusedCellId === cellId) state.focusedCellId = nb.cells[0]?.id || null;
+    renderCells();
+    triggerAutoSave();
+}
+
+function moveCellUp(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    const idx = nb.cells.findIndex(c => c.id === cellId);
+    if (idx <= 0) return;
+    [nb.cells[idx-1], nb.cells[idx]] = [nb.cells[idx], nb.cells[idx-1]];
+    renderCells();
+    triggerAutoSave();
+}
+
+function moveCellDown(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    const idx = nb.cells.findIndex(c => c.id === cellId);
+    if (idx < 0 || idx >= nb.cells.length - 1) return;
+    [nb.cells[idx], nb.cells[idx+1]] = [nb.cells[idx+1], nb.cells[idx]];
+    renderCells();
+    triggerAutoSave();
+}
+
+function focusCell(cellId) {
+    const prev = state.focusedCellId;
+    state.focusedCellId = cellId;
+    if (prev && prev !== cellId) {
+        const prevEl = document.getElementById('cell-' + prev);
+        if (prevEl) prevEl.classList.remove('focused');
+    }
+    const el = document.getElementById('cell-' + cellId);
+    if (el) el.classList.add('focused');
+}
+
+function reorderCell(draggedId, targetId) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const dragIdx = nb.cells.findIndex(c => c.id === draggedId);
+    const targetIdx = nb.cells.findIndex(c => c.id === targetId);
+    if (dragIdx < 0 || targetIdx < 0) return;
+    const [cell] = nb.cells.splice(dragIdx, 1);
+    nb.cells.splice(targetIdx, 0, cell);
+    renderCells();
+    triggerAutoSave();
+}
+
+
+/* ============================================
+   Part 5: SQL Cell + Mock Result Generation
+   ============================================ */
+
+function renderSQLCell(cell, bodyEl, outputEl) {
+    const editorContainer = document.createElement('div');
+    editorContainer.id = 'editor-' + cell.id;
+    editorContainer.style.cssText = 'min-height:60px;height:auto;';
+    bodyEl.appendChild(editorContainer);
+
+    if (window.monacoReady) {
+        createMonacoEditor(cell, editorContainer);
+    } else {
+        // Monaco 还没加载完，延迟创建
+        const waitInterval = setInterval(() => {
+            if (window.monacoReady) {
+                clearInterval(waitInterval);
+                createMonacoEditor(cell, editorContainer);
+            }
+        }, 200);
+    }
+
+    // 渲染已有结果
+    if (cell.output) renderCellResult(cell, outputEl);
+}
+
+function createMonacoEditor(cell, container) {
+    if (state.monacoEditors[cell.id]) return;
+    const lineCount = (cell.source || '').split('\n').length;
+    const height = Math.max(60, Math.min(lineCount * 19 + 16, 400));
+    container.style.height = height + 'px';
+
+    const editor = monaco.editor.create(container, {
+        value: cell.source || '',
+        language: 'sql',
+        theme: 'vs',
+        minimap: { enabled: false },
+        lineNumbers: 'on',
+        lineNumbersMinChars: 3,
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        fontSize: 13,
+        fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+        tabSize: 2,
+        wordWrap: 'on',
+        renderLineHighlight: 'line',
+        overviewRulerLanes: 0,
+        hideCursorInOverviewRuler: true,
+        scrollbar: { vertical: 'hidden', horizontal: 'auto' },
+        padding: { top: 8, bottom: 8 },
+        readOnly: state.isReadonly
+    });
+
+    // 自动调整高度
+    editor.onDidContentSizeChange(() => {
+        const contentHeight = Math.max(60, Math.min(editor.getContentHeight(), 400));
+        container.style.height = contentHeight + 'px';
+        editor.layout();
+    });
+
+    // 内容变化 -> 同步到 cell
+    editor.onDidChangeModelContent(() => {
+        cell.source = editor.getValue();
+        triggerAutoSave();
+    });
+
+    // 聚焦
+    editor.onDidFocusEditorWidget(() => {
+        focusCell(cell.id);
+    });
+
+    // Ctrl+Enter 执行
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+        executeSQLCell(cell.id);
+    });
+
+    // Shift+Enter 执行并跳到下一个
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.Enter, () => {
+        executeSQLCell(cell.id);
+        const nb = getCurrentNotebook();
+        if (nb) {
+            const idx = nb.cells.findIndex(c => c.id === cell.id);
+            if (idx < nb.cells.length - 1) {
+                const nextCell = nb.cells[idx + 1];
+                focusCell(nextCell.id);
+                if (state.monacoEditors[nextCell.id]) state.monacoEditors[nextCell.id].focus();
+            }
+        }
+    });
+
+    state.monacoEditors[cell.id] = editor;
+}
+
+function executeSQLCell(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell || cell.type !== 'sql') return;
+    const sql = (cell.source || '').trim();
+    if (!sql) { showToast('SQL 不能为空', 'error'); return; }
+
+    cell.status = 'running';
+    cell.output = null;
+    const outputEl = document.getElementById('celloutput-' + cellId);
+    if (outputEl) {
+        outputEl.innerHTML = '<div class="cell-result-status running">⏳ 执行中...</div>'
+            + '<div style="padding:8px 12px"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div>'
+            + '<div class="skeleton" style="height:16px;width:80%;margin-bottom:8px"></div>'
+            + '<div class="skeleton" style="height:16px;width:40%"></div></div>';
+    }
+
+    // 模拟延迟
+    const delay = 400 + Math.random() * 800;
+    setTimeout(() => {
+        try {
+            const result = generateMockResult(sql);
+            cell.output = result;
+            cell.status = 'success';
+            if (outputEl) renderCellResult(cell, outputEl);
+        } catch(err) {
+            cell.status = 'error';
+            cell.output = { error: err.message || '执行失败' };
+            if (outputEl) {
+                outputEl.innerHTML = '<div class="cell-result-status error">✕ 错误: ' + escapeHtml(cell.output.error) + '</div>';
+            }
+        }
+        triggerAutoSave();
+    }, delay);
+}
+
+function renderCellResult(cell, outputEl) {
+    if (!cell.output) { outputEl.innerHTML = ''; return; }
+    if (cell.output.error) {
+        outputEl.innerHTML = '<div class="cell-result-status error">✕ 错误: ' + escapeHtml(cell.output.error) + '</div>';
+        return;
+    }
+    const r = cell.output;
+    let html = '<div class="cell-result-status success">'
+        + '✓ ' + r.rowCount + ' 行 · ' + r.duration
+        + '<div class="cell-result-actions">'
+        + '<button class="btn btn-sm btn-text" onclick="exportCSV(\'' + cell.id + '\')">📥 导出CSV</button>'
+        + '<button class="btn btn-sm btn-text" onclick="createChartFromResult(\'' + cell.id + '\')">📊 转为图表</button>'
+        + '</div></div>';
+    // 表格
+    html += '<div class="result-table-wrapper"><table class="result-table"><thead><tr>';
+    r.columns.forEach(col => { html += '<th>' + escapeHtml(col) + '</th>'; });
+    html += '</tr></thead><tbody>';
+    r.rows.forEach(row => {
+        html += '<tr>';
+        row.forEach(val => { html += '<td>' + escapeHtml(String(val ?? 'NULL')) + '</td>'; });
+        html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    outputEl.innerHTML = html;
+}
+
+function generateMockResult(sql) {
+    const upper = sql.toUpperCase();
+    // 解析表名
+    const tableNames = [];
+    const fromMatch = upper.match(/FROM\s+(\w+)/g);
+    if (fromMatch) fromMatch.forEach(m => tableNames.push(m.replace(/FROM\s+/i, '').toLowerCase()));
+    const joinMatch = upper.match(/JOIN\s+(\w+)/g);
+    if (joinMatch) joinMatch.forEach(m => tableNames.push(m.replace(/JOIN\s+/i, '').toLowerCase()));
+    if (tableNames.length === 0) tableNames.push('users');
+
+    // 收集字段
+    let fields = [];
+    tableNames.forEach(tn => {
+        const t = MOCK_TABLES.find(tb => tb.name === tn);
+        if (t) fields = fields.concat(t.fields.map(f => ({ ...f, table: t.name })));
+    });
+    if (fields.length === 0) {
+        fields = MOCK_TABLES[0].fields.map(f => ({ ...f, table: 'users' }));
+    }
+
+    // 解析 SELECT 字段
+    let columns = [];
+    const selectStar = /SELECT\s+\*/i.test(sql);
+    if (selectStar) {
+        columns = fields.map(f => f.name);
+    } else {
+        // 尝试解析 SELECT ... FROM
+        const selMatch = sql.match(/SELECT\s+([\s\S]+?)\s+FROM/i);
+        if (selMatch) {
+            const parts = selMatch[1].split(',').map(s => s.trim());
+            parts.forEach(p => {
+                // 处理 alias: COUNT(*) AS xxx, SUM(amount) AS xxx
+                const asMatch = p.match(/AS\s+(\w+)/i);
+                if (asMatch) { columns.push(asMatch[1]); }
+                else {
+                    // 处理 table.field
+                    const dotMatch = p.match(/(\w+)\.(\w+)/);
+                    if (dotMatch) columns.push(dotMatch[2]);
+                    else {
+                        const funcMatch = p.match(/(\w+)\s*\(/);
+                        if (funcMatch) columns.push(funcMatch[1].toLowerCase() + '_val');
+                        else columns.push(p.split('.').pop().trim());
+                    }
+                }
+            });
+        } else {
+            columns = fields.slice(0, 4).map(f => f.name);
+        }
+    }
+    if (columns.length === 0) columns = ['id', 'value'];
+
+    // 生成数据
+    const rowCount = 5 + Math.floor(Math.random() * 11);
+    const rows = [];
+    const channels = ['自然搜索', '微信', '抖音', '小红书', '直接访问', '广告投放'];
+    const statuses = ['completed', 'pending', 'cancelled', 'refunded'];
+    const eventTypes = ['page_view', 'click', 'purchase', 'signup', 'share', 'search', 'add_cart'];
+    const categories = ['电子产品', '服装', '食品', '家居', '图书'];
+    const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑十一', '冯十二'];
+    const productNames = ['iPhone 15', 'MacBook Pro', 'AirPods', '小米手环', '华为Mate60', 'iPad Air', 'Switch', 'PS5', 'Kindle', '戴森吹风机'];
+
+    for (let i = 0; i < rowCount; i++) {
+        const row = [];
+        columns.forEach(col => {
+            const cl = col.toLowerCase();
+            if (cl === 'id' || cl.endsWith('_id')) row.push(1000 + i);
+            else if (cl === 'name' || cl === 'user_name') row.push(names[i % names.length]);
+            else if (cl === 'email') row.push(names[i % names.length].toLowerCase() + '@example.com');
+            else if (cl === 'channel') row.push(channels[i % channels.length]);
+            else if (cl === 'status') row.push(statuses[i % statuses.length]);
+            else if (cl === 'event_type') row.push(eventTypes[i % eventTypes.length]);
+            else if (cl === 'category') row.push(categories[i % categories.length]);
+            else if (cl === 'amount' || cl === 'total_amount' || cl === 'total_spent' || cl === 'gmv' || cl === 'price') row.push((Math.random() * 5000 + 100).toFixed(2));
+            else if (cl.includes('count') || cl === 'cnt' || cl === 'uv' || cl === 'user_count' || cl === 'order_count') row.push(Math.floor(Math.random() * 500 + 10));
+            else if (cl === 'month') row.push('2026-' + String(i % 12 + 1).padStart(2, '0'));
+            else if (cl === 'event_date') row.push('2026-03-' + String(i + 1).padStart(2, '0'));
+            else if (cl.includes('created_at') || cl.includes('time') || cl.includes('date')) row.push('2026-03-' + String(Math.floor(Math.random()*28+1)).padStart(2,'0') + ' ' + String(Math.floor(Math.random()*24)).padStart(2,'0') + ':' + String(Math.floor(Math.random()*60)).padStart(2,'0'));
+            else if (cl.includes('product') || cl === 'name' && tableNames.includes('products')) row.push(productNames[i % productNames.length]);
+            else if (cl === 'properties') row.push('{"source":"web"}');
+            else row.push('val_' + i);
+        });
+        rows.push(row);
+    }
+
+    return {
+        columns: columns,
+        rows: rows,
+        rowCount: rowCount,
+        duration: (0.1 + Math.random() * 0.9).toFixed(2) + 's'
+    };
+}
+
+
+/* ============================================
+   Part 6: Markdown Cell + Chart Cell
+   ============================================ */
+
+function renderMarkdownCell(cell, bodyEl) {
+    const wrapper = document.createElement('div');
+    wrapper.id = 'md-' + cell.id;
+    if (cell.source && cell.source.trim()) {
+        wrapper.className = 'markdown-rendered';
+        wrapper.innerHTML = marked.parse(cell.source);
+    } else {
+        wrapper.className = 'markdown-placeholder';
+        wrapper.textContent = '双击编辑 Markdown...';
+    }
+    if (!state.isReadonly) {
+        wrapper.addEventListener('dblclick', () => enterMarkdownEdit(cell, wrapper));
+    }
+    bodyEl.appendChild(wrapper);
+}
+
+function enterMarkdownEdit(cell, wrapper) {
+    const textarea = document.createElement('textarea');
+    textarea.className = 'markdown-edit-area';
+    textarea.value = cell.source || '';
+    textarea.placeholder = '输入 Markdown 内容...';
+    wrapper.replaceWith(textarea);
+    textarea.focus();
+
+    function exitEdit() {
+        cell.source = textarea.value;
+        const newWrapper = document.createElement('div');
+        newWrapper.id = 'md-' + cell.id;
+        if (cell.source && cell.source.trim()) {
+            newWrapper.className = 'markdown-rendered';
+            newWrapper.innerHTML = marked.parse(cell.source);
+        } else {
+            newWrapper.className = 'markdown-placeholder';
+            newWrapper.textContent = '双击编辑 Markdown...';
+        }
+        if (!state.isReadonly) {
+            newWrapper.addEventListener('dblclick', () => enterMarkdownEdit(cell, newWrapper));
+        }
+        textarea.replaceWith(newWrapper);
+        triggerAutoSave();
+    }
+
+    textarea.addEventListener('blur', exitEdit);
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { textarea.blur(); }
+    });
+}
+
+function renderChartCell(cell, bodyEl) {
+    // 设置面板
+    const settings = document.createElement('div');
+    settings.className = 'chart-settings';
+
+    // 数据源选择
+    const nb = getCurrentNotebook();
+    const sqlCells = nb ? nb.cells.filter(c => c.type === 'sql' && c.output && !c.output.error) : [];
+
+    let settingsHtml = '<label>数据源: <select id="chartSource-' + cell.id + '" onchange="updateChartSource(\'' + cell.id + '\', this.value)">';
+    settingsHtml += '<option value="">选择 SQL Cell</option>';
+    sqlCells.forEach((sc, i) => {
+        const selected = cell.sourceCell === sc.id ? ' selected' : '';
+        const label = 'Cell [' + (nb.cells.indexOf(sc) + 1) + '] ' + (sc.source || '').substring(0, 30);
+        settingsHtml += '<option value="' + sc.id + '"' + selected + '>' + escapeHtml(label) + '</option>';
+    });
+    settingsHtml += '</select></label>';
+
+    // 图表类型
+    settingsHtml += '<label>类型: <select id="chartType-' + cell.id + '" onchange="updateChartType(\'' + cell.id + '\', this.value)">';
+    ['bar', 'line', 'pie', 'scatter'].forEach(t => {
+        settingsHtml += '<option value="' + t + '"' + (cell.chartType === t ? ' selected' : '') + '>' + t + '</option>';
+    });
+    settingsHtml += '</select></label>';
+
+    // X/Y 字段
+    const sourceCell = cell.sourceCell ? nb.cells.find(c => c.id === cell.sourceCell) : null;
+    const cols = sourceCell && sourceCell.output && sourceCell.output.columns ? sourceCell.output.columns : [];
+
+    settingsHtml += '<label>X轴: <select id="chartX-' + cell.id + '" onchange="updateChartField(\'' + cell.id + '\', \'x\', this.value)">';
+    settingsHtml += '<option value="">自动</option>';
+    cols.forEach(c => { settingsHtml += '<option value="' + c + '"' + (cell.xField === c ? ' selected' : '') + '>' + c + '</option>'; });
+    settingsHtml += '</select></label>';
+
+    settingsHtml += '<label>Y轴: <select id="chartY-' + cell.id + '" onchange="updateChartField(\'' + cell.id + '\', \'y\', this.value)">';
+    settingsHtml += '<option value="">自动</option>';
+    cols.forEach(c => { settingsHtml += '<option value="' + c + '"' + (cell.yField === c ? ' selected' : '') + '>' + c + '</option>'; });
+    settingsHtml += '</select></label>';
+
+    settings.innerHTML = settingsHtml;
+    bodyEl.appendChild(settings);
+
+    // 图表容器
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'chart-container';
+    chartDiv.id = 'chart-' + cell.id;
+    bodyEl.appendChild(chartDiv);
+
+    // 渲染图表
+    setTimeout(() => updateChart(cell.id), 100);
+}
+
+function updateChartSource(cellId, sourceCellId) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell) return;
+    cell.sourceCell = sourceCellId || null;
+    cell.xField = null;
+    cell.yField = null;
+    renderCells();
+    triggerAutoSave();
+}
+
+function updateChartType(cellId, chartType) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell) return;
+    cell.chartType = chartType;
+    updateChart(cellId);
+    triggerAutoSave();
+}
+
+function updateChartField(cellId, axis, value) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell) return;
+    if (axis === 'x') cell.xField = value || null;
+    else cell.yField = value || null;
+    updateChart(cellId);
+    triggerAutoSave();
+}
+
+function updateChart(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell) return;
+    const container = document.getElementById('chart-' + cellId);
+    if (!container) return;
+
+    // 获取数据
+    const sourceCell = cell.sourceCell ? nb.cells.find(c => c.id === cell.sourceCell) : null;
+    if (!sourceCell || !sourceCell.output || sourceCell.output.error || !sourceCell.output.columns) {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-quaternary)">请先选择一个已执行的 SQL Cell 作为数据源</div>';
+        return;
+    }
+
+    const data = sourceCell.output;
+    const cols = data.columns;
+    const rows = data.rows;
+
+    // 确定 X/Y
+    let xIdx = cell.xField ? cols.indexOf(cell.xField) : 0;
+    let yIdx = cell.yField ? cols.indexOf(cell.yField) : (cols.length > 1 ? 1 : 0);
+    if (xIdx < 0) xIdx = 0;
+    if (yIdx < 0) yIdx = cols.length > 1 ? 1 : 0;
+
+    const xData = rows.map(r => r[xIdx]);
+    const yData = rows.map(r => parseFloat(r[yIdx]) || 0);
+
+    // 销毁旧实例
+    if (state.echartInstances[cellId]) {
+        state.echartInstances[cellId].dispose();
+        delete state.echartInstances[cellId];
+    }
+
+    container.innerHTML = '';
+    if (typeof echarts === 'undefined') {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-quaternary)">ECharts 未加载</div>';
+        return;
+    }
+
+    const chart = echarts.init(container);
+    state.echartInstances[cellId] = chart;
+
+    let option = {};
+    const chartType = cell.chartType || 'bar';
+
+    if (chartType === 'pie') {
+        option = {
+            tooltip: { trigger: 'item' },
+            series: [{
+                type: 'pie',
+                radius: '60%',
+                data: xData.map((x, i) => ({ name: String(x), value: yData[i] })),
+                label: { fontSize: 12 }
+            }]
+        };
+    } else {
+        option = {
+            tooltip: { trigger: 'axis' },
+            grid: { left: 60, right: 20, top: 20, bottom: 40 },
+            xAxis: { type: 'category', data: xData.map(String), axisLabel: { fontSize: 11, rotate: xData.length > 8 ? 30 : 0 } },
+            yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+            series: [{ type: chartType, data: yData, smooth: chartType === 'line' }]
+        };
+        if (chartType === 'scatter') {
+            option.xAxis = { type: 'value', axisLabel: { fontSize: 11 } };
+            option.series = [{ type: 'scatter', data: rows.map(r => [parseFloat(r[xIdx]) || 0, parseFloat(r[yIdx]) || 0]) }];
+        }
+    }
+    chart.setOption(option);
+}
+
+function createChartFromResult(sourceCellId) {
+    const nb = getCurrentNotebook();
+    if (!nb || state.isReadonly) return;
+    const newCell = {
+        id: genId(),
+        type: 'chart',
+        source: '',
+        output: null,
+        sourceCell: sourceCellId,
+        chartType: 'bar',
+        xField: null,
+        yField: null
+    };
+    const idx = nb.cells.findIndex(c => c.id === sourceCellId);
+    nb.cells.splice(idx + 1, 0, newCell);
+    renderCells();
+    triggerAutoSave();
+    setTimeout(() => {
+        const el = document.getElementById('cell-' + newCell.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+}
+
+/* ============================================
+   Part 7: Share + Export + Run All
+   ============================================ */
+
+function showShareModal() {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const link = 'https://data-platform.example.com/notebook/share/' + nb.id + '?token=' + genId();
+    document.getElementById('shareLink').value = link;
+    document.getElementById('shareModal').classList.remove('hidden');
+}
+
+function hideShareModal() {
+    document.getElementById('shareModal').classList.add('hidden');
+}
+
+function copyShareLink() {
+    const input = document.getElementById('shareLink');
+    input.select();
+    document.execCommand('copy');
+    showToast('链接已复制', 'success');
+}
+
+async function runAllCells() {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const sqlCells = nb.cells.filter(c => c.type === 'sql');
+    for (let i = 0; i < sqlCells.length; i++) {
+        const cell = sqlCells[i];
+        const sql = (cell.source || '').trim();
+        if (!sql) continue;
+        // 同步执行 mock
+        cell.status = 'running';
+        const outputEl = document.getElementById('celloutput-' + cell.id);
+        if (outputEl) outputEl.innerHTML = '<div class="cell-result-status running">⏳ 执行中... (' + (i+1) + '/' + sqlCells.length + ')</div>';
+        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500));
+        try {
+            const result = generateMockResult(sql);
+            cell.output = result;
+            cell.status = 'success';
+            if (outputEl) renderCellResult(cell, outputEl);
+        } catch(err) {
+            cell.status = 'error';
+            cell.output = { error: err.message };
+            if (outputEl) outputEl.innerHTML = '<div class="cell-result-status error">✕ 错误: ' + escapeHtml(err.message) + '</div>';
+            const cont = await showConfirm('Cell [' + (nb.cells.indexOf(cell)+1) + '] 执行失败，是否继续执行后续 Cell？');
+            if (!cont) break;
+        }
+    }
+    showToast('全部运行完成', 'success');
+    triggerAutoSave();
+}
+
+function exportCSV(cellId) {
+    const nb = getCurrentNotebook();
+    if (!nb) return;
+    const cell = nb.cells.find(c => c.id === cellId);
+    if (!cell || !cell.output || cell.output.error) { showToast('无可导出的数据', 'error'); return; }
+    const r = cell.output;
+    let csv = r.columns.join(',') + '\n';
+    r.rows.forEach(row => {
+        csv += row.map(v => {
+            const s = String(v ?? '');
+            return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+        }).join(',') + '\n';
+    });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'query_result_' + cellId + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV 已导出', 'success');
+}
+
+
+/* ============================================
+   Part 8: Sidebar Divider Drag + Shortcuts + Init + Monaco
+   ============================================ */
+
+// ---- Sidebar Divider Drag ----
+(function initSidebarDivider() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const divider = document.getElementById('sidebarDivider');
+        const top = document.getElementById('sidebarTop');
+        const bottom = document.getElementById('sidebarBottom');
+        if (!divider || !top || !bottom) return;
+        let startY = 0, startTopH = 0, startBottomH = 0, dragging = false;
+
+        divider.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            dragging = true;
+            startY = e.clientY;
+            startTopH = top.offsetHeight;
+            startBottomH = bottom.offsetHeight;
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const dy = e.clientY - startY;
+            const newTopH = Math.max(80, startTopH + dy);
+            const newBottomH = Math.max(80, startBottomH - dy);
+            top.style.flex = 'none';
+            bottom.style.flex = 'none';
+            top.style.height = newTopH + 'px';
+            bottom.style.height = newBottomH + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (dragging) {
+                dragging = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+    });
+})();
+
+// ---- Global Keyboard Shortcuts ----
+document.addEventListener('keydown', (e) => {
+    // Ctrl+S / Cmd+S: 保存
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveNotebook(true);
+    }
+});
+
+// ---- Global click to hide dropdowns ----
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.cell-add-btn') && !e.target.closest('.cell-add-dropdown')) {
+        hideCellAddDropdown();
+    }
+});
+
+// ---- Init ----
+function init() {
+    loadFromStorage();
+    renderNotebookList();
+    renderTableList();
+    if (state.notebooks.length > 0) {
+        openNotebook(state.notebooks[0].id);
+    } else {
+        renderWelcome();
+    }
+}
+
+// ---- Monaco Editor AMD Loader ----
+window.monacoReady = false;
+
+// 加载 marked.js (Markdown parser)
+(function loadMarked() {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js';
+    document.head.appendChild(s);
+})();
+
+// 加载 ECharts
+(function loadECharts() {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+    document.head.appendChild(s);
+})();
+
+// 加载 Monaco Editor
+(function loadMonaco() {
+    const loaderScript = document.createElement('script');
+    loaderScript.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js';
+    loaderScript.onload = function() {
+        require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            window.monacoReady = true;
+
+            // 注册 SQL 自动补全
+            monaco.languages.registerCompletionItemProvider('sql', {
+                provideCompletionItems: function(model, position) {
+                    const word = model.getWordUntilPosition(position);
+                    const range = {
+                        startLineNumber: position.lineNumber,
+                        endLineNumber: position.lineNumber,
+                        startColumn: word.startColumn,
+                        endColumn: word.endColumn
+                    };
+                    const suggestions = [];
+                    // SQL 关键字
+                    ['SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN',
+                     'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'AS', 'ON', 'AND', 'OR',
+                     'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER', 'COUNT', 'SUM', 'AVG',
+                     'MAX', 'MIN', 'DISTINCT', 'BETWEEN', 'IN', 'LIKE', 'IS NULL', 'IS NOT NULL',
+                     'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'UNION', 'UNION ALL', 'DATE_FORMAT'
+                    ].forEach(kw => {
+                        suggestions.push({
+                            label: kw,
+                            kind: monaco.languages.CompletionItemKind.Keyword,
+                            insertText: kw,
+                            range: range
+                        });
+                    });
+                    // 表名和字段
+                    MOCK_TABLES.forEach(t => {
+                        suggestions.push({
+                            label: t.name,
+                            kind: monaco.languages.CompletionItemKind.Class,
+                            insertText: t.name,
+                            detail: t.comment,
+                            range: range
+                        });
+                        t.fields.forEach(f => {
+                            suggestions.push({
+                                label: t.name + '.' + f.name,
+                                kind: monaco.languages.CompletionItemKind.Field,
+                                insertText: t.name + '.' + f.name,
+                                detail: f.type + ' ' + f.comment,
+                                range: range
+                            });
+                            suggestions.push({
+                                label: f.name,
+                                kind: monaco.languages.CompletionItemKind.Field,
+                                insertText: f.name,
+                                detail: t.name + '.' + f.type,
+                                range: range
+                            });
+                        });
+                    });
+                    return { suggestions: suggestions };
+                }
+            });
+
+            // Monaco 加载完成，初始化应用
+            init();
+        });
+    };
+    document.head.appendChild(loaderScript);
+})();
+</script>
+</body>
+</html>
