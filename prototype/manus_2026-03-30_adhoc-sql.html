@@ -48,7 +48,7 @@
     /* Header */
     .header {
       height: var(--header-h); background: #001529; display: flex; align-items: center;
-      padding: 0 20px; gap: 16px; flex-shrink: 0; z-index: 100;
+      padding: 0 20px; gap: 16px; flex-shrink: 0; position: relative; z-index: 1100;
     }
     .header-menu-trigger {
       width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(255,255,255,.14);
@@ -309,8 +309,9 @@
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000;
       display: none; align-items: center; justify-content: center;
+      pointer-events: none;
     }
-    .modal-overlay.open { display: flex; }
+    .modal-overlay.open { display: flex; pointer-events: auto; }
     .modal {
       background: #fff; border-radius: 8px; box-shadow: var(--shadow-md);
       width: 600px; max-width: 90vw; max-height: 85vh; display: flex; flex-direction: column;
@@ -647,7 +648,37 @@
     }
     .detail-hero-badge-label { font-size: 11px; color: #667085; margin-bottom: 3px; }
     .detail-hero-badge-value { font-size: 14px; font-weight: 600; color: #111827; line-height: 1.4; }
+    .detail-hero-extra {
+      margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .detail-hero-extra-item {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+      border: 1px solid var(--gray-200); border-radius: 999px; background: rgba(255,255,255,.72);
+      font-size: 12px; color: #475467; line-height: 1.5;
+    }
     .detail-overview-subtitle { font-size: 15px; font-weight: 700; color: var(--gray-800); margin-bottom: 14px; }
+    .detail-definition-split {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+    }
+    .detail-definition-column {
+      min-width: 0; display: flex; flex-direction: column; gap: 12px;
+    }
+    .detail-definition-block {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .detail-definition-block-title {
+      font-size: 12px; font-weight: 700; color: #667085; letter-spacing: .02em;
+    }
+    .detail-definition-group-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+    }
+    .detail-definition-group-card {
+      padding: 12px 14px; border: 1px solid var(--gray-200); border-radius: 8px; background: #fafafa;
+    }
+    .detail-definition-group-title {
+      font-size: 12px; font-weight: 700; color: #667085; margin-bottom: 10px;
+    }
+    .detail-empty-text { font-size: 13px; color: var(--gray-500); line-height: 1.7; }
     .detail-overview-grid {
       display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px;
     }
@@ -668,12 +699,6 @@
     .detail-code-caption {
       margin-top: 12px; font-size: 12px; color: #667085; line-height: 1.7;
     }
-    .detail-metric-callout {
-      margin-top: 14px; padding: 12px 16px; border-radius: 6px;
-      background: #eff6ff; border-left: 3px solid #3b82f6;
-      font-size: 13px; line-height: 1.7; color: #1e40af;
-    }
-    .detail-metric-callout strong { font-weight: 600; }
     .detail-mini-table {
       border-collapse: separate; border-spacing: 0; width: 100%;
       border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; background: #fff;
@@ -843,23 +868,6 @@
     .discovery-card-name { font-size:13px; font-weight:600; color:var(--gray-800); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
     .discovery-card-display { font-size:12px; color:var(--gray-500); margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .discovery-card-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    /* 水平列表布局 */
-    .discovery-list { display:flex; flex-direction:column; }
-    .discovery-list-item { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; cursor:pointer; border-bottom:1px solid var(--gray-100); transition:var(--transition); }
-    .discovery-list-item:last-child { border-bottom:none; }
-    .discovery-list-item:hover { background:var(--primary-light); }
-    .discovery-list-item-icon { width:36px; height:36px; border-radius:8px; background:var(--gray-50); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; margin-top:1px; }
-    .discovery-list-item-body { flex:1; min-width:0; }
-    .discovery-list-item-row1 { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-    .discovery-list-item-name { font-size:14px; font-weight:600; color:var(--gray-800); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:1; min-width:0; }
-    .discovery-list-item-tags { display:flex; align-items:center; gap:6px; flex-shrink:0; margin-left:auto; }
-    .discovery-list-item-tech { font-size:12px; color:var(--gray-400); font-family:'SF Mono',Menlo,Consolas,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .discovery-list-item-time { font-size:12px; color:var(--gray-400); white-space:nowrap; }
-    .discovery-rank { width:22px; height:22px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; color:#fff; margin-top:7px; }
-    .discovery-rank.top1 { background:#f5222d; }
-    .discovery-rank.top2 { background:#fa8c16; }
-    .discovery-rank.top3 { background:#faad14; }
-    .discovery-rank.other { background:var(--gray-300); color:var(--gray-600); }
     .hot-rank-badge { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
     .hot-topic-tag {
       display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
@@ -1562,6 +1570,7 @@
       cursor: not-allowed;
       pointer-events: none;
     }
+
     /* 详情页字段列表：分段 + 搜索同一行 */
     .fields-toolbar-row {
       display: flex;
@@ -1609,6 +1618,7 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(22,119,255,.1);
     }
+
     /* 目录排序样式 */
     .catalog-sort-btn {
       width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--gray-200);
@@ -2169,219 +2179,91 @@
             </div>
             <!-- 最近浏览 -->
             <div class="discovery-tab-content" id="dcontent-recent">
-              <div class="discovery-list">
-                <div class="discovery-list-item" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">订单明细宽表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time">刚刚</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div>
-                  </div>
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div></div>
+                  <div class="discovery-card-display">订单明细宽表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">刚刚</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户画像汇总表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time">2小时前</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div></div>
+                  <div class="discovery-card-display">用户画像汇总表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">2小时前</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="discovery-list-item-icon">📈</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">GMV日指标</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time">昨天</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">📈</div><div class="discovery-card-name" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div></div>
+                  <div class="discovery-card-display">GMV日指标</div>
+                  <div class="discovery-card-meta"><span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">昨天</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">支付明细宽表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time">2天前</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div></div>
+                  <div class="discovery-card-display">支付明细宽表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">2天前</span></div>
                 </div>
               </div>
             </div>
             <!-- 我的收藏 -->
             <div class="discovery-tab-content" id="dcontent-favorite">
-              <div class="discovery-list">
-                <div class="discovery-list-item" onclick="openDetail('asset','ods_user_log')">
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户行为原始日志</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">ODS</span>
-                        <span class="discovery-list-item-time">🔥 8,540</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div>
-                  </div>
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div></div>
+                  <div class="discovery-card-display">用户行为原始日志</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">ODS</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 8,540</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="discovery-list-item-icon">📊</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">销售日报</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time">🔥 4,980</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">📊</div><div class="discovery-card-name" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div></div>
+                  <div class="discovery-card-display">销售日报</div>
+                  <div class="discovery-card-meta"><span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 4,980</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','api_user_info')">
-                  <div class="discovery-list-item-icon">🔌</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户信息查询API</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time">🔥 4,120</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🔌</div><div class="discovery-card-name" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div></div>
+                  <div class="discovery-card-display">用户信息查询API</div>
+                  <div class="discovery-card-meta"><span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 4,120</span></div>
                 </div>
               </div>
             </div>
             <!-- 热门浏览 -->
             <div class="discovery-tab-content" id="dcontent-trending">
-              <div class="discovery-list">
-                <div class="discovery-list-item" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="discovery-rank top1">1</div>
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">订单明细宽表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time" style="color:var(--danger);font-weight:600;">🔥 9,820</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div>
-                  </div>
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div></div>
+                  <div class="discovery-card-display">订单明细宽表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--danger);font-weight:600;margin-left:auto;">🔥 9,820</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','ods_user_log')">
-                  <div class="discovery-rank top2">2</div>
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户行为原始日志</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time" style="color:var(--warning);font-weight:600;">🔥 8,540</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div></div>
+                  <div class="discovery-card-display">用户行为原始日志</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--warning);font-weight:600;margin-left:auto;">🔥 8,540</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="discovery-rank top3">3</div>
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户画像汇总表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time" style="color:var(--primary);font-weight:600;">🔥 7,230</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div></div>
+                  <div class="discovery-card-display">用户画像汇总表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--primary);font-weight:600;margin-left:auto;">🔥 7,230</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="discovery-rank other">4</div>
-                  <div class="discovery-list-item-icon">📈</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">GMV日指标</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time" style="font-weight:600;">🔥 6,890</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">📈</div><div class="discovery-card-name" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div></div>
+                  <div class="discovery-card-display">GMV日指标</div>
+                  <div class="discovery-card-meta"><span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 6,890</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="discovery-rank other">5</div>
-                  <div class="discovery-list-item-icon">🗃️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">支付明细宽表</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time" style="font-weight:600;">🔥 5,640</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div></div>
+                  <div class="discovery-card-display">支付明细宽表</div>
+                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 5,640</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="discovery-rank other">6</div>
-                  <div class="discovery-list-item-icon">📊</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">销售日报</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span>
-                        <span class="discovery-list-item-time" style="font-weight:600;">🔥 4,980</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">📊</div><div class="discovery-card-name" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div></div>
+                  <div class="discovery-card-display">销售日报</div>
+                  <div class="discovery-card-meta"><span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 4,980</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','api_user_info')">
-                  <div class="discovery-rank other">7</div>
-                  <div class="discovery-list-item-icon">🔌</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户信息查询API</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time" style="font-weight:600;">🔥 4,120</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🔌</div><div class="discovery-card-name" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div></div>
+                  <div class="discovery-card-display">用户信息查询API</div>
+                  <div class="discovery-card-meta"><span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 4,120</span></div>
                 </div>
-                <div class="discovery-list-item" onclick="openDetail('asset','label_user_value')">
-                  <div class="discovery-rank other">8</div>
-                  <div class="discovery-list-item-icon">🏷️</div>
-                  <div class="discovery-list-item-body">
-                    <div class="discovery-list-item-row1">
-                      <div class="discovery-list-item-name">用户价値分层标签</div>
-                      <div class="discovery-list-item-tags">
-                        <span class="tag tag-gray">标签</span><span class="tag tag-gray">用户域</span>
-                        <span class="discovery-list-item-time" style="font-weight:600;">🔥 3,760</span>
-                      </div>
-                    </div>
-                    <div class="discovery-list-item-tech" title="label_user_value">label_user_value</div>
-                  </div>
+                <div class="discovery-card" onclick="openDetail('asset','label_user_value')">
+                  <div class="discovery-card-header"><div class="discovery-card-icon">🏷️</div><div class="discovery-card-name">label_user_value</div></div>
+                  <div class="discovery-card-display">用户价値分层标签</div>
+                  <div class="discovery-card-meta"><span class="tag tag-gray">标签</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 3,760</span></div>
                 </div>
               </div>
             </div>
@@ -3724,6 +3606,155 @@
 </div>
 
 <!-- 单条资源信息编辑 Modal -->
+<!-- ===== 治理操作弹窗 ===== -->
+
+<!-- 编辑信息（自助，记日志） -->
+<div class="modal-overlay" id="modal-gov-edit">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">编辑信息</div>
+      <span class="modal-close" onclick="closeModal('modal-gov-edit')">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:16px;padding:8px 12px;background:var(--gray-50);border-radius:6px;">修改后即时生效，操作记录将写入审计日志。</div>
+      <input type="hidden" id="gov-edit-id" />
+      <div class="form-item">
+        <label class="form-label">中文名</label>
+        <input class="input form-input" id="gov-edit-display" placeholder="请输入中文名称" />
+      </div>
+      <div class="form-item">
+        <label class="form-label">描述</label>
+        <textarea class="form-textarea" id="gov-edit-desc" placeholder="请输入资产描述" rows="3"></textarea>
+      </div>
+      <div class="form-item">
+        <label class="form-label">使用说明</label>
+        <textarea class="form-textarea" id="gov-edit-usage" placeholder="请输入使用说明" rows="3"></textarea>
+      </div>
+      <div class="form-item">
+        <label class="form-label">标签</label>
+        <input class="input form-input" id="gov-edit-tags" placeholder="输入标签，多个用逗号分隔" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-gov-edit')">取消</button>
+      <button class="btn btn-primary" onclick="submitGovEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 变更目录（走审批） -->
+<div class="modal-overlay" id="modal-gov-catalog">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">变更目录</div>
+      <span class="modal-close" onclick="closeModal('modal-gov-catalog')">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--warning);margin-bottom:16px;padding:8px 12px;background:#fffbe6;border-radius:6px;border:1px solid #ffe58f;">变更目录将提交审批，审批通过后即时生效。</div>
+      <input type="hidden" id="gov-catalog-id" />
+      <div class="form-item">
+        <label class="form-label">当前目录</label>
+        <div id="gov-catalog-current" style="font-size:13px;color:var(--gray-600);padding:6px 0;"></div>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">新目录</label>
+        <select class="select form-input" id="gov-catalog-new">
+          <option value="">请选择目录</option>
+          <option>交易域/订单/订单明细</option>
+          <option>交易域/支付/支付明细</option>
+          <option>用户域/行为/用户访问</option>
+          <option>用户域/画像/用户标签</option>
+          <option>物流域/运单/运单明细</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">变更原因</label>
+        <textarea class="form-textarea" id="gov-catalog-reason" placeholder="请说明变更原因" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-gov-catalog')">取消</button>
+      <button class="btn btn-primary" onclick="submitGovCatalog()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<!-- 转交负责人（走审批） -->
+<div class="modal-overlay" id="modal-gov-transfer">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">转交负责人</div>
+      <span class="modal-close" onclick="closeModal('modal-gov-transfer')">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:16px;padding:8px 12px;background:var(--gray-50);border-radius:6px;">仅转交您自己的负责人身份，不影响其他负责人。审批流：您的上级 → 被转交人确认 → 被转交人上级（重复可跳过）。</div>
+      <input type="hidden" id="gov-transfer-id" />
+      <div class="form-item">
+        <label class="form-label">当前负责人</label>
+        <div id="gov-transfer-current-owners" style="font-size:13px;color:var(--gray-600);padding:6px 0;"></div>
+      </div>
+      <div class="form-item">
+        <label class="form-label required">转交给</label>
+        <input class="input form-input" id="gov-transfer-to" placeholder="搜索姓名或工号..." />
+      </div>
+      <div class="form-item">
+        <label class="form-label required">转交原因</label>
+        <textarea class="form-textarea" id="gov-transfer-reason" placeholder="请说明转交原因" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-gov-transfer')">取消</button>
+      <button class="btn btn-primary" onclick="submitGovTransfer()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提交上架（走审批） -->
+<div class="modal-overlay" id="modal-gov-publish">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">提交上架申请</div>
+      <span class="modal-close" onclick="closeModal('modal-gov-publish')">×</span>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="gov-publish-id" />
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;">上架前校验</div>
+      <div id="gov-publish-checks" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <div class="form-item">
+        <label class="form-label">上架说明（可选）</label>
+        <textarea class="form-textarea" id="gov-publish-note" placeholder="补充说明，如数据来源、更新频率等" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-gov-publish')">取消</button>
+      <button class="btn btn-primary" onclick="submitGovPublish()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+<!-- 申请下架（走审批） -->
+<div class="modal-overlay" id="modal-gov-unlist">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">申请下架</div>
+      <span class="modal-close" onclick="closeModal('modal-gov-unlist')">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--warning);margin-bottom:16px;padding:8px 12px;background:#fffbe6;border-radius:6px;border:1px solid #ffe58f;">下架后该资产将从资产目录中隐藏，已有权限的用户将无法继续访问。</div>
+      <input type="hidden" id="gov-unlist-id" />
+      <div class="form-item">
+        <label class="form-label required">下架原因</label>
+        <textarea class="form-textarea" id="gov-unlist-reason" placeholder="请说明下架原因" rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('modal-gov-unlist')">取消</button>
+      <button class="btn btn-danger" onclick="submitGovUnlist()">提交审批</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="modal-resource-edit">
   <div class="modal" style="width:640px;">
     <div class="modal-header">
@@ -4358,24 +4389,19 @@ const DETAIL_API_DEFINITIONS = {
 const DETAIL_REPORT_DEFINITIONS = {
   rpt_sales_daily: {
     summary: '围绕销售额、订单数与渠道贡献做日常经营复盘的标准日报。',
+    system: '万联灵析经营分析看板',
+    platform: '万联灵析 / BI 报表',
+    directory: '经营分析 / 日报 / 销售日报',
     metrics: ['总成交金额', '支付订单数', '支付转化率', '渠道贡献占比'],
-    refresh: '每日 09:30 自动刷新',
-    audience: ['业务负责人', '经营分析师', '区域运营'],
-    scenarios: ['日报晨会', '渠道复盘', '大促日报'],
-    cautions: [
-      '退款类指标默认按退款发生日展示，需要结合专项报表交叉验证。',
-      '多渠道去重用户口径以用户中心主键为准。'
-    ],
+    dimensions: ['渠道', '区域', '品类', '时段'],
   },
   r006: {
     summary: '汇总关键经营指标变化趋势的周报看板，用于周经营例会与阶段复盘。',
+    system: '经营周会决策看板',
+    platform: '万联灵析 / BI 报表',
+    directory: '经营分析 / 周报 / 周经营汇总',
     metrics: ['GMV', '活跃用户数', '下单转化率', '库存周转天数'],
-    refresh: '每周一 08:30 自动刷新',
-    audience: ['经营管理层', '业务负责人', '分析团队'],
-    scenarios: ['周经营例会', '阶段复盘', '经营预警'],
-    cautions: [
-      '部分指标采用周累计口径，和日报不可直接横向比较。'
-    ],
+    dimensions: ['业务线', '区域', '周次', '专题主题'],
   },
 };
 
@@ -5461,6 +5487,48 @@ function renderDetailHeroCard(type, eyebrow, title, summary, badges = [], extra 
   `;
 }
 
+function renderDefinitionSection(title, innerHtml) {
+  return `
+    <div class="detail-overview-card">
+      <div class="detail-overview-subtitle">${title}</div>
+      ${innerHtml}
+    </div>
+  `;
+}
+
+function renderDefinitionTagList(items = [], tone = 'gray') {
+  if (!items.length) return `<div class="detail-empty-text">待补充</div>`;
+  return `<div class="detail-mini-tag-row">${items.map(item => `<span class="tag tag-${tone}">${item}</span>`).join('')}</div>`;
+}
+
+function renderDefinitionNoteList(items = []) {
+  if (!items.length) return `<div class="detail-empty-text">待补充</div>`;
+  return `<div class="detail-note-list">${items.map(item => `<div class="detail-note-item">${item}</div>`).join('')}</div>`;
+}
+
+function renderDefinitionGroupCards(groups = []) {
+  if (!groups.length) return `<div class="detail-empty-text">待补充</div>`;
+  return `
+    <div class="detail-definition-group-grid">
+      ${groups.map(group => `
+        <div class="detail-definition-group-card">
+          <div class="detail-definition-group-title">${group.title}</div>
+          ${renderDefinitionTagList(group.items || [], 'gray')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderDetailHeroMeta(items = []) {
+  if (!items.length) return '';
+  return `
+    <div class="detail-hero-extra">
+      ${items.map(item => `<span class="detail-hero-extra-item"><strong>${item.label}：</strong>${item.value || '-'}</span>`).join('')}
+    </div>
+  `;
+}
+
 function getMetricDefinition(record) {
   return DETAIL_METRIC_DEFINITIONS[record?.id] || {
     summary: record?.summary || '-',
@@ -5527,48 +5595,68 @@ function getApiDefinition(record) {
 function getReportDefinition(record) {
   return DETAIL_REPORT_DEFINITIONS[record?.id] || {
     summary: record?.summary || '-',
+    system: record?.source_system || '待补充',
+    platform: record?.source_system || '待补充',
+    directory: record?.catalog || '未归属',
     metrics: record?.tags || [],
-    refresh: '待补充',
-    audience: ['业务负责人'],
-    scenarios: ['经营分析'],
-    cautions: ['使用说明待补充'],
+    dimensions: [],
   };
 }
 
 function renderMetricDefinitionTab(record) {
   const meta = getMetricDefinition(record);
   return `
-    <div class="detail-overview-card">
-      <div class="detail-overview-subtitle">口径概览</div>
-      <div style="font-size:13px;line-height:1.7;color:#475467;margin-bottom:14px;">${meta.summary || '-'}</div>
-      ${renderDetailOverviewGrid([
-        ['统计对象', meta.object],
-        ['统计粒度', meta.grain, true],
-        ['统计周期', meta.cycle],
-        ['更新频率', meta.frequency],
-        ['数据延迟', meta.latency],
-      ])}
-    </div>
-    <div class="detail-overview-card">
-      <div class="detail-overview-subtitle">计算逻辑 / 指标公式</div>
-      <div class="detail-code-block">${meta.formula}</div>
-      <div class="detail-code-caption">说明：该公式为平台沉淀的标准口径，用于经营看板与专题分析统一取数。</div>
-    </div>
-    <div class="detail-overview-card">
-      <div class="detail-overview-subtitle">适用场景与维度</div>
-      <div class="detail-mini-tag-row">${meta.dimensions.map(item => `<span class="tag tag-blue">${item}</span>`).join('')}</div>
-      <div class="detail-note-list" style="margin-top:12px;">
-        ${meta.scenarios.map(item => `<div class="detail-note-item">${item}</div>`).join('')}
-      </div>
-    </div>
-    <div class="detail-overview-card">
-      <div class="detail-overview-subtitle">使用提醒</div>
-      <div class="detail-note-list">
-        ${meta.cautions.map(item => `<div class="detail-note-item">${item}</div>`).join('')}
-      </div>
-      <div class="detail-metric-callout">
-        <strong>最近一个周期示例值：</strong>${meta.example}
-      </div>
+    <div class="detail-section">
+      <div class="detail-section-title">指标定义</div>
+      ${renderDetailHeroCard(
+        'metric',
+        '核心指标定义',
+        `${record?.display || '-'} <span class="tag tag-blue">${record?.name || '-'}</span>`,
+        meta.summary,
+        [
+          { label: '统计粒度', value: meta.grain },
+          { label: '统计周期', value: meta.cycle },
+          { label: '更新频率', value: meta.frequency },
+          { label: '最近示例值', value: meta.example },
+        ],
+        renderDetailHeroMeta([
+          { label: '统计对象', value: meta.object },
+          { label: '数据延迟', value: meta.latency },
+        ])
+      )}
+      ${renderDefinitionSection('口径概览与计算逻辑', `
+        ${renderDetailOverviewGrid([
+          ['统计对象', meta.object],
+          ['统计粒度', meta.grain, true],
+          ['统计周期', meta.cycle],
+          ['更新频率', meta.frequency],
+          ['数据延迟', meta.latency],
+        ])}
+        <div class="detail-code-block">${meta.formula}</div>
+        <div class="detail-code-caption">说明：该公式为平台沉淀的标准口径，用于经营看板与专题分析统一取数。</div>
+      `)}
+      ${renderDefinitionSection('适用场景与维度', `
+        <div class="detail-definition-split">
+          <div class="detail-definition-column">
+            <div class="detail-definition-block">
+              <div class="detail-definition-block-title">常用分析维度</div>
+              ${renderDefinitionTagList(meta.dimensions, 'gray')}
+            </div>
+          </div>
+          <div class="detail-definition-column">
+            <div class="detail-definition-block">
+              <div class="detail-definition-block-title">适用场景</div>
+              ${renderDefinitionNoteList(meta.scenarios)}
+            </div>
+          </div>
+        </div>
+      `)}
+      ${renderDefinitionSection('使用提醒', `
+        ${renderDefinitionNoteList([
+          ...meta.cautions,
+          `<strong>最近一个周期示例值：</strong>${meta.example}`,
+        ])}
+      `)}
     </div>
   `;
 }
@@ -5697,40 +5785,31 @@ function renderReportDefinitionTab(record) {
   return `
     <div class="detail-section">
       <div class="detail-section-title">报表定义</div>
-      ${renderDetailHeroCard(
-        'report',
-        '报表使用说明',
-        `${record?.display || '-'} <span class="tag tag-orange">${record?.name || '-'}</span>`,
-        meta.summary,
-        [
-          { label: '刷新频率', value: meta.refresh },
-          { label: '核心指标数', value: String(meta.metrics.length || 0) },
-          { label: '适用角色数', value: String(meta.audience.length || 0) },
-          { label: '典型场景', value: meta.scenarios[0] || '-' },
-        ]
-      )}
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">报表概览</div>
+      ${renderDefinitionSection('报表概览', `
         ${renderDetailOverviewGrid([
-          ['刷新频率', meta.refresh, true],
-          ['核心指标数', String(meta.metrics.length || 0)],
-          ['适用角色数', String(meta.audience.length || 0)],
+          ['报表名称', `${record?.display || '-'}（${record?.name || '-'}）`, true],
+          ['描述', meta.summary],
+          ['所属系统', meta.system],
+          ['来源平台', meta.platform],
+          ['报表目录', meta.directory],
         ])}
-      </div>
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">核心指标</div>
-        <div class="detail-mini-tag-row">${meta.metrics.map(item => `<span class="tag tag-gray">${item}</span>`).join('')}</div>
-        <div class="detail-note-list" style="margin-top:12px;">
-          ${meta.scenarios.map(item => `<div class="detail-note-item">${item}</div>`).join('')}
+      `)}
+      ${renderDefinitionSection('核心内容与分析视角', `
+        <div class="detail-definition-split">
+          <div class="detail-definition-column">
+            <div class="detail-definition-block">
+              <div class="detail-definition-block-title">核心指标</div>
+              ${renderDefinitionTagList(meta.metrics, 'gray')}
+            </div>
+          </div>
+          <div class="detail-definition-column">
+            <div class="detail-definition-block">
+              <div class="detail-definition-block-title">分析维度</div>
+              ${renderDefinitionTagList(meta.dimensions, 'gray')}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">使用提醒</div>
-        <div class="detail-note-list">
-          ${meta.audience.map(item => `<div class="detail-note-item">适用角色：${item}</div>`).join('')}
-          ${meta.cautions.map(item => `<div class="detail-note-item">${item}</div>`).join('')}
-        </div>
-      </div>
+      `)}
     </div>
   `;
 }
@@ -5760,9 +5839,13 @@ function getDetailSidebarData(obj, domain = currentDetailType) {
         ['统计周期', meta.cycle],
         ['更新频率', meta.frequency],
         ['口径状态', '已认证'],
+      ]},
+      { title: '管理信息', items: [
         ['来源平台', platformFull],
-        ['技术负责人', obj?.tech_owner || '-'],
-        ['业务负责人', obj?.biz_owner || '-'],
+        ['负责人', obj?.biz_owner || obj?.tech_owner || '-'],
+        ['目录归属', obj?.catalog || '未归属'],
+        ['创建时间', obj?.created || '2026-02-15'],
+        ['更新时间', obj?.updated || '-'],
       ]},
       { title: '使用统计', items: [
         ['近30天查询量', stats.query30d.toLocaleString()],
@@ -5833,15 +5916,9 @@ function getDetailSidebarData(obj, domain = currentDetailType) {
       { title: '基本信息', items: [
         ['中文名', obj?.display || '-'],
         ['描述', obj?.summary || '-'],
-        ['刷新频率', meta.refresh],
-      ]},
-      { title: '管理信息', items: [
-        ['技术负责人', obj?.tech_owner || '-'],
-        ['业务负责人', obj?.biz_owner || '-'],
-        ['平台来源', platformFull],
-        ['目录归属', obj?.catalog || '未归属'],
-        ['创建时间', obj?.created || '2026-02-15'],
-        ['更新时间', obj?.updated || '-'],
+        ['所属系统', meta.system],
+        ['来源平台', meta.platform || platformFull],
+        ['报表目录', meta.directory || obj?.catalog || '未归属'],
       ]},
       { title: '使用统计', items: [
         ['近30天查看量', stats.query30d.toLocaleString()],
@@ -8202,7 +8279,7 @@ function doBatchRestoreMaintain() {
 // 异常处理Tab切换
 function switchErrorTab(tab) {
   currentErrorTab = tab;
-  ['all','missing-info','invalid','no-owner','no-catalog'].forEach(t => {
+  ['all','no-owner','owner-resigned','invalid','no-catalog','missing-info'].forEach(t => {
     const el = document.getElementById(`err-tab-${t}`);
     if (el) el.classList.toggle('active', t === tab);
   });
@@ -8238,10 +8315,18 @@ function renderMgmtErrors() {
       <td style="font-size:12px;white-space:nowrap;">${e.found}</td>
       <td><span class="tag ${statusTagMap[e.handleStatus]||'tag-gray'}">${statusMap[e.handleStatus]||e.handleStatus}</span></td>
       <td style="white-space:nowrap;">
-        ${e.handleStatus === 'pending' ? `
-          <button class="btn btn-default btn-sm" onclick="handleError('${e.id}')">处理</button>
-          <button class="btn btn-link btn-sm" onclick="ignoreError('${e.id}')">忽略</button>
-        ` : `<button class="btn btn-link btn-sm" onclick="reopenError('${e.id}')">重新处理</button>`}
+        ${e.handleStatus === 'pending' ? (() => {
+          const actionLabel = {
+            'no-owner': '设置负责人',
+            'owner-resigned': '转交负责人',
+            'invalid': '申请下架',
+            'no-catalog': '设置目录',
+            'missing-info': '去完善',
+            'no-write': '申请下架',
+          }[e.type] || '处理';
+          return `<button class="btn btn-default btn-sm" onclick="handleError('${e.id}')">${actionLabel}</button>
+          <button class="btn btn-link btn-sm" onclick="ignoreError('${e.id}')">忽略</button>`;
+        })() : `<button class="btn btn-link btn-sm" onclick="reopenError('${e.id}')">重新处理</button>`}
       </td>
     </tr>`).join('');
   // 隐藏分页
@@ -8252,26 +8337,147 @@ function renderMgmtErrors() {
 function handleError(id) {
   const e = MOCK_ERRORS.find(e => e.id === id);
   if (!e) return;
-  if (e.type === 'missing-info' || e.type === 'no-catalog') {
-    if (e.resourceId) {
-      switchResourceListTab('all');
-      setTimeout(() => openResourceEditModal(e.resourceId), 100);
-    } else {
-      showNotification('info', '处理提示', '请在资源列表中找到该资源并补充信息');
-    }
+  if (e.type === 'missing-info') {
+    // 去完善 → 编辑信息弹窗（只有中文名/描述/使用说明/标签，不含负责人和目录）
+    openGovEditModal(e.resourceId || e.id);
+  } else if (e.type === 'no-catalog') {
+    // 设置目录 → 变更目录审批弹窗
+    openGovCatalogModal(e.resourceId || e.id);
   } else if (e.type === 'invalid') {
-    if (e.resourceId) {
-      const r = MOCK_RESOURCES.find(r => r.id === e.resourceId);
-      if (r) { doUnlist(e.resourceId); }
-    }
-    e.handleStatus = 'handled';
-    showNotification('success', '已处理', '已标记为已处理');
-  } else if (e.type === 'no-owner') {
-    showNotification('info', '处理提示', '请联系管理员重新指定资源负责人');
-    e.handleStatus = 'handled';
+    // 资源失效 → 申请下架审批弹窗
+    openGovUnlistModal(e.resourceId || e.id);
+  } else if (e.type === 'no-owner' || e.type === 'owner-resigned') {
+    // 无负责人 / 负责人已离职 → 转交负责人审批弹窗
+    openGovTransferModal(e.resourceId || e.id);
+  } else if (e.type === 'no-write') {
+    // 长期无写入 → 申请下架审批弹窗
+    openGovUnlistModal(e.resourceId || e.id);
   }
   renderMgmtErrors();
 }
+
+function openGovEditModal(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id) || {};
+  document.getElementById('gov-edit-id').value = id;
+  document.getElementById('gov-edit-display').value = r.display || r.name || '';
+  document.getElementById('gov-edit-desc').value = r.description || r.summary || '';
+  document.getElementById('gov-edit-usage').value = r.usage || '';
+  document.getElementById('gov-edit-tags').value = (r.tags || []).join(', ');
+  openModal('modal-gov-edit');
+}
+
+function submitGovEdit() {
+  const id = document.getElementById('gov-edit-id').value;
+  const r = MOCK_RESOURCES.find(x => x.id === id);
+  if (r) {
+    r.display = document.getElementById('gov-edit-display').value;
+    r.description = document.getElementById('gov-edit-desc').value;
+    r.summary = r.description;
+    r.usage = document.getElementById('gov-edit-usage').value;
+    const tagsVal = document.getElementById('gov-edit-tags').value;
+    r.tags = tagsVal ? tagsVal.split(',').map(t => t.trim()).filter(Boolean) : [];
+  }
+  closeModal('modal-gov-edit');
+  showNotification('success', '信息已更新', '修改已即时生效，操作已记录至审计日志');
+  renderMgmtResourceList();
+}
+
+function openGovCatalogModal(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id) || {};
+  document.getElementById('gov-catalog-id').value = id;
+  document.getElementById('gov-catalog-current').textContent = r.catalog || r.domain || '未归属';
+  document.getElementById('gov-catalog-new').value = '';
+  document.getElementById('gov-catalog-reason').value = '';
+  openModal('modal-gov-catalog');
+}
+
+function submitGovCatalog() {
+  const newCatalog = document.getElementById('gov-catalog-new').value;
+  const reason = document.getElementById('gov-catalog-reason').value.trim();
+  if (!newCatalog) { showNotification('error', '请选择新目录'); return; }
+  if (!reason) { showNotification('error', '请填写变更原因'); return; }
+  closeModal('modal-gov-catalog');
+  showNotification('success', '变更目录申请已提交', '等待数据管理员审批');
+}
+
+function openGovTransferModal(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id) || {};
+  document.getElementById('gov-transfer-id').value = id;
+  document.getElementById('gov-transfer-current-owners').textContent = r.biz_owner || r.owner || '当前负责人';
+  document.getElementById('gov-transfer-to').value = '';
+  document.getElementById('gov-transfer-reason').value = '';
+  openModal('modal-gov-transfer');
+}
+
+function submitGovTransfer() {
+  const to = document.getElementById('gov-transfer-to').value.trim();
+  const reason = document.getElementById('gov-transfer-reason').value.trim();
+  if (!to) { showNotification('error', '请填写被转交人'); return; }
+  if (!reason) { showNotification('error', '请填写转交原因'); return; }
+  closeModal('modal-gov-transfer');
+  showNotification('success', '转交申请已提交', '审批流：您的上级 → 被转交人确认 → 被转交人上级');
+}
+
+function openGovPublishModal(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id) || {};
+  document.getElementById('gov-publish-id').value = id;
+  document.getElementById('gov-publish-note').value = '';
+  const checks = [
+    { ok: !!(r.display || r.name), label: '中文名已填写' },
+    { ok: !!(r.description || r.summary), label: '描述已填写' },
+    { ok: !!(r.catalog || r.domain), label: '目录已归属' },
+    { ok: !!(r.biz_owner || r.owner), label: '负责人已设置' },
+  ];
+  document.getElementById('gov-publish-checks').innerHTML = checks.map(c =>
+    '<div style="display:flex;align-items:center;gap:8px;font-size:13px;"><span style="color:' + (c.ok ? 'var(--success)' : 'var(--danger)') + ';">' + (c.ok ? '✅' : '❌') + '</span> ' + c.label + '</div>'
+  ).join('');
+  openModal('modal-gov-publish');
+}
+
+function submitGovPublish() {
+  const id = document.getElementById('gov-publish-id').value;
+  const r = MOCK_RESOURCES.find(x => x.id === id);
+  if (r) r.status = 'reviewing';
+  closeModal('modal-gov-publish');
+  showNotification('success', '上架申请已提交', '等待数据管理员审批');
+  renderMgmtResourceList();
+}
+
+function openGovUnlistModal(id) {
+  document.getElementById('gov-unlist-id').value = id;
+  document.getElementById('gov-unlist-reason').value = '';
+  openModal('modal-gov-unlist');
+}
+
+function submitGovUnlist() {
+  const reason = document.getElementById('gov-unlist-reason').value.trim();
+  if (!reason) { showNotification('error', '请填写下架原因'); return; }
+  const id = document.getElementById('gov-unlist-id').value;
+  const r = MOCK_RESOURCES.find(x => x.id === id);
+  if (r) r.status = 'unlisting';
+  closeModal('modal-gov-unlist');
+  showNotification('success', '下架申请已提交', '等待数据管理员审批');
+  renderMgmtResourceList();
+}
+
+function doWithdrawPublish(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id);
+  if (r) r.status = 'maintain';
+  showNotification('info', '上架申请已撤回');
+  renderMgmtResourceList();
+}
+
+function doWithdrawUnlist(id) {
+  const r = MOCK_RESOURCES.find(x => x.id === id);
+  if (r) r.status = 'published';
+  showNotification('info', '下架申请已撤回');
+  renderMgmtResourceList();
+}
+
+function openBatchGovPublishModal() { showNotification('info', '批量提交上架', '已选 ' + mgmtSelectedIds.size + ' 项'); }
+function openBatchGovUnlistModal() { showNotification('info', '批量申请下架', '已选 ' + mgmtSelectedIds.size + ' 项'); }
+function openBatchGovCatalogModal() { if (mgmtSelectedIds.size) openGovCatalogModal(Array.from(mgmtSelectedIds)[0]); }
+function openBatchGovTransferModal() { if (mgmtSelectedIds.size) openGovTransferModal(Array.from(mgmtSelectedIds)[0]); }
 
 function ignoreError(id) {
   const e = MOCK_ERRORS.find(e => e.id === id);
