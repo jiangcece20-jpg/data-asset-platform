@@ -2263,228 +2263,15 @@
             </div>
             <!-- 最近浏览 -->
             <div class="discovery-tab-content" id="dcontent-recent">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dwd_ctps_product_browsered_company_shop_device_product_d1</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">订单明细宽表</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat">刚刚</span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dws_vlsp_mb_domain_entire_business_process_1m_df</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户画像汇总表</span>
-                      <span class="source-badge source-badge-analytic">SelectDB</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat">2小时前</span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="dc-icon">📈</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">metric_gmv_daily</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">GMV日指标</span>
-                      <span class="source-badge source-badge-metric">指标平台</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-purple">指标</span>
-                    <span class="dc-stat">昨天</span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dm_difp_pay_mt_account_aggregate_info_df</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">支付明细宽表</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat">2天前</span>
-                  </div>
-                </div>
-              </div>
+              <div class="discovery-cards" id="dc-recent"></div>
             </div>
             <!-- 我的收藏 -->
             <div class="discovery-tab-content" id="dcontent-favorite">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_industry_beijing.</span><span class="dc-name-tbl">ods_wlyd_industry_news_industrial_info_di</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户行为原始日志</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat">⭐ 已收藏</span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="dc-icon">📊</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">rpt_sales_daily</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">销售日报</span>
-                      <span class="source-badge source-badge-report">万联灵析</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-orange">报表</span>
-                    <span class="dc-stat">⭐ 已收藏</span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
-                  <div class="dc-icon">🔌</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">api_user_info</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户信息查询API</span>
-                      <span class="source-badge source-badge-api">内部微服务</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-cyan">API</span>
-                    <span class="dc-stat">⭐ 已收藏</span>
-                  </div>
-                </div>
-              </div>
+              <div class="discovery-cards" id="dc-favorite"></div>
             </div>
             <!-- 热门浏览 -->
             <div class="discovery-tab-content" id="dcontent-trending">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dwd_ctps_product_browsered_company_shop_device_product_d1</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">订单明细宽表</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat"><span style="color:#f5222d;font-weight:700;">🔥 9,820</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_industry_beijing.</span><span class="dc-name-tbl">ods_wlyd_industry_news_industrial_info_di</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户行为原始日志</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat"><span style="color:#fa8c16;font-weight:700;">🔥 8,540</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dws_vlsp_mb_domain_entire_business_process_1m_df</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户画像汇总表</span>
-                      <span class="source-badge source-badge-analytic">SelectDB</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat"><span style="color:#1677ff;font-weight:700;">🔥 7,230</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="dc-icon">📈</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">metric_gmv_daily</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">GMV日指标</span>
-                      <span class="source-badge source-badge-metric">指标平台</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-purple">指标</span>
-                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 6,890</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="dc-icon">🗃️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dm_difp_pay_mt_account_aggregate_info_df</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">支付明细宽表</span>
-                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-blue">表</span>
-                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 5,420</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="dc-icon">📊</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">rpt_sales_daily</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">销售日报</span>
-                      <span class="source-badge source-badge-report">万联灵析</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-orange">报表</span>
-                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 4,980</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
-                  <div class="dc-icon">🔌</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">api_user_info</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户信息查询API</span>
-                      <span class="source-badge source-badge-api">内部微服务</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-cyan">API</span>
-                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 4,120</span></span>
-                  </div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','label_user_value')">
-                  <div class="dc-icon">🏷️</div>
-                  <div class="dc-body">
-                    <div class="dc-name"><span class="dc-name-tbl">label_user_value_tier</span></div>
-                    <div class="dc-sub">
-                      <span class="dc-display">用户价值等级标签</span>
-                      <span class="source-badge source-badge-business">标签画像平台</span>
-                    </div>
-                  </div>
-                  <div class="dc-right">
-                    <span class="tag tag-gray">标签</span>
-                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 3,760</span></span>
-                  </div>
-                </div>
-              </div>
+              <div class="discovery-cards" id="dc-trending"></div>
             </div>
             <!-- 热门专题 -->
             <div class="discovery-tab-content active" id="dcontent-hot">
@@ -12870,6 +12657,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshSQLDraftLabel();
   updateSQLEmptyState();
   renderPlatformMenu();
+  renderDiscoveryCards();
   lnInitPanZoom();
   document.getElementById('sql-editor')?.addEventListener('input', () => markSQLDirty());
   document.addEventListener('keydown', e => {
@@ -12894,6 +12682,79 @@ document.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', window.location.pathname);
   }
 });
+
+function renderDiscoveryCards() {
+  const RECENT = [
+    {id:'dwd_order_detail',   stat:'刚刚'},
+    {id:'ads_user_profile',   stat:'2小时前'},
+    {id:'metric_gmv_daily',   stat:'昨天'},
+    {id:'dwd_payment_detail', stat:'2天前'},
+  ];
+  const FAVORITE = [
+    {id:'ods_user_log',    stat:'⭐ 已收藏'},
+    {id:'rpt_sales_daily', stat:'⭐ 已收藏'},
+    {id:'api_user_info',   stat:'⭐ 已收藏'},
+  ];
+  const TRENDING = [
+    {id:'dwd_order_detail',      stat:'<span style="color:#f5222d;font-weight:700;">🔥 9,820</span>'},
+    {id:'ods_user_log',          stat:'<span style="color:#fa8c16;font-weight:700;">🔥 8,540</span>'},
+    {id:'ads_user_profile',      stat:'<span style="color:#1677ff;font-weight:700;">🔥 7,230</span>'},
+    {id:'metric_gmv_daily',      stat:'<span style="color:#595959;font-weight:700;">🔥 6,890</span>'},
+    {id:'dwd_payment_detail',    stat:'<span style="color:#595959;font-weight:700;">🔥 5,420</span>'},
+    {id:'rpt_sales_daily',       stat:'<span style="color:#595959;font-weight:700;">🔥 4,980</span>'},
+    {id:'api_user_info',         stat:'<span style="color:#595959;font-weight:700;">🔥 4,120</span>'},
+    {id:'label_user_value_tier', stat:'<span style="color:#595959;font-weight:700;">🔥 3,760</span>'},
+  ];
+
+  const TYPE_TAG  = {table:'tag-blue',metric:'tag-purple',report:'tag-orange',api:'tag-cyan',label:'tag-gray'};
+  const TYPE_LABEL = {table:'表',metric:'指标',report:'报表',api:'API',label:'标签'};
+
+  function makeSourceChip(asset) {
+    const icon = typeof sourceTypeIcon === 'function' ? sourceTypeIcon(asset.source_type, asset.type) : '🗄';
+    const full  = typeof getPlatformFull === 'function' ? getPlatformFull(asset) : (asset.source_system || '');
+    if (!full) return '';
+    return `<span class="detail-origin-inline"><span class="detail-origin-icon">${icon}</span><span class="detail-origin-text">${full}</span></span>`;
+  }
+
+  function makeRow(asset, statHtml) {
+    if (!asset) return '';
+    const parts   = typeof splitQualifiedName === 'function' ? splitQualifiedName(asset.name) : {database:'', objectName: asset.name};
+    const dbHtml  = parts.database ? `<span class="dc-name-db">${parts.database}.</span>` : '';
+    const tblHtml = `<span class="dc-name-tbl">${parts.objectName}</span>`;
+    const tagCls  = TYPE_TAG[asset.type]   || 'tag-gray';
+    const tagLbl  = TYPE_LABEL[asset.type] || asset.type;
+    const icon    = typeof typeIcon === 'function' ? typeIcon(asset.type) : '🗃️';
+    const chip    = makeSourceChip(asset);
+    return `
+      <div class="discovery-card" onclick="openDetail('asset','${asset.id}')">
+        <div class="dc-icon">${icon}</div>
+        <div class="dc-body">
+          <div class="dc-name">${dbHtml}${tblHtml}</div>
+          <div class="dc-sub">
+            <span class="dc-display">${asset.display || '-'}</span>
+            ${chip}
+          </div>
+        </div>
+        <div class="dc-right">
+          <span class="tag ${tagCls}">${tagLbl}</span>
+          <span class="dc-stat">${statHtml}</span>
+        </div>
+      </div>`;
+  }
+
+  function fill(containerId, list) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = list.map(({id, stat}) => {
+      const a = (typeof MOCK_ASSETS !== 'undefined' ? MOCK_ASSETS : []).find(x => x.id === id);
+      return makeRow(a, stat);
+    }).join('');
+  }
+
+  fill('dc-recent',   RECENT);
+  fill('dc-favorite', FAVORITE);
+  fill('dc-trending', TRENDING);
+}
 
 function switchDiscoveryTab(tab, el) {
   document.querySelectorAll('.discovery-tab').forEach(t => t.classList.remove('active'));
