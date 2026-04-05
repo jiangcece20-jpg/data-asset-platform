@@ -6575,10 +6575,62 @@ function initAssetTree() {
 
 function initResourceTree() {
   const container = document.getElementById('resource-tree');
-  container.innerHTML = renderResourcePhysicalTree(RESOURCE_TREE_DATA, 0, []);
-  // 初始化计数器
+  container.innerHTML = renderResourceCatalogTree(ASSET_TREE_DATA, 0, []);
+  updateResourceTreeCounts();
+}
+
+function renderResourceCatalogTree(nodes, depth, parentPath) {
+  return nodes.map(n => {
+    const indent = depth * 16 + 12;
+    const currentPath = [...parentPath, n.name];
+    const path = buildTreePath(currentPath);
+    const count = countResourcesForCatalogNode(path);
+    if (n.leaf) {
+      return `<div class="tree-node tree-leaf" style="padding-left:${indent}px;" onclick="selectResourceCatalogNode('${path}', this)">
+        <span class="tree-icon">📄</span>
+        <span class="tree-node-label">${n.name}</span>
+        <span class="tree-node-count${count === 0 ? ' is-empty' : ''}">${count}</span>
+      </div>`;
+    }
+    const hasChildren = n.children && n.children.length > 0;
+    return `
+      <div class="tree-node" style="padding-left:${indent}px;" onclick="toggleResourceCatalogNode(this,'${n.id}')">
+        <span class="tree-arrow">▶</span>
+        <span class="tree-icon">${depth === 0 ? '🏢' : '📁'}</span>
+        <span class="tree-node-label">${n.name}</span>
+        <span class="tree-node-count${count === 0 ? ' is-empty' : ''}">${count}</span>
+      </div>
+      <div class="tree-children" id="rctree-${n.id}">
+        ${hasChildren ? renderResourceCatalogTree(n.children, depth + 1, currentPath) : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleResourceCatalogNode(el, id) {
+  el.classList.toggle('expanded');
+  const children = document.getElementById(`rctree-${id}`);
+  if (children) children.classList.toggle('open');
+}
+
+function selectResourceCatalogNode(path, el) {
+  document.querySelectorAll('#resource-tree-wrap .tree-node').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  discoveryTreeFilter = path;
+  resourceCurrentPage = 1;
+  renderResourceTable();
+}
+
+function countResourcesForCatalogNode(path) {
+  return getUnifiedDiscoveryRecords('').filter(r => {
+    const cat = r.catalog || '';
+    return cat === path || cat.startsWith(path + '/');
+  }).length;
+}
+
+function updateResourceTreeCounts() {
   const allCount = getUnifiedDiscoveryRecords('').length;
-  const unassignedCount = MOCK_RESOURCES.filter(r => !inferResourcePhysicalLeaf(r)).length;
+  const unassignedCount = getUnifiedDiscoveryRecords('').filter(r => !r.catalog).length;
   const countEl = document.getElementById('resource-tree-count-all');
   const unassignedCountEl = document.getElementById('resource-tree-count-unassigned');
   if (countEl) countEl.textContent = allCount;
@@ -6848,27 +6900,19 @@ function renderResourceTable() {
     if (resourceMyData && !isRecordOwnedByCurrentUser(record)) return false;
     // 物理结构树过滤
     if (discoveryTreeFilter === 'unassigned') {
-      // 未归属：资源且无目录，或资源且物理路径为空
-      if (record.domain === 'asset') return false;
-      const physPath = inferResourcePhysicalLeaf({ name: record.name, source_type: record.sourceType, source: record.source, source_system: record.sourceSystem });
-      return !physPath;
+      // 未归属：catalog 为空或 null
+      return !record.catalog;
     } else if (discoveryTreeFilter !== 'all') {
-      // 按物理路径过滤
-      if (record.domain === 'asset') return false;
-      const physPath = inferResourcePhysicalLeaf({ name: record.name, source_type: record.sourceType, source: record.source, source_system: record.sourceSystem });
-      return physPath && (physPath === discoveryTreeFilter || physPath.startsWith(discoveryTreeFilter + '/'));
+      // 按业务目录路径过滤（资产+资源均适用）
+      const cat = record.catalog || '';
+      return cat === discoveryTreeFilter || cat.startsWith(discoveryTreeFilter + '/');
     }
     return true;
   });
   data = sortRecords(data, resourceSortField, resourceSortOrder, getResourceSortValue);
 
   // 更新计数器
-  const allCount = getUnifiedDiscoveryRecords('').length;
-  const unassignedCount = MOCK_RESOURCES.filter(r => !inferResourcePhysicalLeaf(r)).length;
-  const countEl = document.getElementById('resource-tree-count-all');
-  const unassignedCountEl = document.getElementById('resource-tree-count-unassigned');
-  if (countEl) countEl.textContent = allCount;
-  if (unassignedCountEl) unassignedCountEl.textContent = unassignedCount;
+  updateResourceTreeCounts();
 
   const pageSize = 8;
   const total = data.length;
