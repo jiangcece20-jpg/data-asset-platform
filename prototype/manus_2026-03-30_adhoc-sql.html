@@ -867,17 +867,23 @@
     .discovery-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; background:var(--primary-light); border-radius:6px 6px 0 0; }
     .discovery-tab-content { display:none; padding:16px; }
     .discovery-tab-content.active { display:block; }
-    .discovery-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+    .discovery-cards { display: flex; flex-direction: column; gap: 2px; }
     .discovery-card {
-      border:1px solid var(--gray-200); border-radius:var(--radius); padding:16px 18px;
-      cursor:pointer; transition:var(--transition); background:#fff; min-height:100px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 6px; cursor: pointer;
+      transition: var(--transition); background: #fff; border: 1px solid transparent;
     }
-    .discovery-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(22,119,255,.1); }
-    .discovery-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .discovery-card-icon { width:36px; height:36px; border-radius:8px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
-    .discovery-card-name { font-size:13px; font-weight:600; color:var(--gray-800); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
-    .discovery-card-display { font-size:12px; color:var(--gray-500); margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .discovery-card-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .discovery-card:hover { background: var(--primary-light); border-color: #91caff; }
+    .dc-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .dc-body { flex: 1; min-width: 0; }
+    .dc-name { display: flex; align-items: baseline; min-width: 0; flex-wrap: wrap; line-height: 1.4; gap: 0; }
+    .dc-name-db { font-size: 13px; font-weight: 600; color: #98a2b3; white-space: nowrap; flex-shrink: 0; }
+    .dc-name-tbl { font-size: 13px; font-weight: 700; color: var(--gray-800); word-break: break-all; overflow-wrap: anywhere; }
+    .dc-display { font-size: 12px; color: var(--gray-600); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dc-sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; min-width: 0; flex-wrap: wrap; }
+    .dc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 80px; }
+    .dc-tags { display: flex; gap: 4px; }
+    .dc-stat { font-size: 12px; color: var(--gray-400); white-space: nowrap; }
     .hot-rank-badge { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
     .hot-topic-tag {
       display:inline-flex; align-items:center; gap:5px; padding:5px 12px;
@@ -2247,53 +2253,334 @@
         <div class="search-center" id="search-center">
           <!-- 首页静态榜单（对齐一期）：最近发布 / 热门搜索 / 最近搜索，仅展示、不可点击跳转 -->
           <div class="discovery-panel" id="discovery-panel">
-            <div class="search-rank-board">
-              <div class="search-rank-card">
-                <div class="search-rank-card-title">最近发布</div>
-                <ul class="search-rank-list">
-                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><div class="search-rank-body"><div class="search-rank-primary">商贸登录活跃度</div><div class="search-rank-sub">ctsp_login_cnt_30d</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><div class="search-rank-body"><div class="search-rank-primary">微信支付成功率</div><div class="search-rank-sub">order_his_success_wechat_pay_order_rate</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><div class="search-rank-body"><div class="search-rank-primary">注册司机占比</div><div class="search-rank-sub">driver_register_ratio_7d</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><div class="search-rank-body"><div class="search-rank-primary">dm|整车物流业务|运力业务|端车相关聚合…</div><div class="search-rank-sub">dm_logistics_vehicle_terminal_agg_1d</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><div class="search-rank-body"><div class="search-rank-primary">订单履约时效</div><div class="search-rank-sub">order_fulfillment_sla_1d</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><div class="search-rank-body"><div class="search-rank-primary">运力空驶率</div><div class="search-rank-sub">capacity_empty_run_rate_df</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><div class="search-rank-body"><div class="search-rank-primary">支付渠道分布</div><div class="search-rank-sub">pay_channel_dist_1d</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><div class="search-rank-body"><div class="search-rank-primary">用户留存 cohort</div><div class="search-rank-sub">user_retention_cohort_w</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><div class="search-rank-body"><div class="search-rank-primary">GMV 日汇总</div><div class="search-rank-sub">ads_gmv_summary_di</div></div></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><div class="search-rank-body"><div class="search-rank-primary">风控命中次数</div><div class="search-rank-sub">risk_hit_cnt_30d</div></div></li>
-                </ul>
-              </div>
-              <div class="search-rank-card">
-                <div class="search-rank-card-title">热门搜索</div>
-                <ul class="search-rank-list">
-                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><span class="search-rank-single" title="金融">金融</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><span class="search-rank-single" title="ods_wlyd_kq_company_info_df">ods_wlyd_kq_company_info_df</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><span class="search-rank-single" title="表">表</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><span class="search-rank-single">撮合</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><span class="search-rank-single">产联</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><span class="search-rank-single">ods_wlyd_kq_driver_df</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><span class="search-rank-single">供应链</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><span class="search-rank-single">指标</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><span class="search-rank-single">dwd_order_detail</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><span class="search-rank-single">用户画像</span></li>
-                </ul>
-              </div>
-              <div class="search-rank-card">
-                <div class="search-rank-card-title">最近搜索</div>
-                <ul class="search-rank-list">
-                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><span class="search-rank-single" title="wlyd_mc_beijing.ods_wlyd_kq_certificates_df">wlyd_mc_beijing.ods_wlyd_kq_certificat…</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><span class="search-rank-single">ods_wlyd_kq_certificates_df</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><span class="search-rank-single">金融</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><span class="search-rank-single">ods_wlyd_kq_honor_df</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><span class="search-rank-single">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><span class="search-rank-single">登录</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><span class="search-rank-single">kafka_user_click_raw</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><span class="search-rank-single">dim_city_df</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><span class="search-rank-single">撮合订单</span></li>
-                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><span class="search-rank-single">metric_gmv_daily</span></li>
-                </ul>
+            <!-- Discovery panel: 最近浏览 / 我的收藏 / 热门榜单 -->
+          <div class="discovery-panel" id="discovery-panel">
+            <div class="discovery-tabs">
+              <div class="discovery-tab" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">📖 最近浏览</div>
+              <div class="discovery-tab" id="dtab-favorite" onclick="switchDiscoveryTab('favorite',this)">⭐ 我的收藏</div>
+              <div class="discovery-tab" id="dtab-trending" onclick="switchDiscoveryTab('trending',this)">🔥 热门浏览</div>
+              <div class="discovery-tab active" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">✨ 热门专题</div>
+            </div>
+            <!-- 最近浏览 -->
+            <div class="discovery-tab-content" id="dcontent-recent">
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dwd_ctps_product_browsered_company_shop_device_product_d1</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">订单明细宽表</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat">刚刚</span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dws_vlsp_mb_domain_entire_business_process_1m_df</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户画像汇总表</span>
+                      <span class="source-badge source-badge-analytic">SelectDB</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat">2小时前</span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
+                  <div class="dc-icon">📈</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">metric_gmv_daily</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">GMV日指标</span>
+                      <span class="source-badge source-badge-metric">指标平台</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-purple">指标</span>
+                    <span class="dc-stat">昨天</span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dm_difp_pay_mt_account_aggregate_info_df</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">支付明细宽表</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat">2天前</span>
+                  </div>
+                </div>
               </div>
             </div>
+            <!-- 我的收藏 -->
+            <div class="discovery-tab-content" id="dcontent-favorite">
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_industry_beijing.</span><span class="dc-name-tbl">ods_wlyd_industry_news_industrial_info_di</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户行为原始日志</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat">⭐ 已收藏</span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
+                  <div class="dc-icon">📊</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">rpt_sales_daily</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">销售日报</span>
+                      <span class="source-badge source-badge-report">万联灵析</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-orange">报表</span>
+                    <span class="dc-stat">⭐ 已收藏</span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
+                  <div class="dc-icon">🔌</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">api_user_info</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户信息查询API</span>
+                      <span class="source-badge source-badge-api">内部微服务</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-cyan">API</span>
+                    <span class="dc-stat">⭐ 已收藏</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 热门浏览 -->
+            <div class="discovery-tab-content" id="dcontent-trending">
+              <div class="discovery-cards">
+                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dwd_ctps_product_browsered_company_shop_device_product_d1</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">订单明细宽表</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat"><span style="color:#f5222d;font-weight:700;">🔥 9,820</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_industry_beijing.</span><span class="dc-name-tbl">ods_wlyd_industry_news_industrial_info_di</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户行为原始日志</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat"><span style="color:#fa8c16;font-weight:700;">🔥 8,540</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dws_vlsp_mb_domain_entire_business_process_1m_df</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户画像汇总表</span>
+                      <span class="source-badge source-badge-analytic">SelectDB</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat"><span style="color:#1677ff;font-weight:700;">🔥 7,230</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
+                  <div class="dc-icon">📈</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">metric_gmv_daily</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">GMV日指标</span>
+                      <span class="source-badge source-badge-metric">指标平台</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-purple">指标</span>
+                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 6,890</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
+                  <div class="dc-icon">🗃️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-db">wlyd_mc_beijing.</span><span class="dc-name-tbl">dm_difp_pay_mt_account_aggregate_info_df</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">支付明细宽表</span>
+                      <span class="source-badge source-badge-warehouse">MaxCompute</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-blue">表</span>
+                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 5,420</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
+                  <div class="dc-icon">📊</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">rpt_sales_daily</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">销售日报</span>
+                      <span class="source-badge source-badge-report">万联灵析</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-orange">报表</span>
+                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 4,980</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
+                  <div class="dc-icon">🔌</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">api_user_info</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户信息查询API</span>
+                      <span class="source-badge source-badge-api">内部微服务</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-cyan">API</span>
+                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 4,120</span></span>
+                  </div>
+                </div>
+                <div class="discovery-card" onclick="openDetail('asset','label_user_value')">
+                  <div class="dc-icon">🏷️</div>
+                  <div class="dc-body">
+                    <div class="dc-name"><span class="dc-name-tbl">label_user_value_tier</span></div>
+                    <div class="dc-sub">
+                      <span class="dc-display">用户价值等级标签</span>
+                      <span class="source-badge source-badge-business">标签画像平台</span>
+                    </div>
+                  </div>
+                  <div class="dc-right">
+                    <span class="tag tag-gray">标签</span>
+                    <span class="dc-stat"><span style="color:#595959;font-weight:700;">🔥 3,760</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 热门专题 -->
+            <div class="discovery-tab-content active" id="dcontent-hot">
+              <!-- 专题卡片列表 -->
+              <div id="hot-topic-cards-grid" class="topic-cards-grid">
+                <div class="topic-card" onclick="filterByTopic('交易域核心资产', this)" data-topic="交易域核心资产">
+                  <div class="topic-card-icon">🛒</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">交易域核心资产</div>
+                    <div class="topic-card-desc">订单、支付、退款全链路</div>
+                    <div class="topic-card-count">42 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('用户行为分析', this)" data-topic="用户行为分析">
+                  <div class="topic-card-icon">👤</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">用户行为分析</div>
+                    <div class="topic-card-desc">行为日志、漏斗分析、留存</div>
+                    <div class="topic-card-count">28 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('GMV指标体系', this)" data-topic="GMV指标体系">
+                  <div class="topic-card-icon">📈</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">GMV指标体系</div>
+                    <div class="topic-card-desc">日周月年GMV指标全覆盖</div>
+                    <div class="topic-card-count">19 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('供应链数据', this)" data-topic="供应链数据">
+                  <div class="topic-card-icon">🏭</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">供应链数据</div>
+                    <div class="topic-card-desc">库存、物流、采购数据</div>
+                    <div class="topic-card-count">35 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('用户画像', this)" data-topic="用户画像">
+                  <div class="topic-card-icon">🎯</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">用户画像</div>
+                    <div class="topic-card-desc">画像标签、分层、偏好建模</div>
+                    <div class="topic-card-count">23 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('支付链路', this)" data-topic="支付链路">
+                  <div class="topic-card-icon">💳</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">支付链路</div>
+                    <div class="topic-card-desc">支付渠道、对账、清结数据</div>
+                    <div class="topic-card-count">17 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('日报报表', this)" data-topic="日报报表">
+                  <div class="topic-card-icon">📊</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">日报报表</div>
+                    <div class="topic-card-desc">经营日报、特分报表汇总</div>
+                    <div class="topic-card-count">14 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('API接口', this)" data-topic="API接口">
+                  <div class="topic-card-icon">🔌</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">API 接口</div>
+                    <div class="topic-card-desc">对外服务接口、内部微服务</div>
+                    <div class="topic-card-count">11 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('标签体系', this)" data-topic="标签体系">
+                  <div class="topic-card-icon">🏷️</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">标签体系</div>
+                    <div class="topic-card-desc">用户、商品、事件标签全集</div>
+                    <div class="topic-card-count">31 个资产</div>
+                  </div>
+                </div>
+                <div class="topic-card" onclick="filterByTopic('ODS原始数据', this)" data-topic="ODS原始数据">
+                  <div class="topic-card-icon">📦</div>
+                  <div class="topic-card-body">
+                    <div class="topic-card-title">ODS 原始数据</div>
+                    <div class="topic-card-desc">各业务系统原始层数据</div>
+                    <div class="topic-card-count">56 个资产</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 专题筛选结果区 -->
+              <div id="hot-topic-result" style="display:none;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                  <span style="font-size:13px;color:var(--gray-600);">专题：<strong id="hot-topic-name"></strong></span>
+                  <button class="btn btn-link btn-sm" onclick="clearTopicFilter()">× 返回专题列表</button>
+                </div>
+                <div class="discovery-cards" id="hot-topic-cards"></div>
+              </div>
+            </div>
+          </div>
           </div>
           <div id="search-default-view" style="display:none;"></div>
           <div id="search-result-view" style="display:none;">
@@ -12607,6 +12894,15 @@ document.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', window.location.pathname);
   }
 });
+
+function switchDiscoveryTab(tab, el) {
+  document.querySelectorAll('.discovery-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.discovery-tab-content').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const content = document.getElementById('dcontent-' + tab);
+  if (content) content.classList.add('active');
+}
+
 </script>
 
 <!-- Lineage Edit Panel (large modal) -->
