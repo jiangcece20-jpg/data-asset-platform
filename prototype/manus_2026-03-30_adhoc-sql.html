@@ -12876,35 +12876,68 @@ function renderCatalogSuggest(kw) {
     .slice(0, 8);
   if (!results.length) { hideCatalogSuggest(); return; }
   window._catSuggestIndex = -1;
+
+  const TYPE_TAG  = {table:'tag-blue',metric:'tag-purple',report:'tag-orange',api:'tag-cyan',label:'tag-gray'};
+  const TYPE_LABEL = {table:'表',metric:'指标',report:'报表',api:'API',label:'标签'};
+  const DOMAIN_TAG = {asset:'tag-blue',resource:'tag-orange'};
+  const DOMAIN_LABEL = {asset:'资产',resource:'资源'};
+
+  const itemsHtml = results.map((a, i) => {
+    const parts = typeof splitQualifiedName === 'function' ? splitQualifiedName(a.name) : {database:'', objectName: a.name};
+    const dbHtml  = parts.database ? `<span style="color:#98a2b3;font-weight:600;">${highlight(parts.database + '.', kw)}</span>` : '';
+    const tblHtml = `<span style="font-weight:700;color:var(--gray-800);">${highlight(parts.objectName, kw)}</span>`;
+    const domain  = a.status === '正常' ? 'asset' : 'resource';
+    const domainTag = `<span class="tag ${DOMAIN_TAG[domain]||'tag-gray'}" style="font-size:11px;padding:1px 5px;">${DOMAIN_LABEL[domain]||domain}</span>`;
+    const typeTag   = `<span class="tag ${TYPE_TAG[a.type]||'tag-gray'}" style="font-size:11px;padding:1px 5px;">${TYPE_LABEL[a.type]||a.type}</span>`;
+    const cnHtml    = a.display ? `<span style="font-size:12px;color:var(--gray-600);">${a.display}</span>` : '';
+    const ownerHtml = (a.tech_owner||a.biz_owner) ? `<span class="search-suggest-owner">👤 ${[a.tech_owner,a.biz_owner].filter(Boolean).join(' / ')}</span>` : '';
+
+    const matches = typeof buildSearchSuggestionMatches === 'function' ? buildSearchSuggestionMatches('asset', a, kw) : [];
+    const MAX_VISIBLE = 3;
+    const visible = matches.slice(0, MAX_VISIBLE);
+    const hidden  = matches.slice(MAX_VISIBLE);
+    const renderMatch = m => {
+      const labelHtml = `<span class="search-suggest-hit-label">${m.label}</span>`;
+      const textHtml  = `<span class="search-suggest-hit-text">${highlight(m.text, kw)}</span>`;
+      return `<span class="search-suggest-hit">${labelHtml}${textHtml}</span>`;
+    };
+    let matchHtml = visible.map(renderMatch).join('');
+    if (hidden.length) {
+      const hid = 'cat-hit-more-' + i;
+      matchHtml += `<span class="search-suggest-hit-more" onclick="event.stopPropagation();document.getElementById('${hid}').style.display='contents'">+${hidden.length} 项</span>`;
+      matchHtml += `<span id="${hid}" style="display:none">${hidden.map(renderMatch).join('')}</span>`;
+    }
+
+    const enterHint = `<span class="search-suggest-enter-hint" style="display:none;">Enter 查看资产详情 →</span>`;
+
+    return `<div class="search-suggest-item" data-idx="${i}" data-id="${a.id}" onmousedown="catSuggestSelectById(this)">
+      <div class="search-suggest-item-left">
+        <div class="search-suggest-item-name">${dbHtml}${tblHtml}</div>
+        <div class="search-suggest-item-tags">${domainTag}${typeTag}${cnHtml}</div>
+        ${matchHtml || ownerHtml ? `<div class="search-suggest-item-meta">${matchHtml}${ownerHtml}</div>` : ''}
+      </div>
+      ${enterHint}
+    </div>`;
+  }).join('');
+
+  const footerHtml = `<div class="search-suggest-footer">
+    <span class="search-suggest-footer-key">↑</span>
+    <span class="search-suggest-footer-key">↓</span>
+    <span class="search-suggest-footer-sep">切换选中</span>
+    <span class="search-suggest-footer-key">Enter</span>
+    <span class="search-suggest-footer-sep">查看详情</span>
+    <span class="search-suggest-footer-key">Esc</span>
+    <span class="search-suggest-footer-sep">收起下拉</span>
+    <span style="margin-left:auto;color:var(--gray-400);font-size:11px;">输入时实时命中，点击候选可直接进入</span>
+  </div>`;
+
   panel.innerHTML = `
     <div class="search-suggest-header">
       <span class="search-suggest-header-label">⚡ 快速命中建议</span>
       <span class="search-suggest-header-count">共 ${results.length} 条</span>
     </div>
-    ${results.map((a, i) => {
-      const parts = typeof splitQualifiedName === 'function' ? splitQualifiedName(a.name) : {database:'', objectName: a.name};
-      const dbHtml = parts.database ? `<span style="color:#98a2b3;font-weight:600;">${highlight(parts.database + '.', kw)}</span>` : '';
-      const tblHtml = `<span style="font-weight:700;color:var(--gray-800);">${highlight(parts.objectName, kw)}</span>`;
-      const matches = typeof buildSearchSuggestionMatches === 'function' ? buildSearchSuggestionMatches('asset', a, kw) : [];
-      const MAX_VISIBLE = 3;
-      const visible = matches.slice(0, MAX_VISIBLE);
-      const hidden = matches.slice(MAX_VISIBLE);
-      const renderMatch = m => {
-        const labelHtml = `<span class="search-suggest-hit-label">${m.label}</span>`;
-        const textHtml = `<span class="search-suggest-hit-text">${highlight(m.text, kw)}</span>`;
-        return `<span class="search-suggest-hit">${labelHtml}${textHtml}</span>`;
-      };
-      let matchHtml = visible.map(renderMatch).join('');
-      if (hidden.length) {
-        const hid = 'cat-hit-more-' + i;
-        matchHtml += `<span class="search-suggest-hit-more" onclick="event.stopPropagation();document.getElementById('${hid}').style.display='contents'">+${hidden.length} 项</span>`;
-        matchHtml += `<span id="${hid}" style="display:none">${hidden.map(renderMatch).join('')}</span>`;
-      }
-      return `<div class="search-suggest-item" data-idx="${i}" data-id="${a.id}" onmousedown="catSuggestSelectById(this)">
-        <div class="search-suggest-item-name">${dbHtml}${tblHtml}</div>
-        <div class="search-suggest-item-meta">${matchHtml}<span class="search-suggest-owner">👤 ${a.owner||''}</span></div>
-      </div>`;
-    }).join('')}`;
+    ${itemsHtml}
+    ${footerHtml}`;
   panel.style.display = 'block';
 }
 
