@@ -2700,7 +2700,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 我的申请（进行中）
               </span>
-              <a style="font-size:12px;color:var(--primary);cursor:pointer;text-decoration:none;" onclick="switchPage('my',document.querySelector('[data-page=my]'))">查看全部 →</a>
+              <a style="font-size:12px;color:var(--primary);cursor:pointer;text-decoration:none;" onclick="switchPage('my',document.querySelector('[data-page=my]'));switchMyPanel('applies',document.getElementById('my-tab-applies'))">查看全部 →</a>
             </div>
             <div id="wb-my-requests" style="padding:8px 0;"></div>
           </div>
@@ -3959,8 +3959,21 @@
 
 <script>
 const MOCK_ASSETS = [
-  { id:'dwd_order_detail', name:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', display:'订单明细宽表', type:'table', summary:'包含订单全生命周期信息的宽表', tech_owner:'李四', biz_owner:'王五', tags:['订单','核心表','交易域'], updated:'2026-03-20', heat:9820, catalog:'交易域/订单/订单明细', status:'正常', source_type:'warehouse_engine', source_system:'MaxCompute', source_location:'北京数仓主集群', permission_status:'granted', favorite:true },
-  { id:'ods_user_log', name:'wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di', display:'用户行为原始日志', type:'table', summary:'用户端行为埋点原始日志，包含点击、曝光、搜索等事件', tech_owner:'张三', biz_owner:'赵六', tags:['用户行为','日志','ODS'], updated:'2026-03-21', heat:8540, catalog:'用户域/行为/行为日志', status:'正常', source_type:'warehouse_engine', source_system:'MaxCompute', source_location:'北京数仓主集群', permission_status:'none', favorite:false },
+  { id:'dwd_order_detail', name:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', display:'订单明细宽表', type:'table', summary:'包含订单全生命周期信息的宽表', tech_owner:'李四', biz_owner:'王五', tags:['订单','核心表','交易域'], updated:'2026-03-20', heat:9820, catalog:'交易域/订单/订单明细', status:'正常', source_type:'warehouse_engine', source_system:'MaxCompute', source_location:'北京数仓主集群', permission_status:'granted', favorite:true,
+    aliases:['订单明细表','订单宽表'],
+    fields:[
+      { name:'order_id', type:'STRING', comment:'订单唯一标识', description:'业务订单主键，用于串联订单全链路事实记录。', securityLevel:'S2', nullable:false },
+      { name:'user_id', type:'STRING', comment:'用户唯一标识', description:'用户侧统一身份标识，可关联用户画像及交易行为。', securityLevel:'S3', nullable:false },
+      { name:'order_amount', type:'DECIMAL(18,2)', comment:'订单金额（元）', description:'订单应付金额，包含优惠前商品金额与附加费用。', securityLevel:'S2', nullable:false },
+      { name:'pay_status', type:'STRING', comment:'支付状态', description:'订单当前支付状态，枚举值：待支付/已支付/已退款。', securityLevel:'S2', nullable:true },
+    ] },
+  { id:'ods_user_log', name:'wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di', display:'用户行为原始日志', type:'table', summary:'用户端行为埋点原始日志，包含点击、曝光、搜索等事件', tech_owner:'张三', biz_owner:'赵六', tags:['用户行为','日志','ODS'], updated:'2026-03-21', heat:8540, catalog:'用户域/行为/行为日志', status:'正常', source_type:'warehouse_engine', source_system:'MaxCompute', source_location:'北京数仓主集群', permission_status:'none', favorite:false,
+    aliases:['用户日志','行为日志'],
+    fields:[
+      { name:'user_id', type:'STRING', comment:'用户唯一标识', description:'用户侧统一身份标识，可关联用户画像及交易行为。', securityLevel:'S3', nullable:false },
+      { name:'event_type', type:'STRING', comment:'事件类型', description:'用户行为事件类型，枚举值：click/expose/search/purchase。', securityLevel:'S1', nullable:false },
+      { name:'page_id', type:'STRING', comment:'页面标识', description:'触发事件的页面唯一标识，用于页面级行为分析。', securityLevel:'S1', nullable:true },
+    ] },
   { id:'ads_user_profile', name:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df', display:'用户画像汇总表', type:'table', summary:'基于行为数据构建的用户标签与画像汇总', tech_owner:'李四', biz_owner:'王五', tags:['用户画像','ADS'], updated:'2026-03-19', heat:7230, catalog:'用户域/画像/用户标签', status:'正常', source_type:'analytic_db', source_system:'SelectDB', source_location:'画像分析集群', permission_status:'applying', favorite:false },
   { id:'metric_gmv_daily', name:'metric_gmv_daily', display:'GMV日指标', type:'metric', summary:'按天统计的全平台成交金额指标', tech_owner:'张三', biz_owner:'赵六', tags:['GMV','指标','交易'], updated:'2026-03-21', heat:6890, catalog:'交易域/指标/核心指标', status:'正常', source_type:'metric_platform', source_system:'指标平台', permission_status:'granted', favorite:true },
   { id:'label_user_value_tier', name:'label_user_value_tier', display:'用户价值等级标签', type:'label', summary:'根据近30天成交金额、活跃度和复购情况生成的用户价值等级标签', tech_owner:'王五', biz_owner:'赵六', tags:['标签','用户分层','营销'], updated:'2026-03-22', heat:3640, catalog:'用户域/标签/用户价值', status:'正常', source_type:'label_platform', source_system:'标签画像平台', source_location:'用户画像中心', permission_status:'granted', favorite:false },
@@ -3982,7 +3995,12 @@ const MOCK_RESOURCES = [
   // 其他人负责的资源（无权限）
   { id:'r003', name:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df', type:'table', platform:'SelectDB', source:'业务分析集群', status:'published', tech_owner:'李四', biz_owner:'王五', catalog:'交易域/订单', updated:'2026-03-18', source_type:'business_db', source_system:'SelectDB', tags:['业务过程','汇总','DWS'], permission_status:'granted', favorite:false, summary:'业务过程汇总宽表，用于经营过程分析与主题建模' },
   { id:'r005', name:'api_inventory_check', type:'api', platform:'内部微服务', source:'供应链系统', status:'maintain', tech_owner:'李四', biz_owner:'王五', catalog:null, updated:'2026-03-16', source_type:'api_service', source_system:'内部微服务', tags:['库存','接口','供应链'], permission_status:'granted', favorite:false, summary:'库存校验接口，面向供应链协同场景提供库存查询能力' },
-  { id:'r007', name:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'published', tech_owner:'李四', biz_owner:'王五', catalog:'交易域/订单/订单明细', updated:'2026-03-20', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['订单','浏览','DWD','已上架'], permission_status:'granted', favorite:true, summary:'订单浏览行为明细宽表，已上架为正式资产' },
+  { id:'r007', name:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'published', tech_owner:'李四', biz_owner:'王五', catalog:'交易域/订单/订单明细', updated:'2026-03-20', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['订单','浏览','DWD','已上架'], permission_status:'granted', favorite:true, summary:'订单浏览行为明细宽表，已上架为正式资产',
+    fields:[
+      { name:'order_id', type:'STRING', comment:'订单唯一标识', description:'业务订单主键，用于串联订单全链路事实记录。', securityLevel:'S2', nullable:false },
+      { name:'browse_time', type:'BIGINT', comment:'浏览时间戳', description:'用户浏览商品的 Unix 时间戳（毫秒），用于行为时序分析。', securityLevel:'S1', nullable:false },
+      { name:'shop_id', type:'STRING', comment:'店铺标识', description:'用户浏览时所在店铺的唯一标识。', securityLevel:'S2', nullable:true },
+    ] },
   // 待审核（上架审批中）
   { id:'r009', name:'wlyd_mc_beijing.dws_trade_channel_gmv_day_df', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'reviewing', tech_owner:'张三', biz_owner:'赵六', catalog:'交易域/渠道', updated:'2026-04-01', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['渠道','GMV','DWS','待审核'], permission_status:'none', favorite:false, summary:'渠道 GMV 日汇总表，已提交上架申请，等待业务负责人审批' },
   // 申请下架中（下架审批中）
@@ -6357,7 +6375,7 @@ function buildSearchSuggestionMatches(domain, item, kw) {
     if (includesSearchText(item.platform, kw)) matches.push({ label: '平台', text: item.platform });
   }
 
-  // 字段名（如果 item 有 fields 数组）
+  // 字段名、字段注释、字段业务描述（如果 item 有 fields 数组）
   if (Array.isArray(item.fields)) {
     item.fields.forEach(f => {
       if (includesSearchText(f.name, kw)) {
@@ -6365,6 +6383,9 @@ function buildSearchSuggestionMatches(domain, item, kw) {
       }
       if (f.comment && includesSearchText(f.comment, kw)) {
         matches.push({ label: '字段注释', text: f.comment });
+      }
+      if (f.description && includesSearchText(f.description, kw)) {
+        matches.push({ label: '字段描述', text: f.description });
       }
     });
   }
@@ -6390,6 +6411,12 @@ function buildSearchSuggestionScore(domain, item, kw) {
   if (domain === 'asset' && item.tags.some(tag => includesSearchText(tag, kw))) score += 45;
   if (domain === 'resource' && includesSearchText(item.source, kw)) score += 50;
   if (domain === 'resource' && includesSearchText(item.platform, kw)) score += 35;
+  // 字段命中加分（字段名/注释/描述中有匹配）
+  if (Array.isArray(item.fields) && item.fields.some(f =>
+    includesSearchText(f.name, kw) ||
+    (f.comment && includesSearchText(f.comment, kw)) ||
+    (f.description && includesSearchText(f.description, kw))
+  )) score += 40;
   return score;
 }
 
