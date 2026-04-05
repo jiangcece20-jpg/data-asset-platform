@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 找数 v2 原型</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px; color: #262626; background: #f0f2f5; height: 100vh; overflow: hidden;
+}
+
+/* ===== Header ===== */
+.header {
+  height: 56px; background: #001529; display: flex; align-items: center;
+  padding: 0 24px; gap: 16px; flex-shrink: 0;
+}
+.header-logo { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.header-nav { display: flex; gap: 4px; }
+.header-nav-item {
+  color: rgba(255,255,255,.65); padding: 6px 14px; border-radius: 6px;
+  font-size: 14px; cursor: pointer; transition: .2s; white-space: nowrap;
+}
+.header-nav-item:hover { color: #fff; background: rgba(255,255,255,.1); }
+.header-nav-item.active {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.role-badge {
+  font-size: 12px; padding: 3px 10px; border-radius: 12px;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.8);
+  cursor: pointer; transition: .2s;
+}
+.role-badge:hover { background: rgba(255,255,255,.2); }
+
+/* ===== 主体布局 ===== */
+.main { display: flex; height: calc(100vh - 56px); }
+
+/* ===== 左侧：历史 + 对话 ===== */
+.left-panel {
+  width: 400px; min-width: 320px; background: #fff;
+  border-right: 1px solid #e8e8e8; display: flex; flex-direction: column;
+}
+
+/* 对话头部 */
+.chat-header {
+  padding: 16px 20px; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.ai-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ai-icon svg { width: 18px; height: 18px; color: #fff; }
+.chat-header-info { flex: 1; }
+.chat-header-title { font-size: 15px; font-weight: 600; }
+.chat-header-sub { font-size: 12px; color: #8c8c8c; }
+.new-chat-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid #d9d9d9;
+  background: #fff; font-size: 12px; color: #595959; cursor: pointer; transition: .2s;
+  white-space: nowrap;
+}
+.new-chat-btn:hover { border-color: #667eea; color: #667eea; }
+
+/* 对话消息区 */
+.chat-body {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.msg { display: flex; gap: 8px; }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;
+}
+.msg.ai .msg-avatar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+.msg.user .msg-avatar { background: #1677ff; color: #fff; }
+.msg-content { max-width: 88%; display: flex; flex-direction: column; gap: 8px; }
+.msg-bubble {
+  padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.65;
+}
+.msg.ai .msg-bubble { background: #f7f8fa; color: #434343; border-radius: 4px 12px 12px 12px; }
+.msg.user .msg-bubble { background: #1677ff; color: #fff; border-radius: 12px 4px 12px 12px; }
+
+/* 推荐卡片列表（在消息内） */
+.result-cards { display: flex; flex-direction: column; gap: 8px; }
+.result-card {
+  border: 1px solid #e8e8e8; border-radius: 10px; padding: 12px 14px;
+  background: #fff; cursor: pointer; transition: .2s;
+}
+.result-card:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102,126,234,.12); }
+.result-card.selected { border-color: #667eea; background: #faf9ff; }
+.card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.type-tag {
+  font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 500; white-space: nowrap;
+}
+.type-report { background: #f6ffed; color: #52c41a; }
+.type-dashboard { background: #f9f0ff; color: #722ed1; }
+.type-table { background: #e6f4ff; color: #1677ff; }
+.type-api { background: #fff7e6; color: #fa8c16; }
+.card-name { font-size: 13px; font-weight: 600; color: #262626; flex: 1; }
+.card-source { font-size: 11px; color: #8c8c8c; white-space: nowrap; }
+.card-desc { font-size: 12px; color: #595959; line-height: 1.5; margin-bottom: 6px; }
+.card-reason {
+  font-size: 11px; color: #667eea; background: rgba(102,126,234,.06);
+  padding: 4px 8px; border-radius: 4px; display: inline-block;
+}
+.card-actions { display: flex; gap: 6px; margin-top: 8px; }
+.card-btn {
+  font-size: 11px; padding: 4px 10px; border-radius: 5px; cursor: pointer; transition: .2s;
+}
+.card-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; border: none;
+}
+.card-btn-primary:hover { opacity: .9; }
+.card-btn-secondary { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.card-btn-secondary:hover { border-color: #1677ff; color: #1677ff; }
+.card-btn-sql { background: #fff7e6; border: 1px solid #ffd591; color: #fa8c16; }
+.card-btn-sql:hover { background: #fff1d6; }
+
+/* 权限状态 */
+.perm-tag {
+  font-size: 11px; padding: 2px 7px; border-radius: 4px;
+}
+.perm-ok { background: #f6ffed; color: #52c41a; }
+.perm-apply { background: #fff7e6; color: #fa8c16; cursor: pointer; }
+.perm-pending { background: #f5f5f5; color: #8c8c8c; }
+
+/* 方向引导标签 */
+.guide-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.guide-tag {
+  font-size: 12px; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid #e8e8e8; color: #595959; cursor: pointer; transition: .2s; background: #fff;
+}
+.guide-tag:hover { border-color: #667eea; color: #667eea; background: #f5f3ff; }
+
+/* 追问选项 */
+.ask-options { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.ask-option {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid #e8e8e8;
+  background: #fff; cursor: pointer; font-size: 13px; color: #434343; transition: .2s;
+}
+.ask-option:hover { border-color: #667eea; background: #faf9ff; color: #667eea; }
+
+/* 打字动画 */
+.typing { display: flex; align-items: center; gap: 4px; padding: 10px 14px; }
+.typing span {
+  width: 6px; height: 6px; border-radius: 50%; background: #bfbfbf;
+  animation: bounce 1.2s infinite;
+}
+.typing span:nth-child(2) { animation-delay: .2s; }
+.typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+/* 输入区 */
+.chat-footer {
+  padding: 12px 20px 16px; border-top: 1px solid #f0f0f0;
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+}
+.chat-input {
+  flex: 1; min-height: 40px; max-height: 100px; border: 1px solid #d9d9d9;
+  border-radius: 10px; padding: 9px 14px; font-size: 13px; resize: none;
+  font-family: inherit; transition: .2s; line-height: 1.5;
+}
+.chat-input:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,.15); outline: none; }
+.chat-input::placeholder { color: #bfbfbf; }
+.chat-send {
+  width: 40px; height: 40px; border-radius: 10px; border: none; flex-shrink: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: .2s;
+}
+.chat-send:hover { opacity: .9; transform: scale(1.05); }
+.chat-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ===== 右侧：结果工作区 ===== */
+.right-panel {
+  flex: 1; background: #fafafa; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* 空状态 */
+.right-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; padding: 40px;
+}
+.empty-icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, rgba(102,126,234,.1) 0%, rgba(118,75,162,.1) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.empty-icon svg { width: 36px; height: 36px; color: #667eea; }
+.empty-title { font-size: 17px; font-weight: 600; color: #434343; }
+.empty-desc { font-size: 13px; color: #8c8c8c; text-align: center; line-height: 1.8; max-width: 380px; }
+.empty-steps { display: flex; gap: 24px; margin-top: 8px; }
+.empty-step { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.step-text { font-size: 12px; color: #595959; text-align: center; line-height: 1.5; }
+.step-arrow { color: #d9d9d9; font-size: 18px; align-self: center; margin-top: -8px; }
+
+.recent-section { margin-top: 20px; width: 100%; max-width: 440px; }
+.recent-title { font-size: 12px; color: #8c8c8c; margin-bottom: 8px; }
+.recent-list { display: flex; flex-direction: column; gap: 5px; }
+.recent-item {
+  padding: 9px 14px; border-radius: 8px; background: #fff; border: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; cursor: pointer; transition: .2s;
+}
+.recent-item:hover { border-color: #667eea; background: #faf9ff; }
+.recent-icon { color: #667eea; font-size: 13px; }
+.recent-text { font-size: 13px; color: #434343; flex: 1; }
+.recent-time { font-size: 11px; color: #bfbfbf; }
+
+/* 工作区：资源详情 + SQL 辅助 */
+.right-active { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.right-active.show { display: flex; }
+.right-empty.hide { display: none; }
+
+/* 资源头部 */
+.resource-header {
+  padding: 14px 24px; background: #fff; border-bottom: 1px solid #e8e8e8;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.resource-header .type-tag { font-size: 12px; padding: 3px 9px; }
+.resource-name-main { font-size: 15px; font-weight: 600; color: #262626; }
+.resource-name-sub { font-size: 12px; color: #8c8c8c; }
+.resource-header-actions { margin-left: auto; display: flex; gap: 8px; }
+.header-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: .2s;
+}
+.header-btn-outline { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.header-btn-outline:hover { border-color: #1677ff; color: #1677ff; }
+
+/* 资源摘要 */
+.resource-meta {
+  padding: 12px 24px; background: #fff; border-bottom: 1px solid #e8e8e8;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; flex-shrink: 0;
+}
+.meta-item { display: flex; flex-direction: column; gap: 3px; }
+.meta-label { font-size: 11px; color: #8c8c8c; }
+.meta-value { font-size: 13px; color: #434343; font-weight: 500; }
+.meta-value.green { color: #52c41a; }
+.meta-value.orange { color: #fa8c16; cursor: pointer; }
+
+/* 业务说明 */
+.business-tip {
+  margin: 12px 24px; padding: 10px 14px; border-radius: 8px;
+  background: linear-gradient(135deg, rgba(102,126,234,.06) 0%, rgba(118,75,162,.06) 100%);
+  border: 1px solid rgba(102,126,234,.15); font-size: 13px; color: #434343;
+  line-height: 1.6; flex-shrink: 0;
+}
+.business-tip strong { color: #667eea; }
+
+/* SQL 辅助区 */
+.sql-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.sql-toolbar {
+  padding: 10px 24px; background: #fff; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.sql-title { font-size: 14px; font-weight: 600; }
+.sql-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: linear-gradient(135deg, rgba(102,126,234,.1) 0%, rgba(118,75,162,.1) 100%);
+  color: #667eea; font-weight: 500;
+}
+.sql-toolbar-actions { margin-left: auto; display: flex; gap: 8px; }
+.sql-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: .2s;
+}
+.sql-btn-run {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; border: none;
+}
+.sql-btn-run:hover { opacity: .9; }
+.sql-btn-copy { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.sql-btn-copy:hover { border-color: #1677ff; color: #1677ff; }
+.sql-btn-workbench { background: #fff7e6; border: 1px solid #ffd591; color: #fa8c16; }
+.sql-btn-workbench:hover { background: #fff1d6; }
+
+.sql-editor-wrap { flex: 1; overflow: auto; background: #1e1e2e; min-height: 120px; max-height: 200px; }
+.sql-editor {
+  padding: 16px 24px; color: #cdd6f4;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px; line-height: 1.8; white-space: pre;
+}
+.kw { color: #cba6f7; }
+.fn { color: #89b4fa; }
+.str { color: #a6e3a1; }
+.cm { color: #6c7086; font-style: italic; }
+
+/* SQL 对话区 */
+.sql-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #e8e8e8; }
+.sql-chat-body { flex: 1; overflow-y: auto; padding: 12px 24px; display: flex; flex-direction: column; gap: 10px; }
+.sql-msg { display: flex; gap: 8px; }
+.sql-msg.user { flex-direction: row-reverse; }
+.sql-msg-bubble {
+  padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; max-width: 80%;
+}
+.sql-msg.ai .sql-msg-bubble { background: #f7f8fa; color: #434343; }
+.sql-msg.user .sql-msg-bubble { background: #1677ff; color: #fff; }
+.sql-chat-footer {
+  padding: 10px 24px 14px; border-top: 1px solid #f0f0f0;
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+
+/* ===== SQL 配置表单 ===== */
+.sql-config {
+  background: #fff; border-bottom: 1px solid #e8e8e8; flex-shrink: 0;
+  overflow: hidden; transition: max-height .3s ease;
+  max-height: 400px;
+}
+.sql-config.collapsed { max-height: 0; border-bottom: none; }
+.sql-config-inner { padding: 14px 24px 16px; display: flex; flex-direction: column; gap: 12px; }
+.config-row { display: flex; align-items: flex-start; gap: 10px; }
+.config-label {
+  font-size: 12px; color: #8c8c8c; width: 56px; flex-shrink: 0;
+  padding-top: 6px; font-weight: 500;
+}
+.config-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid #e8e8e8; color: #595959; cursor: pointer;
+  transition: .15s; background: #fff; user-select: none;
+}
+.chip:hover { border-color: #667eea; color: #667eea; }
+.chip.selected { background: #667eea; border-color: #667eea; color: #fff; }
+.chip.selected:hover { background: #5a6fd6; }
+.config-select {
+  height: 30px; border: 1px solid #d9d9d9; border-radius: 6px;
+  padding: 0 8px; font-size: 12px; color: #434343; background: #fff;
+  cursor: pointer; transition: .2s;
+}
+.config-select:focus { border-color: #667eea; outline: none; }
+.config-divider { height: 1px; background: #f0f0f0; margin: 0 -24px; }
+.config-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 2px; }
+.config-gen-btn {
+  padding: 6px 16px; border-radius: 6px; border: none; font-size: 13px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; transition: .2s; font-weight: 500;
+}
+.config-gen-btn:hover { opacity: .9; }
+.config-reset-btn {
+  padding: 6px 12px; border-radius: 6px; border: 1px solid #d9d9d9;
+  font-size: 12px; color: #8c8c8c; background: #fff; cursor: pointer; transition: .2s;
+}
+.config-reset-btn:hover { border-color: #ff4d4f; color: #ff4d4f; }
+.sql-config-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 8px 24px;
+  border-bottom: 1px solid #f0f0f0; cursor: pointer; background: #fafafa;
+  font-size: 12px; color: #595959; transition: .2s; flex-shrink: 0;
+}
+.sql-config-toggle:hover { background: #f5f3ff; color: #667eea; }
+.toggle-arrow { transition: transform .3s; font-size: 10px; }
+.toggle-arrow.open { transform: rotate(180deg); }
+.sql-input {
+  flex: 1; height: 36px; border: 1px solid #d9d9d9; border-radius: 8px;
+  padding: 0 12px; font-size: 13px; transition: .2s;
+}
+.sql-input:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 2px rgba(102,126,234,.15); }
+.sql-input::placeholder { color: #bfbfbf; }
+.sql-send {
+  width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.sql-send:hover { opacity: .9; }
+
+/* 结果表格 */
+.result-wrap { border-top: 1px solid #e8e8e8; background: #fff; flex-shrink: 0; max-height: 200px; overflow: auto; }
+.result-bar {
+  padding: 8px 24px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid #f0f0f0; background: #fff; position: sticky; top: 0;
+}
+.result-ok { font-size: 12px; color: #52c41a; }
+.result-meta-text { font-size: 12px; color: #8c8c8c; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.result-table th {
+  padding: 7px 16px; text-align: left; background: #fafafa;
+  border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #595959; white-space: nowrap;
+}
+.result-table td { padding: 7px 16px; border-bottom: 1px solid #f5f5f5; color: #434343; }
+.result-table tr:hover td { background: #fafafa; }
+
+/* 角色切换浮层 */
+.role-picker {
+  position: fixed; top: 64px; right: 24px; z-index: 200;
+  background: #fff; border: 1px solid #e8e8e8; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 8px; min-width: 180px;
+  display: none;
+}
+.role-picker.show { display: block; }
+.role-picker-title { font-size: 11px; color: #8c8c8c; padding: 4px 8px 8px; }
+.role-option {
+  padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  color: #434343; transition: .2s; display: flex; align-items: center; gap: 8px;
+}
+.role-option:hover { background: #f5f3ff; color: #667eea; }
+.role-option.active { background: #f5f3ff; color: #667eea; font-weight: 500; }
+
+/* ===== SQL 配置表单 ===== */
+.sql-config { background:#fff; border-bottom:1px solid #e8e8e8; flex-shrink:0; overflow:hidden; transition:max-height .3s ease; max-height:500px; }
+.sql-config.collapsed { max-height:0; border-bottom:none; }
+.sql-config-inner { padding:14px 24px 16px; display:flex; flex-direction:column; gap:12px; }
+.config-row { display:flex; align-items:flex-start; gap:10px; }
+.config-label { font-size:12px; color:#8c8c8c; width:56px; flex-shrink:0; padding-top:6px; font-weight:500; }
+.config-chips { display:flex; flex-wrap:wrap; gap:6px; flex:1; }
+.chip { font-size:12px; padding:4px 10px; border-radius:20px; border:1px solid #e8e8e8; color:#595959; cursor:pointer; transition:.15s; background:#fff; user-select:none; }
+.chip:hover { border-color:#667eea; color:#667eea; }
+.chip.selected { background:#667eea; border-color:#667eea; color:#fff; }
+.chip.selected:hover { background:#5a6fd6; }
+.config-select { height:30px; border:1px solid #d9d9d9; border-radius:6px; padding:0 8px; font-size:12px; color:#434343; background:#fff; cursor:pointer; }
+.config-select:focus { border-color:#667eea; outline:none; }
+.config-divider { height:1px; background:#f0f0f0; margin:0 -24px; }
+.config-actions { display:flex; justify-content:flex-end; gap:8px; padding-top:2px; }
+.config-gen-btn { padding:6px 16px; border-radius:6px; border:none; font-size:13px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; cursor:pointer; font-weight:500; }
+.config-gen-btn:hover { opacity:.9; }
+.config-reset-btn { padding:6px 12px; border-radius:6px; border:1px solid #d9d9d9; font-size:12px; color:#8c8c8c; background:#fff; cursor:pointer; }
+.config-reset-btn:hover { border-color:#ff4d4f; color:#ff4d4f; }
+.sql-config-toggle { display:flex; align-items:center; gap:6px; padding:8px 24px; border-bottom:1px solid #f0f0f0; cursor:pointer; background:#fafafa; font-size:12px; color:#595959; transition:.2s; flex-shrink:0; }
+.sql-config-toggle:hover { background:#f5f3ff; color:#667eea; }
+.toggle-arrow { transition:transform .3s; font-size:10px; display:inline-block; }
+.toggle-arrow.open { transform:rotate(0deg); }
+.toggle-arrow.closed { transform:rotate(-90deg); }
+
+/* ===== Chat BI 查数结果面板 ===== */
+.chatbi-panel { flex:1; display:none; flex-direction:column; overflow:hidden; }
+.chatbi-panel.show { display:flex; }
+
+.chatbi-header {
+  padding:14px 24px; background:#fff; border-bottom:1px solid #e8e8e8;
+  display:flex; align-items:center; gap:10px; flex-shrink:0;
+}
+.chatbi-badge {
+  font-size:11px; padding:3px 9px; border-radius:12px;
+  background:linear-gradient(135deg,rgba(102,126,234,.12),rgba(118,75,162,.12));
+  color:#667eea; font-weight:600;
+}
+.chatbi-title { font-size:15px; font-weight:600; color:#262626; flex:1; }
+.chatbi-source-btn {
+  font-size:12px; padding:4px 10px; border-radius:6px;
+  border:1px solid #d9d9d9; background:#fff; color:#595959; cursor:pointer; transition:.2s;
+}
+.chatbi-source-btn:hover { border-color:#667eea; color:#667eea; }
+
+.chatbi-body { flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:16px; }
+
+/* 指标卡片组 */
+.metric-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.metric-card {
+  background:#fff; border:1px solid #e8e8e8; border-radius:10px;
+  padding:14px 16px; display:flex; flex-direction:column; gap:6px;
+}
+.metric-card.primary { border-color:#667eea; background:linear-gradient(135deg,rgba(102,126,234,.04),rgba(118,75,162,.04)); }
+.metric-label { font-size:12px; color:#8c8c8c; }
+.metric-value { font-size:24px; font-weight:700; color:#262626; line-height:1.2; }
+.metric-value.large { font-size:28px; }
+.metric-change { display:flex; align-items:center; gap:4px; font-size:12px; }
+.metric-change.up { color:#f5222d; }
+.metric-change.down { color:#52c41a; }
+.metric-change.neutral { color:#8c8c8c; }
+.metric-period { font-size:11px; color:#bfbfbf; }
+
+/* 折线图（SVG mock） */
+.chart-wrap {
+  background:#fff; border:1px solid #e8e8e8; border-radius:10px; padding:16px;
+}
+.chart-title { font-size:13px; font-weight:600; color:#434343; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.chart-legend { display:flex; gap:16px; margin-left:auto; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:#8c8c8c; }
+.legend-dot { width:8px; height:8px; border-radius:50%; }
+.chart-svg-wrap { width:100%; overflow:hidden; }
+
+/* 维度表格 */
+.dim-table-wrap {
+  background:#fff; border:1px solid #e8e8e8; border-radius:10px; overflow:hidden;
+}
+.dim-table-header {
+  padding:10px 16px; border-bottom:1px solid #f0f0f0;
+  font-size:13px; font-weight:600; color:#434343; display:flex; align-items:center; gap:8px;
+}
+.dim-table { width:100%; border-collapse:collapse; font-size:13px; }
+.dim-table th {
+  padding:8px 16px; text-align:left; background:#fafafa;
+  border-bottom:1px solid #f0f0f0; font-weight:600; color:#595959; white-space:nowrap;
+}
+.dim-table td { padding:8px 16px; border-bottom:1px solid #f5f5f5; color:#434343; }
+.dim-table tr:last-child td { border-bottom:none; }
+.dim-table tr:hover td { background:#fafafa; }
+.rank-num { font-weight:700; color:#667eea; }
+.rank-bar-wrap { display:flex; align-items:center; gap:8px; }
+.rank-bar { height:6px; border-radius:3px; background:linear-gradient(90deg,#667eea,#764ba2); }
+
+/* 来源说明 */
+.chatbi-source-panel {
+  background:#fff; border:1px solid #e8e8e8; border-radius:10px; padding:14px 16px;
+}
+.source-title { font-size:12px; font-weight:600; color:#8c8c8c; margin-bottom:8px; }
+.source-row { display:flex; gap:8px; align-items:flex-start; font-size:12px; color:#595959; line-height:1.6; }
+.source-label { color:#8c8c8c; white-space:nowrap; flex-shrink:0; }
+.source-code { font-family:'SF Mono','Fira Code',monospace; background:#f5f5f5; padding:1px 6px; border-radius:3px; color:#434343; font-size:11px; }
+
+/* 对话里的查数摘要气泡 */
+.chatbi-summary {
+  background:linear-gradient(135deg,rgba(102,126,234,.06),rgba(118,75,162,.06));
+  border:1px solid rgba(102,126,234,.2); border-radius:10px;
+  padding:10px 14px; cursor:pointer; transition:.2s;
+}
+.chatbi-summary:hover { border-color:#667eea; }
+.chatbi-summary-label { font-size:11px; color:#667eea; font-weight:600; margin-bottom:6px; }
+.chatbi-summary-metrics { display:flex; gap:16px; flex-wrap:wrap; }
+.chatbi-summary-metric { display:flex; flex-direction:column; gap:2px; }
+.chatbi-summary-metric-label { font-size:11px; color:#8c8c8c; }
+.chatbi-summary-metric-value { font-size:16px; font-weight:700; color:#262626; }
+.chatbi-summary-metric-change { font-size:11px; }
+.chatbi-summary-metric-change.up { color:#f5222d; }
+.chatbi-summary-metric-change.down { color:#52c41a; }
+.chatbi-summary-hint { font-size:11px; color:#bfbfbf; margin-top:6px; }
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">📊 数据资产管理平台</div>
+  <div class="header-nav">
+    <div class="header-nav-item">资产检索</div>
+    <div class="header-nav-item">资产目录</div>
+    <div class="header-nav-item">资源发现</div>
+    <div class="header-nav-item">即席查询</div>
+    <div class="header-nav-item active">AI 找数</div>
+    <div class="header-nav-item">血缘追溯</div>
+  </div>
+  <div class="header-right">
+    <div class="role-badge" id="roleBadge" onclick="toggleRolePicker()">👤 业务运营 ▾</div>
+  </div>
+</div>
+
+<!-- 角色切换浮层 -->
+<div class="role-picker" id="rolePicker">
+  <div class="role-picker-title">演示角色切换</div>
+  <div class="role-option active" onclick="setRole('业务运营','business')">📊 业务运营</div>
+  <div class="role-option" onclick="setRole('产品经理','pm')">🎯 产品经理</div>
+  <div class="role-option" onclick="setRole('管理层','exec')">👔 管理层</div>
+  <div class="role-option" onclick="setRole('数据分析师','analyst')">🔬 数据分析师</div>
+  <div class="role-option" onclick="setRole('数仓开发','dw')">⚙️ 数仓开发</div>
+</div>
+
+<div class="main">
+  <!-- 左侧对话区 -->
+  <div class="left-panel">
+    <div class="chat-header">
+      <div class="ai-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/><path d="M9 22h6"/><path d="M12 18v4"/>
+        </svg>
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-title">AI 找数</div>
+        <div class="chat-header-sub">用自然语言描述，直接找到数据</div>
+      </div>
+      <button class="new-chat-btn" onclick="newChat()">+ 新对话</button>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <div class="msg ai" id="welcomeMsg">
+        <div class="msg-avatar">AI</div>
+        <div class="msg-content">
+          <div class="msg-bubble">
+            你好！告诉我你想找什么数据，我来帮你定位。<br>
+            可以直接描述业务需求，也可以输入业务库的表名。
+          </div>
+          <div class="guide-tags" id="welcomeTags">
+            <span class="guide-tag" onclick="sendQuick('各渠道 GMV 表现')">📊 各渠道 GMV 表现</span>
+            <span class="guide-tag" onclick="sendQuick('用户留存相关报表')">👤 用户留存相关报表</span>
+            <span class="guide-tag" onclick="sendQuick('order 表在数仓里是哪张')">🔗 order 表在数仓里是哪张</span>
+            <span class="guide-tag" onclick="sendQuick('配送时效看板')">🚚 配送时效看板</span>
+            <span class="guide-tag" onclick="sendQuick('昨天 GMV 是多少')">🔢 昨天 GMV 是多少</span>
+            <span class="guide-tag" onclick="sendQuick('昨天 GMV 按城市分布')">📍 GMV 按城市分布</span>
+            <span class="guide-tag" onclick="sendQuick('最近 30 天 GMV 趋势')">📈 近 30 天 GMV 趋势</span>
+            <span class="guide-tag" onclick="sendQuick('本周 GMV 和上周对比')">⚖️ 本周 vs 上周 GMV</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-footer">
+      <textarea class="chat-input" id="chatInput" rows="1"
+        placeholder="描述你想找的数据，或输入业务库表名…"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="sendBtn" onclick="sendMessage()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 右侧工作区 -->
+  <div class="right-panel">
+    <!-- 空状态 -->
+    <div class="right-empty" id="rightEmpty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          <path d="M11 8v6m-3-3h6" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="empty-title">从左侧开始找数</div>
+      <div class="empty-desc">输入业务需求，AI 优先推荐报表和看板。<br>找到表后可以让 AI 辅助写 SQL。</div>
+      <div class="empty-steps">
+        <div class="empty-step">
+          <div class="step-num">1</div>
+          <div class="step-text">描述你想找的数据</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="empty-step">
+          <div class="step-num">2</div>
+          <div class="step-text">选择推荐资源</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="empty-step">
+          <div class="step-num">3</div>
+          <div class="step-text">查看详情或写 SQL</div>
+        </div>
+      </div>
+      <div class="recent-section">
+        <div class="recent-title">📋 最近找数记录</div>
+        <div class="recent-list">
+          <div class="recent-item" onclick="sendQuick('用户下单后的退款情况')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">用户下单后的退款情况</span>
+            <span class="recent-time">2 小时前</span>
+          </div>
+          <div class="recent-item" onclick="sendQuick('各城市骑手配送时效')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">各城市骑手配送时效</span>
+            <span class="recent-time">昨天</span>
+          </div>
+          <div class="recent-item" onclick="sendQuick('order 表在数仓里是哪张')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">order 表在数仓里是哪张</span>
+            <span class="recent-time">3 天前</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat BI 查数结果面板 -->
+    <div class="chatbi-panel" id="chatbiPanel">
+      <div class="chatbi-header">
+        <span class="chatbi-badge">📊 查数结果</span>
+        <div class="chatbi-title" id="chatbiTitle">昨天 GMV 是多少</div>
+        <button class="chatbi-source-btn" onclick="toggleChatbiSource()">查看来源 ↓</button>
+      </div>
+      <div class="chatbi-body" id="chatbiBody">
+        <!-- 动态注入 -->
+      </div>
+    </div>
+
+    <!-- 工作态 -->
+    <div class="right-active" id="rightActive">
+      <div class="resource-header" id="resourceHeader">
+        <span class="type-tag type-table" id="resTypeTag">表</span>
+        <div>
+          <div class="resource-name-main" id="resNameMain">dws_trade_channel_day</div>
+          <div class="resource-name-sub" id="resNameSub">各渠道交易日汇总表 · 来源：数仓 DWS 层</div>
+        </div>
+        <div class="resource-header-actions">
+          <button class="header-btn header-btn-outline" onclick="alert('跳转到统一详情页')">查看完整详情 →</button>
+        </div>
+      </div>
+
+      <div class="resource-meta" id="resourceMeta">
+        <div class="meta-item">
+          <span class="meta-label">负责人</span>
+          <span class="meta-value" id="metaOwner">王小明</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">近30天查询量</span>
+          <span class="meta-value" id="metaHeat">2,341 次</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">权限状态</span>
+          <span class="meta-value green" id="metaPerm">已有权限</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">数据层级</span>
+          <span class="meta-value" id="metaLayer">DWS 汇总层</span>
+        </div>
+      </div>
+
+      <div class="business-tip" id="businessTip">
+        💡 <strong>这张表能帮你看：</strong>按渠道（APP / 小程序 / H5）统计每天的 GMV、订单量、退款金额，适合做渠道趋势分析和渠道间对比。
+      </div>
+
+      <div class="sql-area">
+        <!-- 工具栏 -->
+        <div class="sql-toolbar">
+          <span class="sql-title">SQL 辅助</span>
+          <span class="sql-badge">✨ AI 生成</span>
+          <div class="sql-toolbar-actions">
+            <button class="sql-btn sql-btn-copy" onclick="copySql()">复制</button>
+            <button class="sql-btn sql-btn-workbench" onclick="alert('携带 SQL 跳转到即席查询工作台')">去工作台执行 →</button>
+          </div>
+        </div>
+
+        <!-- 配置折叠开关 -->
+        <div class="sql-config-toggle" id="configToggle" onclick="toggleConfig()">
+          <span>⚙️ 配置查询条件</span>
+          <span class="toggle-arrow open" id="toggleArrow">▼</span>
+          <span style="margin-left:auto;font-size:11px;color:#bfbfbf;" id="configSummary">渠道 · GMV · 订单量 · 近7天</span>
+        </div>
+
+        <!-- 配置表单 -->
+        <div class="sql-config" id="sqlConfig">
+          <div class="sql-config-inner">
+            <div class="config-row">
+              <span class="config-label">分组维度</span>
+              <div class="config-chips" id="dimChips">
+                <span class="chip selected" onclick="toggleChip(this,'dim')">渠道</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">城市</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">日期</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">周</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">月</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">用户类型</span>
+                <span class="chip" onclick="toggleChip(this,'dim')">商品分类</span>
+              </div>
+            </div>
+            <div class="config-row">
+              <span class="config-label">查看指标</span>
+              <div class="config-chips" id="metricChips">
+                <span class="chip selected" onclick="toggleChip(this,'metric')">GMV</span>
+                <span class="chip selected" onclick="toggleChip(this,'metric')">订单量</span>
+                <span class="chip" onclick="toggleChip(this,'metric')">退款金额</span>
+                <span class="chip" onclick="toggleChip(this,'metric')">退款率</span>
+                <span class="chip" onclick="toggleChip(this,'metric')">客单价</span>
+                <span class="chip" onclick="toggleChip(this,'metric')">环比</span>
+                <span class="chip" onclick="toggleChip(this,'metric')">同比</span>
+              </div>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-row">
+              <span class="config-label">时间范围</span>
+              <div class="config-chips" id="timeChips">
+                <span class="chip selected" onclick="selectTimeRange(this)">近7天</span>
+                <span class="chip" onclick="selectTimeRange(this)">近30天</span>
+                <span class="chip" onclick="selectTimeRange(this)">本月</span>
+                <span class="chip" onclick="selectTimeRange(this)">上月</span>
+                <span class="chip" onclick="selectTimeRange(this)">近90天</span>
+              </div>
+            </div>
+            <div class="config-row">
+              <span class="config-label">筛选条件</span>
+              <div class="config-chips" id="filterChips">
+                <span class="chip" onclick="toggleChip(this,'filter')">仅 APP</span>
+                <span class="chip" onclick="toggleChip(this,'filter')">仅小程序</span>
+                <span class="chip" onclick="toggleChip(this,'filter')">华东区</span>
+                <span class="chip" onclick="toggleChip(this,'filter')">华南区</span>
+                <span class="chip" onclick="toggleChip(this,'filter')">排除退款</span>
+              </div>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-row">
+              <span class="config-label">排序方式</span>
+              <select class="config-select" id="sortSelect">
+                <option value="gmv_desc">GMV 从高到低</option>
+                <option value="gmv_asc">GMV 从低到高</option>
+                <option value="orders_desc">订单量从高到低</option>
+                <option value="dt_desc">日期从新到旧</option>
+                <option value="dt_asc">日期从旧到新</option>
+              </select>
+              <span class="config-label" style="width:auto;padding-left:16px;">返回行数</span>
+              <select class="config-select" id="limitSelect">
+                <option value="100">100 条</option>
+                <option value="500">500 条</option>
+                <option value="1000">1000 条</option>
+                <option value="">不限制</option>
+              </select>
+            </div>
+            <div class="config-actions">
+              <button class="config-reset-btn" onclick="resetConfig()">重置</button>
+              <button class="config-gen-btn" onclick="generateSql()">生成 SQL ✨</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQL 编辑器 -->
+        <div class="sql-editor-wrap">
+          <div class="sql-editor" id="sqlEditor"><span class="cm">-- 根据配置生成：查看最近7天各渠道 GMV、订单量</span>
+<span class="kw">SELECT</span>
+  channel_name,
+  <span class="fn">DATE</span>(stat_date) <span class="kw">AS</span> dt,
+  <span class="fn">SUM</span>(gmv_amt) <span class="kw">AS</span> gmv,
+  <span class="fn">SUM</span>(order_cnt) <span class="kw">AS</span> orders
+<span class="kw">FROM</span> dws_trade_channel_day
+<span class="kw">WHERE</span> stat_date >= <span class="fn">DATE_SUB</span>(<span class="fn">CURDATE</span>(), <span class="kw">INTERVAL</span> <span class="str">7</span> <span class="kw">DAY</span>)
+<span class="kw">GROUP BY</span> channel_name, <span class="fn">DATE</span>(stat_date)
+<span class="kw">ORDER BY</span> gmv <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="str">100</span>;</div>
+        </div>
+
+        <!-- 对话补充调整 -->
+        <div class="sql-chat">
+          <div class="sql-chat-body" id="sqlChatBody">
+            <div class="sql-msg ai">
+              <div class="msg-avatar" style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">AI</div>
+              <div class="sql-msg-bubble">已根据配置生成 SQL。还有其他调整可以直接告诉我，比如"加上环比"、"只看华东区"。</div>
+            </div>
+          </div>
+          <div class="sql-chat-footer">
+            <input class="sql-input" id="sqlInput" placeholder="还有其他调整？例如：加上环比、按周汇总…"
+              onkeydown="if(event.key==='Enter')sendSqlMsg()"/>
+            <button class="sql-send" onclick="sendSqlMsg()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== Mock 数据 =====
+const MOCK = {
+  // 自然语言 query → 结果
+  queries: {
+    'gmv': {
+      intent: '我理解你想看各渠道的 GMV 表现数据。根据你的角色，优先为你推荐了报表和汇总表：',
+      results: [
+        { type:'report', typeLabel:'报表', typeCls:'type-report',
+          name:'渠道 GMV 日报', enName:'channel_gmv_daily_report',
+          source:'BI 平台', owner:'张三', heat:'3,210 次', perm:'ok',
+          layer:'报表', domain:'交易域',
+          desc:'按渠道（APP/小程序/H5）统计每天的 GMV、订单量、退款率，支持时间范围筛选和渠道对比。',
+          reason:'直接包含渠道 GMV 数据，可直接查看',
+          tip:null },
+        { type:'dashboard', typeLabel:'看板', typeCls:'type-dashboard',
+          name:'运营大盘看板', enName:'ops_overview_dashboard',
+          source:'BI 平台', owner:'李四', heat:'1,890 次', perm:'ok',
+          layer:'看板', domain:'综合',
+          desc:'包含 GMV、DAU、转化率等核心经营指标，实时更新。',
+          reason:'包含 GMV 核心指标，适合整体趋势监控',
+          tip:null },
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'dws_trade_channel_day', enName:'dws_trade_channel_day',
+          source:'数仓 DWS 层', owner:'王小明', heat:'2,341 次', perm:'ok',
+          layer:'DWS 汇总层', domain:'交易域',
+          desc:'按渠道、按天汇总的交易数据，包含 GMV、订单量、退款金额等字段。',
+          reason:'没有更细分的报表时，可用此表自定义查询',
+          tip:'按渠道（APP / 小程序 / H5）统计每天的 GMV、订单量、退款金额，适合做渠道趋势分析和渠道间对比。' }
+      ],
+      guides: ['按城市看 GMV', '加上环比数据', '看退款率趋势', '只看小程序渠道']
+    },
+    '退款': {
+      intent: '我理解你想查看退款相关的数据。根据你的角色，优先推荐了退款分析报表：',
+      results: [
+        { type:'report', typeLabel:'报表', typeCls:'type-report',
+          name:'退款分析日报', enName:'refund_analysis_daily',
+          source:'BI 平台', owner:'张三', heat:'1,560 次', perm:'ok',
+          layer:'报表', domain:'交易域 / 退款',
+          desc:'按渠道、退款原因分类统计每日退款量和退款金额，支持下钻到订单明细。',
+          reason:'直接覆盖退款分析需求，可直接查看',
+          tip:null },
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'dwd_trade_refund_detail', enName:'dwd_trade_refund_detail',
+          source:'数仓 DWD 层', owner:'王小明', heat:'1,284 次', perm:'ok',
+          layer:'DWD 明细层', domain:'交易域 / 退款',
+          desc:'退款明细表，包含每笔退款的订单号、退款原因、退款金额、退款时间等字段。',
+          reason:'需要明细数据或自定义分析时使用',
+          tip:'包含每笔退款的完整信息，可以按渠道、退款原因、时间段等维度自由聚合分析。' }
+      ],
+      guides: ['按渠道看退款', '退款原因分布', '退款率趋势', '关联订单表']
+    },
+    '用户留存': {
+      intent: '我理解你想看用户留存相关的数据。找到了以下相关资源：',
+      results: [
+        { type:'report', typeLabel:'报表', typeCls:'type-report',
+          name:'用户留存分析报表', enName:'user_retention_report',
+          source:'BI 平台', owner:'陈五', heat:'2,100 次', perm:'apply',
+          layer:'报表', domain:'用户域',
+          desc:'按注册日期队列统计 D1/D7/D30 留存率，支持按渠道、城市等维度拆分。',
+          reason:'直接覆盖用户留存分析需求',
+          tip:null },
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'dws_user_retention_day', enName:'dws_user_retention_day',
+          source:'数仓 DWS 层', owner:'陈五', heat:'890 次', perm:'ok',
+          layer:'DWS 汇总层', domain:'用户域',
+          desc:'按天统计各注册队列的留存情况，包含 D1/D7/D14/D30 留存率字段。',
+          reason:'报表无权限时可用此表自定义查询',
+          tip:'包含各注册日期队列的留存率数据，可以按渠道、城市等维度筛选分析。' }
+      ],
+      guides: ['按渠道看留存', '新用户 vs 老用户', '留存与 GMV 关联', '流失用户分析']
+    },
+    '配送时效': {
+      intent: '我理解你想看配送时效相关的数据。找到了以下相关资源：',
+      results: [
+        { type:'dashboard', typeLabel:'看板', typeCls:'type-dashboard',
+          name:'配送时效监控看板', enName:'delivery_sla_dashboard',
+          source:'BI 平台', owner:'赵六', heat:'1,450 次', perm:'ok',
+          layer:'看板', domain:'供应链域 / 配送',
+          desc:'实时展示各城市、各时段的配送时效达标率，支持按城市、骑手类型筛选。',
+          reason:'直接覆盖配送时效监控需求',
+          tip:null },
+        { type:'report', typeLabel:'报表', typeCls:'type-report',
+          name:'配送时效日报', enName:'delivery_sla_daily',
+          source:'BI 平台', owner:'赵六', heat:'980 次', perm:'ok',
+          layer:'报表', domain:'供应链域 / 配送',
+          desc:'按城市、骑手类型统计每日配送时效达标率和平均配送时长。',
+          reason:'需要历史趋势分析时使用',
+          tip:null }
+      ],
+      guides: ['按城市看时效', '高峰期时效分析', '骑手类型对比', '时效与差评关联']
+    },
+    'order': {
+      isMapping: true,
+      intent: '根据血缘关系，业务库 <code>order</code> 表在数仓中有以下下游表：',
+      results: [
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'ods_trade_order_full', enName:'ods_trade_order_full',
+          source:'数仓 ODS 层', owner:'王小明', heat:'320 次', perm:'ok',
+          layer:'ODS 贴源层', domain:'交易域',
+          desc:'直接来源于业务库 order 表，保留原始字段，每日全量同步。',
+          reason:'与业务库 order 表字段一一对应',
+          tip:null },
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'dwd_trade_order_detail', enName:'dwd_trade_order_detail',
+          source:'数仓 DWD 层', owner:'王小明', heat:'2,890 次', perm:'ok',
+          layer:'DWD 明细层', domain:'交易域',
+          desc:'基于 ODS 层清洗加工，补充了渠道、用户画像、商品分类等维度，是最常用的订单明细表。',
+          reason:'最常用的订单明细表，字段更丰富',
+          tip:'包含完整订单信息，额外补充了渠道、用户画像等维度，适合做订单明细分析。' },
+        { type:'table', typeLabel:'表', typeCls:'type-table',
+          name:'dws_trade_order_day', enName:'dws_trade_order_day',
+          source:'数仓 DWS 层', owner:'王小明', heat:'1,670 次', perm:'ok',
+          layer:'DWS 汇总层', domain:'交易域',
+          desc:'基于 DWD 层按天聚合，包含每日订单量、GMV、退款量等汇总指标。',
+          reason:'需要看趋势或汇总数据时使用',
+          tip:'按天汇总的订单数据，适合看 GMV 趋势、订单量变化等。' }
+      ],
+      guides: ['看订单明细', '订单 GMV 趋势', '退款相关的表', '订单血缘上下游']
+    },
+    '转化漏斗': {
+      intent: '我理解你想看转化漏斗相关的数据。找到了以下相关资源：',
+      results: [
+        { type:'report', typeLabel:'报表', typeCls:'type-report',
+          name:'核心转化漏斗报表', enName:'core_conversion_funnel',
+          source:'BI 平台', owner:'陈五', heat:'3,450 次', perm:'ok',
+          layer:'报表', domain:'用户域 / 转化',
+          desc:'展示从曝光→点击→加购→下单→支付的完整转化漏斗，支持按渠道、时间段筛选。',
+          reason:'直接覆盖转化漏斗分析需求',
+          tip:null }
+      ],
+      guides: ['按渠道看转化', '加购到支付转化', '新用户转化率', '转化与留存关联']
+    }
+  },
+  // 模糊 query → 追问
+  ambiguous: {
+    '用户': {
+      ask: '你想看的是哪方面的用户数据？',
+      options: ['用户行为 / 活跃度', '用户画像 / 标签', '用户留存 / 流失', '用户交易 / 消费']
+    },
+    '数据': {
+      ask: '你想找哪个业务方向的数据？',
+      options: ['交易 / 订单 / GMV', '用户 / 留存 / 画像', '供应链 / 配送', '营销 / 活动 / 优惠券']
+    }
+  },
+  // SQL 调整 mock
+  sqlAdjust: {
+    '环比': '已加上环比字段（gmv_wow_ratio），对比上周同期数据。',
+    '华东': '已加上 region = \'华东\' 的筛选条件。',
+    '城市': '已将分组维度改为 city_name，按城市汇总。',
+    '月': '已将时间粒度改为按月汇总（DATE_FORMAT(stat_date, \'%Y-%m\')）。',
+    '排序': '已调整排序方式。',
+    '退款率': '已加上退款率字段（refund_amt / gmv_amt AS refund_rate）。'
+  },
+
+  // Chat BI 查数 mock
+  chatbi: {
+    // 指标查询
+    'gmv是多少': {
+      intent: 'metric',
+      summaryLabel: '昨天 GMV',
+      summaryMetrics: [
+        { label:'GMV', value:'1.23 亿', change:'↑8.2%', dir:'up' },
+        { label:'环比昨天', value:'+930 万', change:'', dir:'up' },
+        { label:'同比上周', value:'+8.2%', change:'', dir:'up' }
+      ],
+      rightTitle: '昨天 GMV 是多少',
+      rightContent: 'metric',
+      metrics: [
+        { label:'昨日 GMV', value:'1.23 亿', change:'↑8.2%', dir:'up', period:'对比上周同日', primary:true },
+        { label:'环比前日', value:'+930 万', change:'↑8.2%', dir:'up', period:'2026-04-04 vs 2026-04-03' },
+        { label:'同比上周', value:'+8.2%', change:'', dir:'up', period:'2026-04-04 vs 2026-03-28' }
+      ],
+      source: { table:'dws_trade_order_day', field:'gmv_amt', time:'stat_date = 2026-04-04', via:'指标服务 API' }
+    },
+    // 维度分析
+    'gmv按城市': {
+      intent: 'dimension',
+      summaryLabel: '昨天 GMV 按城市分布',
+      summaryMetrics: [
+        { label:'北京', value:'3,240 万', change:'↑5.1%', dir:'up' },
+        { label:'上海', value:'2,980 万', change:'↑3.8%', dir:'up' },
+        { label:'广州', value:'1,870 万', change:'↓1.2%', dir:'down' }
+      ],
+      rightTitle: '昨天 GMV 按城市分布',
+      rightContent: 'dimension',
+      rows: [
+        { rank:1, city:'北京', gmv:'3,240 万', pct:'26.3%', wow:'↑5.1%', dir:'up' },
+        { rank:2, city:'上海', gmv:'2,980 万', pct:'24.2%', wow:'↑3.8%', dir:'up' },
+        { rank:3, city:'广州', gmv:'1,870 万', pct:'15.2%', wow:'↓1.2%', dir:'down' },
+        { rank:4, city:'深圳', gmv:'1,650 万', pct:'13.4%', wow:'↑2.3%', dir:'up' },
+        { rank:5, city:'成都', gmv:'980 万', pct:'8.0%', wow:'↑7.6%', dir:'up' },
+        { rank:6, city:'杭州', gmv:'760 万', pct:'6.2%', wow:'↓0.5%', dir:'down' },
+        { rank:7, city:'其他', gmv:'830 万', pct:'6.7%', wow:'↑1.1%', dir:'up' }
+      ],
+      source: { table:'dws_trade_city_day', field:'gmv_amt', time:'stat_date = 2026-04-04', via:'白名单表 SQL 自动执行' }
+    },
+    // 趋势分析
+    'gmv趋势': {
+      intent: 'trend',
+      summaryLabel: '最近 30 天 GMV 趋势',
+      summaryMetrics: [
+        { label:'30天累计', value:'3.68 亿', change:'↑12.4%', dir:'up' },
+        { label:'日均 GMV', value:'1,227 万', change:'', dir:'neutral' },
+        { label:'最高单日', value:'1,580 万', change:'4月1日', dir:'neutral' }
+      ],
+      rightTitle: '最近 30 天 GMV 趋势',
+      rightContent: 'trend',
+      source: { table:'dws_trade_order_day', field:'gmv_amt', time:'近30天', via:'白名单表 SQL 自动执行' }
+    },
+    // 对比分析
+    'gmv对比': {
+      intent: 'comparison',
+      summaryLabel: '本周 vs 上周 GMV 对比',
+      summaryMetrics: [
+        { label:'本周 GMV', value:'8,640 万', change:'↑9.3%', dir:'up' },
+        { label:'上周 GMV', value:'7,905 万', change:'', dir:'neutral' },
+        { label:'增量', value:'+735 万', change:'', dir:'up' }
+      ],
+      rightTitle: '本周 GMV 和上周对比',
+      rightContent: 'comparison',
+      rows: [
+        { day:'周一', cur:'1,180 万', prev:'1,050 万', diff:'+130 万', dir:'up' },
+        { day:'周二', cur:'1,240 万', prev:'1,120 万', diff:'+120 万', dir:'up' },
+        { day:'周三', cur:'1,320 万', prev:'1,230 万', diff:'+90 万', dir:'up' },
+        { day:'周四', cur:'1,290 万', prev:'1,180 万', diff:'+110 万', dir:'up' },
+        { day:'周五（今天）', cur:'1,580 万', prev:'1,420 万', diff:'+160 万', dir:'up' },
+        { day:'周六', cur:'—', prev:'1,380 万', diff:'—', dir:'neutral' },
+        { day:'周日', cur:'—', prev:'1,525 万', diff:'—', dir:'neutral' }
+      ],
+      source: { table:'dws_trade_order_day', field:'gmv_amt', time:'本周 vs 上周', via:'白名单表 SQL 自动执行' }
+    }
+  }
+};
+
+let currentRole = 'business';
+let isTyping = false;
+let askCount = 0;
+
+// ===== 角色切换 =====
+function toggleRolePicker() {
+  document.getElementById('rolePicker').classList.toggle('show');
+}
+function setRole(name, key) {
+  currentRole = key;
+  document.getElementById('roleBadge').textContent = '👤 ' + name + ' ▾';
+  document.querySelectorAll('.role-option').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('rolePicker').classList.remove('show');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#rolePicker') && !e.target.closest('#roleBadge'))
+    document.getElementById('rolePicker').classList.remove('show');
+});
+
+// ===== 输入框自适应高度 =====
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+// ===== 发送消息 =====
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value = '';
+  input.style.height = 'auto';
+  appendUserMsg(text);
+  showTyping();
+  setTimeout(() => { removeTyping(); handleQuery(text); }, 900 + Math.random() * 400);
+}
+
+function appendUserMsg(text) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-avatar">我</div><div class="msg-content"><div class="msg-bubble">${escHtml(text)}</div></div>`;
+  body.appendChild(div);
+  scrollChat();
+}
+
+function showTyping() {
+  isTyping = true;
+  document.getElementById('sendBtn').disabled = true;
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typingMsg';
+  div.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-content"><div class="msg-bubble" style="padding:10px 14px;"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  body.appendChild(div);
+  scrollChat();
+}
+
+function removeTyping() {
+  isTyping = false;
+  document.getElementById('sendBtn').disabled = false;
+  const el = document.getElementById('typingMsg');
+  if (el) el.remove();
+}
+
+// ===== 意图匹配 =====
+function handleQuery(text) {
+  const t = text.toLowerCase().replace(/\s/g,'');
+
+  // ── Chat BI 查数意图优先匹配 ──
+  if (/gmv是多少|gmv多少|昨天gmv|今天gmv|上月gmv|本月gmv/.test(t)) {
+    showChatBI(MOCK.chatbi['gmv是多少'], text); askCount = 0; return;
+  }
+  if (/gmv.*城市|城市.*gmv|按城市/.test(t)) {
+    showChatBI(MOCK.chatbi['gmv按城市'], text); askCount = 0; return;
+  }
+  if (/gmv.*趋势|趋势.*gmv|近\d+天gmv|最近.*gmv/.test(t)) {
+    showChatBI(MOCK.chatbi['gmv趋势'], text); askCount = 0; return;
+  }
+  if (/gmv.*对比|对比.*gmv|本周.*上周|上周.*本周/.test(t)) {
+    showChatBI(MOCK.chatbi['gmv对比'], text); askCount = 0; return;
+  }
+
+  // ── 找数意图 ──
+  // 业务库表名映射
+  if (/\border\b|order表/.test(t)) { showResults(MOCK.queries['order'], text); askCount = 0; return; }
+  // 精确匹配
+  for (const [key, data] of Object.entries(MOCK.queries)) {
+    if (key === 'order') continue;
+    if (t.includes(key)) { showResults(data, text); askCount = 0; return; }
+  }
+  // 模糊匹配 → 追问（最多1次）
+  if (askCount < 1) {
+    for (const [key, data] of Object.entries(MOCK.ambiguous)) {
+      if (t.includes(key)) { showAsk(data); askCount++; return; }
+    }
+  }
+  // 兜底：给默认结果
+  showResults(MOCK.queries['gmv'], text);
+  askCount = 0;
+}
+
+// ===== Chat BI 查数结果 =====
+function showChatBI(data, query) {
+  // 左侧对话：摘要气泡
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  const metricsHtml = data.summaryMetrics.map(m => `
+    <div class="chatbi-summary-metric">
+      <span class="chatbi-summary-metric-label">${m.label}</span>
+      <span class="chatbi-summary-metric-value">${m.value}</span>
+      ${m.change ? `<span class="chatbi-summary-metric-change ${m.dir}">${m.change}</span>` : ''}
+    </div>`).join('');
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="chatbi-summary" onclick="openChatbiPanel('${escHtml(data.rightTitle)}')">
+        <div class="chatbi-summary-label">📊 ${escHtml(data.summaryLabel)}</div>
+        <div class="chatbi-summary-metrics">${metricsHtml}</div>
+        <div class="chatbi-summary-hint">点击查看完整图表和来源说明 →</div>
+      </div>
+    </div>`;
+  body.appendChild(div);
+  scrollChat();
+
+  // 右侧：渲染查数结果
+  renderChatbiPanel(data);
+}
+
+function openChatbiPanel(title) {
+  document.getElementById('rightEmpty').classList.add('hide');
+  document.getElementById('rightActive').classList.remove('show');
+  document.getElementById('chatbiPanel').classList.add('show');
+}
+
+let _currentChatbiData = null;
+let _sourceVisible = false;
+
+function renderChatbiPanel(data) {
+  _currentChatbiData = data;
+  _sourceVisible = false;
+  document.getElementById('chatbiTitle').textContent = data.rightTitle;
+  document.getElementById('rightEmpty').classList.add('hide');
+  document.getElementById('rightActive').classList.remove('show');
+  document.getElementById('chatbiPanel').classList.add('show');
+
+  const body = document.getElementById('chatbiBody');
+  body.innerHTML = '';
+
+  if (data.rightContent === 'metric') {
+    body.innerHTML = buildMetricCards(data) + buildSourcePanel(data, false);
+  } else if (data.rightContent === 'dimension') {
+    body.innerHTML = buildDimTable(data) + buildSourcePanel(data, false);
+  } else if (data.rightContent === 'trend') {
+    body.innerHTML = buildTrendChart(data) + buildSourcePanel(data, false);
+  } else if (data.rightContent === 'comparison') {
+    body.innerHTML = buildComparisonTable(data) + buildSourcePanel(data, false);
+  }
+}
+
+function toggleChatbiSource() {
+  _sourceVisible = !_sourceVisible;
+  const panel = document.getElementById('chatbiBody').querySelector('.chatbi-source-panel');
+  if (panel) panel.style.display = _sourceVisible ? 'block' : 'none';
+  document.querySelector('.chatbi-source-btn').textContent = _sourceVisible ? '收起来源 ↑' : '查看来源 ↓';
+}
+
+function buildMetricCards(data) {
+  const cards = data.metrics.map(m => `
+    <div class="metric-card ${m.primary ? 'primary' : ''}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value ${m.primary ? 'large' : ''}">${m.value}</div>
+      <div class="metric-change ${m.dir}">${m.change || ''}</div>
+      <div class="metric-period">${m.period}</div>
+    </div>`).join('');
+  return `<div class="metric-cards">${cards}</div>`;
+}
+
+function buildDimTable(data) {
+  const maxGmv = 3240;
+  const rows = data.rows.map(r => {
+    const num = parseFloat(r.gmv.replace(/[^0-9.]/g,'')) || 0;
+    const pct = Math.round(num / maxGmv * 100);
+    return `<tr>
+      <td><span class="rank-num">${r.rank}</span></td>
+      <td>${r.city}</td>
+      <td>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar" style="width:${pct}px;min-width:4px;"></div>
+          <span>${r.gmv}</span>
+        </div>
+      </td>
+      <td>${r.pct}</td>
+      <td style="color:${r.dir==='up'?'#f5222d':'#52c41a'}">${r.wow}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="dim-table-wrap">
+    <div class="dim-table-header">📍 各城市 GMV 分布 <span style="font-size:11px;color:#8c8c8c;font-weight:400;margin-left:4px;">昨天 · 共 ${data.rows.length} 个城市</span></div>
+    <table class="dim-table">
+      <thead><tr><th>#</th><th>城市</th><th>GMV</th><th>占比</th><th>环比上周</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function buildTrendChart(data) {
+  // 生成 mock 折线图 SVG
+  const vals = [820,910,880,1050,980,1120,1080,1150,1090,1200,1180,1250,1220,1300,1280,1350,1320,1400,1380,1450,1420,1480,1460,1520,1500,1550,1530,1580,1560,1580];
+  const w = 560, h = 140, pad = 20;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const pts = vals.map((v,i) => {
+    const x = pad + i * (w - pad*2) / (vals.length-1);
+    const y = h - pad - (v - min) / (max - min) * (h - pad*2);
+    return `${x},${y}`;
+  });
+  const areaPath = `M${pts[0]} L${pts.join(' L')} L${pad + (w-pad*2)},${h-pad} L${pad},${h-pad} Z`;
+  const linePath = `M${pts.join(' L')}`;
+  return `<div class="chart-wrap">
+    <div class="chart-title">
+      📈 近 30 天 GMV 趋势
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#667eea"></div>GMV（万元）</div>
+      </div>
+    </div>
+    <div class="chart-svg-wrap">
+      <svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#667eea" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#667eea" stop-opacity="0.01"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#areaGrad)"/>
+        <path d="${linePath}" fill="none" stroke="#667eea" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="4" fill="#667eea"/>
+        <text x="${pad}" y="${h-4}" font-size="10" fill="#bfbfbf">3月6日</text>
+        <text x="${w-pad-28}" y="${h-4}" font-size="10" fill="#bfbfbf">4月4日</text>
+        <text x="${pad}" y="${pad+4}" font-size="10" fill="#bfbfbf">${max}</text>
+        <text x="${pad}" y="${h-pad+4}" font-size="10" fill="#bfbfbf">${min}</text>
+      </svg>
+    </div>
+    <div style="display:flex;gap:24px;margin-top:8px;padding:0 4px;">
+      <div class="metric-card" style="flex:1;padding:10px 14px;">
+        <div class="metric-label">30天累计</div>
+        <div class="metric-value" style="font-size:20px;">3.68 亿</div>
+        <div class="metric-change up">↑12.4% 同比</div>
+      </div>
+      <div class="metric-card" style="flex:1;padding:10px 14px;">
+        <div class="metric-label">日均 GMV</div>
+        <div class="metric-value" style="font-size:20px;">1,227 万</div>
+        <div class="metric-change neutral">近30天均值</div>
+      </div>
+      <div class="metric-card" style="flex:1;padding:10px 14px;">
+        <div class="metric-label">最高单日</div>
+        <div class="metric-value" style="font-size:20px;">1,580 万</div>
+        <div class="metric-change neutral">4月4日（昨天）</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildComparisonTable(data) {
+  const rows = data.rows.map(r => `<tr>
+    <td>${r.day}</td>
+    <td style="font-weight:600;">${r.cur}</td>
+    <td style="color:#8c8c8c;">${r.prev}</td>
+    <td style="color:${r.dir==='up'?'#f5222d':r.dir==='down'?'#52c41a':'#8c8c8c'};font-weight:500;">${r.diff}</td>
+  </tr>`).join('');
+  return `<div style="display:flex;gap:12px;margin-bottom:4px;">
+    <div class="metric-card primary" style="flex:1;padding:12px 16px;">
+      <div class="metric-label">本周 GMV（截至今天）</div>
+      <div class="metric-value">8,640 万</div>
+      <div class="metric-change up">↑9.3% 对比上周同期</div>
+    </div>
+    <div class="metric-card" style="flex:1;padding:12px 16px;">
+      <div class="metric-label">上周同期 GMV</div>
+      <div class="metric-value">7,905 万</div>
+      <div class="metric-change neutral">周一至周五</div>
+    </div>
+    <div class="metric-card" style="flex:1;padding:12px 16px;">
+      <div class="metric-label">增量</div>
+      <div class="metric-value">+735 万</div>
+      <div class="metric-change up">↑9.3%</div>
+    </div>
+  </div>
+  <div class="dim-table-wrap">
+    <div class="dim-table-header">📅 逐日对比</div>
+    <table class="dim-table">
+      <thead><tr><th>日期</th><th>本周 GMV</th><th>上周 GMV</th><th>差值</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function buildSourcePanel(data, visible) {
+  const s = data.source;
+  return `<div class="chatbi-source-panel" style="display:${visible?'block':'none'}">
+    <div class="source-title">数据来源说明</div>
+    <div class="source-row"><span class="source-label">取数方式</span><span>${s.via}</span></div>
+    <div class="source-row"><span class="source-label">来源表</span><span class="source-code">${s.table}</span></div>
+    <div class="source-row"><span class="source-label">指标字段</span><span class="source-code">${s.field}</span></div>
+    <div class="source-row"><span class="source-label">时间条件</span><span class="source-code">${s.time}</span></div>
+  </div>`;
+}
+
+function showResults(data, query) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+
+  // 根据角色过滤：业务用户不显示 ODS 层
+  let results = data.results;
+  if (['business','pm','exec'].includes(currentRole)) {
+    results = results.filter(r => r.layer !== 'ODS 贴源层');
+  }
+
+  const cardsHtml = results.map((r, i) => buildCard(r, i, data)).join('');
+  const guidesHtml = data.guides.map(g =>
+    `<span class="guide-tag" onclick="sendQuick('${g}')">${g}</span>`
+  ).join('');
+
+  const intentText = data.isMapping
+    ? data.intent
+    : data.intent;
+
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${intentText}</div>
+      <div class="result-cards">${cardsHtml}</div>
+      <div class="guide-tags" style="margin-top:4px;">${guidesHtml}</div>
+    </div>`;
+  body.appendChild(div);
+  scrollChat();
+}
+
+function buildCard(r, i, data) {
+  const permHtml = r.perm === 'ok'
+    ? `<span class="perm-tag perm-ok">✓ 已有权限</span>`
+    : r.perm === 'apply'
+    ? `<span class="perm-tag perm-apply" onclick="event.stopPropagation();alert('已发起权限申请')">申请权限</span>`
+    : `<span class="perm-tag perm-pending">申请中</span>`;
+
+  const sqlBtn = r.type === 'table'
+    ? `<button class="card-btn card-btn-sql" onclick="event.stopPropagation();selectResource(${JSON.stringify(r).replace(/"/g,'&quot;')})">辅助写 SQL</button>`
+    : '';
+
+  const viewLabel = r.type === 'report' ? '查看报表' : r.type === 'dashboard' ? '查看看板' : '查看详情';
+
+  return `
+    <div class="result-card" onclick="selectResource(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+      <div class="card-top">
+        <span class="type-tag ${r.typeCls}">${r.typeLabel}</span>
+        <span class="card-name">${r.name}</span>
+        <span class="card-source">${r.source}</span>
+      </div>
+      <div class="card-desc">${r.desc}</div>
+      <div class="card-reason">💡 ${r.reason}</div>
+      <div class="card-actions">
+        ${permHtml}
+        <button class="card-btn card-btn-primary" onclick="event.stopPropagation();alert('跳转到${r.typeLabel}详情页')">${viewLabel}</button>
+        ${sqlBtn}
+      </div>
+    </div>`;
+}
+
+function showAsk(data) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  const optsHtml = data.options.map(o =>
+    `<div class="ask-option" onclick="sendQuick('${o}')">${o}</div>`
+  ).join('');
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${data.ask}</div>
+      <div class="ask-options">${optsHtml}</div>
+    </div>`;
+  body.appendChild(div);
+  scrollChat();
+}
+
+// ===== 选中资源，展示右侧工作区 =====
+function selectResource(r) {
+  // 更新右侧头部
+  document.getElementById('resTypeTag').textContent = r.typeLabel;
+  document.getElementById('resTypeTag').className = 'type-tag ' + r.typeCls;
+  document.getElementById('resNameMain').textContent = r.name;
+  document.getElementById('resNameSub').textContent = (r.enName !== r.name ? r.enName + ' · ' : '') + r.source;
+  document.getElementById('metaOwner').textContent = r.owner;
+  document.getElementById('metaHeat').textContent = r.heat;
+  document.getElementById('metaLayer').textContent = r.layer;
+  const permEl = document.getElementById('metaPerm');
+  if (r.perm === 'ok') { permEl.textContent = '已有权限'; permEl.className = 'meta-value green'; }
+  else if (r.perm === 'apply') { permEl.textContent = '申请权限'; permEl.className = 'meta-value orange'; }
+  else { permEl.textContent = '申请中'; permEl.className = 'meta-value'; }
+
+  // 业务说明
+  const tipEl = document.getElementById('businessTip');
+  if (r.tip) {
+    tipEl.innerHTML = `💡 <strong>这张表能帮你看：</strong>${r.tip}`;
+    tipEl.style.display = '';
+  } else {
+    tipEl.style.display = 'none';
+  }
+
+  // SQL 区域：只对表类型显示
+  const sqlArea = document.querySelector('.sql-area');
+  if (r.type === 'table') {
+    sqlArea.style.display = '';
+    resetSqlChat(r);
+  } else {
+    sqlArea.style.display = 'none';
+  }
+
+  document.getElementById('rightEmpty').classList.add('hide');
+  document.getElementById('rightActive').classList.add('show');
+}
+
+function resetSqlChat(r) {
+  document.getElementById('sqlChatBody').innerHTML = `
+    <div class="sql-msg ai">
+      <div class="msg-avatar" style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">AI</div>
+      <div class="sql-msg-bubble">已根据 <strong>${r.name}</strong> 生成初始 SQL。可以继续告诉我调整需求，比如"加上环比"、"只看华东区"。</div>
+    </div>`;
+  // 更新 SQL 编辑器
+  document.getElementById('sqlEditor').innerHTML =
+    `<span class="cm">-- 根据你选择的表生成</span>\n` +
+    `<span class="kw">SELECT</span> *\n<span class="kw">FROM</span> ${r.name}\n<span class="kw">LIMIT</span> <span class="str">100</span>;`;
+}
+
+// ===== SQL 辅助对话 =====
+function sendSqlMsg() {
+  const input = document.getElementById('sqlInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const body = document.getElementById('sqlChatBody');
+  // 用户消息
+  const userDiv = document.createElement('div');
+  userDiv.className = 'sql-msg user';
+  userDiv.innerHTML = `<div class="msg-avatar" style="width:24px;height:24px;border-radius:6px;background:#1677ff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">我</div><div class="sql-msg-bubble">${escHtml(text)}</div>`;
+  body.appendChild(userDiv);
+
+  setTimeout(() => {
+    // 找匹配的调整
+    let reply = '已根据你的需求更新了 SQL，请查看上方编辑器。';
+    for (const [key, msg] of Object.entries(MOCK.sqlAdjust)) {
+      if (text.includes(key)) { reply = msg; break; }
+    }
+    const aiDiv = document.createElement('div');
+    aiDiv.className = 'sql-msg ai';
+    aiDiv.innerHTML = `<div class="msg-avatar" style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">AI</div><div class="sql-msg-bubble">${reply}</div>`;
+    body.appendChild(aiDiv);
+    body.scrollTop = body.scrollHeight;
+  }, 600);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ===== 工具函数 =====
+function scrollChat() {
+  const body = document.getElementById('chatBody');
+  setTimeout(() => body.scrollTop = body.scrollHeight, 50);
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function copySql() {
+  const text = document.getElementById('sqlEditor').innerText;
+  navigator.clipboard.writeText(text).then(() => alert('SQL 已复制到剪贴板'));
+}
+function newChat() {
+  document.getElementById('chatBody').innerHTML = `
+    <div class="msg ai" id="welcomeMsg">
+      <div class="msg-avatar">AI</div>
+      <div class="msg-content">
+        <div class="msg-bubble">你好！告诉我你想找什么数据，我来帮你定位。<br>可以直接描述业务需求，也可以输入业务库的表名。</div>
+        <div class="guide-tags">
+          <span class="guide-tag" onclick="sendQuick('各渠道 GMV 表现')">📊 各渠道 GMV 表现</span>
+          <span class="guide-tag" onclick="sendQuick('用户留存相关报表')">👤 用户留存相关报表</span>
+          <span class="guide-tag" onclick="sendQuick('order 表在数仓里是哪张')">🔗 order 表在数仓里是哪张</span>
+          <span class="guide-tag" onclick="sendQuick('配送时效看板')">🚚 配送时效看板</span>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('rightEmpty').classList.remove('hide');
+  document.getElementById('rightActive').classList.remove('show');
+  askCount = 0;
+}
+
+
+// ===== 配置表单逻辑 =====
+let configOpen = true;
+
+function toggleConfig() {
+  configOpen = !configOpen;
+  const cfg = document.getElementById('sqlConfig');
+  const arrow = document.getElementById('toggleArrow');
+  cfg.classList.toggle('collapsed', !configOpen);
+  arrow.className = 'toggle-arrow ' + (configOpen ? 'open' : 'closed');
+}
+
+function toggleChip(el, group) {
+  el.classList.toggle('selected');
+  updateConfigSummary();
+}
+
+function selectTimeRange(el) {
+  // 时间范围单选
+  el.closest('.config-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  updateConfigSummary();
+}
+
+function resetConfig() {
+  // 维度：只保留渠道
+  document.querySelectorAll('#dimChips .chip').forEach((c,i) => {
+    c.classList.toggle('selected', i === 0);
+  });
+  // 指标：GMV + 订单量
+  document.querySelectorAll('#metricChips .chip').forEach((c,i) => {
+    c.classList.toggle('selected', i < 2);
+  });
+  // 时间：近7天
+  document.querySelectorAll('#timeChips .chip').forEach((c,i) => {
+    c.classList.toggle('selected', i === 0);
+  });
+  // 筛选：全清
+  document.querySelectorAll('#filterChips .chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('sortSelect').value = 'gmv_desc';
+  document.getElementById('limitSelect').value = '100';
+  updateConfigSummary();
+}
+
+function updateConfigSummary() {
+  const dims = [...document.querySelectorAll('#dimChips .chip.selected')].map(c => c.textContent);
+  const metrics = [...document.querySelectorAll('#metricChips .chip.selected')].map(c => c.textContent);
+  const time = document.querySelector('#timeChips .chip.selected')?.textContent || '近7天';
+  const parts = [];
+  if (dims.length) parts.push(dims.join('、'));
+  if (metrics.length) parts.push(metrics.join('、'));
+  parts.push(time);
+  document.getElementById('configSummary').textContent = parts.join(' · ');
+}
+
+function generateSql() {
+  const dims = [...document.querySelectorAll('#dimChips .chip.selected')].map(c => c.textContent);
+  const metrics = [...document.querySelectorAll('#metricChips .chip.selected')].map(c => c.textContent);
+  const time = document.querySelector('#timeChips .chip.selected')?.textContent || '近7天';
+  const filters = [...document.querySelectorAll('#filterChips .chip.selected')].map(c => c.textContent);
+  const sort = document.getElementById('sortSelect').value;
+  const limit = document.getElementById('limitSelect').value;
+
+  // 维度映射
+  const dimMap = { '渠道':'channel_name', '城市':'city_name', '日期':'DATE(stat_date) AS dt',
+    '周':'DATE_FORMAT(stat_date,\'%Y-%u\') AS week', '月':'DATE_FORMAT(stat_date,\'%Y-%m\') AS month',
+    '用户类型':'user_type', '商品分类':'category_name' };
+  // 指标映射
+  const metricMap = { 'GMV':'SUM(gmv_amt) AS gmv', '订单量':'SUM(order_cnt) AS orders',
+    '退款金额':'SUM(refund_amt) AS refund_amt', '退款率':'ROUND(SUM(refund_amt)/SUM(gmv_amt),4) AS refund_rate',
+    '客单价':'ROUND(SUM(gmv_amt)/SUM(order_cnt),2) AS avg_order_amt',
+    '环比':'ROUND((SUM(gmv_amt)-LAG(SUM(gmv_amt))OVER(ORDER BY DATE(stat_date)))/LAG(SUM(gmv_amt))OVER(ORDER BY DATE(stat_date)),4) AS gmv_wow',
+    '同比':'-- 同比需关联去年同期数据' };
+  // 时间映射
+  const timeMap = { '近7天':'DATE_SUB(CURDATE(), INTERVAL 7 DAY)', '近30天':'DATE_SUB(CURDATE(), INTERVAL 30 DAY)',
+    '本月':'DATE_FORMAT(CURDATE(),\'%Y-%m-01\')', '上月':'DATE_FORMAT(DATE_SUB(CURDATE(),INTERVAL 1 MONTH),\'%Y-%m-01\')',
+    '近90天':'DATE_SUB(CURDATE(), INTERVAL 90 DAY)' };
+  // 排序映射
+  const sortMap = { 'gmv_desc':'gmv DESC', 'gmv_asc':'gmv ASC', 'orders_desc':'orders DESC',
+    'dt_desc':'dt DESC', 'dt_asc':'dt ASC' };
+
+  const selectCols = [
+    ...dims.map(d => dimMap[d] || d),
+    ...metrics.map(m => metricMap[m] || m)
+  ].join(',\n  ');
+
+  const groupCols = dims.map(d => {
+    const raw = dimMap[d] || d;
+    return raw.includes(' AS ') ? raw.split(' AS ')[0] : raw;
+  }).join(', ');
+
+  let whereClause = `stat_date >= ${timeMap[time] || timeMap['近7天']}`;
+  if (filters.includes('仅 APP')) whereClause += "\n  AND channel_name = 'APP'";
+  if (filters.includes('仅小程序')) whereClause += "\n  AND channel_name = '小程序'";
+  if (filters.includes('华东区')) whereClause += "\n  AND region = '华东'";
+  if (filters.includes('华南区')) whereClause += "\n  AND region = '华南'";
+  if (filters.includes('排除退款')) whereClause += "\n  AND order_status != 'refunded'";
+
+  const tableName = document.getElementById('resNameMain')?.textContent || 'your_table';
+  const comment = `-- 配置生成：${dims.join('、') || '全量'} · ${metrics.join('、')} · ${time}`;
+  const limitClause = limit ? `\nLIMIT ${limit}` : '';
+
+  const sql = `${comment}
+SELECT
+  ${selectCols}
+FROM ${tableName}
+WHERE ${whereClause}
+${groupCols ? 'GROUP BY ' + groupCols : ''}
+ORDER BY ${sortMap[sort] || 'gmv DESC'}${limitClause};`;
+
+  // 渲染到编辑器（简单高亮）
+  const highlighted = sql
+    .replace(/\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|LIMIT|AND|AS|INTERVAL|DAY|MONTH)\b/g, '<span class="kw">$1</span>')
+    .replace(/(SUM|DATE|DATE_SUB|DATE_FORMAT|CURDATE|ROUND|LAG|OVER)(?=\()/g, '<span class="fn">$1</span>')
+    .replace(/('.*?')/g, '<span class="str">$1</span>')
+    .replace(/(--.*)/g, '<span class="cm">$1</span>');
+
+  document.getElementById('sqlEditor').innerHTML = highlighted;
+
+  // 折叠配置区
+  configOpen = false;
+  document.getElementById('sqlConfig').classList.add('collapsed');
+  document.getElementById('toggleArrow').className = 'toggle-arrow closed';
+  updateConfigSummary();
+
+  // 在对话区追加一条 AI 消息
+  const body = document.getElementById('sqlChatBody');
+  const div = document.createElement('div');
+  div.className = 'sql-msg ai';
+  div.innerHTML = `<div class="msg-avatar" style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;">AI</div>
+    <div class="sql-msg-bubble">已根据配置重新生成 SQL：${dims.join('、') || '全量'} · ${metrics.join('、')} · ${time}。还有其他调整可以继续告诉我。</div>`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+</script>
+</body>
+</html>
