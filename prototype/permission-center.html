@@ -204,12 +204,111 @@
     .notification.info { background: var(--primary); }
     .notification.warning { background: var(--warning); color: var(--gray-800); }
     .notification.error { background: var(--danger); }
+
+    /* ===== Header Menu Trigger ===== */
+    .header-menu-trigger {
+      width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08); color: #fff; display: inline-flex; align-items: center;
+      justify-content: center; flex-shrink: 0; cursor: pointer; transition: var(--transition);
+    }
+    .header-menu-trigger:hover,
+    .header-menu-trigger.active { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.24); }
+    .header-menu-trigger svg { width: 18px; height: 18px; }
+
+    /* ===== Platform Menu ===== */
+    .platform-menu-overlay {
+      position: fixed; inset: var(--header-h) 0 0 0; background: rgba(0, 21, 41, .32); z-index: 90;
+      display: none; padding: 18px 24px 24px; overflow: auto;
+    }
+    .platform-menu-overlay.open { display: block; }
+    .platform-menu-panel {
+      min-height: calc(100vh - var(--header-h) - 42px); background: #fff; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .12); overflow: hidden; display: grid;
+      grid-template-columns: 280px 1fr;
+    }
+    .platform-menu-sidebar {
+      background: #fafafa;
+      border-right: 1px solid var(--gray-200); padding: 20px 14px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .platform-menu-brand {
+      padding: 12px 14px; border-radius: 6px; background: #fff; border: 1px solid var(--gray-200);
+    }
+    .platform-menu-brand-title { font-size: 14px; font-weight: 600; color: var(--gray-800); }
+    .platform-menu-brand-sub { margin-top: 4px; font-size: 12px; color: var(--gray-400); }
+    .platform-menu-list { display: flex; flex-direction: column; gap: 6px; }
+    .platform-menu-item {
+      padding: 10px 14px; border-radius: 6px; border: 1px solid transparent; background: transparent;
+      display: flex; align-items: flex-start; gap: 10px; color: var(--gray-700); transition: var(--transition); width: 100%;
+      text-align: left; cursor: pointer;
+    }
+    .platform-menu-item:hover { background: #fafafa; border-color: var(--gray-200); }
+    .platform-menu-item.active { background: var(--primary-light); border-color: #91caff; }
+    .platform-menu-item-icon {
+      width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; background: var(--primary-light); color: var(--primary);
+    }
+    .platform-menu-item-body { flex: 1; min-width: 0; }
+    .platform-menu-item-name { display: block; font-size: 13px; font-weight: 500; color: var(--gray-800); }
+    .platform-menu-item-desc { display: block; font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+    .platform-menu-content { padding: 28px 32px; display: flex; flex-direction: column; gap: 24px; overflow: auto; }
+    .platform-menu-toolbar { display: flex; align-items: flex-start; justify-content: space-between; }
+    .platform-menu-toolbar-left { display: flex; flex-direction: column; gap: 6px; }
+    .platform-menu-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--gray-400); text-transform: uppercase; }
+    .platform-menu-title-row { display: flex; align-items: center; gap: 10px; }
+    .platform-menu-title { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+    .platform-menu-close {
+      width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--gray-200); background: #fff;
+      color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .platform-menu-close:hover { background: var(--gray-100); }
+    .platform-menu-hero {
+      display: grid; grid-template-columns: 1fr 220px; gap: 24px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, #f0f5ff 100%);
+      border-radius: 8px; padding: 24px; border: 1px solid #91caff;
+    }
+    .platform-menu-hero-title { font-size: 18px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; }
+    .platform-menu-hero-desc { font-size: 13px; color: var(--gray-700); line-height: 1.6; margin-bottom: 12px; }
+    .platform-menu-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .platform-menu-tag {
+      padding: 3px 10px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 12px; font-weight: 500;
+    }
+    .platform-menu-hero-side {
+      background: #fff; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
+      border: 1px solid #91caff;
+    }
+    .platform-menu-hero-side-title { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: .06em; }
+    .platform-menu-hero-side-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+    .platform-menu-hero-side-desc { font-size: 12px; color: var(--gray-600); line-height: 1.5; }
+    .platform-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .platform-menu-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 20px; }
+    .platform-menu-card-title { font-size: 13px; font-weight: 600; color: var(--gray-800); margin-bottom: 12px; }
+    .platform-menu-feature-list { display: flex; flex-direction: column; gap: 8px; }
+    .platform-menu-feature { font-size: 13px; color: var(--gray-700); padding-left: 12px; position: relative; line-height: 1.5; }
+    .platform-menu-feature::before { content: '•'; position: absolute; left: 0; color: var(--primary); }
+    .platform-menu-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--gray-200); }
+    .platform-menu-footnote { font-size: 12px; color: var(--gray-400); line-height: 1.7; }
+    @media (max-width: 1200px) {
+      .platform-menu-panel { grid-template-columns: 240px 1fr; }
+      .platform-menu-hero { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 960px) {
+      .platform-menu-overlay { padding: 12px; }
+      .platform-menu-panel { grid-template-columns: 1fr; min-height: auto; }
+      .platform-menu-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 <div id="app">
   <!-- ===== HEADER (与 manus 原型一致) ===== -->
   <header class="header">
+    <button class="header-menu-trigger" id="header-menu-trigger" type="button" title="菜单" onclick="togglePlatformMenu()">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="5" cy="5" r="1.8"/><circle cx="12" cy="5" r="1.8"/><circle cx="19" cy="5" r="1.8"/>
+        <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+        <circle cx="5" cy="19" r="1.8"/><circle cx="12" cy="19" r="1.8"/><circle cx="19" cy="19" r="1.8"/>
+      </svg>
+    </button>
     <div class="header-logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="#1677ff" stroke-width="2">
         <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
@@ -232,6 +331,20 @@
       <div class="header-avatar">张</div>
     </div>
   </header>
+
+  <!-- Platform Menu Overlay -->
+  <div class="platform-menu-overlay" id="platform-menu-overlay" onclick="handlePlatformMenuOverlayClick(event)">
+    <div class="platform-menu-panel" onclick="event.stopPropagation()">
+      <aside class="platform-menu-sidebar">
+        <div class="platform-menu-brand">
+          <div class="platform-menu-brand-title">数据平台导航</div>
+          <div class="platform-menu-brand-sub">鼠标移入查看说明，点击菜单直接进入模块</div>
+        </div>
+        <div class="platform-menu-list" id="platform-menu-list"></div>
+      </aside>
+      <section class="platform-menu-content" id="platform-menu-detail"></section>
+    </div>
+  </div>
 
   <!-- ===== BODY ===== -->
   <div class="body-layout">
@@ -1554,6 +1667,189 @@ function renumberNodes() {
   });
   nodeCount = nodes.length;
 }
+</script>
+
+<script>
+// ===== Platform Menu =====
+const PLATFORM_PRIMARY_MENUS = [
+  {
+    id: 'data-asset',
+    name: '数据资产',
+    icon: '🗃️',
+    page: 'data-asset',
+    stat: '数据资产管理平台',
+    summary: '数据资产管理平台的核心入口，覆盖资产检索、资产目录、资源发现、资源管理、即席查询、血缘追溯等全链路能力，帮助用户找数、理解数、用数、治数。',
+    capabilities: ['资产检索与资源发现', '资产目录与目录治理', '资源管理与上架审核', '即席查询与血缘追溯'],
+    highlights: ['找数', '治数', '用数']
+  },
+  {
+    id: 'data-model',
+    name: '数模之窗',
+    icon: '🏗️',
+    page: null,
+    stat: '建设中',
+    summary: '数据模型建设和开放相关的管理平台，面向数仓工程师和数据架构师，提供模型设计、版本管理、模型发布与开放能力。',
+    capabilities: ['数据模型设计与管理', '模型版本控制', '模型发布与开放', '模型与资产关联'],
+    highlights: ['模型建设', '版本管理', '模型开放']
+  },
+  {
+    id: 'data-quality',
+    name: '数质之镜',
+    icon: '🔬',
+    page: null,
+    stat: '建设中',
+    summary: '数据质量标准和监控相关的资产管理平台，提供质量规则配置、质量检测任务调度、质量报告和问题闭环处理能力。',
+    capabilities: ['质量规则配置与管理', '质量检测任务调度', '质量报告与趋势分析', '质量问题闭环处理'],
+    highlights: ['质量规则', '质量监控', '问题闭环']
+  },
+  {
+    id: 'data-security',
+    name: '数安之盾',
+    icon: '🛡️',
+    page: null,
+    stat: '建设中',
+    summary: '数据安全和脱敏相关的资产管理平台，提供数据分类分级、脱敏规则配置、安全策略管理和合规审计能力。',
+    capabilities: ['数据分类分级管理', '脱敏规则配置', '安全策略与访问控制', '合规审计与风险预警'],
+    highlights: ['分类分级', '脱敏管理', '合规审计']
+  },
+  {
+    id: 'data-integration',
+    name: '数据之源',
+    icon: '🔌',
+    page: null,
+    stat: '建设中',
+    summary: '数据集成相关的管理平台，提供数据源接入、采集任务管理、数据同步监控和集成链路治理能力。',
+    capabilities: ['数据源接入与管理', '采集任务配置与调度', '数据同步状态监控', '集成链路血缘追踪'],
+    highlights: ['数据接入', '采集调度', '链路治理']
+  },
+  {
+    id: 'system',
+    name: '系统管理',
+    icon: '⚙️',
+    page: 'permission',
+    stat: '角色与人员管理',
+    summary: '平台系统管理入口，提供角色权限配置、人员管理、组织架构维护等系统级管理能力。',
+    capabilities: ['角色与权限配置', '人员账号管理', '组织架构维护', '系统配置与审计日志'],
+    highlights: ['角色管理', '人员管理', '系统配置']
+  }
+];
+
+let currentPlatformMenuId = 'system';
+
+function renderPlatformMenu() {
+  const listEl = document.getElementById('platform-menu-list');
+  const detailEl = document.getElementById('platform-menu-detail');
+  const activeMenu = PLATFORM_PRIMARY_MENUS.find(item => item.id === currentPlatformMenuId) || PLATFORM_PRIMARY_MENUS[0];
+  if (!listEl || !detailEl || !activeMenu) return;
+
+  listEl.innerHTML = PLATFORM_PRIMARY_MENUS.map(item => `
+    <button
+      type="button"
+      class="platform-menu-item${item.id === activeMenu.id ? ' active' : ''}"
+      onmouseenter="setPlatformMenuActive('${item.id}')"
+      onclick="enterPlatformMenu('${item.id}')"
+    >
+      <span class="platform-menu-item-icon">${item.icon}</span>
+      <span class="platform-menu-item-body">
+        <span class="platform-menu-item-name">${item.name}</span>
+        <span class="platform-menu-item-desc">${item.stat}</span>
+      </span>
+    </button>
+  `).join('');
+
+  detailEl.innerHTML = `
+    <div class="platform-menu-toolbar">
+      <div class="platform-menu-toolbar-left">
+        <div class="platform-menu-label">Primary Navigation</div>
+        <div class="platform-menu-title-row">
+          <span class="platform-menu-title">${activeMenu.name}</span>
+          <span class="tag ${activeMenu.page ? 'tag-blue' : 'tag-orange'}">${activeMenu.stat}</span>
+        </div>
+      </div>
+      <button class="platform-menu-close" type="button" onclick="closePlatformMenu()" aria-label="关闭">×</button>
+    </div>
+    <div class="platform-menu-hero">
+      <div>
+        <div class="platform-menu-hero-title">${activeMenu.icon} ${activeMenu.name}</div>
+        <div class="platform-menu-hero-desc">${activeMenu.summary}</div>
+        <div class="platform-menu-tags">
+          ${activeMenu.highlights.map(tag => `<span class="platform-menu-tag">${tag}</span>`).join('')}
+        </div>
+      </div>
+      <div class="platform-menu-hero-side">
+        <div class="platform-menu-hero-side-title">模块定位</div>
+        <div class="platform-menu-hero-side-value">${activeMenu.stat}</div>
+        <div class="platform-menu-hero-side-desc">该模块在当前原型中提供落地页面，可直接进入。</div>
+      </div>
+    </div>
+    <div class="platform-menu-grid">
+      <div class="platform-menu-card">
+        <div class="platform-menu-card-title">核心功能说明</div>
+        <div class="platform-menu-feature-list">
+          ${activeMenu.capabilities.map(c => `<div class="platform-menu-feature">${c}</div>`).join('')}
+        </div>
+      </div>
+      <div class="platform-menu-card">
+        <div class="platform-menu-card-title">进入方式</div>
+        <div class="platform-menu-feature-list">
+          <div class="platform-menu-feature">左侧菜单点击后可直接跳转到对应模块页面。</div>
+          <div class="platform-menu-feature">也可以在这里先阅读模块说明，再点击底部按钮进入。</div>
+          <div class="platform-menu-feature">当前模块支持原型内跳转联动。</div>
+        </div>
+      </div>
+    </div>
+    <div class="platform-menu-footer">
+      <div class="platform-menu-footnote">鼠标移入左侧菜单可预览不同模块说明，点击菜单或按钮都可以进入对应模块。</div>
+      <button class="btn btn-primary" onclick="enterPlatformMenu('${activeMenu.id}')">进入模块</button>
+    </div>
+  `;
+}
+
+function setPlatformMenuActive(menuId) {
+  if (currentPlatformMenuId === menuId) return;
+  currentPlatformMenuId = menuId;
+  renderPlatformMenu();
+}
+
+function openPlatformMenu() {
+  currentPlatformMenuId = 'system';
+  renderPlatformMenu();
+  document.getElementById('platform-menu-overlay')?.classList.add('open');
+  document.getElementById('header-menu-trigger')?.classList.add('active');
+}
+
+function closePlatformMenu() {
+  document.getElementById('platform-menu-overlay')?.classList.remove('open');
+  document.getElementById('header-menu-trigger')?.classList.remove('active');
+}
+
+function togglePlatformMenu() {
+  const overlay = document.getElementById('platform-menu-overlay');
+  if (overlay?.classList.contains('open')) closePlatformMenu();
+  else openPlatformMenu();
+}
+
+function handlePlatformMenuOverlayClick(event) {
+  if (event.target.id === 'platform-menu-overlay') closePlatformMenu();
+}
+
+function enterPlatformMenu(menuId) {
+  const item = PLATFORM_PRIMARY_MENUS.find(menu => menu.id === menuId);
+  if (!item) return;
+  currentPlatformMenuId = menuId;
+  closePlatformMenu();
+  if (!item.page) {
+    showNotification('info', '建设中', `${item.name}模块将在后续版本中补充页面与分析能力`);
+    return;
+  }
+  if (menuId === 'data-asset') {
+    window.location.href = 'manus_2026-03-30_adhoc-sql.html';
+    return;
+  }
+  // system — 当前页面即系统管理，关闭菜单即可
+}
+
+document.addEventListener('DOMContentLoaded', () => { renderPlatformMenu(); });
 </script>
 </body>
 </html>
