@@ -854,9 +854,9 @@
     }
     .quick-entry:hover { border-color: var(--primary); color: var(--primary); }
 
-    .search-body { display: flex; gap: 16px; padding: 20px; flex: 1; overflow: hidden; }
+    .search-body { display: flex; gap: 16px; padding: 20px; flex: 1; min-height: 0; }
     .search-left { display: none; }
-    .search-center { flex: 1; overflow-y: auto; min-width: 0; }
+    .search-center { flex: 1; overflow-y: auto; min-width: 0; min-height: 0; }
     .search-right { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
 
     /* Discovery panel (replaces old left panel) */
@@ -2251,18 +2251,16 @@
 
         <!-- Center -->
         <div class="search-center" id="search-center">
-          <!-- 首页静态榜单（对齐一期）：最近发布 / 热门搜索 / 最近搜索，仅展示、不可点击跳转 -->
-          <div class="discovery-panel" id="discovery-panel">
-            <!-- Discovery panel: 最近浏览 / 我的收藏 / 热门榜单 -->
+          <!-- Discovery panel: 最近浏览 / 我的收藏 / 热门榜单 -->
           <div class="discovery-panel" id="discovery-panel">
             <div class="discovery-tabs">
-              <div class="discovery-tab" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">📖 最近浏览</div>
+              <div class="discovery-tab active" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">📖 最近浏览</div>
               <div class="discovery-tab" id="dtab-favorite" onclick="switchDiscoveryTab('favorite',this)">⭐ 我的收藏</div>
               <div class="discovery-tab" id="dtab-trending" onclick="switchDiscoveryTab('trending',this)">🔥 热门浏览</div>
-              <div class="discovery-tab active" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">✨ 热门专题</div>
+              <div class="discovery-tab" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">✨ 热门专题</div>
             </div>
             <!-- 最近浏览 -->
-            <div class="discovery-tab-content" id="dcontent-recent">
+            <div class="discovery-tab-content active" id="dcontent-recent">
               <div class="discovery-cards" id="dc-recent"></div>
             </div>
             <!-- 我的收藏 -->
@@ -2274,7 +2272,7 @@
               <div class="discovery-cards" id="dc-trending"></div>
             </div>
             <!-- 热门专题 -->
-            <div class="discovery-tab-content active" id="dcontent-hot">
+            <div class="discovery-tab-content" id="dcontent-hot">
               <!-- 专题卡片列表 -->
               <div id="hot-topic-cards-grid" class="topic-cards-grid">
                 <div class="topic-card" onclick="filterByTopic('交易域核心资产', this)" data-topic="交易域核心资产">
@@ -2393,8 +2391,8 @@
               </div>
               <div id="resource-fallback-results"></div>
             </div>
-          </div>
         </div>
+        <!-- /search-center -->
 
         <!-- Right -->
         <div class="search-right">
@@ -12649,7 +12647,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderMgmtTables();
   renderMgmtResourceList();
   renderWorkbench();
-  renderMgmtLifecycle();
+  // renderMgmtLifecycle(); // 函数已移除
   initMyPage();
   renderSQLTableList();
   renderSQLSelectedTables();
@@ -12744,11 +12742,16 @@ function renderDiscoveryCards() {
 
   function fill(containerId, list) {
     const el = document.getElementById(containerId);
-    if (!el) return;
-    el.innerHTML = list.map(({id, stat}) => {
-      const a = (typeof MOCK_ASSETS !== 'undefined' ? MOCK_ASSETS : []).find(x => x.id === id);
-      return makeRow(a, stat);
-    }).join('');
+    if (!el) { console.warn('[discovery] 容器不存在:', containerId); return; }
+    try {
+      el.innerHTML = list.map(({id, stat}) => {
+        const a = (typeof MOCK_ASSETS !== 'undefined' ? MOCK_ASSETS : []).find(x => x.id === id);
+        if (!a) { console.warn('[discovery] 找不到资产:', id); return ''; }
+        return makeRow(a, stat);
+      }).join('');
+    } catch(e) {
+      console.error('[discovery] 渲染出错:', containerId, e);
+    }
   }
 
   fill('dc-recent',   RECENT);
