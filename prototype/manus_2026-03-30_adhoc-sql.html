@@ -200,7 +200,8 @@
     .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .8; }
     .status-normal { color: var(--success); background: var(--success-light); }
     .status-pending { color: var(--warning); background: var(--warning-light); }
-    .status-reviewing { color: var(--primary); background: var(--primary-light); }
+    .status-reviewing { color: #b45309; background: #fef9c3; }
+    .status-unlisting { color: #c2410c; background: #ffedd5; }
     .status-rejected { color: var(--danger); background: var(--danger-light); }
     .status-unlisted { color: var(--gray-500); background: var(--gray-100); }
     .status-deprecated { color: var(--gray-400); background: var(--gray-100); }
@@ -1531,6 +1532,8 @@
       font-size: 11px; font-weight: 600; margin-left: 4px;
     }
     .mgmt-badge-red { background: var(--danger); }
+    .mgmt-badge-blue { background: var(--primary); }
+    .mgmt-badge-orange { background: #f97316; }
     .mgmt-badge:empty { display: none; }
     /* 目录管理树 */
     .catalog-mgmt-layout { display: flex; gap: 16px; flex: 1; overflow: hidden; }
@@ -2368,30 +2371,7 @@
           </div>
           </div>
           <div id="search-default-view" style="display:none;"></div>
-          <div id="search-result-view" style="display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-              <div style="font-size:14px;color:var(--gray-600);">搜索结果：共 <strong id="result-count">0</strong> 条</div>
-              <div style="display:flex;gap:8px;">
-                <select class="select" style="font-size:13px;" onchange="showNotification('info','排序','已切换排序方式')">
-                  <option>使用热度 ↓</option><option>创建时间 ↓</option><option>更新时间 ↓</option>
-                  <option>使用热度 ↑</option><option>创建时间 ↑</option><option>更新时间 ↑</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;" id="search-scope-filter">
-              <button class="btn btn-default btn-sm active-filter" onclick="setSearchResultScope('all',this)">全部</button>
-              <button class="btn btn-default btn-sm" onclick="setSearchResultScope('asset',this)">仅资产</button>
-              <button class="btn btn-default btn-sm" onclick="setSearchResultScope('resource',this)">仅资源</button>
-            </div>
-            <div id="asset-results"></div>
-            <div id="fallback-section" style="display:none;" class="fallback-section">
-              <div class="fallback-header">
-                <span style="font-size:16px;">⚠️</span>
-                <div class="fallback-header-text">暂无匹配结果，你可以继续调整关键词、切换筛选条件，或前往资源发现查看更多数据。</div>
-              </div>
-              <div id="resource-fallback-results"></div>
-            </div>
-        </div>
+          <!-- search-result-view 已移除：搜索结果统一在资产目录页呈现 -->
         <!-- /search-center -->
 
         <!-- Right -->
@@ -2724,7 +2704,7 @@
           <!-- 状态 Tab -->
           <div style="display:flex;align-items:center;border-bottom:1px solid var(--gray-200);margin-bottom:12px;">
             <div class="mgmt-status-tab active" id="rl-tab-all" onclick="switchResourceListTab('all')">全部</div>
-            <div class="mgmt-status-tab" id="rl-tab-maintain" onclick="switchResourceListTab('maintain')">待维护</div>
+            <div class="mgmt-status-tab" id="rl-tab-maintain" onclick="switchResourceListTab('maintain')">待维护 <span class="mgmt-badge mgmt-badge-blue" id="rl-badge-maintain" style="margin-left:4px;display:none;">0</span></div>
             <div class="mgmt-status-tab" id="rl-tab-published" onclick="switchResourceListTab('published')">已上架</div>
             <div class="mgmt-status-tab" id="rl-tab-no-list" onclick="switchResourceListTab('no-list')">不上架</div>
             <div class="mgmt-status-tab" id="rl-tab-errors" onclick="switchResourceListTab('errors')">异常 <span class="mgmt-badge mgmt-badge-red" id="rl-badge-errors" style="margin-left:4px;">4</span></div>
@@ -3993,6 +3973,10 @@ const MOCK_RESOURCES = [
   { id:'r003', name:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df', type:'table', platform:'SelectDB', source:'业务分析集群', status:'published', tech_owner:'李四', biz_owner:'王五', catalog:'交易域/订单', updated:'2026-03-18', source_type:'business_db', source_system:'SelectDB', tags:['业务过程','汇总','DWS'], permission_status:'granted', favorite:false, summary:'业务过程汇总宽表，用于经营过程分析与主题建模' },
   { id:'r005', name:'api_inventory_check', type:'api', platform:'内部微服务', source:'供应链系统', status:'maintain', tech_owner:'李四', biz_owner:'王五', catalog:null, updated:'2026-03-16', source_type:'api_service', source_system:'内部微服务', tags:['库存','接口','供应链'], permission_status:'granted', favorite:false, summary:'库存校验接口，面向供应链协同场景提供库存查询能力' },
   { id:'r007', name:'wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'published', tech_owner:'李四', biz_owner:'王五', catalog:'交易域/订单/订单明细', updated:'2026-03-20', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['订单','浏览','DWD','已上架'], permission_status:'granted', favorite:true, summary:'订单浏览行为明细宽表，已上架为正式资产' },
+  // 待审核（上架审批中）
+  { id:'r009', name:'wlyd_mc_beijing.dws_trade_channel_gmv_day_df', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'reviewing', tech_owner:'张三', biz_owner:'赵六', catalog:'交易域/渠道', updated:'2026-04-01', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['渠道','GMV','DWS','待审核'], permission_status:'none', favorite:false, summary:'渠道 GMV 日汇总表，已提交上架申请，等待业务负责人审批' },
+  // 申请下架中（下架审批中）
+  { id:'r010', name:'wlyd_mc_beijing.ads_user_retention_week_df', type:'table', platform:'MaxCompute', source:'北京数仓主集群', status:'unlisting', tech_owner:'张三', biz_owner:'赵六', catalog:'用户域/留存', updated:'2026-03-28', source_type:'warehouse_engine', source_system:'MaxCompute', tags:['用户','留存','ADS','申请下架中'], permission_status:'granted', favorite:false, summary:'用户周留存率汇总表，已提交下架申请，等待审批' },
 ];
 
 const MOCK_PENDING = [
@@ -5006,24 +4990,29 @@ function enterPlatformMenu(menuId) {
 
 // ===== SEARCH =====
 function fillSearch(kw) {
-  document.getElementById('main-search-input').value = kw;
-  updateSearchSuggestions(kw);
-  doSearch();
+  // 热搜词：直接跳转资产目录并带入关键词
+  navigateToAssetCatalogWithKeyword(kw);
 }
 
 function doSearch() {
   const kw = document.getElementById('main-search-input').value.trim();
   hideSearchSuggestions();
-  if (!kw) {
-    resetSearchResultState();
-    return;
+  if (!kw) return;
+  // 跳转资产目录并带入关键词
+  navigateToAssetCatalogWithKeyword(kw);
+}
+
+function navigateToAssetCatalogWithKeyword(kw) {
+  // 填入资产目录搜索框并触发搜索
+  const catalogInput = document.getElementById('asset-search-kw');
+  if (catalogInput) {
+    catalogInput.value = kw;
   }
-  // Hide discovery panel, show results
-  const dp = document.getElementById('discovery-panel');
-  if (dp) dp.style.display = 'none';
-  document.getElementById('search-default-view').style.display = 'none';
-  document.getElementById('search-result-view').style.display = 'block';
-  renderUnifiedSearchResults(kw);
+  switchPage('asset-catalog', document.querySelector('[data-page="asset-catalog"]'));
+  // switchPage 后 DOM 已切换，触发筛选
+  setTimeout(() => {
+    filterAssets();
+  }, 0);
 }
 
 function setSearchResultScope(scope, el) {
@@ -5390,15 +5379,26 @@ function renderDetailHeader(record, domain = currentDetailType) {
   const nameParts = splitQualifiedName(record.name);
   const subtitle = domain === 'asset' ? (record.display || '-') : (getResourceDisplayName(record) || record.source || '-');
   const iconHtml = domain === 'asset' ? typeIcon(record.type) : '📦';
-  const actionsHtml = currentDetailViewMode === 'mgmt'
-    ? `
-      ${domain === 'resource' && record.status !== 'published' && record.status !== 'no-list' ? `<button class="btn btn-primary" onclick="openPublishModal('${record.id}')">📤 提交上架</button>` : ''}
-      ${renderFavoriteControl(record)}
-    `
-    : `
-      ${renderPermissionControl(record)}
-      ${renderFavoriteControl(record)}
-    `;
+  let actionsHtml;
+  if (currentDetailViewMode === 'mgmt' && domain === 'resource') {
+    const s = record.status;
+    let govBtns = '';
+    if (s === 'maintain') {
+      govBtns = `<button class="btn btn-primary" onclick="openPublishModal('${record.id}')">📤 提交上架</button><button class="btn btn-default" onclick="showNotification('info','已标记不上架','该资源已标记为不上架')">🚫 不上架</button>`;
+    } else if (s === 'reviewing') {
+      govBtns = `<button class="btn btn-default" onclick="doRevokePublish('${record.id}')">↩ 撤回上架申请</button>`;
+    } else if (s === 'published') {
+      govBtns = `<button class="btn btn-default" onclick="openModal('modal-gov-unlist')">📥 申请下架</button>`;
+    } else if (s === 'unlisting') {
+      govBtns = `<button class="btn btn-default" onclick="doRevokeUnlist('${record.id}')">↩ 撤回下架申请</button>`;
+    } else if (s === 'no-list') {
+      govBtns = `<button class="btn btn-default" onclick="showNotification('info','已转待维护','资源已转为待维护状态')">🔄 转待维护</button>`;
+    }
+    // 注：已下架(unlisted)状态已取消，下架审批通过后直接回到 maintain
+    actionsHtml = `${govBtns}${renderFavoriteControl(record)}`;
+  } else {
+    actionsHtml = `${renderPermissionControl(record)}${renderFavoriteControl(record)}`;
+  }
 
   document.getElementById('detail-header-area').innerHTML = `
     <div class="detail-icon">${iconHtml}</div>
@@ -6504,7 +6504,6 @@ function hideSearchSuggestions() {
 function handleMainSearchInput(event) {
   const kw = event.target.value || '';
   updateSearchSuggestions(kw);
-  if (!kw.trim()) resetSearchResultState();
 }
 
 function handleMainSearchFocus() {
@@ -7441,9 +7440,11 @@ function renderMgmtResourceList() {
     if (mgmtUnassigned && r.catalog) return false;
     // Tab过滤
     if (tab === 'maintain') {
-      if (r.status !== 'maintain') return false;
+      // 待维护 Tab 包含 maintain 和 reviewing（上架审批中）
+      if (r.status !== 'maintain' && r.status !== 'reviewing') return false;
     } else if (tab === 'published') {
-      if (r.status !== 'published') return false;
+      // 已上架 Tab 包含 published 和 unlisting（下架审批中）
+      if (r.status !== 'published' && r.status !== 'unlisting') return false;
     } else if (tab === 'no-list') {
       if (r.status !== 'no-list') return false;
     } else {
@@ -7484,36 +7485,28 @@ function renderMgmtResourceList() {
     const tagsHtml = (r.tags || []).slice(0,2).map(t => `<span class="tag tag-gray" style="font-size:11px;">${t}</span>`).join('');
     const permTip = !perm ? '<span class="mgmt-no-perm-tip">（无权限）</span>' : '';
 
-    // 操作按鈕：无权限的资源不显示任何操作按鈕
+    // 操作按钮：按 status 动态渲染（与审批流程对齐）
     let actionBtns = '';
     if (perm) {
-      if (tab === 'all') {
-        if (r.status === 'maintain') {
-          actionBtns = `
-            <button class="btn btn-link btn-sm" onclick="openResourceEditModal('${r.id}')">编辑</button>
-            <button class="btn btn-link btn-sm" onclick="openSingleCatalogModal('${r.id}')">目录</button>
-            <button class="btn btn-primary btn-sm" onclick="doPublish('${r.id}')">上架</button>
-            <button class="btn btn-link btn-sm" onclick="doNoList('${r.id}')">不上架</button>`;
-        } else if (r.status === 'published') {
-          actionBtns = `<button class="btn btn-default btn-sm" onclick="doUnlist('${r.id}')">下架</button>`;
-        } else if (r.status === 'no-list') {
-          actionBtns = `<button class="btn btn-link btn-sm" onclick="doRestoreMaintain('${r.id}')">转待维护</button>`;
-        }
-        actionBtns += `
-          <button class="btn btn-link btn-sm" onclick="openTagEditModal('${r.id}')">标签</button>
-          <button class="btn btn-link btn-sm" onclick="openTransferOwnerModal(['${r.id}'],'resource-list')">交接</button>`;
-      } else if (tab === 'maintain') {
+      if (r.status === 'maintain') {
         actionBtns = `
           <button class="btn btn-link btn-sm" onclick="openResourceEditModal('${r.id}')">编辑</button>
           <button class="btn btn-link btn-sm" onclick="openSingleCatalogModal('${r.id}')">目录</button>
-          <button class="btn btn-primary btn-sm" onclick="doPublish('${r.id}')">上架</button>
+          <button class="btn btn-primary btn-sm" onclick="doPublish('${r.id}')">提交上架</button>
           <button class="btn btn-link btn-sm" onclick="doNoList('${r.id}')">不上架</button>
           <button class="btn btn-link btn-sm" onclick="openTransferOwnerModal(['${r.id}'],'resource-list')">交接</button>`;
-      } else if (tab === 'published') {
+      } else if (r.status === 'reviewing') {
         actionBtns = `
-          <button class="btn btn-default btn-sm" onclick="doUnlist('${r.id}')">下架</button>
+          <button class="btn btn-default btn-sm" onclick="doRevokePublish('${r.id}')">撤回上架申请</button>`;
+      } else if (r.status === 'published') {
+        actionBtns = `
+          <button class="btn btn-link btn-sm" onclick="openSingleCatalogModal('${r.id}')">修改目录</button>
+          <button class="btn btn-default btn-sm" onclick="openModal('modal-gov-unlist')">申请下架</button>
           <button class="btn btn-link btn-sm" onclick="openTransferOwnerModal(['${r.id}'],'resource-list')">交接</button>`;
-      } else if (tab === 'no-list') {
+      } else if (r.status === 'unlisting') {
+        actionBtns = `
+          <button class="btn btn-default btn-sm" onclick="doRevokeUnlist('${r.id}')">撤回下架申请</button>`;
+      } else if (r.status === 'no-list') {
         actionBtns = `
           <button class="btn btn-link btn-sm" onclick="doRestoreMaintain('${r.id}')">转待维护</button>
           <button class="btn btn-link btn-sm" onclick="openTransferOwnerModal(['${r.id}'],'resource-list')">交接</button>`;
@@ -7634,14 +7627,16 @@ function updateMgmtBatchBar() {
     const dis = hasSelection ? '' : ' disabled style="opacity:0.45;pointer-events:none;"';
     let btns = '';
     if (tab === 'maintain') {
+      // 待维护 Tab 包含 maintain + reviewing，批量操作按混选规则处理
       btns = `
-        <button class="btn btn-primary btn-sm"${dis} onclick="doBatchPublish()">批量上架</button>
+        <button class="btn btn-primary btn-sm"${dis} onclick="doBatchPublish()">批量提交上架</button>
         <button class="btn btn-default btn-sm"${dis} onclick="doBatchNoList()">批量不上架</button>
         <button class="btn btn-default btn-sm"${dis} onclick="openBatchCatalogModal()">批量修改目录</button>
         <button class="btn btn-default btn-sm"${dis} onclick="openTransferOwnerModal(Array.from(mgmtSelectedIds),'resource-list')">批量交接</button>`;
     } else if (tab === 'published') {
+      // 已上架 Tab 包含 published + unlisting，批量操作按混选规则处理
       btns = `
-        <button class="btn btn-danger btn-sm"${dis} onclick="doBatchUnlist()">批量下架</button>
+        <button class="btn btn-default btn-sm"${dis} onclick="doBatchUnlist()">批量申请下架</button>
         <button class="btn btn-default btn-sm"${dis} onclick="openTransferOwnerModal(Array.from(mgmtSelectedIds),'resource-list')">批量交接</button>`;
     } else if (tab === 'no-list') {
       btns = `
@@ -7651,7 +7646,7 @@ function updateMgmtBatchBar() {
       btns = '';
     } else {
       btns = `
-        <button class="btn btn-primary btn-sm"${dis} onclick="doBatchPublish()">批量上架</button>
+        <button class="btn btn-primary btn-sm"${dis} onclick="doBatchPublish()">批量提交上架</button>
         <button class="btn btn-default btn-sm"${dis} onclick="openBatchCatalogModal()">批量修改目录</button>
         <button class="btn btn-default btn-sm"${dis} onclick="openTransferOwnerModal(Array.from(mgmtSelectedIds),'resource-list')">批量交接</button>`;
     }
@@ -8111,6 +8106,8 @@ function switchResourceListTab(tab) {
   if (uText) uText.style.color = 'var(--gray-600)';
   if (uLabel) uLabel.style.background = '';
   clearMgmtSelection();
+  // 更新待审核/申请下架中角标
+  updateMgmtStatusBadges();
   // 异常Tab时切换表头和渲染异常列表
   if (tab === 'errors') {
     renderMgmtErrors();
@@ -8118,6 +8115,16 @@ function switchResourceListTab(tab) {
     // 恢复正常表头
     restoreNormalTableHead();
     renderMgmtResourceList();
+  }
+}
+
+function updateMgmtStatusBadges() {
+  // 待维护 Tab 角标 = maintain + reviewing 总数（审批中的也算待处理）
+  const maintainCount = MOCK_RESOURCES.filter(r => r.status === 'maintain' || r.status === 'reviewing').length;
+  const mBadge = document.getElementById('rl-badge-maintain');
+  if (mBadge) {
+    mBadge.textContent = maintainCount;
+    mBadge.style.display = maintainCount > 0 ? '' : 'none';
   }
 }
 
@@ -8149,23 +8156,47 @@ function doPublish(id) {
     openResourceEditModal(id);
     return;
   }
-  r.status = 'published';
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'上架', resource:r.name, operator:CURRENT_USER, result:'已上架', time:new Date().toLocaleString('zh-CN') });
+  r.status = 'reviewing';
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'提交上架申请', resource:r.name, operator:CURRENT_USER, result:'上架审批中', time:new Date().toLocaleString('zh-CN') });
   renderMgmtResourceList();
   renderWorkbenchMaintain();
   renderOverviewStats();
-  showNotification('success', '上架成功', `「${r.name}」已成功上架`);
+  updateMgmtStatusBadges();
+  showNotification('success', '上架申请已提交', `「${r.name}」已进入上架审批中，审批通过后生效`);
 }
 
-// 下架操作
-function doUnlist(id) {
+// 撤回上架申请
+function doRevokePublish(id) {
   const r = MOCK_RESOURCES.find(r => r.id === id);
   if (!r) return;
   r.status = 'maintain';
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'下架', resource:r.name, operator:CURRENT_USER, result:'已下架，返回待维护', time:new Date().toLocaleString('zh-CN') });
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'撤回上架申请', resource:r.name, operator:CURRENT_USER, result:'已撤回，返回待维护', time:new Date().toLocaleString('zh-CN') });
   renderMgmtResourceList();
   renderOverviewStats();
-  showNotification('warning', '下架成功', `「${r.name}」已下架，返回待维护状态`);
+  updateMgmtStatusBadges();
+  showNotification('info', '已撤回', `「${r.name}」上架申请已撤回，返回待维护状态`);
+}
+
+// 申请下架操作（提交审批）
+function doUnlist(id) {
+  const r = MOCK_RESOURCES.find(r => r.id === id);
+  if (!r) return;
+  r.status = 'unlisting';
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'申请下架', resource:r.name, operator:CURRENT_USER, result:'下架审批中', time:new Date().toLocaleString('zh-CN') });
+  renderMgmtResourceList();
+  renderOverviewStats();
+  showNotification('info', '下架申请已提交', `「${r.name}」已进入下架审批中，审批通过后返回待维护`);
+}
+
+// 撤回下架申请
+function doRevokeUnlist(id) {
+  const r = MOCK_RESOURCES.find(r => r.id === id);
+  if (!r) return;
+  r.status = 'published';
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'撤回下架申请', resource:r.name, operator:CURRENT_USER, result:'已撤回，恢复已上架', time:new Date().toLocaleString('zh-CN') });
+  renderMgmtResourceList();
+  renderOverviewStats();
+  showNotification('info', '已撤回', `「${r.name}」下架申请已撤回，恢复已上架状态`);
 }
 
 // 转不上架
@@ -8202,46 +8233,65 @@ function doBatchPublish() {
     showNotification('error', '部分资源无法上架', `以下资源信息不完整：${cannotPublish.join('、')}，请先编辑完善`);
     return;
   }
+  // 混选处理：reviewing 状态跳过
+  let submitted = 0, skipped = 0;
   mgmtSelectedIds.forEach(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
-    if (r) r.status = 'published';
+    if (!r) return;
+    if (r.status === 'reviewing') { skipped++; return; }
+    r.status = 'reviewing';
+    submitted++;
   });
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量上架', resource:`${mgmtSelectedIds.size}条资源`, operator:CURRENT_USER, result:'已上架', time:new Date().toLocaleString('zh-CN') });
-  const count = mgmtSelectedIds.size;
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量提交上架', resource:`${submitted}条资源`, operator:CURRENT_USER, result:'上架审批中', time:new Date().toLocaleString('zh-CN') });
   clearMgmtSelection();
   renderMgmtResourceList();
   renderOverviewStats();
-  showNotification('success', '批量上架成功', `${count}条资源已成功上架`);
+  updateMgmtStatusBadges();
+  const msg = skipped > 0 ? `${submitted}条已提交，${skipped}条已在审批中跳过` : `${submitted}条已提交上架申请，审批通过后生效`;
+  showNotification('success', '批量提交上架', msg);
 }
 
-// 批量下架
+// 批量申请下架（提交审批）
 function doBatchUnlist() {
   if (mgmtSelectedIds.size === 0) return;
+  // 混选处理：unlisting 状态跳过
+  let submitted = 0, skipped = 0;
   mgmtSelectedIds.forEach(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
-    if (r) r.status = 'maintain';
+    if (!r) return;
+    if (r.status === 'unlisting') { skipped++; return; }
+    r.status = 'unlisting';
+    submitted++;
   });
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量下架', resource:`${mgmtSelectedIds.size}条资源`, operator:CURRENT_USER, result:'已下架', time:new Date().toLocaleString('zh-CN') });
-  const count = mgmtSelectedIds.size;
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量申请下架', resource:`${submitted}条资源`, operator:CURRENT_USER, result:'下架审批中', time:new Date().toLocaleString('zh-CN') });
   clearMgmtSelection();
   renderMgmtResourceList();
   renderOverviewStats();
-  showNotification('warning', '批量下架成功', `${count}条资源已下架`);
+  const msg = skipped > 0 ? `${submitted}条已提交下架申请，${skipped}条已在审批中跳过` : `${submitted}条已提交下架申请，审批通过后返回待维护`;
+  showNotification('info', '批量申请下架', msg);
 }
 
-// 批量不上架
+// 批量不上架（混选：reviewing 状态需先撤回）
 function doBatchNoList() {
   if (mgmtSelectedIds.size === 0) return;
+  let done = 0, needRevoke = 0;
   mgmtSelectedIds.forEach(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
-    if (r) r.status = 'no-list';
+    if (!r) return;
+    if (r.status === 'reviewing') { needRevoke++; return; }
+    r.status = 'no-list';
+    done++;
   });
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量不上架', resource:`${mgmtSelectedIds.size}条资源`, operator:CURRENT_USER, result:'已标记不上架', time:new Date().toLocaleString('zh-CN') });
-  const count = mgmtSelectedIds.size;
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'批量不上架', resource:`${done}条资源`, operator:CURRENT_USER, result:'已标记不上架', time:new Date().toLocaleString('zh-CN') });
   clearMgmtSelection();
   renderMgmtResourceList();
   renderOverviewStats();
-  showNotification('info', '批量不上架成功', `${count}条资源已标记为不上架`);
+  updateMgmtStatusBadges();
+  const msg = needRevoke > 0
+    ? `${done}条已标记不上架，${needRevoke}条需先撤回上架申请再操作`
+    : `${done}条资源已标记为不上架`;
+  const type = needRevoke > 0 ? 'warning' : 'info';
+  showNotification(type, '批量不上架', msg);
 }
 
 // 批量转待维护
@@ -12218,9 +12268,10 @@ function statusBadge(status) {
     maintain: ['status-pending', '待维护'],
     'no-list': ['status-deprecated', '不上架'],
     published: ['status-published', '已上架'],
+    reviewing: ['status-reviewing', '⏳ 上架审批中'],
+    unlisting: ['status-unlisting', '⏳ 下架审批中'],
     // 兼容旧状态
     unlisted: ['status-unlisted', '未上架'],
-    reviewing: ['status-reviewing', '审核中'],
     rejected: ['status-rejected', '驳回待修改'],
   };
   const [cls, label] = map[status] || ['status-pending', status];
@@ -12646,6 +12697,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderResourceTable();
   renderMgmtTables();
   renderMgmtResourceList();
+  updateMgmtStatusBadges();
   renderWorkbench();
   // renderMgmtLifecycle(); // 函数已移除
   initMyPage();
