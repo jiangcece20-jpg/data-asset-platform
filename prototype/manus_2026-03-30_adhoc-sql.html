@@ -921,6 +921,71 @@
     .topic-card-desc { font-size: 11px; color: var(--gray-400); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .topic-card-count { font-size: 11px; color: var(--primary); font-weight: 500; }
 
+    /* 资产检索首页：最近发布 / 热门搜索 / 最近搜索（静态榜单，不可点击） */
+    .search-rank-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+    .search-rank-card {
+      background: #fff;
+      border-radius: var(--radius);
+      border: 1px solid var(--gray-200);
+      box-shadow: var(--shadow);
+      padding: 14px 16px 16px;
+      min-width: 0;
+    }
+    .search-rank-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .search-rank-list { list-style: none; margin: 0; padding: 0; }
+    .search-rank-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-50);
+      user-select: text;
+      cursor: default;
+    }
+    .search-rank-row:last-child { border-bottom: none; }
+    .search-rank-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+    .search-rank-num.rank-1 { background: #ff4d4f; }
+    .search-rank-num.rank-2 { background: #fa8c16; }
+    .search-rank-num.rank-3 { background: #fadb14; color: #614700; }
+    .search-rank-num.rank-def { background: var(--gray-200); color: var(--gray-600); font-weight: 600; }
+    .search-rank-body { min-width: 0; flex: 1; }
+    .search-rank-primary { font-size: 13px; font-weight: 500; color: var(--gray-800); line-height: 1.4; }
+    .search-rank-sub { font-size: 12px; color: var(--gray-400); margin-top: 3px; line-height: 1.35; word-break: break-all; }
+    .search-rank-single {
+      font-size: 13px;
+      color: var(--gray-800);
+      line-height: 22px;
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     /* 资源管理表格固定列阴影 */
     #mgmt-resource-table-wrap thead th:nth-child(2),
     #mgmt-resource-table-wrap tbody td:nth-child(2) {
@@ -2066,6 +2131,7 @@
       .search-right { display: none; }
       .sidebar-panel { width: 200px; }
       .discovery-cards { grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); }
+      .search-rank-board { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -2107,7 +2173,7 @@
     <div class="platform-menu-panel" onclick="event.stopPropagation()">
       <aside class="platform-menu-sidebar">
         <div class="platform-menu-brand">
-          <div class="platform-menu-brand-title">数据资产平台一级菜单</div>
+          <div class="platform-menu-brand-title">数据平台导航</div>
           <div class="platform-menu-brand-sub">鼠标移入查看说明，点击菜单直接进入模块</div>
         </div>
         <div class="platform-menu-list" id="platform-menu-list"></div>
@@ -2169,196 +2235,53 @@
 
         <!-- Center -->
         <div class="search-center" id="search-center">
-          <!-- Discovery panel: 最近浏览 / 我的收藏 / 热门榜单 -->
+          <!-- 首页静态榜单（对齐一期）：最近发布 / 热门搜索 / 最近搜索，仅展示、不可点击跳转 -->
           <div class="discovery-panel" id="discovery-panel">
-            <div class="discovery-tabs">
-              <div class="discovery-tab" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">📖 最近浏览</div>
-              <div class="discovery-tab" id="dtab-favorite" onclick="switchDiscoveryTab('favorite',this)">⭐ 我的收藏</div>
-              <div class="discovery-tab" id="dtab-trending" onclick="switchDiscoveryTab('trending',this)">🔥 热门浏览</div>
-              <div class="discovery-tab active" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">✨ 热门专题</div>
-            </div>
-            <!-- 最近浏览 -->
-            <div class="discovery-tab-content" id="dcontent-recent">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div></div>
-                  <div class="discovery-card-display">订单明细宽表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">刚刚</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div></div>
-                  <div class="discovery-card-display">用户画像汇总表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">2小时前</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">📈</div><div class="discovery-card-name" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div></div>
-                  <div class="discovery-card-display">GMV日指标</div>
-                  <div class="discovery-card-meta"><span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">昨天</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div></div>
-                  <div class="discovery-card-display">支付明细宽表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">2天前</span></div>
-                </div>
+            <div class="search-rank-board">
+              <div class="search-rank-card">
+                <div class="search-rank-card-title">最近发布</div>
+                <ul class="search-rank-list">
+                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><div class="search-rank-body"><div class="search-rank-primary">商贸登录活跃度</div><div class="search-rank-sub">ctsp_login_cnt_30d</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><div class="search-rank-body"><div class="search-rank-primary">微信支付成功率</div><div class="search-rank-sub">order_his_success_wechat_pay_order_rate</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><div class="search-rank-body"><div class="search-rank-primary">注册司机占比</div><div class="search-rank-sub">driver_register_ratio_7d</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><div class="search-rank-body"><div class="search-rank-primary">dm|整车物流业务|运力业务|端车相关聚合…</div><div class="search-rank-sub">dm_logistics_vehicle_terminal_agg_1d</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><div class="search-rank-body"><div class="search-rank-primary">订单履约时效</div><div class="search-rank-sub">order_fulfillment_sla_1d</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><div class="search-rank-body"><div class="search-rank-primary">运力空驶率</div><div class="search-rank-sub">capacity_empty_run_rate_df</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><div class="search-rank-body"><div class="search-rank-primary">支付渠道分布</div><div class="search-rank-sub">pay_channel_dist_1d</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><div class="search-rank-body"><div class="search-rank-primary">用户留存 cohort</div><div class="search-rank-sub">user_retention_cohort_w</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><div class="search-rank-body"><div class="search-rank-primary">GMV 日汇总</div><div class="search-rank-sub">ads_gmv_summary_di</div></div></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><div class="search-rank-body"><div class="search-rank-primary">风控命中次数</div><div class="search-rank-sub">risk_hit_cnt_30d</div></div></li>
+                </ul>
               </div>
-            </div>
-            <!-- 我的收藏 -->
-            <div class="discovery-tab-content" id="dcontent-favorite">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div></div>
-                  <div class="discovery-card-display">用户行为原始日志</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">ODS</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 8,540</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">📊</div><div class="discovery-card-name" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div></div>
-                  <div class="discovery-card-display">销售日报</div>
-                  <div class="discovery-card-meta"><span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 4,980</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🔌</div><div class="discovery-card-name" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div></div>
-                  <div class="discovery-card-display">用户信息查询API</div>
-                  <div class="discovery-card-meta"><span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-400);margin-left:auto;">🔥 4,120</span></div>
-                </div>
+              <div class="search-rank-card">
+                <div class="search-rank-card-title">热门搜索</div>
+                <ul class="search-rank-list">
+                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><span class="search-rank-single" title="金融">金融</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><span class="search-rank-single" title="ods_wlyd_kq_company_info_df">ods_wlyd_kq_company_info_df</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><span class="search-rank-single" title="表">表</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><span class="search-rank-single">撮合</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><span class="search-rank-single">产联</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><span class="search-rank-single">ods_wlyd_kq_driver_df</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><span class="search-rank-single">供应链</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><span class="search-rank-single">指标</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><span class="search-rank-single">dwd_order_detail</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><span class="search-rank-single">用户画像</span></li>
+                </ul>
               </div>
-            </div>
-            <!-- 热门浏览 -->
-            <div class="discovery-tab-content" id="dcontent-trending">
-              <div class="discovery-cards">
-                <div class="discovery-card" onclick="openDetail('asset','dwd_order_detail')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1">wlyd_mc_beijing.dwd_ctps_product_browsered_company_shop_device_product_d1</div></div>
-                  <div class="discovery-card-display">订单明细宽表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--danger);font-weight:600;margin-left:auto;">🔥 9,820</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ods_user_log')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di">wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di</div></div>
-                  <div class="discovery-card-display">用户行为原始日志</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--warning);font-weight:600;margin-left:auto;">🔥 8,540</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','ads_user_profile')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df">wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df</div></div>
-                  <div class="discovery-card-display">用户画像汇总表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--primary);font-weight:600;margin-left:auto;">🔥 7,230</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','metric_gmv_daily')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">📈</div><div class="discovery-card-name" title="metric_gmv_daily_全渠道GMV日汇总">metric_gmv_daily_全渠道GMV日汇总</div></div>
-                  <div class="discovery-card-display">GMV日指标</div>
-                  <div class="discovery-card-meta"><span class="tag tag-purple">指标</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 6,890</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','dwd_payment_detail')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🗃️</div><div class="discovery-card-name" title="wlyd_mc_beijing.dwd_ctps_payment_order_detail_di">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</div></div>
-                  <div class="discovery-card-display">支付明细宽表</div>
-                  <div class="discovery-card-meta"><span class="tag tag-blue">表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 5,640</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','rpt_sales_daily')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">📊</div><div class="discovery-card-name" title="rpt_wlyd_sales_channel_daily_summary_report">rpt_wlyd_sales_channel_daily_summary_report</div></div>
-                  <div class="discovery-card-display">销售日报</div>
-                  <div class="discovery-card-meta"><span class="tag tag-orange">报表</span><span class="tag tag-gray">交易域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 4,980</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','api_user_info')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🔌</div><div class="discovery-card-name" title="api_user_info_v2_用户基础信息查询接口">api_user_info_v2_用户基础信息查询接口</div></div>
-                  <div class="discovery-card-display">用户信息查询API</div>
-                  <div class="discovery-card-meta"><span class="tag tag-cyan">API</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 4,120</span></div>
-                </div>
-                <div class="discovery-card" onclick="openDetail('asset','label_user_value')">
-                  <div class="discovery-card-header"><div class="discovery-card-icon">🏷️</div><div class="discovery-card-name">label_user_value</div></div>
-                  <div class="discovery-card-display">用户价値分层标签</div>
-                  <div class="discovery-card-meta"><span class="tag tag-gray">标签</span><span class="tag tag-gray">用户域</span><span style="font-size:12px;color:var(--gray-500);font-weight:600;margin-left:auto;">🔥 3,760</span></div>
-                </div>
-              </div>
-            </div>
-            <!-- 热门专题 -->
-            <div class="discovery-tab-content active" id="dcontent-hot">
-              <!-- 专题卡片列表 -->
-              <div id="hot-topic-cards-grid" class="topic-cards-grid">
-                <div class="topic-card" onclick="filterByTopic('交易域核心资产', this)" data-topic="交易域核心资产">
-                  <div class="topic-card-icon">🛒</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">交易域核心资产</div>
-                    <div class="topic-card-desc">订单、支付、退款全链路</div>
-                    <div class="topic-card-count">42 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('用户行为分析', this)" data-topic="用户行为分析">
-                  <div class="topic-card-icon">👤</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">用户行为分析</div>
-                    <div class="topic-card-desc">行为日志、漏斗分析、留存</div>
-                    <div class="topic-card-count">28 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('GMV指标体系', this)" data-topic="GMV指标体系">
-                  <div class="topic-card-icon">📈</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">GMV指标体系</div>
-                    <div class="topic-card-desc">日周月年GMV指标全覆盖</div>
-                    <div class="topic-card-count">19 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('供应链数据', this)" data-topic="供应链数据">
-                  <div class="topic-card-icon">🏭</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">供应链数据</div>
-                    <div class="topic-card-desc">库存、物流、采购数据</div>
-                    <div class="topic-card-count">35 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('用户画像', this)" data-topic="用户画像">
-                  <div class="topic-card-icon">🎯</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">用户画像</div>
-                    <div class="topic-card-desc">画像标签、分层、偏好建模</div>
-                    <div class="topic-card-count">23 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('支付链路', this)" data-topic="支付链路">
-                  <div class="topic-card-icon">💳</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">支付链路</div>
-                    <div class="topic-card-desc">支付渠道、对账、清结数据</div>
-                    <div class="topic-card-count">17 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('日报报表', this)" data-topic="日报报表">
-                  <div class="topic-card-icon">📊</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">日报报表</div>
-                    <div class="topic-card-desc">经营日报、特分报表汇总</div>
-                    <div class="topic-card-count">14 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('API接口', this)" data-topic="API接口">
-                  <div class="topic-card-icon">🔌</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">API 接口</div>
-                    <div class="topic-card-desc">对外服务接口、内部微服务</div>
-                    <div class="topic-card-count">11 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('标签体系', this)" data-topic="标签体系">
-                  <div class="topic-card-icon">🏷️</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">标签体系</div>
-                    <div class="topic-card-desc">用户、商品、事件标签全集</div>
-                    <div class="topic-card-count">31 个资产</div>
-                  </div>
-                </div>
-                <div class="topic-card" onclick="filterByTopic('ODS原始数据', this)" data-topic="ODS原始数据">
-                  <div class="topic-card-icon">📦</div>
-                  <div class="topic-card-body">
-                    <div class="topic-card-title">ODS 原始数据</div>
-                    <div class="topic-card-desc">各业务系统原始层数据</div>
-                    <div class="topic-card-count">56 个资产</div>
-                  </div>
-                </div>
-              </div>
-              <!-- 专题筛选结果区 -->
-              <div id="hot-topic-result" style="display:none;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                  <span style="font-size:13px;color:var(--gray-600);">专题：<strong id="hot-topic-name"></strong></span>
-                  <button class="btn btn-link btn-sm" onclick="clearTopicFilter()">× 返回专题列表</button>
-                </div>
-                <div class="discovery-cards" id="hot-topic-cards"></div>
+              <div class="search-rank-card">
+                <div class="search-rank-card-title">最近搜索</div>
+                <ul class="search-rank-list">
+                  <li class="search-rank-row"><span class="search-rank-num rank-1">1</span><span class="search-rank-single" title="wlyd_mc_beijing.ods_wlyd_kq_certificates_df">wlyd_mc_beijing.ods_wlyd_kq_certificat…</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-2">2</span><span class="search-rank-single">ods_wlyd_kq_certificates_df</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-3">3</span><span class="search-rank-single">金融</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">4</span><span class="search-rank-single">ods_wlyd_kq_honor_df</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">5</span><span class="search-rank-single">wlyd_mc_beijing.dwd_ctps_payment_order_detail_di</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">6</span><span class="search-rank-single">登录</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">7</span><span class="search-rank-single">kafka_user_click_raw</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">8</span><span class="search-rank-single">dim_city_df</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">9</span><span class="search-rank-single">撮合订单</span></li>
+                  <li class="search-rank-row"><span class="search-rank-num rank-def">10</span><span class="search-rank-single">metric_gmv_daily</span></li>
+                </ul>
               </div>
             </div>
           </div>
@@ -4407,74 +4330,64 @@ const DETAIL_REPORT_DEFINITIONS = {
 
 const PLATFORM_PRIMARY_MENUS = [
   {
-    id: 'search',
-    name: '资产检索',
-    icon: '🔍',
+    id: 'data-asset',
+    name: '数据资产',
+    icon: '🗃️',
     page: 'search',
-    stat: '检索入口',
-    summary: '面向业务和数据使用方的统一搜索入口，帮助用户快速找到资产、识别资源，并进入后续治理流程。',
-    capabilities: ['智能关键词搜索', '热门榜单与最近浏览', '搜不到资产时推荐资源', '支持直接进入详情、目录与血缘追溯'],
-    highlights: ['找资产', '找资源', '高频入口']
+    stat: '数据资产管理平台',
+    summary: '数据资产管理平台的核心入口，覆盖资产检索、资产目录、资源发现、资源管理、即席查询、血缘追溯等全链路能力，帮助用户找数、理解数、用数、治数。',
+    capabilities: ['资产检索与资源发现', '资产目录与目录治理', '资源管理与上架审核', '即席查询与血缘追溯'],
+    highlights: ['找数', '治数', '用数']
   },
   {
-    id: 'asset-catalog',
-    name: '资产目录',
-    icon: '📂',
-    page: 'asset-catalog',
-    stat: '目录治理',
-    summary: '按照业务域组织已沉淀的数据资产，帮助用户从业务视角快速浏览、筛选和理解平台内的核心数据能力。',
-    capabilities: ['业务线树形目录浏览', '按资产类型与负责人筛选', '资产卡片化浏览与分页', '支持进入资产详情查看字段与使用说明'],
-    highlights: ['业务域组织', '资产卡片', '目录浏览']
-  },
-  {
-    id: 'resource-catalog',
-    name: '资源发现',
-    icon: '🗄️',
-    page: 'resource-catalog',
-    stat: '统一发现入口',
-    summary: '面向普通用户统一查询资产与资源，重点帮助发现尚未资产化的数据资源，但不承接治理动作。',
-    capabilities: ['统一搜索资产与资源', '按来源、类型和标签筛选', '查看资源详情与来源信息', '支持后续在详情页申请权限或建议资产化'],
-    highlights: ['统一查找', '资产+资源', '非资产发现']
-  },
-  {
-    id: 'resource-mgmt',
-    name: '资源管理',
-    icon: '🧭',
-    page: 'resource-mgmt',
-    stat: '治理工作台',
-    summary: '为管理员提供集中处理台，统一管理资源上架审核、待维护资源和异常待处理事项。',
-    capabilities: ['待审核上架申请集中处理', '待维护资源问题跟进', '异常资源快速处置', '支持审核通过、驳回与维护动作触发'],
-    highlights: ['审核审批', '问题闭环', '管理工作台']
-  },
-  {
-    id: 'sql',
-    name: '即席查询',
-    icon: '🧮',
-    page: 'sql',
-    stat: '查询工作台',
-    summary: '面向用户提供全局 SQL 查询工作台，仅支持查询已有权限的数据表，可进行多表关联分析并沉淀草稿与历史查询。',
-    capabilities: ['统一浏览已有权限表', '支持多表 SQL 与 JOIN', '支持保存草稿与查看历史查询', '执行前校验无权限表引用'],
-    highlights: ['全局查询', '多表关联', '草稿沉淀']
-  },
-  {
-    id: 'lineage',
-    name: '血缘追溯',
-    icon: '🔗',
-    page: 'lineage',
-    stat: '链路分析',
-    summary: '从表级和字段级两个维度追踪数据上下游关系，帮助定位来源、影响范围和加工路径。',
-    capabilities: ['查看上游、下游和全链路血缘', '支持层级切换与节点展开', '支持字段级关联追踪', '支持在右侧抽屉查看节点详细信息'],
-    highlights: ['上下游分析', '字段级血缘', '影响评估']
-  },
-  {
-    id: 'asset-analysis',
-    name: '资产分析',
-    icon: '📊',
+    id: 'data-model',
+    name: '数模之窗',
+    icon: '🏗️',
     page: null,
     stat: '建设中',
-    summary: '用于承接资产活跃度、使用效果和治理成效分析，当前原型中保留为后续版本扩展入口。',
-    capabilities: ['资产使用趋势分析', '热门资产与低活跃资产识别', '治理成效分析看板', '辅助平台运营优化'],
-    highlights: ['运营分析', '价值评估', '后续扩展']
+    summary: '数据模型建设和开放相关的管理平台，面向数仓工程师和数据架构师，提供模型设计、版本管理、模型发布与开放能力。',
+    capabilities: ['数据模型设计与管理', '模型版本控制', '模型发布与开放', '模型与资产关联'],
+    highlights: ['模型建设', '版本管理', '模型开放']
+  },
+  {
+    id: 'data-quality',
+    name: '数质之镜',
+    icon: '🔬',
+    page: null,
+    stat: '建设中',
+    summary: '数据质量标准和监控相关的资产管理平台，提供质量规则配置、质量检测任务调度、质量报告和问题闭环处理能力。',
+    capabilities: ['质量规则配置与管理', '质量检测任务调度', '质量报告与趋势分析', '质量问题闭环处理'],
+    highlights: ['质量规则', '质量监控', '问题闭环']
+  },
+  {
+    id: 'data-security',
+    name: '数安之盾',
+    icon: '🛡️',
+    page: null,
+    stat: '建设中',
+    summary: '数据安全和脱敏相关的资产管理平台，提供数据分类分级、脱敏规则配置、安全策略管理和合规审计能力。',
+    capabilities: ['数据分类分级管理', '脱敏规则配置', '安全策略与访问控制', '合规审计与风险预警'],
+    highlights: ['分类分级', '脱敏管理', '合规审计']
+  },
+  {
+    id: 'data-integration',
+    name: '数据之源',
+    icon: '🔌',
+    page: null,
+    stat: '建设中',
+    summary: '数据集成相关的管理平台，提供数据源接入、采集任务管理、数据同步监控和集成链路治理能力。',
+    capabilities: ['数据源接入与管理', '采集任务配置与调度', '数据同步状态监控', '集成链路血缘追踪'],
+    highlights: ['数据接入', '采集调度', '链路治理']
+  },
+  {
+    id: 'system',
+    name: '系统管理',
+    icon: '⚙️',
+    page: 'permission',
+    stat: '角色与人员管理',
+    summary: '平台系统管理入口，提供角色权限配置、人员管理、组织架构维护等系统级管理能力。',
+    capabilities: ['角色与权限配置', '人员账号管理', '组织架构维护', '系统配置与审计日志'],
+    highlights: ['角色管理', '人员管理', '系统配置']
   }
 ];
 
@@ -4888,9 +4801,7 @@ function goBack() {
 }
 
 function getPlatformMenuInitialId() {
-  if (['asset-catalog', 'resource-catalog', 'resource-mgmt', 'lineage', 'sql'].includes(currentPage)) return currentPage;
-  if (['detail', 'sql-noperm'].includes(currentPage)) return 'asset-catalog';
-  return 'search';
+  return 'data-asset';
 }
 
 function renderPlatformMenu() {
@@ -5004,8 +4915,8 @@ function enterPlatformMenu(menuId) {
     showNotification('info', '建设中', `${item.name}模块将在后续版本中补充页面与分析能力`);
     return;
   }
-  if (menuId === 'lineage') {
-    openLineagePage();
+  if (menuId === 'system') {
+    window.location.href = 'permission-center.html';
     return;
   }
   switchPage(item.page, document.querySelector(`[data-page="${item.page}"]`));
@@ -6509,75 +6420,6 @@ function openSearchSuggestion(index) {
 function highlight(text, kw) {
   if (!kw) return text;
   return text.replace(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<em>${m}</em>`);
-}
-
-// ===== DISCOVERY TAB =====
-function switchDiscoveryTab(tab, el) {
-  document.querySelectorAll('.discovery-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.discovery-tab-content').forEach(c => c.classList.remove('active'));
-  if (el) el.classList.add('active');
-  const content = document.getElementById('dcontent-' + tab);
-  if (content) content.classList.add('active');
-}
-
-// ===== HOT TOPIC FILTER =====
-const TOPIC_KEYWORD_MAP = {
-  '交易域核心资产': ['交易','订单','支付','退款'],
-  '用户行为分析': ['用户','行为','日志','log'],
-  'GMV指标体系': ['gmv','指标','metric'],
-  '供应链数据': ['库存','物流','采购','供应链'],
-  '用户画像': ['画像','profile','用户域'],
-  '支付链路': ['支付','payment'],
-  '日报报表': ['日报','报表','rpt','report'],
-  'API接口': ['api'],
-  '标签体系': ['标签','label'],
-  'ODS原始数据': ['ods','原始']
-};
-
-function filterByTopic(topic, el) {
-  // 标记活跃卡片（兼容旧小标签和新卡片两种模式）
-  document.querySelectorAll('.hot-topic-tag').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.topic-card').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
-
-  const keywords = TOPIC_KEYWORD_MAP[topic] || [topic.toLowerCase()];
-  // 从资产数据中筛选
-  const allAssets = Object.values(MOCK_ASSETS || {});
-  const matched = allAssets.filter(a => {
-    const haystack = (a.name + ' ' + (a.display||'') + ' ' + (a.domain||'') + ' ' + (a.type||'')).toLowerCase();
-    return keywords.some(kw => haystack.includes(kw.toLowerCase()));
-  }).slice(0, 8);
-
-  document.getElementById('hot-topic-name').textContent = topic;
-  const cardsEl = document.getElementById('hot-topic-cards');
-  if (matched.length === 0) {
-    cardsEl.innerHTML = `<div style="color:var(--gray-400);font-size:13px;padding:20px 0;">暂无相关资产</div>`;
-  } else {
-    cardsEl.innerHTML = matched.map(a => {
-      const icon = {table:'🗃️',view:'🗃️',api:'🔌',report:'📊',label:'🏷️',metric:'📈'}[a.type] || '📦';
-      const typeTag = {table:'表',view:'视图',api:'API',report:'报表',label:'标签',metric:'指标'}[a.type] || a.type;
-      const typeClass = {table:'tag-blue',view:'tag-blue',api:'tag-cyan',report:'tag-orange',label:'tag-gray',metric:'tag-purple'}[a.type] || 'tag-gray';
-      return `
-        <div class="discovery-card" onclick="openDetail('asset','${a.id}')">
-          <div class="discovery-card-header"><div class="discovery-card-icon">${icon}</div><div class="discovery-card-name">${a.name}</div></div>
-          <div class="discovery-card-display">${a.display||'-'}</div>
-          <div class="discovery-card-meta"><span class="tag ${typeClass}">${typeTag}</span><span class="tag tag-gray">${a.domain||''}</span></div>
-        </div>`;
-    }).join('');
-  }
-  // 隐藏卡片网格，显示结果区
-  const grid = document.getElementById('hot-topic-cards-grid');
-  if (grid) grid.style.display = 'none';
-  document.getElementById('hot-topic-result').style.display = 'block';
-}
-
-function clearTopicFilter() {
-  document.querySelectorAll('.hot-topic-tag').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.topic-card').forEach(t => t.classList.remove('active'));
-  // 显示卡片网格，隐藏结果区
-  const grid = document.getElementById('hot-topic-cards-grid');
-  if (grid) grid.style.display = '';
-  document.getElementById('hot-topic-result').style.display = 'none';
 }
 
 // ===== ASSET CATALOG =====
