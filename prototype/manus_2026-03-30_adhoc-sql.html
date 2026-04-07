@@ -613,6 +613,13 @@
     .detail-action-chip.is-clickable:hover { border-color: #91caff; color: var(--primary); background: var(--primary-light); }
     .detail-action-chip.status-applying { color: #b45309; border-color: #f8d3a3; background: #fff7ed; }
     .detail-action-chip.status-granted { color: #15803d; border-color: #bbe3c4; background: #f0fdf4; }
+    .asset-card-fav {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 15px; color: var(--gray-300); cursor: pointer;
+      transition: var(--transition); padding: 2px 2px; line-height: 1;
+      z-index: 1;
+    }
+    .asset-card-fav:hover, .asset-card-fav.active { color: #f59e0b; }
     .detail-favorite-btn {
       border:1px solid var(--gray-200); border-radius:6px; background:#fff; color:#6b7280;
       display:inline-flex; align-items:center; justify-content:center; gap:6px;
@@ -1050,7 +1057,7 @@
     .asset-card {
       background: #fff; border: 1px solid var(--gray-200); border-radius: 0;
       padding: 16px 20px; cursor: pointer; transition: var(--transition);
-      border-bottom: none;
+      border-bottom: none; position: relative;
     }
     .asset-card:first-child { border-radius: var(--radius) var(--radius) 0 0; }
     .asset-card:last-child { border-radius: 0 0 var(--radius) var(--radius); border-bottom: 1px solid var(--gray-200); }
@@ -1062,7 +1069,7 @@
     .asset-card-copy:hover { color:var(--primary); background:var(--primary-light); }
     .asset-card-copy[data-tooltip]:hover::after { content:attr(data-tooltip); position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:var(--gray-800); color:#fff; font-size:11px; padding:3px 8px; border-radius:4px; white-space:nowrap; pointer-events:none; }
     .asset-card-label { font-size:11px; color:var(--gray-400); margin-right:2px; }
-    .asset-card-apply { margin-left:auto; font-size:13px; color:var(--primary); cursor:pointer; white-space:nowrap; }
+    .asset-card-apply { position:absolute; top:12px; right:34px; font-size:13px; color:var(--primary); cursor:pointer; white-space:nowrap; z-index:1; }
     .asset-card-apply:hover { text-decoration:underline; }
     .asset-card-row2 { display:flex; align-items:center; gap:16px; margin-bottom:6px; flex-wrap:wrap; }
     .asset-card-catalog { font-size:12px; color:var(--gray-500); }
@@ -5241,6 +5248,17 @@ function isFavorited(record) {
   return Boolean(record?.favorite);
 }
 
+function toggleCardFavorite(domain, id, el) {
+  const records = domain === 'asset' ? MOCK_ASSETS : MOCK_RESOURCES;
+  const record = records.find(r => r.id === id);
+  if (!record) return;
+  record.favorite = !record.favorite;
+  el.textContent = record.favorite ? '★' : '☆';
+  el.title = record.favorite ? '取消收藏' : '收藏';
+  el.classList.toggle('active', record.favorite);
+  showNotification(record.favorite ? 'success' : 'info', record.favorite ? '已收藏' : '已取消收藏', '');
+}
+
 function renderDetailSourcePrefix(name) {
   const parts = splitQualifiedName(name);
   if (!parts.database) return '';
@@ -6898,8 +6916,9 @@ function renderAssetCards() {
             <span class="tag ${tagCls}" style="margin-left:4px;">${typeLabel(a.type)}</span>
             ${isDeprecated ? '<span class="tag tag-gray">已废弃</span>' : '<span class="tag tag-green">正常</span>'}
             ${a.tags.slice(0,2).map(t => `<span class="tag tag-gray">${t}</span>`).join('')}
-            <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
           </div>
+          <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
+          <span class="asset-card-fav${a.favorite ? ' active' : ''}" title="${a.favorite ? '取消收藏' : '收藏'}" onclick="event.stopPropagation();toggleCardFavorite('asset','${a.id}',this)">${a.favorite ? '★' : '☆'}</span>
           <div class="asset-card-row2">
             <span class="asset-card-catalog"><span class="asset-card-label">来源</span> ${getPlatformShort(a)}</span>
             <span class="asset-card-catalog"><span class="asset-card-label">目录</span> ${a.catalog}</span>
@@ -7039,8 +7058,9 @@ function renderResourceTable() {
             <span class="tag ${tagCls}" style="margin-left:4px;">${typeLabel(r.type)}</span>
             ${domainTag}
             ${tagsHtml}
-            <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
           </div>
+          <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
+          <span class="asset-card-fav${r.favorite ? ' active' : ''}" title="${r.favorite ? '取消收藏' : '收藏'}" onclick="event.stopPropagation();toggleCardFavorite('${r.domain}','${r.id}',this)">${r.favorite ? '★' : '☆'}</span>
           <div class="asset-card-row2">
             <span class="asset-card-catalog"><span class="asset-card-label">来源</span> ${getPlatformShort(r)}</span>
             <span class="asset-card-catalog"><span class="asset-card-label">目录</span> ${r.catalog || '-'}</span>
