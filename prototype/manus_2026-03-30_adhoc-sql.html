@@ -2420,7 +2420,6 @@
         <div class="sidebar-panel">
           <div class="sidebar-panel-header">
             <span>业务线目录</span>
-            <button class="btn btn-link btn-sm" onclick="showNotification('info','提示','目录树管理功能面向平台管理员')">管理</button>
           </div>
           <div class="sidebar-panel-body" id="asset-tree"></div>
         </div>
@@ -6631,7 +6630,20 @@ function highlight(text, kw) {
 // ===== ASSET CATALOG =====
 function initAssetTree() {
   const container = document.getElementById('asset-tree');
-  container.innerHTML = renderTree(ASSET_TREE_DATA, 0, 'asset');
+  const totalCount = MOCK_ASSETS.length;
+  const allNode = `<div class="tree-node tree-leaf" style="padding-left:12px;" id="asset-tree-all-node" onclick="selectAssetNode(null)">
+    <span class="tree-icon">🗂</span>
+    <span class="tree-node-label">全部</span>
+    <span class="tree-node-count">${totalCount}</span>
+  </div>`;
+  container.innerHTML = allNode + renderTree(ASSET_TREE_DATA, 0, 'asset');
+  // 默认高亮「全部」节点
+  highlightAssetAllNode(true);
+}
+
+function highlightAssetAllNode(active) {
+  const el = document.getElementById('asset-tree-all-node');
+  if (el) el.classList.toggle('active', active);
 }
 
 function initResourceTree() {
@@ -6818,6 +6830,7 @@ function selectNode(domain, id, name) {
   document.querySelectorAll(`#${domain === 'asset' ? 'asset' : 'resource'}-tree .tree-node`).forEach(n => n.classList.remove('active'));
   event.currentTarget.classList.add('active');
   if (domain === 'asset') {
+    highlightAssetAllNode(false);
     renderAssetTable();
     document.getElementById('asset-breadcrumb').innerHTML = `
       <span class="breadcrumb-item" onclick="selectAssetNode(null)">全部</span>
@@ -6829,6 +6842,8 @@ function selectNode(domain, id, name) {
 
 function selectAssetNode(id) {
   document.querySelectorAll('#asset-tree .tree-node').forEach(n => n.classList.remove('active'));
+  highlightAssetAllNode(true);
+  document.getElementById('asset-breadcrumb').innerHTML = `<span class="breadcrumb-item" onclick="selectAssetNode(null)">全部</span>`;
   renderAssetTable();
 }
 
