@@ -2746,6 +2746,7 @@
               <span style="color:var(--gray-600);" id="rl-only-mine-text">仅我负责</span>
             </label>
             <div class="mgmt-toolbar-right">
+              <button class="btn btn-primary btn-sm" onclick="openAddResourceModal()" style="display:flex;align-items:center;gap:4px;">＋ 新增资源</button>
               <button class="btn btn-default btn-sm" onclick="openMgmtLogsDrawer()" style="display:flex;align-items:center;gap:4px;">📝 操作记录</button>
             </div>
           </div>
@@ -3758,9 +3759,37 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="resource-edit-id" />
-      <div class="form-item">
+      <div class="form-item" id="resource-edit-name-readonly-row">
         <label class="form-label">资源名称</label>
         <div id="resource-edit-name" style="font-size:13px;color:var(--gray-600);padding:6px 0;word-break:break-all;"></div>
+      </div>
+      <div class="form-item" id="resource-add-name-row" style="display:none;">
+        <label class="form-label required">资源名称（英文）</label>
+        <input class="input form-input" id="resource-add-name" placeholder="如 wlyd_mc_beijing.dwd_xxx_di" />
+      </div>
+      <div class="form-item" id="resource-add-type-row" style="display:none;">
+        <label class="form-label required">资源类型</label>
+        <select class="select form-input" id="resource-add-type">
+          <option value="table">表</option>
+          <option value="api">API</option>
+          <option value="report">报表</option>
+          <option value="label">标签</option>
+          <option value="metric">指标</option>
+        </select>
+      </div>
+      <div class="form-item" id="resource-add-type-row" style="display:none;">
+        <label class="form-label required">资源类型</label>
+        <select class="select form-input" id="resource-add-type">
+          <option value="table">表</option>
+          <option value="api">API</option>
+          <option value="report">报表</option>
+          <option value="label">标签</option>
+          <option value="metric">指标</option>
+        </select>
+      </div>
+      <div class="form-item" id="resource-add-platform-row" style="display:none;">
+        <label class="form-label">来源平台</label>
+        <input class="input form-input" id="resource-add-platform" placeholder="如 MaxCompute、MySQL 等" />
       </div>
       <div class="form-item">
         <label class="form-label">展示名称</label>
@@ -8075,6 +8104,11 @@ function submitTransferOwner() {
 function openResourceEditModal(id) {
   const r = MOCK_RESOURCES.find(r => r.id === id);
   if (!r) return;
+  // 编辑模式：显示只读名称行，隐藏新增专用行
+  document.getElementById('resource-edit-name-readonly-row').style.display = '';
+  document.getElementById('resource-add-name-row').style.display = 'none';
+  document.getElementById('resource-add-type-row').style.display = 'none';
+  document.getElementById('resource-add-platform-row').style.display = 'none';
   document.getElementById('resource-edit-id').value = id;
   document.getElementById('resource-edit-title').textContent = `编辑资源信息`;
   document.getElementById('resource-edit-name').textContent = r.name;
@@ -8087,8 +8121,64 @@ function openResourceEditModal(id) {
   openModal('modal-resource-edit');
 }
 
+// 新增资源入口
+function openAddResourceModal() {
+  // 新增模式：隐藏只读名称行，显示新增专用行
+  document.getElementById('resource-edit-name-readonly-row').style.display = 'none';
+  document.getElementById('resource-add-name-row').style.display = '';
+  document.getElementById('resource-add-type-row').style.display = '';
+  document.getElementById('resource-add-platform-row').style.display = '';
+  document.getElementById('resource-edit-id').value = '__new__';
+  document.getElementById('resource-edit-title').textContent = '新增资源';
+  document.getElementById('resource-add-name').value = '';
+  document.getElementById('resource-add-type').value = 'table';
+  document.getElementById('resource-add-platform').value = '';
+  document.getElementById('resource-edit-display').value = '';
+  document.getElementById('resource-edit-summary').value = '';
+  document.getElementById('resource-edit-tech-owner').value = CURRENT_USER;
+  document.getElementById('resource-edit-biz-owner').value = '';
+  document.getElementById('resource-edit-catalog').value = '';
+  document.getElementById('resource-edit-usage').innerHTML = '<p style="color:var(--gray-400);">暂无使用说明，点击此处开始编辑…</p>';
+  openModal('modal-resource-edit');
+}
+
 function submitResourceEdit() {
   const id = document.getElementById('resource-edit-id').value;
+
+  // 新增模式
+  if (id === '__new__') {
+    const name = document.getElementById('resource-add-name').value.trim();
+    if (!name) { showNotification('error', '请填写资源名称', ''); return; }
+    const newId = 'r' + Date.now();
+    const newResource = {
+      id: newId,
+      name: name,
+      type: document.getElementById('resource-add-type').value,
+      platform: document.getElementById('resource-add-platform').value || 'MaxCompute',
+      source: document.getElementById('resource-add-platform').value || '手动录入',
+      status: 'maintain',
+      tech_owner: document.getElementById('resource-edit-tech-owner').value || CURRENT_USER,
+      biz_owner: document.getElementById('resource-edit-biz-owner').value || '',
+      catalog: document.getElementById('resource-edit-catalog').value || null,
+      display: document.getElementById('resource-edit-display').value || '',
+      summary: document.getElementById('resource-edit-summary').value || '',
+      tags: [],
+      updated: new Date().toLocaleDateString('zh-CN'),
+      source_type: 'manual',
+      source_system: document.getElementById('resource-add-platform').value || 'manual',
+      permission_status: 'granted',
+      favorite: false,
+    };
+    MOCK_RESOURCES.push(newResource);
+    MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'新增资源', resource:name, operator:CURRENT_USER, result:'已创建，待维护', time:new Date().toLocaleString('zh-CN') });
+    closeModal('modal-resource-edit');
+    renderMgmtResourceList();
+    updateMgmtStatusBadges();
+    showNotification('success', '新增成功', `「${name}」已创建，当前状态：待维护`);
+    return;
+  }
+
+  // 编辑模式
   const r = MOCK_RESOURCES.find(r => r.id === id);
   if (!r) return;
   r.display = document.getElementById('resource-edit-display').value;

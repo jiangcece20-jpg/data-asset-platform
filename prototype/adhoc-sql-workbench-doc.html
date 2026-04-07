@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>即席查询工作台 - 交互式需求文档</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: rgba(255, 255, 255, 0.92);
+      --panel-strong: #ffffff;
+      --line: #d9e2f1;
+      --text: #1f2937;
+      --muted: #667085;
+      --primary: #1565c0;
+      --primary-soft: #e8f1ff;
+      --green: #1f7a4d;
+      --green-soft: #e9f8ef;
+      --orange: #b45309;
+      --orange-soft: #fff4e8;
+      --red: #b42318;
+      --red-soft: #fff1f1;
+      --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --max: 1440px;
+      --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: var(--font); color: var(--text); background: radial-gradient(circle at top left, #eef5ff 0, #f5f7fb 42%, #f7f9fc 100%); }
+    body { min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; }
+
+    .page {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(21, 101, 192, 0.12);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(21, 101, 192, 0.18), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(63, 140, 255, 0.16), transparent 22%),
+        linear-gradient(135deg, #ffffff 0%, #f6faff 100%);
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+      padding: 30px 32px 28px;
+      margin-bottom: 20px;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    .pill.primary { background: var(--primary-soft); color: var(--primary); border-color: #c9defc; }
+    .pill.green { background: var(--green-soft); color: var(--green); border-color: #b8ebca; }
+    .pill.orange { background: var(--orange-soft); color: var(--orange); border-color: #ffd6ad; }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+      margin: 12px 0 18px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--muted);
+      max-width: 900px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .hero-card {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(217, 226, 241, 0.9);
+      border-radius: 18px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-card-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .hero-card-value {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      backdrop-filter: blur(16px);
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .tab-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      border-radius: 14px;
+      padding: 11px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .18s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 8px 22px rgba(21, 101, 192, 0.2);
+    }
+
+    .search-box {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 11px 14px;
+      margin-bottom: 14px;
+      outline: none;
+    }
+
+    .search-box:focus {
+      border-color: #8db8f7;
+      box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.08);
+    }
+
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      max-height: 48vh;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .nav-link {
+      border: 1px solid transparent;
+      border-radius: 14px;
+      padding: 11px 12px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all .18s ease;
+    }
+
+    .nav-link:hover { background: #f7faff; border-color: #dbeafe; color: var(--text); }
+    .nav-link.active { background: var(--primary-soft); border-color: #bfd8ff; color: var(--primary); }
+    .nav-link-title { font-size: 13px; font-weight: 700; }
+    .nav-link-meta { margin-top: 4px; font-size: 11px; color: inherit; opacity: 0.8; }
+
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .ghost-btn, .primary-btn {
+      border-radius: 14px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all .18s ease;
+    }
+
+    .ghost-btn:hover { background: #f8fbff; border-color: #cfe0f7; }
+    .primary-btn {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 10px 24px rgba(21, 101, 192, 0.22);
+    }
+
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .summary-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .summary-card h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .summary-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .section {
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section.hidden { display: none; }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      cursor: pointer;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    .section-head-left {
+      min-width: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .section-index {
+      display: inline-flex;
+      width: 30px;
+      height: 30px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .section-desc {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .section-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: transform .18s ease;
+    }
+
+    .section.collapsed .section-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .section-body {
+      padding: 0 22px 22px;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .section.collapsed .section-body { display: none; }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .mini-card {
+      border: 1px solid #e8eef8;
+      border-radius: 18px;
+      background: #fbfdff;
+      padding: 16px;
+    }
+
+    .mini-card h4 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .mini-card ul, .content ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text);
+      line-height: 1.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .content h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .content p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f5f8ff;
+      color: var(--primary);
+      border: 1px solid #d7e6ff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .rule-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rule-item {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid #ebf0f6;
+      background: #fafcff;
+    }
+
+    .rule-item strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .rule-item span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .plan-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 18px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .chunk {
+      border: 1px solid #e7edf6;
+      border-radius: 20px;
+      padding: 18px;
+      background: #fcfdff;
+    }
+
+    .chunk + .chunk { margin-top: 14px; }
+
+    .chunk h4 {
+      margin: 0 0 6px;
+      font-size: 17px;
+    }
+
+    .chunk p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      border-radius: 16px;
+      border: 1px solid #ecf1f7;
+      background: #fff;
+      padding: 14px 14px;
+    }
+
+    .task-item.done {
+      background: #f6fff8;
+      border-color: #bde5c8;
+    }
+
+    .task-item input[type="checkbox"] {
+      margin-top: 2px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--green);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .task-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .note-box {
+      border-radius: 18px;
+      padding: 16px 18px;
+      border: 1px solid transparent;
+    }
+
+    .note-box.blue { background: #f5f9ff; border-color: #d7e6ff; }
+    .note-box.orange { background: #fff8ef; border-color: #ffd9af; }
+    .note-box.red { background: #fff4f4; border-color: #f6c7c7; }
+
+    .note-box strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .note-box p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .footer {
+      margin-top: 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .muted { color: var(--muted); }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .hero-grid, .summary-strip, .info-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .page { padding: 18px 14px 28px; }
+      .hero { padding: 22px 18px; border-radius: 22px; }
+      h1 { font-size: 26px; }
+      .hero-grid, .summary-strip, .info-grid { grid-template-columns: 1fr; }
+      .section-head, .section-body { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="hero-top">
+        <span class="pill primary">一级菜单能力</span>
+        <span class="pill green">支持多表 SQL / JOIN</span>
+        <span class="pill orange">在线查看 + 草稿 + 历史</span>
+      </div>
+      <h1>即席查询工作台</h1>
+      <p class="hero-subtitle">
+        这是一份为“数据资产管理平台”准备的交互式需求文档。目标是把现有的单表 SQL 查询页升级为一个全局查询工作台，
+        新增顶部一级菜单，承接用户对已有权限数据表的多表查询分析需求。
+      </p>
+      <div class="hero-grid">
+        <div class="hero-card">
+          <div class="hero-card-label">菜单位置</div>
+          <div class="hero-card-value">放在“我的”前面，作为一级菜单</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">查询范围</div>
+          <div class="hero-card-value">仅支持查询用户已有权限的表</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">能力边界</div>
+          <div class="hero-card-value">支持多表 SQL 与 JOIN，不做导出和分享</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">沉淀能力</div>
+          <div class="hero-card-value">支持保存 SQL 草稿和查看历史查询</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-title">文档导航</div>
+        <div class="tab-group">
+          <button class="tab-btn active" data-tab="design">设计文档</button>
+          <button class="tab-btn" data-tab="plan">实施计划</button>
+        </div>
+        <input class="search-box" id="searchInput" type="text" placeholder="搜索章节或任务关键词">
+        <div class="nav-list" id="navList"></div>
+        <div class="sidebar-actions">
+          <button class="ghost-btn" id="toggleAllBtn">全部展开</button>
+          <button class="ghost-btn" id="clearProgressBtn">清空计划勾选</button>
+          <button class="primary-btn" id="scrollTopBtn">回到顶部</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="summary-strip">
+          <div class="summary-card">
+            <h3>核心定位</h3>
+            <p>将现有 SQL 页面升级为全局查询工作台，而不是重新建设一套独立查询产品。</p>
+          </div>
+          <div class="summary-card">
+            <h3>用户价值</h3>
+            <p>把“找表、看详情、申请权限、发起查询”串成完整链路，承接业务分析的高频查询需求。</p>
+          </div>
+          <div class="summary-card">
+            <h3>实施策略</h3>
+            <p>优先复用现有 `page-sql` 与 `page-sql-noperm`，再补齐全局入口、草稿、历史、权限校验和多表辅助。</p>
+          </div>
+        </div>
+
+        <div id="sectionsContainer"></div>
+
+        <div class="footer">
+          文档文件：<span class="muted">work/prototype/adhoc-sql-workbench-doc.html</span>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const designSections = [
+      {
+        id: "design-background",
+        type: "design",
+        title: "背景与目标",
+        desc: "说明为什么要从现有 SQL 查询页升级为一级菜单工作台，以及本次能力边界。",
+        html: `
+          <div class="content">
+            <div class="note-box blue">
+              <strong>背景</strong>
+              <p>当前原型中虽然已经存在 <code>SQL 查询</code> 页面和 <code>无权限 SQL</code> 页面，但它们更偏向“从详情页进入单表查询”的场景，缺少一个面向用户的全局查询入口。</p>
+            </div>
+            <div class="info-grid">
+              <div class="mini-card">
+                <h4>本次目标</h4>
+                <ul>
+                  <li>新增一级菜单 <code>即席查询</code></li>
+                  <li>支持对已有权限表执行多表 SQL 与 JOIN</li>
+                  <li>支持在线查看结果、保存草稿、查看历史查询</li>
+                  <li>兼容从详情页“带表进入查询”的链路</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>非目标</h4>
+                <ul>
+                  <li>不支持导出结果</li>
+                  <li>不支持分享查询</li>
+                  <li>不支持越权查询</li>
+                  <li>不做复杂 IDE 型能力</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "design-ia",
+        type: "design",
+        title: "信息架构与产品定位",
+        desc: "定义菜单位置、页面职责分工，以及为什么它是“轻量 SQL 工作台”而不是开发 IDE。",
+        html: `
+          <div class="content">
+            <div class="chip-row">
+              <span class="chip">资产检索</span>
+              <span class="chip">资产目录</span>
+              <span class="chip">资源发现</span>
+              <span class="chip">资源管理</span>
+              <span class="chip">即席查询</span>
+              <span class="chip">我的</span>
+              <span class="chip">血缘追溯</span>
+            </div>
+            <p>即席查询位于顶部一级菜单，并放在“我的”前面。它负责承接用户对已有权限表的在线分析，而不是替代资产目录、资源发现或详情页。</p>
+            <div class="info-grid">
+              <div class="mini-card">
+                <h4>页面分工</h4>
+                <ul>
+                  <li><strong>资产检索 / 目录 / 资源发现</strong>：找表、看信息、申请权限</li>
+                  <li><strong>即席查询</strong>：对已有权限表做 SQL 查询与结果预览</li>
+                  <li><strong>我的</strong>：承接个人收藏、权限记录、申请记录等</li>
+                  <li><strong>详情页</strong>：保留“去查询”的快捷入口</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>产品定位</h4>
+                <ul>
+                  <li>围绕“已有权限表”组织查询</li>
+                  <li>偏轻分析，不偏开发 IDE</li>
+                  <li>系统提供写 SQL 辅助，但不替用户自动拼 SQL</li>
+                  <li>权限校验前置，避免越权执行</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "design-layout",
+        type: "design",
+        title: "页面结构设计",
+        desc: "三栏工作台布局：左侧权限内表、中间 SQL 主区、右侧字段辅助。",
+        html: `
+          <div class="content">
+            <div class="info-grid">
+              <div class="mini-card">
+                <h4>左侧：权限内数据表</h4>
+                <ul>
+                  <li>搜索：中文名、英文名、库表名</li>
+                  <li>筛选：来源系统、资源类型、最近使用</li>
+                  <li>分组：最近使用 / 我有权限的表 / 收藏常用表</li>
+                  <li>表项：中文名 + 灰字 <code>库名.表名</code> + 来源信息</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>中间：SQL 编辑与结果</h4>
+                <ul>
+                  <li>当前引用表标签区</li>
+                  <li>SQL 编辑器</li>
+                  <li>执行 / 格式化 / 清空 / 保存草稿</li>
+                  <li>结果区展示状态、耗时、条数与预览表格</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>右侧：字段辅助区</h4>
+                <ul>
+                  <li>当前聚焦表</li>
+                  <li>字段搜索</li>
+                  <li>字段列表：字段名、类型、注释</li>
+                  <li>点击字段插入 SQL，支持切换查看多张表字段</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>顶部工具栏</h4>
+                <ul>
+                  <li>标题：<code>即席查询</code></li>
+                  <li>说明：支持查询已有权限表，可做多表关联</li>
+                  <li>动作：新建查询 / 保存草稿 / 历史查询</li>
+                  <li>环境说明和当前状态提示</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "design-flow",
+        type: "design",
+        title: "关键交互流程",
+        desc: "从菜单进入、从详情页进入、选择多张表、执行 SQL、草稿与历史查询的核心闭环。",
+        html: `
+          <div class="content">
+            <div class="rule-list">
+              <div class="rule-item">
+                <strong>流程 1：从一级菜单进入</strong>
+                <span>点击顶部 <code>即席查询</code> 后进入空白工作台，左侧默认显示“我已有权限的表”，中间展示新建查询引导，适合主动来做分析的用户。</span>
+              </div>
+              <div class="rule-item">
+                <strong>流程 2：从详情页进入</strong>
+                <span>从资源详情页点击“即席查询”时，跳入同一个工作台，自动带入当前表、字段和示例 SQL；如果无权限，则进入现有无权限拦截态。</span>
+              </div>
+              <div class="rule-item">
+                <strong>流程 3：多表 JOIN</strong>
+                <span>用户可从左侧持续加入多张已有权限表，系统提供插入表名、插入字段和当前引用表展示，但不自动生成 JOIN 逻辑。</span>
+              </div>
+              <div class="rule-item">
+                <strong>流程 4：保存草稿 / 查看历史</strong>
+                <span>草稿保存当前 SQL 内容和涉及表；历史查询保存已执行记录，点击历史后回填编辑器，但不自动再次执行。</span>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "design-rules",
+        type: "design",
+        title: "权限与异常规则",
+        desc: "定义哪些表能展示、哪些 SQL 能执行，以及错误时页面如何反馈。",
+        html: `
+          <div class="content">
+            <div class="info-grid">
+              <div class="mini-card">
+                <h4>权限规则</h4>
+                <ul>
+                  <li>左侧只展示当前用户已有权限的表</li>
+                  <li>手写 SQL 时仍要校验是否引用了无权限表</li>
+                  <li>草稿和历史查询仅本人可见</li>
+                  <li>旧草稿再次执行时，需要重新校验权限是否仍有效</li>
+                </ul>
+              </div>
+              <div class="mini-card">
+                <h4>异常规则</h4>
+                <ul>
+                  <li>无权限：拦截执行并提示去申请权限</li>
+                  <li>SQL 语法错误：提示用户检查关键字、表名、字段名</li>
+                  <li>执行失败：提示稍后重试，不清空编辑器</li>
+                </ul>
+              </div>
+            </div>
+            <div class="note-box red">
+              <strong>硬性原则</strong>
+              <p>用户即使知道无权限表名，也不能通过手写 SQL 绕过权限校验；结果只支持在线预览，不支持导出。</p>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: "design-states",
+        type: "design",
+        title: "页面状态与原型衔接",
+        desc: "说明要补哪些状态，以及为什么建议直接升级现有 SQL 页。",
+        html: `
+          <div class="content">
+            <div class="chip-row">
+              <span class="chip">空白态</span>
+              <span class="chip">已选一张表</span>
+              <span class="chip">已选多张表</span>
+              <span class="chip">查询成功有结果</span>
+              <span class="chip">查询成功无结果</span>
+              <span class="chip">SQL 报错态</span>
+              <span class="chip">无权限拦截态</span>
+              <span class="chip">草稿列表态</span>
+              <span class="chip">历史查询列表态</span>
+            </div>
+            <p>建议不新建一套完全独立的查询原型，而是直接升级现有 <code>page-sql</code> 和 <code>page-sql-noperm</code>。这样能最大化复用你已经确认过的交互和样式，也便于从详情页平滑衔接。</p>
+            <div class="note-box orange">
+              <strong>推荐落地方式</strong>
+              <p>采用“全局工作台 + 详情页快捷进入”的组合方案：顶部新增一级菜单，同时保留详情页带表进入的快捷链路。</p>
+            </div>
+          </div>
+        `
+      }
+    ];
+
+    const planSections = [
+      {
+        id: "plan-nav",
+        type: "plan",
+        title: "Chunk 1：导航与入口改造",
+        desc: "把即席查询放进一级菜单，并把现有 SQL 页面重定向成工作台入口。",
+        tasks: [
+          "在顶部导航中新增“即席查询”菜单，位置放在“我的”前面。",
+          "确定页面 id 策略：升级现有 SQL 页或做清晰映射，保证菜单高亮一致。",
+          "检查 switchPage 等导航逻辑，确保新菜单可以正常激活。",
+          "做一次内联脚本语法校验，避免基础结构改动带来 JS 错误。"
+        ]
+      },
+      {
+        id: "plan-layout",
+        type: "plan",
+        title: "Chunk 2：工作台布局升级",
+        desc: "把单表 SQL 页升级为全局三栏工作台，并保留结果区能力。",
+        tasks: [
+          "把现有 SQL 页面改造成“左表、中编辑、右字段”的三栏布局。",
+          "新增空白引导态，说明如何选择表和开始写 SQL。",
+          "保留现有结果展示能力，并调整到更符合工作台的布局里。",
+          "验证空白态、带表态、结果态之间的切换。"
+        ]
+      },
+      {
+        id: "plan-tables",
+        type: "plan",
+        title: "Chunk 3：权限内数据表面板",
+        desc: "补齐可查询表的 mock 数据、搜索、筛选与当前引用表状态。",
+        tasks: [
+          "新增已有权限表、最近使用、收藏常用表三类 mock 数据。",
+          "渲染左侧列表，并支持按中文名、英文名、库表名搜索。",
+          "支持用户选择多张表，形成当前查询引用表标签区。",
+          "确保无权限表不出现在即席查询左侧列表中。"
+        ]
+      },
+      {
+        id: "plan-fields",
+        type: "plan",
+        title: "Chunk 4：字段辅助与 SQL 组装",
+        desc: "让右侧字段面板从单表辅助升级为多表辅助。",
+        tasks: [
+          "把 renderSQLFields 改造成按当前聚焦表动态显示字段。",
+          "支持字段搜索、字段插入、表名插入。",
+          "在多表场景下支持切换查看不同表的字段结构。",
+          "手工验证字段插入和多表上下文切换。"
+        ]
+      },
+      {
+        id: "plan-drafts",
+        type: "plan",
+        title: "Chunk 5：草稿与历史查询",
+        desc: "补齐即席查询沉淀能力，让查询内容可保存、可复用。",
+        tasks: [
+          "新增 SQL 草稿 mock 数据和历史查询 mock 数据。",
+          "在顶部工具栏中加入“保存草稿”“历史查询”入口。",
+          "首次保存时生成或填写草稿名称，再次保存支持覆盖。",
+          "点击历史查询后回填 SQL 与引用表，但不自动执行。",
+          "补一个未保存离开提醒的原型交互。"
+        ]
+      },
+      {
+        id: "plan-permission",
+        type: "plan",
+        title: "Chunk 6：权限校验与异常态",
+        desc: "在执行 SQL 前加入轻量校验，并对常见异常给出清晰反馈。",
+        tasks: [
+          "执行前校验 SQL 是否为空、是否引用了无权限表。",
+          "补一个轻量级表名解析逻辑，用于原型演示。",
+          "新增无权限拦截、语法错误、执行失败三种反馈态。",
+          "确保发生异常时不清空 SQL 编辑器。"
+        ]
+      },
+      {
+        id: "plan-integration",
+        type: "plan",
+        title: "Chunk 7：详情页衔接与最终校验",
+        desc: "保留从详情页带表进入的链路，并做最终联调。",
+        tasks: [
+          "把详情页的查询按钮接入升级后的即席查询工作台。",
+          "从详情页进入时自动带入当前表、字段和示例 SQL。",
+          "无权限时仍然跳转到现有无权限页，而不是直接进入工作台。",
+          "必要时同步更新 Figma 捕获用的临时原型文件。",
+          "做最终语法检查和手工联调。"
+        ]
+      }
+    ];
+
+    const allSections = [...designSections, ...planSections];
+    const navList = document.getElementById("navList");
+    const sectionsContainer = document.getElementById("sectionsContainer");
+    const searchInput = document.getElementById("searchInput");
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+    const toggleAllBtn = document.getElementById("toggleAllBtn");
+    const clearProgressBtn = document.getElementById("clearProgressBtn");
+    const scrollTopBtn = document.getElementById("scrollTopBtn");
+    const progressKey = "adhoc-sql-workbench-plan-progress";
+    let currentTab = "design";
+
+    const progressState = JSON.parse(localStorage.getItem(progressKey) || "{}");
+
+    function renderNav() {
+      const keyword = searchInput.value.trim().toLowerCase();
+      const filtered = allSections.filter(section => {
+        const inTab = section.type === currentTab;
+        if (!inTab) return false;
+        if (!keyword) return true;
+        const haystack = `${section.title} ${section.desc} ${section.tasks ? section.tasks.join(" ") : ""}`.toLowerCase();
+        return haystack.includes(keyword);
+      });
+
+      navList.innerHTML = filtered.map((section, index) => `
+        <button class="nav-link${index === 0 ? " active" : ""}" data-target="${section.id}">
+          <div class="nav-link-title">${section.title}</div>
+          <div class="nav-link-meta">${section.desc}</div>
+        </button>
+      `).join("");
+
+      Array.from(navList.querySelectorAll(".nav-link")).forEach(btn => {
+        btn.addEventListener("click", () => {
+          const target = document.getElementById(btn.dataset.target);
+          if (!target) return;
+          setActiveNav(btn.dataset.target);
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
+
+    function renderSections() {
+      sectionsContainer.innerHTML = allSections.map((section, index) => {
+        const body = section.type === "design"
+          ? section.html
+          : `
+            <div class="section-body">
+              <div class="plan-toolbar">
+                <div class="counter">${section.tasks.filter((_, i) => progressState[`${section.id}-${i}`]).length} / ${section.tasks.length} 已勾选</div>
+              </div>
+              <div class="chunk">
+                <h4>${section.title}</h4>
+                <p>${section.desc}</p>
+                <div class="task-list">
+                  ${section.tasks.map((task, i) => {
+                    const key = `${section.id}-${i}`;
+                    const checked = Boolean(progressState[key]);
+                    return `
+                      <label class="task-item${checked ? " done" : ""}" data-task-key="${key}">
+                        <input type="checkbox" ${checked ? "checked" : ""}>
+                        <div>
+                          <div class="task-title">任务 ${i + 1}</div>
+                          <div class="task-desc">${task}</div>
+                        </div>
+                      </label>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+            </div>
+          `;
+
+        const designBody = section.type === "design"
+          ? `<div class="section-body">${section.html}</div>`
+          : body;
+
+        return `
+          <section class="section${section.type !== currentTab ? " hidden" : ""}" id="${section.id}" data-type="${section.type}">
+            <div class="section-head">
+              <div class="section-head-left">
+                <h2 class="section-title">
+                  <span class="section-index">${String(index + 1).padStart(2, "0")}</span>
+                  <span>${section.title}</span>
+                </h2>
+                <div class="section-desc">${section.desc}</div>
+              </div>
+              <div class="section-toggle">⌄</div>
+            </div>
+            ${designBody}
+          </section>
+        `;
+      }).join("");
+
+      Array.from(document.querySelectorAll(".section-head")).forEach(head => {
+        head.addEventListener("click", () => {
+          head.parentElement.classList.toggle("collapsed");
+        });
+      });
+
+      Array.from(document.querySelectorAll(".task-item input[type='checkbox']")).forEach(box => {
+        box.addEventListener("change", () => {
+          const item = box.closest(".task-item");
+          const key = item.dataset.taskKey;
+          progressState[key] = box.checked;
+          if (!box.checked) delete progressState[key];
+          localStorage.setItem(progressKey, JSON.stringify(progressState));
+          item.classList.toggle("done", box.checked);
+          updatePlanCounters();
+        });
+      });
+    }
+
+    function updatePlanCounters() {
+      planSections.forEach(section => {
+        const el = document.querySelector(`#${section.id} .counter`);
+        if (!el) return;
+        const done = section.tasks.filter((_, i) => progressState[`${section.id}-${i}`]).length;
+        el.textContent = `${done} / ${section.tasks.length} 已勾选`;
+      });
+    }
+
+    function setActiveTab(tab) {
+      currentTab = tab;
+      tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+      Array.from(document.querySelectorAll(".section")).forEach(section => {
+        section.classList.toggle("hidden", section.dataset.type !== tab);
+      });
+      renderNav();
+      const firstVisible = document.querySelector(`.section[data-type="${tab}"]`);
+      if (firstVisible) {
+        setTimeout(() => firstVisible.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+      }
+    }
+
+    function setActiveNav(id) {
+      Array.from(navList.querySelectorAll(".nav-link")).forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.target === id);
+      });
+    }
+
+    renderSections();
+    renderNav();
+    updatePlanCounters();
+
+    tabButtons.forEach(btn => btn.addEventListener("click", () => setActiveTab(btn.dataset.tab)));
+
+    searchInput.addEventListener("input", () => {
+      renderNav();
+      const keyword = searchInput.value.trim().toLowerCase();
+      Array.from(document.querySelectorAll(".section")).forEach(section => {
+        if (section.dataset.type !== currentTab) return;
+        const text = section.textContent.toLowerCase();
+        section.classList.toggle("hidden", keyword ? !text.includes(keyword) : false);
+      });
+    });
+
+    toggleAllBtn.addEventListener("click", () => {
+      const visible = Array.from(document.querySelectorAll(`.section[data-type="${currentTab}"]`)).filter(section => !section.classList.contains("hidden"));
+      const shouldOpen = visible.some(section => section.classList.contains("collapsed"));
+      visible.forEach(section => section.classList.toggle("collapsed", !shouldOpen));
+      toggleAllBtn.textContent = shouldOpen ? "全部收起" : "全部展开";
+    });
+
+    clearProgressBtn.addEventListener("click", () => {
+      Object.keys(progressState).forEach(key => delete progressState[key]);
+      localStorage.removeItem(progressKey);
+      Array.from(document.querySelectorAll(".task-item")).forEach(item => item.classList.remove("done"));
+      Array.from(document.querySelectorAll(".task-item input[type='checkbox']")).forEach(box => { box.checked = false; });
+      updatePlanCounters();
+    });
+
+    scrollTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActiveNav(entry.target.id);
+      });
+    }, { rootMargin: "-20% 0px -65% 0px", threshold: 0.15 });
+
+    Array.from(document.querySelectorAll(".section")).forEach(section => observer.observe(section));
+  </script>
+</body>
+</html>
