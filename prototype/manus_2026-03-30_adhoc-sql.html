@@ -6865,6 +6865,20 @@ function selectAssetNode(id) {
   renderAssetTable();
 }
 
+// 时间格式化：将 YYYY-MM-DD 或已有时间字符串统一输出为 YYYY-MM-DD HH:mm:ss
+function formatDateTime(val) {
+  if (!val) return '-';
+  // 已包含时分秒则直接返回（补齐秒位）
+  if (/\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?/.test(val)) {
+    return val.replace('T', ' ').replace(/(\d{2}:\d{2})$/, '$1:00');
+  }
+  // 仅有日期，补 00:00:00
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    return val + ' 00:00:00';
+  }
+  return val;
+}
+
 function renderAssetTable() { renderAssetCards(); } // alias
 function renderAssetCards() {
   const kw = document.getElementById('asset-search-kw')?.value || '';
@@ -6932,8 +6946,8 @@ function renderAssetCards() {
             <span class="asset-card-owner"><span class="asset-card-label">技术负责人</span> <strong>${a.tech_owner}</strong></span>
             <span class="asset-card-owner"><span class="asset-card-label">业务负责人</span> <strong>${a.biz_owner}</strong></span>
             <span class="asset-card-row4-right">
-              <span class="asset-card-time">创建时间 ${a.created || a.updated}</span>
-              <span class="asset-card-time">更新时间 ${a.updated}</span>
+              <span class="asset-card-time">创建时间 ${formatDateTime(a.created || a.updated)}</span>
+              <span class="asset-card-time">更新时间 ${formatDateTime(a.updated)}</span>
             </span>
           </div>
         </div>
@@ -7074,8 +7088,8 @@ function renderResourceTable() {
             <span class="asset-card-owner"><span class="asset-card-label">技术负责人</span> <strong>${r.tech_owner || '-'}</strong></span>
             <span class="asset-card-owner"><span class="asset-card-label">业务负责人</span> <strong>${r.biz_owner || '-'}</strong></span>
             <span class="asset-card-row4-right">
-              <span class="asset-card-time">创建时间 ${r.created || '-'}</span>
-              <span class="asset-card-time">更新时间 ${r.updated}</span>
+              <span class="asset-card-time">创建时间 ${formatDateTime(r.created || r.updated)}</span>
+              <span class="asset-card-time">更新时间 ${formatDateTime(r.updated)}</span>
             </span>
           </div>
         </div>
