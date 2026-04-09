@@ -805,6 +805,12 @@
       display:grid; grid-template-columns:minmax(0, 1fr) 360px; gap:20px;
       min-height:100%;
     }
+    .detail-shell.detail-shell-full {
+      grid-template-columns:1fr; 
+    }
+    .detail-shell-full .detail-right-rail {
+      position:absolute; right:0; top:0; width:0; overflow:visible;
+    }
     .detail-main-panel { min-width:0; }
     .detail-right-rail {
       position: sticky; top: 20px; align-self: start; display: flex; flex-direction: column; gap: 16px;
@@ -812,7 +818,7 @@
     }
     .detail-right-rail .detail-sidebar { position: static; top: auto; max-height: none; }
     .detail-lineage-overlay {
-      position: fixed; inset: var(--header-h) 0 0 0; display: none; z-index: 140;
+      position: fixed; inset: var(--header-h) 0 0 0; display: none; z-index: 1300;
     }
     .detail-lineage-overlay.open { display: block; }
     .detail-lineage-backdrop {
@@ -4546,6 +4552,12 @@ const DETAIL_REPORT_DEFINITIONS = {
     directory: '经营分析 / 日报 / 销售日报',
     metrics: ['总成交金额', '支付订单数', '支付转化率', '渠道贡献占比'],
     dimensions: ['渠道', '区域', '品类', '时段'],
+    reportUrl: 'https://bi.wanlian.com/report/sales-daily',
+    productName: '万联灵析',
+    techOwner: '张三',
+    bizOwner: '赵六',
+    created: '2026-03-21 00:00:00',
+    updated: '2026-03-21 10:19:27',
   },
   r006: {
     summary: '汇总关键经营指标变化趋势的周报看板，用于周经营例会与阶段复盘。',
@@ -4554,6 +4566,12 @@ const DETAIL_REPORT_DEFINITIONS = {
     directory: '经营分析 / 周报 / 周经营汇总',
     metrics: ['GMV', '活跃用户数', '下单转化率', '库存周转天数'],
     dimensions: ['业务线', '区域', '周次', '专题主题'],
+    reportUrl: 'https://bi.wanlian.com/report/weekly-summary',
+    productName: '万联灵析',
+    techOwner: '张三',
+    bizOwner: '赵六',
+    created: '2026-03-15 00:00:00',
+    updated: '2026-03-15 09:30:00',
   },
 };
 
@@ -5767,6 +5785,12 @@ function getReportDefinition(record) {
     directory: record?.catalog || '未归属',
     metrics: record?.tags || [],
     dimensions: [],
+    reportUrl: '待补充',
+    productName: record?.source_system || '待补充',
+    techOwner: record?.tech_owner || '-',
+    bizOwner: record?.biz_owner || '-',
+    created: record?.created || '2026-02-15 00:00:00',
+    updated: record?.updated || '-',
   };
 }
 
@@ -5775,22 +5799,6 @@ function renderMetricDefinitionTab(record) {
   return `
     <div class="detail-section">
       <div class="detail-section-title">指标定义</div>
-      ${renderDetailHeroCard(
-        'metric',
-        '核心指标定义',
-        `${record?.display || '-'} <span class="tag tag-blue">${record?.name || '-'}</span>`,
-        meta.summary,
-        [
-          { label: '统计粒度', value: meta.grain },
-          { label: '统计周期', value: meta.cycle },
-          { label: '更新频率', value: meta.frequency },
-          { label: '最近示例值', value: meta.example },
-        ],
-        renderDetailHeroMeta([
-          { label: '统计对象', value: meta.object },
-          { label: '数据延迟', value: meta.latency },
-        ])
-      )}
       ${renderDefinitionSection('口径概览与计算逻辑', `
         ${renderDetailOverviewGrid([
           ['统计对象', meta.object],
@@ -5995,6 +6003,7 @@ function renderApiParamsTab(record) {
 
 function renderReportDefinitionTab(record) {
   const meta = getReportDefinition(record);
+  const reportUrl = meta.reportUrl || '待补充';
   return `
     <div class="detail-section">
       <div class="detail-section-title">报表定义</div>
@@ -6021,6 +6030,12 @@ function renderReportDefinitionTab(record) {
               ${renderDefinitionTagList(meta.dimensions, 'gray')}
             </div>
           </div>
+        </div>
+      `)}
+      ${renderDefinitionSection('报表链接', `
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.8;color:var(--gray-700);word-break:break-all;">
+          <span style="color:var(--gray-500);white-space:nowrap;">访问链接</span>
+          <a href="${reportUrl}" target="_blank" rel="noreferrer" style="color:var(--primary);text-decoration:none;">${reportUrl}</a>
         </div>
       `)}
     </div>
@@ -6132,6 +6147,15 @@ function getDetailSidebarData(obj, domain = currentDetailType) {
         ['所属系统', meta.system],
         ['来源平台', meta.platform || platformFull],
         ['报表目录', meta.directory || obj?.catalog || '未归属'],
+        ['访问链接', meta.reportUrl || '-'],
+      ]},
+      { title: '管理信息', items: [
+        ['技术负责人', meta.techOwner || obj?.tech_owner || '-'],
+        ['业务负责人', meta.bizOwner || obj?.biz_owner || '-'],
+        ['所属产品', meta.productName || '-'],
+        ['所属目录', meta.directory || obj?.catalog || '未归属'],
+        ['创建时间', meta.created || obj?.created || '2026-02-15 00:00:00'],
+        ['更新时间', meta.updated || obj?.updated || '-'],
       ]},
       { title: '使用统计', items: [
         ['近30天查看量', stats.query30d.toLocaleString()],
@@ -9475,6 +9499,9 @@ function switchDetailTab(tab, el) {
   currentDetailTab = tab;
   document.querySelectorAll('#detail-tabs .tab-item').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
+  // 切换 Tab 时清理血缘 overlay
+  const oldOverlay = document.getElementById('dt-ln-overlay');
+  if (oldOverlay) oldOverlay.remove();
   const body = document.getElementById('detail-body-area');
   body.style.padding = '20px 24px';
   body.style.overflow = tab === 'lineage' ? 'hidden' : 'hidden auto';
@@ -9603,26 +9630,32 @@ function switchDetailTab(tab, el) {
         </div>
       </div>
     `, {
-      rightTopHtml: `
-        <div class="detail-lineage-overlay" id="dt-ln-overlay">
-          <div class="detail-lineage-backdrop" onclick="dtLnCloseDrawer()"></div>
-          <div class="detail-lineage-drawer" id="dt-ln-drawer">
-            <div class="lineage-drawer-inner" id="dt-ln-drawer-inner">
-              <div class="lineage-drawer-header">
-                <div class="lineage-drawer-title" id="dt-ln-drawer-title">节点详情</div>
-                <span class="lineage-drawer-close" onclick="dtLnCloseDrawer()">×</span>
-              </div>
-              <div class="lineage-drawer-tabs" id="dt-ln-drawer-tabs">
-                <div class="lineage-drawer-tab active" data-dt-ln-tab="info" onclick="dtLnSwitchDrawerTab('info',this)">基本信息</div>
-                <div class="lineage-drawer-tab" data-dt-ln-tab="fields" onclick="dtLnSwitchDrawerTab('fields',this)">字段信息</div>
-                <div class="lineage-drawer-tab" data-dt-ln-tab="lineage" onclick="dtLnSwitchDrawerTab('lineage',this)">血缘关系</div>
-              </div>
-              <div id="dt-ln-drawer-body" class="lineage-drawer-body"></div>
+      showSidebar: false,
+      shellClass: 'detail-shell-full',
+    });
+    body.insertAdjacentHTML('beforeend', '');
+    // 把 overlay 追加到 document.body，避免被任何父容器的 overflow/z-index 影响
+    const existingOverlay = document.getElementById('dt-ln-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="detail-lineage-overlay" id="dt-ln-overlay">
+        <div class="detail-lineage-backdrop" onclick="dtLnCloseDrawer()"></div>
+        <div class="detail-lineage-drawer" id="dt-ln-drawer">
+          <div class="lineage-drawer-inner" id="dt-ln-drawer-inner">
+            <div class="lineage-drawer-header">
+              <div class="lineage-drawer-title" id="dt-ln-drawer-title">节点详情</div>
+              <span class="lineage-drawer-close" onclick="dtLnCloseDrawer()">×</span>
             </div>
+            <div class="lineage-drawer-tabs" id="dt-ln-drawer-tabs">
+              <div class="lineage-drawer-tab active" data-dt-ln-tab="info" onclick="dtLnSwitchDrawerTab('info',this)">基本信息</div>
+              <div class="lineage-drawer-tab" data-dt-ln-tab="fields" onclick="dtLnSwitchDrawerTab('fields',this)">字段信息</div>
+              <div class="lineage-drawer-tab" data-dt-ln-tab="lineage" onclick="dtLnSwitchDrawerTab('lineage',this)">血缘关系</div>
+            </div>
+            <div id="dt-ln-drawer-body" class="lineage-drawer-body"></div>
           </div>
         </div>
-      `,
-    });
+      </div>
+    `);
     dtLnInit(currentDetailId);
   } else if (tab === 'manage') {
     const obj = getDetailRecord();
