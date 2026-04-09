@@ -12114,7 +12114,7 @@ function renderLineageEditList() {
     const tbody = document.getElementById('le-table-body');
     if (!tbody) return;
     const data = MOCK_LE_TABLE_RELATIONS.filter(r => {
-      if (stF !== 'all' && r.status !== stF) return false;
+      if (stF !== 'all' && r.status !== stF && r.pendingStatus !== 'pending-add') return false;
       if (dirF !== 'all' && r.dir !== dirF) return false;
       if (srcF !== 'all' && r.source !== srcF) return false;
       if (kwL && !r.resource.toLowerCase().includes(kwL) && !(r.resDisplay||'').toLowerCase().includes(kwL)) return false;
@@ -12504,7 +12504,12 @@ function leSubmitAdd() {
   const currentNode = LN_NODES_DB[currentDetailId];
   const isMetricOrLabel = (currentNode && (currentNode.type === 'metric' || currentNode.type === 'label')) || (targetNode && (targetNode.type === 'metric' || targetNode.type === 'label'));
   if (isMetricOrLabel) {
+    // 指标/标签：必须勾选至少一个字段
     const checks = document.querySelectorAll('#le-add-field-checkboxes input[type=checkbox]:checked');
+    if (checks.length === 0) {
+      showNotification('warning', '请选择字段', '指标/标签血缘必须关联至少一个字段');
+      return;
+    }
     checks.forEach(cb => {
       MOCK_LE_FIELD_RELATIONS.push({
         id: 'lf_m' + Date.now() + Math.random().toString(36).slice(2,5),
@@ -12517,22 +12522,29 @@ function leSubmitAdd() {
       });
     });
   } else {
+    // 表-表血缘：必须至少有一行上下游字段都已选择
     const rows = document.querySelectorAll('#le-add-field-rows > div');
-    rows.forEach(row => {
+    const validRows = Array.from(rows).filter(row => {
       const selects = row.querySelectorAll('select');
-      const upF = selects[0] ? selects[0].value : '';
-      const downF = selects[1] ? selects[1].value : '';
-      if (upF && downF) {
-        const upNode = dir === 'upstream' ? targetNode : currentNode;
-        const downNode = dir === 'upstream' ? currentNode : targetNode;
-        MOCK_LE_FIELD_RELATIONS.push({
-          id: 'lf_m' + Date.now() + Math.random().toString(36).slice(2,5),
-          dir: dir,
-          upResource: upNode.name, upField: upF,
-          downResource: downNode.name, downField: downF,
-          source: 'manual', status: 'active'
-        });
-      }
+      return selects[0] && selects[0].value && selects[1] && selects[1].value;
+    });
+    if (validRows.length === 0) {
+      showNotification('warning', '请配置字段映射', '表级血缘必须至少配置一条字段映射关系');
+      return;
+    }
+    validRows.forEach(row => {
+      const selects = row.querySelectorAll('select');
+      const upF = selects[0].value;
+      const downF = selects[1].value;
+      const upNode = dir === 'upstream' ? targetNode : currentNode;
+      const downNode = dir === 'upstream' ? currentNode : targetNode;
+      MOCK_LE_FIELD_RELATIONS.push({
+        id: 'lf_m' + Date.now() + Math.random().toString(36).slice(2,5),
+        dir: dir,
+        upResource: upNode.name, upField: upF,
+        downResource: downNode.name, downField: downF,
+        source: 'manual', status: 'active', pendingStatus: 'pending-add'
+      });
     });
   }
 
