@@ -12043,7 +12043,7 @@ let leSelectedIds = new Set();
 let leFieldSelectedIds = new Set();
 
 // Mock: table-level lineage relations for current detail resource
-const MOCK_LE_TABLE_RELATIONS = [
+let MOCK_LE_TABLE_RELATIONS = [
   { id:'lt1', dir:'upstream', resource:'ods_order_raw', resDisplay:'订单原始数据', type:'table', source:'auto', status:'active' },
   { id:'lt2', dir:'upstream', resource:'ods_user_info', resDisplay:'用户信息原始表', type:'table', source:'auto', status:'active' },
   { id:'lt3', dir:'upstream', resource:'dim_sku_info', resDisplay:'SKU维度表', type:'table', source:'auto', status:'active' },
@@ -12055,7 +12055,7 @@ const MOCK_LE_TABLE_RELATIONS = [
 ];
 
 // Mock: field-level lineage relations
-const MOCK_LE_FIELD_RELATIONS = [
+let MOCK_LE_FIELD_RELATIONS = [
   { id:'lf1', dir:'upstream', upResource:'ods_order_raw', upField:'order_id', downResource:'dwd_order_detail', downField:'order_id', source:'auto', status:'active' },
   { id:'lf2', dir:'upstream', upResource:'ods_order_raw', upField:'create_time', downResource:'dwd_order_detail', downField:'create_time', source:'auto', status:'active' },
   { id:'lf3', dir:'upstream', upResource:'ods_user_info', upField:'user_id', downResource:'dwd_order_detail', downField:'user_id', source:'auto', status:'active' },
@@ -12125,15 +12125,28 @@ function renderLineageEditList() {
       ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray-400);">暂无数据</td></tr>'
       : data.map(r => {
         const isExcluded = r.status === 'excluded';
-        const rowStyle = isExcluded ? 'opacity:0.5;text-decoration:line-through;' : '';
+        const isPendingDelete = r.pendingStatus === 'pending-delete';
+        const isPendingAdd = r.pendingStatus === 'pending-add';
+        const rowStyle = (isExcluded || isPendingDelete) ? 'opacity:0.5;text-decoration:line-through;' : isPendingAdd ? 'background:#f0f9ff;' : '';
         const srcTag = r.source === 'auto'
           ? '<span style="background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:3px;font-size:11px;">自动采集</span>'
           : '<span style="background:#eff6ff;color:var(--primary);padding:1px 6px;border-radius:3px;font-size:11px;">手动添加</span>';
-        const statusTag = isExcluded
-          ? '<span style="color:#ff4d4f;font-size:11px;">已排除</span>'
-          : '<span style="color:#52c41a;font-size:11px;">有效</span>';
+        let statusTag = '';
+        if (isPendingDelete) {
+          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:1px 6px;border-radius:3px;font-size:11px;">待删除</span>';
+        } else if (isPendingAdd) {
+          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:1px 6px;border-radius:3px;font-size:11px;">待新增</span>';
+        } else if (isExcluded) {
+          statusTag = '<span style="color:#ff4d4f;font-size:11px;">已排除</span>';
+        } else {
+          statusTag = '<span style="color:#52c41a;font-size:11px;">有效</span>';
+        }
         let actionBtn = '';
-        if (isExcluded) {
+        if (isPendingDelete) {
+          actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'table\')">撤销</button>';
+        } else if (isPendingAdd) {
+          actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leUndoAdd(\''+r.id+'\',\'table\')">撤销</button>';
+        } else if (isExcluded) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'table\')">恢复</button>';
         } else if (r.source === 'auto') {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leExclude(\''+r.id+'\',\'table\')">排除</button>';
@@ -12166,15 +12179,28 @@ function renderLineageEditList() {
       ? '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray-400);">暂无数据</td></tr>'
       : data.map(r => {
         const isExcluded = r.status === 'excluded';
-        const rowStyle = isExcluded ? 'opacity:0.5;text-decoration:line-through;' : '';
+        const isPendingDelete = r.pendingStatus === 'pending-delete';
+        const isPendingAdd = r.pendingStatus === 'pending-add';
+        const rowStyle = (isExcluded || isPendingDelete) ? 'opacity:0.5;text-decoration:line-through;' : isPendingAdd ? 'background:#f0f9ff;' : '';
         const srcTag = r.source === 'auto'
           ? '<span style="background:var(--gray-100);color:var(--gray-500);padding:1px 6px;border-radius:3px;font-size:11px;">自动采集</span>'
           : '<span style="background:#eff6ff;color:var(--primary);padding:1px 6px;border-radius:3px;font-size:11px;">手动添加</span>';
-        const statusTag = isExcluded
-          ? '<span style="color:#ff4d4f;font-size:11px;">已排除</span>'
-          : '<span style="color:#52c41a;font-size:11px;">有效</span>';
+        let statusTag = '';
+        if (isPendingDelete) {
+          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:1px 6px;border-radius:3px;font-size:11px;">待删除</span>';
+        } else if (isPendingAdd) {
+          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:1px 6px;border-radius:3px;font-size:11px;">待新增</span>';
+        } else if (isExcluded) {
+          statusTag = '<span style="color:#ff4d4f;font-size:11px;">已排除</span>';
+        } else {
+          statusTag = '<span style="color:#52c41a;font-size:11px;">有效</span>';
+        }
         let actionBtn = '';
-        if (isExcluded) {
+        if (isPendingDelete) {
+          actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'field\')">撤销</button>';
+        } else if (isPendingAdd) {
+          actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leUndoAdd(\''+r.id+'\',\'field\')">撤销</button>';
+        } else if (isExcluded) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'field\')">恢复</button>';
         } else if (r.source === 'auto') {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leExclude(\''+r.id+'\',\'field\')">排除</button>';
@@ -12223,23 +12249,37 @@ function leUpdateBatchBtn() {
 }
 
 // Exclude (auto -> excluded)
+// ===== 待删除/待新增 pending 状态管理 =====
+// 排除/删除 → 标记为待删除（不真删）
 function leExclude(id, type) {
   const arr = type === 'table' ? MOCK_LE_TABLE_RELATIONS : MOCK_LE_FIELD_RELATIONS;
   const item = arr.find(r => r.id === id);
-  if (item) { item.status = 'excluded'; }
+  if (item) {
+    item._origStatus = item._origStatus || item.status;
+    item.pendingStatus = 'pending-delete';
+  }
   renderLineageEditList();
-  showNotification('info', '已排除', '血缘关系已标记为排除');
+  updateLeSubmitBtn();
 }
-// Restore (excluded -> active)
+function leDelete(id, type) {
+  leExclude(id, type);
+}
+// 恢复（撤销待删除）
 function leRestore(id, type) {
   const arr = type === 'table' ? MOCK_LE_TABLE_RELATIONS : MOCK_LE_FIELD_RELATIONS;
   const item = arr.find(r => r.id === id);
-  if (item) { item.status = 'active'; }
+  if (item) {
+    if (item.pendingStatus === 'pending-delete') {
+      item.status = item._origStatus || 'active';
+      delete item.pendingStatus;
+      delete item._origStatus;
+    }
+  }
   renderLineageEditList();
-  showNotification('success', '已恢复', '血缘关系已恢复为有效');
+  updateLeSubmitBtn();
 }
-// Delete (manual -> remove)
-function leDelete(id, type) {
+// 撤销待新增（直接移除）
+function leUndoAdd(id, type) {
   if (type === 'table') {
     const idx = MOCK_LE_TABLE_RELATIONS.findIndex(r => r.id === id);
     if (idx >= 0) MOCK_LE_TABLE_RELATIONS.splice(idx, 1);
@@ -12248,25 +12288,47 @@ function leDelete(id, type) {
     if (idx >= 0) MOCK_LE_FIELD_RELATIONS.splice(idx, 1);
   }
   renderLineageEditList();
-  showNotification('info', '已删除', '手动添加的血缘关系已删除');
+  updateLeSubmitBtn();
 }
-// Batch delete
+
+function updateLeSubmitBtn() {
+  const hasPending = MOCK_LE_TABLE_RELATIONS.some(r => r.pendingStatus) || MOCK_LE_FIELD_RELATIONS.some(r => r.pendingStatus);
+  const btn = document.getElementById('le-submit-btn');
+  if (btn) {
+    btn.disabled = !hasPending;
+    btn.className = hasPending ? 'btn btn-primary' : 'btn btn-default';
+  }
+}
+// 批量标记待删除
 function leBatchDelete() {
   const set = leCurrentTab === 'table' ? leSelectedIds : leFieldSelectedIds;
   const arr = leCurrentTab === 'table' ? MOCK_LE_TABLE_RELATIONS : MOCK_LE_FIELD_RELATIONS;
-  let excluded = 0, deleted = 0;
-  const ids = Array.from(set);
-  ids.forEach(id => {
+  Array.from(set).forEach(id => {
     const item = arr.find(r => r.id === id);
-    if (!item) return;
-    if (item.source === 'auto') { item.status = 'excluded'; excluded++; }
-    else { const idx = arr.indexOf(item); if (idx >= 0) { arr.splice(idx, 1); deleted++; } }
+    if (item) {
+      item._origStatus = item._origStatus || item.status;
+      item.pendingStatus = 'pending-delete';
+    }
   });
   set.clear();
   renderLineageEditList();
-  showNotification('info', '批量操作完成', '排除 ' + excluded + ' 条，删除 ' + deleted + ' 条');
+  updateLeSubmitBtn();
 }
-// Init lineage
+// 统计 pending 变更数
+function countLePendingChanges() {
+  const tables = MOCK_LE_TABLE_RELATIONS.filter(r => r.pendingStatus);
+  const fields = MOCK_LE_FIELD_RELATIONS.filter(r => r.pendingStatus);
+  return tables.length + fields.length;
+}
+// 更新提交按钮状态
+function updateLeSubmitBtn() {
+  const btn = document.getElementById('le-submit-btn');
+  if (!btn) return;
+  const n = countLePendingChanges();
+  btn.disabled = n === 0;
+  btn.textContent = n > 0 ? '提交修正（' + n + ' 项变更）' : '提交修正';
+  btn.className = n > 0 ? 'btn btn-primary' : 'btn btn-default';
+}
 function leInitLineage() {
   if (!confirm('将触发系统重新采集当前资源的血缘关系。\\n\\n现有的手动添加关系将保留，自动采集关系将被刷新。\\n\\n确认执行？')) return;
   // Remove all auto + excluded, keep manual
@@ -12435,7 +12497,7 @@ function leSubmitAdd() {
   const newId = 'lt_m' + Date.now();
   MOCK_LE_TABLE_RELATIONS.push({
     id: newId, dir: dir, resource: targetNode.name, resDisplay: targetNode.display,
-    type: targetNode.type, source: 'manual', status: 'active'
+    type: targetNode.type, source: 'manual', status: 'active', pendingStatus: 'pending-add'
   });
 
   // Add field-level relations
@@ -12451,7 +12513,7 @@ function leSubmitAdd() {
         upField: cb.value,
         downResource: dir === 'upstream' ? currentNode.name : targetNode.name,
         downField: '(指标)',
-        source: 'manual', status: 'active'
+        source: 'manual', status: 'active', pendingStatus: 'pending-add'
       });
     });
   } else {
@@ -12476,12 +12538,28 @@ function leSubmitAdd() {
 
   closeModal('modal-lineage-add');
   renderLineageEditList();
-  showNotification('success', '添加成功', '已添加 ' + dir + ' 血缘关系：' + targetNode.name);
+  updateLeSubmitBtn();
+  showNotification('info', '已添加至待提交列表', dir + ' 血缘关系：' + targetNode.name + '（提交后生效）');
 }
 
 function submitLineageEdit() {
+  const n = countLePendingChanges();
+  if (n === 0) {
+    showNotification('info', '无变更', '没有待提交的血缘修正');
+    return;
+  }
+  // 提交后：pending-delete 的真正删除/排除，pending-add 的确认生效
+  MOCK_LE_TABLE_RELATIONS.forEach(r => {
+    if (r.pendingStatus === 'pending-delete') { r.status = 'excluded'; }
+    delete r.pendingStatus; delete r._origStatus;
+  });
+  MOCK_LE_FIELD_RELATIONS.forEach(r => {
+    if (r.pendingStatus === 'pending-delete') { r.status = 'excluded'; }
+    delete r.pendingStatus; delete r._origStatus;
+  });
+  // 移除已排除的（模拟审批通过后清理）
   closeModal('modal-lineage-edit-panel');
-  showNotification('success', '修正申请已提交', '审批通过后生效，可在「操作记录 - 血缘修正」中查看进度');
+  showNotification('success', '修正申请已提交（' + n + ' 项变更）', '审批通过后生效，可在「操作记录 - 血缘修正」中查看进度');
 }
 
 
@@ -13490,7 +13568,10 @@ function switchDiscoveryTab(tab, el) {
         <button class="btn btn-primary btn-sm" onclick="openLineageAddForm()">+ 添加血缘关系</button>
         <button class="btn btn-default btn-sm" id="le-batch-delete-btn" style="opacity:0.4;pointer-events:none;" onclick="leBatchDelete()">批量删除</button>
       </div>
-      <button class="btn btn-default btn-sm" style="color:#ff4d4f;border-color:#ff4d4f;" onclick="leInitLineage()">初始化血缘</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-default btn-sm" style="color:#ff4d4f;border-color:#ff4d4f;" onclick="leInitLineage()">初始化血缘</button>
+        <button class="btn btn-default" id="le-submit-btn" disabled onclick="submitLineageEdit()">提交修正</button>
+      </div>
     </div>
   </div>
 </div>
