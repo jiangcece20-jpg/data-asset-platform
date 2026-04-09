@@ -711,6 +711,75 @@
       padding: 10px 12px; border-radius: 6px; background: #fafafa;
       border: 1px solid var(--gray-200); font-size: 13px; line-height: 1.7; color: var(--gray-600);
     }
+    .api-doc-panel {
+      border: 1px solid var(--gray-200); border-radius: 8px; background: #fff; overflow: hidden;
+    }
+    .api-doc-header {
+      padding: 18px 20px; border-bottom: 1px solid var(--gray-100); background: #fff;
+    }
+    .api-doc-title-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .api-doc-title {
+      font-size: 18px; line-height: 1.4; font-weight: 700; color: var(--gray-800);
+    }
+    .api-doc-method {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 54px; height: 24px;
+      padding: 0 10px; border-radius: 4px; background: #e8f3ff; color: var(--primary); font-size: 12px; font-weight: 700;
+    }
+    .api-doc-summary {
+      font-size: 13px; line-height: 1.7; color: var(--gray-600); margin-bottom: 12px;
+    }
+    .api-doc-meta {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px;
+    }
+    .api-doc-meta-item {
+      display: flex; align-items: flex-start; gap: 8px; min-width: 0;
+    }
+    .api-doc-meta-label {
+      min-width: 68px; font-size: 12px; color: var(--gray-500); line-height: 1.7;
+    }
+    .api-doc-meta-value {
+      font-size: 13px; color: var(--gray-800); line-height: 1.7; word-break: break-all;
+    }
+    .api-doc-section {
+      border: 1px solid var(--gray-200); border-radius: 8px; background: #fff; overflow: hidden;
+    }
+    .api-doc-section + .api-doc-section,
+    .api-doc-panel + .api-doc-section,
+    .api-doc-section + .detail-overview-card {
+      margin-top: 12px;
+    }
+    .api-doc-section-title {
+      padding: 14px 20px; border-bottom: 1px solid var(--gray-100); font-size: 14px; font-weight: 600; color: var(--gray-800);
+      background: #fff;
+    }
+    .api-doc-table-wrap { overflow-x: auto; }
+    .api-doc-table {
+      width: 100%; border-collapse: collapse; background: #fff;
+    }
+    .api-doc-table th,
+    .api-doc-table td {
+      padding: 12px 20px; font-size: 13px; line-height: 1.6; text-align: left; border-bottom: 1px solid var(--gray-100); vertical-align: top;
+    }
+    .api-doc-table th {
+      background: #fafbfc; color: var(--gray-500); font-weight: 600; white-space: nowrap;
+    }
+    .api-doc-table td {
+      color: var(--gray-700);
+    }
+    .api-doc-table tbody tr:last-child td { border-bottom: none; }
+    .api-doc-param-name {
+      font-weight: 600; color: var(--gray-800);
+    }
+    .api-doc-type,
+    .api-doc-location,
+    .api-doc-required {
+      color: var(--gray-600); white-space: nowrap;
+    }
+    .api-doc-empty {
+      padding: 18px 20px; font-size: 13px; color: var(--gray-500);
+    }
     .detail-code-block {
       margin-top: 10px; padding: 12px 14px; border-radius: 6px; background: #0f172a;
       color: #e2e8f0; font-size: 13px; line-height: 1.7; overflow-x: auto; white-space: pre-wrap;
@@ -4429,9 +4498,9 @@ const DETAIL_API_DEFINITIONS = {
     auth: 'OAuth2 / 应用鉴权',
     version: 'v1',
     params: [
-      ['userId', 'STRING', '是', '用户唯一标识', '9823141'],
-      ['withTags', 'BOOLEAN', '否', '是否返回用户标签摘要', 'false'],
-      ['tenantId', 'STRING', '否', '租户隔离标识', 'wlyd'],
+      ['userId', 'STRING', 'Path', '是', '用户唯一标识', '9823141'],
+      ['withTags', 'BOOLEAN', 'Query', '否', '是否返回用户标签摘要', 'false'],
+      ['tenantId', 'STRING', 'Query', '否', '租户隔离标识', 'wlyd'],
     ],
     response: [
       ['userId', 'STRING', '用户唯一标识', '9823141'],
@@ -4452,9 +4521,9 @@ const DETAIL_API_DEFINITIONS = {
     auth: 'AK/SK',
     version: 'v2',
     params: [
-      ['skuId', 'STRING', '是', '商品 SKU 标识', 'SKU_1024'],
-      ['warehouseId', 'STRING', '是', '仓库编码', 'WH_BJ_01'],
-      ['bizScene', 'STRING', '否', '业务场景编码', 'presale'],
+      ['skuId', 'STRING', 'Body', '是', '商品 SKU 标识', 'SKU_1024'],
+      ['warehouseId', 'STRING', 'Body', '是', '仓库编码', 'WH_BJ_01'],
+      ['bizScene', 'STRING', 'Body', '否', '业务场景编码', 'presale'],
     ],
     response: [
       ['skuId', 'STRING', '商品 SKU 标识', 'SKU_1024'],
@@ -5835,44 +5904,90 @@ function renderLabelDefinitionTab(record) {
   `;
 }
 
+function renderApiDocTable(headers, rows, type = 'request') {
+  if (!rows.length) {
+    return `<div class="api-doc-empty">暂无可展示内容</div>`;
+  }
+  return `
+    <div class="api-doc-table-wrap">
+      <table class="api-doc-table">
+        <thead>
+          <tr>${headers.map(header => `<th>${header}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => {
+            if (type === 'request') {
+              const [name, dataType, location, required, description, example] = row;
+              return `
+                <tr>
+                  <td class="api-doc-param-name">${name || '-'}</td>
+                  <td class="api-doc-type">${dataType || '-'}</td>
+                  <td class="api-doc-location">${location || '-'}</td>
+                  <td class="api-doc-required">${required || '-'}</td>
+                  <td>${description || '-'}</td>
+                  <td>${example || '-'}</td>
+                </tr>
+              `;
+            }
+            const [name, dataType, description, example] = row;
+            return `
+              <tr>
+                <td class="api-doc-param-name">${name || '-'}</td>
+                <td class="api-doc-type">${dataType || '-'}</td>
+                <td>${description || '-'}</td>
+                <td>${example || '-'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderApiParamsTab(record) {
   const meta = getApiDefinition(record);
   return `
     <div class="detail-section">
       <div class="detail-section-title">参数信息</div>
-      ${renderDetailHeroCard(
-        'api',
-        '接口调用说明',
-        `${record?.display || '-'} <span class="tag tag-cyan">${meta.method}</span>`,
-        meta.summary,
-        [
-          { label: '请求路径', value: meta.path },
-          { label: '服务归属', value: meta.service },
-          { label: '鉴权方式', value: meta.auth },
-          { label: '版本', value: meta.version },
-        ]
-      )}
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">接口概览</div>
-        ${renderDetailOverviewGrid([
-          ['请求方式', meta.method, true],
-          ['请求路径', meta.path],
-          ['服务归属', meta.service],
-          ['鉴权方式', meta.auth],
-          ['版本', meta.version],
-        ])}
+      <div class="api-doc-panel">
+        <div class="api-doc-header">
+          <div class="api-doc-title-row">
+            <div class="api-doc-title">${record?.name || '-'}</div>
+            <span class="api-doc-method">${meta.method || '-'}</span>
+          </div>
+          <div class="api-doc-summary">${meta.summary || '-'}</div>
+          <div class="api-doc-meta">
+            <div class="api-doc-meta-item">
+              <span class="api-doc-meta-label">接口名称</span>
+              <span class="api-doc-meta-value">${record?.display || '-'}</span>
+            </div>
+            <div class="api-doc-meta-item">
+              <span class="api-doc-meta-label">服务归属</span>
+              <span class="api-doc-meta-value">${meta.service || '-'}</span>
+            </div>
+            <div class="api-doc-meta-item">
+              <span class="api-doc-meta-label">请求路径</span>
+              <span class="api-doc-meta-value">${meta.path || '-'}</span>
+            </div>
+            <div class="api-doc-meta-item">
+              <span class="api-doc-meta-label">鉴权方式</span>
+              <span class="api-doc-meta-value">${meta.auth || '-'}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">请求参数</div>
-        ${renderDetailMiniTable(['参数名', '类型', '必填', '说明', '示例值'], meta.params)}
+      <div class="api-doc-section">
+        <div class="api-doc-section-title">请求参数</div>
+        ${renderApiDocTable(['参数名', '类型', '参数位置', '必填', '说明', '示例值'], meta.params || [], 'request')}
       </div>
-      <div class="detail-overview-card">
-        <div class="detail-overview-subtitle">返回字段</div>
-        ${renderDetailMiniTable(['字段名', '类型', '说明', '示例值'], meta.response)}
+      <div class="api-doc-section">
+        <div class="api-doc-section-title">响应字段</div>
+        ${renderApiDocTable(['字段名', '类型', '说明', '示例值'], meta.response || [], 'response')}
       </div>
       <div class="detail-overview-card">
         <div class="detail-overview-subtitle">调用说明</div>
-        <div class="detail-note-list">${meta.cautions.map(item => `<div class="detail-note-item">${item}</div>`).join('')}</div>
+        <div class="detail-note-list">${(meta.cautions || []).map(item => `<div class="detail-note-item">${item}</div>`).join('')}</div>
       </div>
     </div>
   `;
