@@ -3010,7 +3010,7 @@
         <div class="lineage-toolbar-sep"></div>
         <!-- Right-aligned quick actions -->
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-          <button class="btn btn-default btn-sm" onclick="openLineageEditModal()">✏️ 修正血缘</button>
+          <button class="btn btn-default btn-sm" onclick="openLineageEditPanel()">✏️ 修正血缘</button>
           <div class="lineage-toolbar-sep"></div>
           <div class="lineage-toolbar-icon-btn" title="全屏" onclick="lnToggleFullscreen()" id="ln-fullscreen-btn">⛶</div>
           <div class="lineage-toolbar-icon-btn" title="回到中心点" onclick="lnCenterView()">&#x2609;</div>
@@ -3534,41 +3534,6 @@
 </div>
 
 <!-- Lineage Edit Modal -->
-<div class="modal-overlay" id="modal-lineage-edit">
-  <div class="modal" style="width:560px;">
-    <div class="modal-header">
-      <div class="modal-title">修正血缘关系</div>
-      <span class="modal-close" onclick="closeModal('modal-lineage-edit')">×</span>
-    </div>
-    <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:16px;" id="lineage-edit-tabs">
-        <button class="btn btn-primary btn-sm" onclick="switchLineageEditTab('add',this)">增加边</button>
-        <button class="btn btn-default btn-sm" onclick="switchLineageEditTab('delete',this)">删除边</button>
-        <button class="btn btn-default btn-sm" onclick="switchLineageEditTab('replace',this)">替换边</button>
-        <button class="btn btn-default btn-sm" onclick="switchLineageEditTab('doubt',this)">标记存疑</button>
-      </div>
-      <div id="lineage-edit-add">
-        <div class="form-item">
-          <label class="form-label required">上游节点</label>
-          <input class="input form-input" placeholder="输入节点名称…" value="ods_order_raw" />
-        </div>
-        <div class="form-item">
-          <label class="form-label required">下游节点</label>
-          <input class="input form-input" placeholder="输入节点名称…" value="dwd_order_detail" />
-        </div>
-        <div class="form-item">
-          <label class="form-label">修正原因</label>
-          <textarea class="form-textarea" placeholder="请说明修正原因…"></textarea>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-default" onclick="closeModal('modal-lineage-edit')">取消</button>
-      <button class="btn btn-primary" onclick="submitLineageEdit()">提交修正</button>
-    </div>
-  </div>
-</div>
-
 <!-- Catalog Move Modal -->
 <div class="modal-overlay" id="modal-catalog-move">
   <div class="modal" style="width:440px;">
@@ -10724,7 +10689,7 @@ function lnRenderDrawerBody(node) {
       ${renderLineageInfoSections(node)}
       <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-default btn-sm" onclick="openDetail('asset','${node.id}')">\u67e5\u770b\u8d44\u4ea7\u8be6\u60c5</button>
-        <button class="btn btn-default btn-sm" onclick="openLineageEditModal()">修正血缘</button>
+        <button class="btn btn-default btn-sm" onclick="openLineageEditPanel()">修正血缘</button>
       </div>
     `;
   } else if (lnDrawerTab === 'params') {
@@ -11303,7 +11268,7 @@ function dtLnRenderDrawerBody(node) {
       ${renderLineageInfoSections(node)}
       <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 2px 4px;">
         <button class="btn btn-default btn-sm" onclick="openDetail('asset','${node.id}')">查看详情</button>
-        <button class="btn btn-default btn-sm" onclick="openLineageEditModal()">修正血缘</button>
+        <button class="btn btn-default btn-sm" onclick="openLineageEditPanel()">修正血缘</button>
       </div>
     `;
     return;
@@ -12514,16 +12479,11 @@ function leSubmitAdd() {
   showNotification('success', '添加成功', '已添加 ' + dir + ' 血缘关系：' + targetNode.name);
 }
 
-function openLineageEditModal() { openModal('modal-lineage-edit'); }
 function submitLineageEdit() {
-  closeModal('modal-lineage-edit');
-  showNotification('success', '血缘修正已提交', '修正记录已保存，审计日志已记录');
+  closeModal('modal-lineage-edit-panel');
+  showNotification('success', '修正申请已提交', '审批通过后生效，可在「操作记录 - 血缘修正」中查看进度');
 }
 
-function switchLineageEditTab(tab, el) {
-  document.querySelectorAll('#lineage-edit-tabs .btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-default'); });
-  el.classList.remove('btn-default'); el.classList.add('btn-primary');
-}
 
 function openCatalogMoveModal() { openModal('modal-catalog-move'); }
 function submitCatalogMove() {
