@@ -185,7 +185,7 @@
     /* Tag */
     .tag {
       display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px;
-      font-size: 12px; line-height: 20px; border: 1px solid transparent;
+      font-size: 12px; line-height: 20px; border: 1px solid transparent; white-space: nowrap;
     }
     .tag-blue { background: var(--primary-light); color: var(--primary); border-color: #91caff; }
     .tag-green { background: var(--success-light); color: var(--success); border-color: #b7eb8f; }
@@ -12133,9 +12133,9 @@ function renderLineageEditList() {
           : '<span style="background:#eff6ff;color:var(--primary);padding:1px 6px;border-radius:3px;font-size:11px;">手动添加</span>';
         let statusTag = '';
         if (isPendingDelete) {
-          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:1px 6px;border-radius:3px;font-size:11px;">待删除</span>';
+          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;font-weight:500;">待删除</span>';
         } else if (isPendingAdd) {
-          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:1px 6px;border-radius:3px;font-size:11px;">待新增</span>';
+          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;font-weight:500;">待新增</span>';
         } else if (isExcluded) {
           statusTag = '<span style="color:#ff4d4f;font-size:11px;">已排除</span>';
         } else {
@@ -12158,7 +12158,7 @@ function renderLineageEditList() {
           '<td><input type="checkbox" '+checked+' onchange="leToggleRow(\''+r.id+'\',this,\'table\')" /></td>' +
           '<td><span style="font-size:11px;color:'+(r.dir==='upstream'?'#722ed1':'var(--primary)')+';">'+(r.dir==='upstream'?'上游':'下游')+'</span></td>' +
           '<td style="font-weight:500;">'+r.resource+'<div style="font-size:11px;color:var(--gray-400);font-weight:400;text-decoration:none;">'+(r.resDisplay||'')+'</div></td>' +
-          '<td><span class="tag tag-gray">'+typeLabel(r.type)+'</span></td>' +
+          '<td><span class="tag tag-gray" style="white-space:nowrap;">'+typeLabel(r.type)+'</span></td>' +
           '<td>'+srcTag+'</td>' +
           '<td>'+statusTag+'</td>' +
           '<td>'+actionBtn+'</td>' +
@@ -12187,9 +12187,9 @@ function renderLineageEditList() {
           : '<span style="background:#eff6ff;color:var(--primary);padding:1px 6px;border-radius:3px;font-size:11px;">手动添加</span>';
         let statusTag = '';
         if (isPendingDelete) {
-          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:1px 6px;border-radius:3px;font-size:11px;">待删除</span>';
+          statusTag = '<span style="background:#fff7e6;color:#d46b08;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;font-weight:500;">待删除</span>';
         } else if (isPendingAdd) {
-          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:1px 6px;border-radius:3px;font-size:11px;">待新增</span>';
+          statusTag = '<span style="background:#e6f7ff;color:#1890ff;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap;font-weight:500;">待新增</span>';
         } else if (isExcluded) {
           statusTag = '<span style="color:#ff4d4f;font-size:11px;">已排除</span>';
         } else {
