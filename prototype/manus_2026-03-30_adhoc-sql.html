@@ -201,6 +201,7 @@
     .status-normal { color: var(--success); background: var(--success-light); }
     .status-pending { color: var(--warning); background: var(--warning-light); }
     .status-reviewing { color: #b45309; background: #fef9c3; }
+    .status-catalog-reviewing { color: #7c3aed; background: #f3e8ff; }
     .status-unlisting { color: #c2410c; background: #ffedd5; }
     .status-rejected { color: var(--danger); background: var(--danger-light); }
     .status-unlisted { color: var(--gray-500); background: var(--gray-100); }
@@ -3709,6 +3710,7 @@
         <div id="catalog-primary-tree" style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:8px;max-height:200px;overflow-y:auto;background:#fff;"></div>
         <div id="catalog-primary-selected" style="margin-top:6px;font-size:12px;color:var(--primary);min-height:18px;"></div>
       </div>
+      <div style="font-size:12px;color:var(--warning);margin-bottom:16px;padding:8px 12px;background:#fffbe6;border-radius:6px;border:1px solid #ffe58f;">批量修改目录将提交审批，审批通过后统一生效；审批中的资源不可重复选择。</div>
       <div class="form-item">
         <label class="form-label required">变更原因</label>
         <textarea class="form-textarea" id="batch-catalog-reason" placeholder="请填写变更原因，操作将被记录…" style="min-height:72px;"></textarea>
@@ -3716,7 +3718,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-default" onclick="closeModal('modal-batch-catalog')">取消</button>
-      <button class="btn btn-primary" onclick="submitBatchCatalog()">确认修改</button>
+      <button class="btn btn-primary" onclick="submitBatchCatalog()">提交审批</button>
     </div>
   </div>
 </div>
@@ -4152,7 +4154,7 @@
 <div class="modal-overlay" id="modal-catalog-migrate">
   <div class="modal" style="width:500px;max-height:90vh;display:flex;flex-direction:column;">
     <div class="modal-header">
-      <div class="modal-title">批量迁移资源</div>
+      <div class="modal-title">批量迁移资源（提交审批）</div>
       <span class="modal-close" onclick="closeModal('modal-catalog-migrate')">×</span>
     </div>
     <div class="modal-body" style="overflow-y:auto;flex:1;">
@@ -4160,6 +4162,7 @@
         <label class="form-label">已选资源</label>
         <div id="catalog-migrate-selected" style="font-size:13px;color:var(--gray-600);padding:8px;background:var(--gray-50);border-radius:var(--radius);max-height:72px;overflow-y:auto;"></div>
       </div>
+      <div style="font-size:12px;color:var(--warning);margin-bottom:16px;padding:8px 12px;background:#fffbe6;border-radius:6px;border:1px solid #ffe58f;">批量迁移将提交审批，审批通过后统一生效；审批中的资源不可重复选择。</div>
       <div class="form-item">
         <label class="form-label required">目标目录 <span style="font-size:11px;color:var(--gray-400);font-weight:400;">（选择要迁移到的目录）</span></label>
         <div id="catalog-migrate-tree" style="border:1px solid var(--gray-200);border-radius:var(--radius);padding:8px;max-height:200px;overflow-y:auto;background:#fff;"></div>
@@ -4167,7 +4170,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-default" onclick="closeModal('modal-catalog-migrate')">取消</button>
-      <button class="btn btn-primary" onclick="submitCatalogBatchMigrate()">确认迁移</button>
+      <button class="btn btn-primary" onclick="submitCatalogBatchMigrate()">提交审批</button>
     </div>
   </div>
 </div>
@@ -7918,16 +7921,21 @@ function renderMgmtResourceList() {
 
   tbody.innerHTML = data.map(r => {
     const perm = hasPermission(r);
-    // 无权限的资源：置灰显示
-    const rowClass = !perm ? 'mgmt-row-disabled' : '';
-    // 无权限的资源：复选框禁用
-    const cbDisabled = !perm ? 'disabled' : '';
+    const isPendingApproval = ['reviewing', 'unlisting', 'catalog_reviewing'].includes(r.status);
+    // 无权限或审批中的资源：置灰显示
+    const rowClass = (!perm || isPendingApproval) ? 'mgmt-row-disabled' : '';
+    // 无权限或审批中的资源：复选框禁用
+    const cbDisabled = (!perm || isPendingApproval) ? 'disabled' : '';
     const checked = mgmtSelectedIds.has(r.id) ? 'checked' : '';
     const icon = typeIconMap[r.type] || '📦';
     const bizOwner = r.biz_owner || '-';
     const catalog = r.catalog || '<span style="color:var(--warning);font-weight:500;">⚠️ 未归属</span>';
     const tagsHtml = (r.tags || []).slice(0,2).map(t => `<span class="tag tag-gray" style="font-size:11px;">${t}</span>`).join('');
-    const permTip = !perm ? '<span class="mgmt-no-perm-tip">（无权限）</span>' : '';
+    const rowTip = !perm
+      ? '<span class="mgmt-no-perm-tip">（无权限）</span>'
+      : isPendingApproval
+        ? '<span class="mgmt-no-perm-tip">（审批中，不可选择）</span>'
+        : '';
 
     // 操作按钮：按 status 动态渲染（与审批流程对齐）
     let actionBtns = '';
@@ -7942,6 +7950,9 @@ function renderMgmtResourceList() {
       } else if (r.status === 'reviewing') {
         actionBtns = `
           <button class="btn btn-default btn-sm" onclick="doRevokePublish('${r.id}')">撤回上架申请</button>`;
+      } else if (r.status === 'catalog_reviewing') {
+        actionBtns = `
+          <button class="btn btn-default btn-sm" onclick="showNotification('info','目录迁移审批中','该资源正在等待目录迁移审批，暂不可重复发起')">查看审批状态</button>`;
       } else if (r.status === 'published') {
         actionBtns = `
           <button class="btn btn-link btn-sm" onclick="openSingleCatalogModal('${r.id}')">修改目录</button>
@@ -7977,7 +7988,7 @@ function renderMgmtResourceList() {
           <div style="display:flex;align-items:center;gap:6px;min-width:0;">
             <span style="flex-shrink:0;">${icon}</span>
             <span style="font-size:13px;font-weight:500;color:var(--primary);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;" title="${r.name}" onclick="openDetail('resource','${r.id}')">${nameInner}</span>
-            ${permTip}
+            ${rowTip}
           </div>
         </td>
         <td style="white-space:nowrap;"><span class="tag tag-gray">${typeLabel(r.type)}</span></td>
@@ -8241,7 +8252,7 @@ function refreshCatalogModal() {
 
 // 开启目录弹窗公共方法
 function openCatalogModal(isSingle, resourceIds, currentPrimary, currentRelated) {
-  document.getElementById('catalog-modal-title').textContent = isSingle ? '修改目录' : '批量修改目录';
+  document.getElementById('catalog-modal-title').textContent = isSingle ? '修改目录' : '批量修改目录（提交审批）';
   // 已选资源展示
   const names = resourceIds.map(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
@@ -8292,21 +8303,29 @@ function submitBatchCatalog() {
   const reason = document.getElementById('batch-catalog-reason').value.trim();
   if (!reason) { showNotification('error', '请填写变更原因', ''); return; }
   const primaryPath = buildCatalogPath(CATALOG_TREE, catalogPrimarySelected, '');
-  const cnt = mgmtSelectedIds.size;
-  // 更新数据
-  mgmtSelectedIds.forEach(id => {
+  const targetIds = [...mgmtSelectedIds].filter(id => {
+    const r = MOCK_RESOURCES.find(r => r.id === id);
+    return r && !['reviewing', 'unlisting', 'catalog_reviewing'].includes(r.status);
+  });
+  const skipped = mgmtSelectedIds.size - targetIds.length;
+  targetIds.forEach(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
     if (r) {
-      r.catalog = primaryPath;
+      r.pendingCatalog = primaryPath;
+      r.status = 'catalog_reviewing';
     }
   });
-  // 记录日志
-  const logDesc = `已移入「${primaryPath}」`;
-  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'修改目录', resource:`${cnt}条资源`, operator:CURRENT_USER, result:logDesc, time:new Date().toLocaleString('zh-CN') });
+  const cnt = targetIds.length;
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'提交目录迁移审批', resource:`${cnt}条资源`, operator:CURRENT_USER, result:`目标目录「${primaryPath}」`, time:new Date().toLocaleString('zh-CN') });
   closeModal('modal-batch-catalog');
   clearMgmtSelection();
   renderMgmtResourceList();
-  showNotification('success', '目录修改成功', logDesc);
+  renderOverviewStats();
+  updateMgmtStatusBadges();
+  const msg = skipped > 0
+    ? `${cnt}条已提交目录迁移审批，${skipped}条因审批中已跳过`
+    : `${cnt}条已提交目录迁移审批，审批通过后生效`;
+  showNotification('success', '目录迁移审批已提交', msg);
 }
 
 // 批量修改负责人
@@ -9187,16 +9206,20 @@ function renderCatalogNodeDetail(id) {
               <th>资源名称</th><th>类型</th><th>状态</th><th>技术负责人</th><th style="width:80px;">操作</th>
             </tr></thead>
             <tbody>
-              ${resources.map(r => `
-                <tr>
-                  <td><input type="checkbox" value="${r.id}" onchange="toggleCatalogDetailItem(this)" /></td>
-                  <td style="font-size:12px;">${r.name}</td>
+              ${resources.map(r => {
+                const isPendingApproval = ['reviewing', 'unlisting', 'catalog_reviewing'].includes(r.status);
+                const rowStyle = isPendingApproval ? 'opacity:0.45;background:var(--gray-50);' : '';
+                const tip = isPendingApproval ? '<span class="mgmt-no-perm-tip">（审批中，不可迁移）</span>' : '';
+                return `
+                <tr style="${rowStyle}">
+                  <td><input type="checkbox" value="${r.id}" ${isPendingApproval ? 'disabled' : ''} onchange="toggleCatalogDetailItem(this)" /></td>
+                  <td style="font-size:12px;">${r.name}${tip}</td>
                   <td><span class="tag tag-gray">${typeLabel(r.type)}</span></td>
                   <td>${statusBadge(r.status)}</td>
-                  <td style="font-size:12px;">${r.tech_owner || '-'}</td>
-                  <td><button class="btn btn-link btn-sm" onclick="singleCatalogMigrate('${r.id}')">迁移</button></td>
-                </tr>
-              `).join('')}
+                  <td style="font-size:12px;">${r.tech_owner || '-'}${r.pendingCatalog ? `<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">目标目录：${r.pendingCatalog}</div>` : ''}</td>
+                  <td>${isPendingApproval ? '<button class="btn btn-default btn-sm" disabled>审批中</button>' : `<button class="btn btn-link btn-sm" onclick="singleCatalogMigrate('${r.id}')">迁移</button>`}</td>
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -9210,7 +9233,7 @@ function renderCatalogNodeDetail(id) {
 }
 
 function toggleCatalogDetailAll(cb) {
-  const checkboxes = document.querySelectorAll('#catalog-mgmt-detail-body tbody input[type=checkbox]');
+  const checkboxes = document.querySelectorAll('#catalog-mgmt-detail-body tbody input[type=checkbox]:not([disabled])');
   checkboxes.forEach(c => { c.checked = cb.checked; if (cb.checked) catalogDetailSelected.add(c.value); else catalogDetailSelected.delete(c.value); });
   updateCatalogBatchBtns();
 }
@@ -9227,6 +9250,11 @@ function updateCatalogBatchBtns() {
 
 // 单条迁移
 function singleCatalogMigrate(resourceId) {
+  const resource = MOCK_RESOURCES.find(r => r.id === resourceId);
+  if (!resource || ['reviewing', 'unlisting', 'catalog_reviewing'].includes(resource.status)) {
+    showNotification('info', '当前不可迁移', '该资源正在审批中，暂不可重复发起目录迁移');
+    return;
+  }
   catalogDetailSelected.clear();
   catalogDetailSelected.add(resourceId);
   openCatalogBatchMigrateModal();
@@ -9271,13 +9299,30 @@ function renderMigrateTreeNodes(container, nodes, depth) {
 function submitCatalogBatchMigrate() {
   if (!catalogMigrateTargetId) { showNotification('error', '请选择目标目录', ''); return; }
   const targetPath = buildCatalogPath(CATALOG_TREE, catalogMigrateTargetId, '');
-  catalogDetailSelected.forEach(id => { const r = MOCK_RESOURCES.find(r => r.id === id); if (r) r.catalog = targetPath; });
-  MOCK_MGMT_LOGS.unshift({ id:'l'+Date.now(), action:'批量迁移', resource:catalogDetailSelected.size+'条资源', operator:CURRENT_USER, result:'迁移至「'+targetPath+'」', time:new Date().toLocaleString('zh-CN') });
+  const targetIds = [...catalogDetailSelected].filter(id => {
+    const r = MOCK_RESOURCES.find(r => r.id === id);
+    return r && !['reviewing', 'unlisting', 'catalog_reviewing'].includes(r.status);
+  });
+  const skipped = catalogDetailSelected.size - targetIds.length;
+  targetIds.forEach(id => {
+    const r = MOCK_RESOURCES.find(r => r.id === id);
+    if (r) {
+      r.pendingCatalog = targetPath;
+      r.status = 'catalog_reviewing';
+    }
+  });
+  MOCK_MGMT_LOGS.unshift({ id:'l'+Date.now(), action:'提交目录迁移审批', resource:targetIds.length+'条资源', operator:CURRENT_USER, result:'目标目录「'+targetPath+'」', time:new Date().toLocaleString('zh-CN') });
   closeModal('modal-catalog-migrate');
   catalogDetailSelected.clear();
   renderCatalogNodeDetail(currentCatalogNodeId);
   renderCatalogMgmtTree();
-  showNotification('success', '批量迁移成功', '已迁移至「'+targetPath+'」');
+  renderMgmtResourceList();
+  renderOverviewStats();
+  updateMgmtStatusBadges();
+  const msg = skipped > 0
+    ? `${targetIds.length}条已提交目录迁移审批，${skipped}条因审批中已跳过`
+    : `${targetIds.length}条已提交目录迁移审批，审批通过后生效`;
+  showNotification('success', '批量迁移审批已提交', msg);
 }
 
 // 批量移除
@@ -12868,6 +12913,7 @@ function statusBadge(status) {
     'no-list': ['status-deprecated', '不上架'],
     published: ['status-published', '已上架'],
     reviewing: ['status-reviewing', '⏳ 上架审批中'],
+    catalog_reviewing: ['status-catalog-reviewing', '⏳ 目录迁移审批中'],
     unlisting: ['status-unlisting', '⏳ 下架审批中'],
     // 兼容旧状态
     unlisted: ['status-unlisted', '未上架'],
