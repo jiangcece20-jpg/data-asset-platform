@@ -1232,7 +1232,10 @@ function retrySubOrder(btn) {
   btn.textContent = '已加入申请单';
   btn.disabled = true;
   btn.style.opacity = '0.6';
-  showNotification('success', '已加入申请单', assetName + ' 已加入「我的 → 申请单」，请前往提交');
+  showNotification('success', '已加入申请单', assetName + ' 已加入「我的 → 申请单」，正在前往提交');
+  setTimeout(() => {
+    window.location.href = 'manus_2026-03-30_adhoc-sql.html#my/cart';
+  }, 400);
 }
 
 /* ===== Ticket query: mock data + render ===== */
@@ -1290,7 +1293,7 @@ function renderTicketTable() {
     const canOperate = IS_ADMIN || t.applicant === CURRENT_USER;
     let ops = `<button class="btn-text btn-sm" onclick="event.stopPropagation();${detailFn}('${t.id}')">查看详情</button>`;
     if (canOperate && t.status === 'pending') ops += ` <button class="btn-text btn-sm" style="color:var(--danger);" onclick="event.stopPropagation();showNotification('info','已撤回','工单 ${t.id} 已撤回')">撤回</button>`;
-    if (canOperate && t.status === 'rejected') ops += ` <button class="btn-text btn-sm" style="color:var(--primary);" onclick="event.stopPropagation();showNotification('info','已重新提交','工单 ${t.id} 已重新提交')">重新申请</button>`;
+    if (canOperate && t.status === 'rejected') ops += ` <button class="btn-text btn-sm" style="color:var(--primary);" onclick="event.stopPropagation();showNotification('success','已加入申请单','工单 ${t.id} 对应资产已加入「我的 → 申请单」，正在前往提交');setTimeout(() => { window.location.href = 'manus_2026-03-30_adhoc-sql.html#my/cart'; }, 400);">重新申请</button>`;
     const categoryTag = t.category === 'perm'
       ? '<span class="tag tag-blue">权限</span>'
       : '<span class="tag tag-orange">治理</span>';
