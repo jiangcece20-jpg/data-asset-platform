@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>数据资产管理平台 - 权限中心</title>
+  <title>数据资产管理平台 - 审批中心</title>
   <style>
     /* ===== CSS Reset & Variables (与 manus 原型一致) ===== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -323,7 +323,7 @@
       <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#resource-mgmt'">资源管理</div>
       <div class="header-nav-item" onclick="window.location.href='notebook.html'">即席查询</div>
       <div class="header-nav-item" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#my'">我的</div>
-      <div class="header-nav-item active">权限中心</div>
+      <div class="header-nav-item active">审批中心</div>
       <div class="header-nav-item" style="opacity:.5;cursor:default;">资产分析 <span class="tag tag-gray" style="font-size:10px;padding:0 4px;margin-left:2px;">占位</span></div>
     </nav>
     <div class="header-right">
@@ -350,18 +350,10 @@
   <div class="body-layout">
     <!-- Left sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-title">权限中心</div>
-      <div class="sidebar-item active" onclick="switchSection('cart')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-        申请单
-      </div>
-      <div class="sidebar-item" onclick="switchSection('my-apply')">
+      <div class="sidebar-title">审批中心</div>
+      <div class="sidebar-item active" onclick="switchSection('ticket-query')" >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        我的申请
-      </div>
-      <div class="sidebar-item" onclick="switchSection('my-perm')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        我的权限
+        工单查询
       </div>
       <div class="sidebar-item" onclick="switchSection('pending-approve')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -383,226 +375,47 @@
 
     <!-- Main content area -->
     <main class="main">
-
-      <!-- ===== PAGE: 申请单 ===== -->
-      <div class="perm-page active" id="page-cart">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <div>
-            <div style="font-size:18px;font-weight:700;">权限申请单</div>
-            <div style="font-size:13px;color:var(--gray-500);margin-top:4px;">在资源发现、资产目录或详情页中将资产加入申请单，统一提交审批</div>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-default btn-sm" onclick="clearCart()">清空申请单</button>
-            <button class="btn btn-primary" id="btn-submit-cart" onclick="submitCart()">提交申请</button>
-          </div>
-        </div>
-
-        <!-- 资产列表区 -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-header">
-            <div class="card-header-title">已添加的资产 <span class="tag tag-blue" style="margin-left:8px;" id="cart-count">5</span></div>
-            <button class="btn btn-default btn-sm" onclick="openAddAssetModal()">+ 继续添加资产</button>
-          </div>
-          <div class="card-body" style="padding:0;">
-            <table>
-              <thead><tr><th>资产名称</th><th>类型</th><th>业务线</th><th>来源平台</th><th>负责人</th><th>操作</th></tr></thead>
-              <tbody id="cart-table-body">
-                <tr><td><span style="font-weight:600;">dwd_trade_order</span><br><span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td>Hive</td><td>张三</td><td><button class="btn-text btn-sm" onclick="removeCartItem(this)" style="color:var(--danger);">移除</button></td></tr>
-                <tr><td><span style="font-weight:600;">dwd_trade_payment</span><br><span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td>Hive</td><td>李四</td><td><button class="btn-text btn-sm" onclick="removeCartItem(this)" style="color:var(--danger);">移除</button></td></tr>
-                <tr><td><span style="font-weight:600;">rpt_finance_monthly</span><br><span style="font-size:12px;color:var(--gray-500);">金融月度报表</span></td><td><span class="tag tag-orange">报表</span></td><td>金融</td><td>报表平台</td><td>王五</td><td><button class="btn-text btn-sm" onclick="removeCartItem(this)" style="color:var(--danger);">移除</button></td></tr>
-                <tr><td><span style="font-weight:600;">rpt_finance_weekly</span><br><span style="font-size:12px;color:var(--gray-500);">金融周报表</span></td><td><span class="tag tag-orange">报表</span></td><td>金融</td><td>报表平台</td><td>王五</td><td><button class="btn-text btn-sm" onclick="removeCartItem(this)" style="color:var(--danger);">移除</button></td></tr>
-                <tr><td><span style="font-weight:600;">api_trade_query</span><br><span style="font-size:12px;color:var(--gray-500);">交易查询接口</span></td><td><span class="tag tag-gray">API</span></td><td>金融</td><td>API网关</td><td>孙工</td><td><button class="btn-text btn-sm" onclick="removeCartItem(this)" style="color:var(--danger);">移除</button></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 拆单预览区 -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-header">
-            <div class="card-header-title">审批流预览 <span style="font-size:13px;font-weight:400;color:var(--gray-500);margin-left:8px;">系统根据资产属性自动拆分为以下审批流</span></div>
-          </div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
-            <div style="padding:14px 16px;border-radius:8px;border:1px solid var(--gray-200);background:var(--gray-50);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span class="tag tag-blue">数据表</span>
-                <span style="font-weight:600;">dwd_trade_order</span>
-                <span style="color:var(--gray-400);">·</span>
-                <span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-600);flex-wrap:wrap;">
-                <span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;">① 上级审批</span>
-                <span>→ 王经理</span>
-                <span style="color:var(--gray-300);">→</span>
-                <span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;">② 负责人审批（或签）</span>
-                <span>→ 张三</span>
-              </div>
-            </div>
-            <div style="padding:14px 16px;border-radius:8px;border:1px solid var(--gray-200);background:var(--gray-50);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span class="tag tag-blue">数据表</span>
-                <span style="font-weight:600;">dwd_trade_payment</span>
-                <span style="color:var(--gray-400);">·</span>
-                <span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-600);flex-wrap:wrap;">
-                <span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;">① 上级审批</span>
-                <span>→ 王经理</span>
-                <span style="color:var(--gray-300);">→</span>
-                <span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:4px;">② 负责人审批（或签）</span>
-                <span>→ 李四</span>
-              </div>
-            </div>
-            <div style="padding:14px 16px;border-radius:8px;border:1px solid var(--gray-200);background:var(--gray-50);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span class="tag tag-orange">报表</span>
-                <span style="font-weight:600;">rpt_finance_monthly, rpt_finance_weekly</span>
-                <span style="color:var(--gray-400);">·</span>
-                <span style="font-size:12px;color:var(--gray-500);">2 个报表合并为同一审批流</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-600);">
-                <span style="background:var(--warning-light);color:#d48806;padding:2px 8px;border-radius:4px;">① 金融业务线审批人</span>
-                <span>→ 赵总</span>
-              </div>
-            </div>
-            <div style="padding:14px 16px;border-radius:8px;border:1px solid var(--gray-200);background:var(--gray-50);">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span class="tag tag-gray">API</span>
-                <span style="font-weight:600;">api_trade_query</span>
-                <span style="color:var(--gray-400);">·</span>
-                <span style="font-size:12px;color:var(--gray-500);">交易查询接口</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gray-600);">
-                <span style="background:var(--gray-100);color:var(--gray-600);padding:2px 8px;border-radius:4px;">① API负责人</span>
-                <span>→ 孙工</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 申请理由区 -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-header-title">申请理由</div>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">统一申请理由 <span style="color:var(--danger);">*</span></label>
-              <textarea class="form-textarea" id="cart-reason" placeholder="请填写申请理由，说明使用目的（至少 10 字）" rows="3">需要查询金融业务线的交易数据用于月度分析报告</textarea>
-            </div>
-            <div style="margin-bottom:12px;">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--gray-600);">
-                <input type="checkbox" id="toggle-individual-reason" onchange="toggleIndividualReason()">
-                为各审批流单独填写理由
-              </label>
-            </div>
-            <div id="individual-reasons" style="display:none;border-top:1px solid var(--gray-200);padding-top:16px;">
-              <div class="form-group">
-                <label class="form-label" style="font-size:12px;">审批流 1：dwd_trade_order</label>
-                <textarea class="form-textarea" rows="2" placeholder="默认使用统一理由，可单独修改">需要查询金融业务线的交易数据用于月度分析报告</textarea>
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="font-size:12px;">审批流 2：dwd_trade_payment</label>
-                <textarea class="form-textarea" rows="2" placeholder="默认使用统一理由，可单独修改">需要查询金融业务线的交易数据用于月度分析报告</textarea>
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="font-size:12px;">审批流 3：rpt_finance_monthly + rpt_finance_weekly</label>
-                <textarea class="form-textarea" rows="2" placeholder="默认使用统一理由，可单独修改">需要查询金融业务线的交易数据用于月度分析报告</textarea>
-              </div>
-              <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label" style="font-size:12px;">审批流 4：api_trade_query</label>
-                <textarea class="form-textarea" rows="2" placeholder="默认使用统一理由，可单独修改">需要查询金融业务线的交易数据用于月度分析报告</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== PAGE: 我的申请 ===== -->
-      <div class="perm-page" id="page-my-apply">
+<!-- ===== PAGE: 我的申请 ===== -->
+      <div class="perm-page active" id="page-ticket-query">
         <!-- 列表视图 -->
         <div id="apply-list-view">
-          <div style="font-size:18px;font-weight:700;margin-bottom:16px;">我的申请</div>
-          <div class="tabs">
-            <div class="tab-item active" onclick="this.parentElement.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.getElementById('perm-apply-table').style.display='block';document.getElementById('gov-apply-table').style.display='none';">权限申请</div>
-            <div class="tab-item" onclick="this.parentElement.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));this.classList.add('active');document.getElementById('perm-apply-table').style.display='none';document.getElementById('gov-apply-table').style.display='block';">治理操作</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:16px;">工单查询</div>
+
+          <!-- 状态 Tab -->
+          <div class="tabs" id="ticket-status-tabs">
+            <div class="tab-item active" onclick="filterTickets('all',this)">全部</div>
+            <div class="tab-item" onclick="filterTickets('pending',this)">审批中</div>
+            <div class="tab-item" onclick="filterTickets('approved',this)">已通过</div>
+            <div class="tab-item" onclick="filterTickets('rejected',this)">已拒绝</div>
+            <div class="tab-item" onclick="filterTickets('withdrawn',this)">已撤回</div>
           </div>
 
-          <!-- 权限申请列表 -->
-          <div class="card" id="perm-apply-table">
-            <div class="card-body" style="padding:0;">
-              <table>
-                <thead><tr><th>申请编号</th><th>申请资产</th><th>数量</th><th>申请时间</th><th>整体状态</th><th>进度</th><th>操作</th></tr></thead>
-                <tbody>
-                  <tr onclick="showApplyDetail('PA-001')" style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">PA-2026033100001</td>
-                    <td><span style="font-size:12px;">dwd_trade_order, dwd_trade_payment, rpt_finance_monthly...</span></td>
-                    <td>5</td>
-                    <td style="font-size:12px;">2026-03-31 14:30</td>
-                    <td><span class="tag tag-orange">部分通过</span></td>
-                    <td><span style="font-size:12px;">3/5 已通过 · 1 驳回 · 1 审批中</span></td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                  <tr style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">PA-2026032800012</td>
-                    <td><span style="font-size:12px;">dim_user_profile</span></td>
-                    <td>1</td>
-                    <td style="font-size:12px;">2026-03-28 09:15</td>
-                    <td><span class="tag tag-green">全部通过</span></td>
-                    <td><span style="font-size:12px;">1/1 已通过</span></td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                  <tr style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">PA-2026032500008</td>
-                    <td><span style="font-size:12px;">api_logistics_track</span></td>
-                    <td>1</td>
-                    <td style="font-size:12px;">2026-03-25 16:40</td>
-                    <td><span class="tag tag-red">全部驳回</span></td>
-                    <td><span style="font-size:12px;">0/1 已通过</span></td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <!-- 筛选栏 -->
+          <div style="display:flex;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap;">
+            <select class="select" id="ticket-category-filter" onchange="renderTicketTable()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部分类</option>
+              <option value="perm">权限</option>
+              <option value="gov">治理</option>
+            </select>
+            <select class="select" id="ticket-type-filter" onchange="renderTicketTable()" style="font-size:12px;padding:2px 10px;height:30px;">
+              <option value="all">全部类型</option>
+              <option value="权限申请">权限申请</option>
+              <option value="上架申请">上架申请</option>
+              <option value="目录变更">目录变更</option>
+              <option value="打标签">打标签</option>
+              <option value="下架申请">下架申请</option>
+              <option value="血缘修正">血缘修正</option>
+            </select>
+            <input type="text" class="input" id="ticket-search" placeholder="搜索资产名称…" style="width:200px;height:30px;font-size:12px;" oninput="renderTicketTable()" />
+            <input type="text" class="input" id="ticket-applicant-search" placeholder="搜索申请人…" style="width:140px;height:30px;font-size:12px;" oninput="renderTicketTable()" />
           </div>
 
-          <!-- 治理操作列表 -->
-          <div class="card" id="gov-apply-table" style="display:none;">
+          <!-- 统一工单列表 -->
+          <div class="card">
             <div class="card-body" style="padding:0;">
               <table>
-                <thead><tr><th>申请编号</th><th>操作类型</th><th>资产名称</th><th>操作摘要</th><th>申请时间</th><th>状态</th><th>审批人</th><th>操作</th></tr></thead>
-                <tbody>
-                  <tr onclick="showGovDetail('GA-001')" style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">GA-2026033100042</td>
-                    <td><span class="tag tag-blue">上架</span></td>
-                    <td style="font-size:12px;">dwd_user_behavior</td>
-                    <td style="font-size:12px;">提交上架申请</td>
-                    <td style="font-size:12px;">2026-03-31 10:15</td>
-                    <td><span class="tag tag-orange">审批中</span></td>
-                    <td>张三</td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                  <tr style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">GA-2026033000038</td>
-                    <td><span class="tag tag-red">下架</span></td>
-                    <td style="font-size:12px;">dwd_order_legacy</td>
-                    <td style="font-size:12px;">已被新表替代</td>
-                    <td style="font-size:12px;">2026-03-30 15:20</td>
-                    <td><span class="tag tag-green">已通过</span></td>
-                    <td>张三</td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                  <tr style="cursor:pointer;">
-                    <td style="color:var(--primary);font-weight:500;">GA-2026032900035</td>
-                    <td><span class="tag tag-gray">目录变更</span></td>
-                    <td style="font-size:12px;">dwd_click_stream</td>
-                    <td style="font-size:12px;">交易域/订单 → 用户域/行为</td>
-                    <td style="font-size:12px;">2026-03-29 11:30</td>
-                    <td><span class="tag tag-red">已驳回</span></td>
-                    <td>张三</td>
-                    <td><button class="btn-text btn-sm">查看详情</button></td>
-                  </tr>
-                </tbody>
+                <thead><tr><th>编号</th><th>工单分类</th><th>申请类型</th><th>资产名称</th><th>资产类型</th><th>申请时间</th><th>申请人</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="ticket-table-body"></tbody>
               </table>
             </div>
           </div>
@@ -611,7 +424,7 @@
         <!-- 权限申请详情视图 -->
         <div id="apply-detail-view" style="display:none;">
           <div style="margin-bottom:20px;">
-            <button class="btn btn-default btn-sm" onclick="backToApplyList()">← 返回我的申请</button>
+            <button class="btn btn-default btn-sm" onclick="backToApplyList()">← 返回工单列表</button>
           </div>
 
           <!-- 申请信息卡片 -->
@@ -784,15 +597,15 @@
       </div>
 
       <!-- ===== PAGE: 我的权限 ===== -->
-      <div class="perm-page" id="page-my-perm">
-        <div style="font-size:18px;font-weight:700;margin-bottom:16px;">我的权限</div>
+      <div class="perm-page" id="page-auth-list">
+        <div style="font-size:18px;font-weight:700;margin-bottom:16px;">已授权清单</div>
         <div class="card">
           <div class="card-body" style="padding:0;">
             <table>
               <thead><tr><th>资产名称</th><th>资产类型</th><th>业务线</th><th>授权时间</th><th>授权来源</th><th>操作</th></tr></thead>
               <tbody>
-                <tr><td><span style="font-weight:600;">dwd_trade_order</span><br><span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td style="font-size:12px;">2026-03-31 16:20</td><td><a href="#" style="font-size:12px;" onclick="switchSection('my-apply');setTimeout(()=>showApplyDetail('PA-001'),100);">PA-2026033100001</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
-                <tr><td><span style="font-weight:600;">dwd_trade_payment</span><br><span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td style="font-size:12px;">2026-03-31 17:10</td><td><a href="#" style="font-size:12px;" onclick="switchSection('my-apply');setTimeout(()=>showApplyDetail('PA-001'),100);">PA-2026033100001</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
+                <tr><td><span style="font-weight:600;">dwd_trade_order</span><br><span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td style="font-size:12px;">2026-03-31 16:20</td><td><a href="#" style="font-size:12px;" onclick="switchSection('ticket-query');setTimeout(()=>showApplyDetail('PA-001'),100);">PA-2026033100001</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
+                <tr><td><span style="font-weight:600;">dwd_trade_payment</span><br><span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td style="font-size:12px;">2026-03-31 17:10</td><td><a href="#" style="font-size:12px;" onclick="switchSection('ticket-query');setTimeout(()=>showApplyDetail('PA-001'),100);">PA-2026033100001</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
                 <tr><td><span style="font-weight:600;">dim_user_profile</span><br><span style="font-size:12px;color:var(--gray-500);">用户画像维表</span></td><td><span class="tag tag-blue">数据表</span></td><td>用户增长</td><td style="font-size:12px;">2026-03-28 11:30</td><td><a href="#" style="font-size:12px;">PA-2026032800012</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
                 <tr><td><span style="font-weight:600;">rpt_logistics_daily</span><br><span style="font-size:12px;color:var(--gray-500);">物流日报表</span></td><td><span class="tag tag-orange">报表</span></td><td>物流</td><td style="font-size:12px;">2026-03-20 14:00</td><td><a href="#" style="font-size:12px;">PA-2026032000003</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
                 <tr><td><span style="font-weight:600;">api_user_info</span><br><span style="font-size:12px;color:var(--gray-500);">用户信息接口</span></td><td><span class="tag tag-gray">API</span></td><td>用户增长</td><td style="font-size:12px;">2026-03-15 09:45</td><td><a href="#" style="font-size:12px;">PA-2026031500001</a></td><td><button class="btn-text btn-sm" onclick="window.location.href='manus_2026-03-30_adhoc-sql.html#detail'">查看详情</button></td></tr>
@@ -1186,27 +999,6 @@
   </div>
 </div>
 
-<!-- 继续添加资产弹窗 -->
-<div class="modal-overlay" id="modal-add-asset">
-  <div class="modal" style="width:560px;">
-    <div class="modal-header">
-      <div class="modal-header-title">继续添加资产</div>
-      <div class="modal-close" onclick="closeModalById('modal-add-asset')">×</div>
-    </div>
-    <div class="modal-body">
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <input class="form-input" id="add-asset-search" placeholder="搜索资产名称、中文名或描述..." style="flex:1;" oninput="filterAddAssetList(this.value)" />
-      </div>
-      <div id="add-asset-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;">
-        <!-- 动态渲染 -->
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" onclick="closeModalById('modal-add-asset')">完成</button>
-    </div>
-  </div>
-</div>
-
 <!-- Notification element -->
 <div class="notification" id="notification"></div>
 
@@ -1372,191 +1164,7 @@ function showNotification(type, msg) {
   setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-/* ===== Add asset to cart ===== */
-const MOCK_SEARCH_ASSETS = [
-  { id: 'dwd_user_profile', name: 'dwd_user_profile', display: '用户画像宽表', type: '数据表', biz: '用户增长' },
-  { id: 'dwd_logistics_order', name: 'dwd_logistics_order', display: '物流运单明细', type: '数据表', biz: '物流' },
-  { id: 'rpt_finance_monthly', name: 'rpt_finance_monthly', display: '金融月报', type: '报表', biz: '金融' },
-  { id: 'api_user_query', name: 'api_user_query', display: '用户信息查询 API', type: 'API', biz: '用户增长' },
-  { id: 'dwd_trade_refund', name: 'dwd_trade_refund', display: '交易退款明细', type: '数据表', biz: '金融' },
-  { id: 'rpt_logistics_daily', name: 'rpt_logistics_daily', display: '物流日报', type: '报表', biz: '物流' },
-  { id: 'dwd_item_detail', name: 'dwd_item_detail', display: '商品详情宽表', type: '数据表', biz: '商品' },
-  { id: 'api_order_status', name: 'api_order_status', display: '订单状态查询 API', type: 'API', biz: '金融' },
-];
 
-const cartAddedIds = new Set(['dwd_trade_order', 'dwd_trade_payment', 'rpt_finance_monthly', 'rpt_finance_weekly', 'api_trade_query']);
-
-function openAddAssetModal() {
-  document.getElementById('add-asset-search').value = '';
-  renderAddAssetList(MOCK_SEARCH_ASSETS);
-  document.getElementById('modal-add-asset').classList.add('open');
-}
-
-function filterAddAssetList(q) {
-  const filtered = q.trim()
-    ? MOCK_SEARCH_ASSETS.filter(a =>
-        a.name.includes(q) || a.display.includes(q) || a.biz.includes(q))
-    : MOCK_SEARCH_ASSETS;
-  renderAddAssetList(filtered);
-}
-
-function renderAddAssetList(assets) {
-  const container = document.getElementById('add-asset-list');
-  if (!assets.length) {
-    container.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:24px;">未找到相关资产</div>';
-    return;
-  }
-  container.innerHTML = assets.map(a => {
-    const added = cartAddedIds.has(a.id);
-    const typeClass = a.type === '数据表' ? 'tag-blue' : a.type === '报表' ? 'tag-orange' : 'tag-gray';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--gray-200);border-radius:8px;background:${added ? 'var(--gray-50)' : '#fff'};">
-      <div>
-        <div style="font-size:13px;font-weight:600;">${a.name} <span style="font-weight:400;color:var(--gray-500);">${a.display}</span></div>
-        <div style="margin-top:4px;display:flex;gap:6px;"><span class="tag ${typeClass}">${a.type}</span><span class="tag tag-gray">${a.biz}</span></div>
-      </div>
-      ${added
-        ? '<span style="font-size:12px;color:var(--gray-400);">已在申请单</span>'
-        : `<button class="btn btn-primary btn-sm" onclick="addAssetToCart('${a.id}','${a.name}','${a.display}','${a.type}','${a.biz}',this)">加入</button>`
-      }
-    </div>`;
-  }).join('');
-}
-
-function addAssetToCart(id, name, display, type, biz, btn) {
-  if (cartAddedIds.has(id)) return;
-  cartAddedIds.add(id);
-
-  const tbody = document.getElementById('cart-table-body');
-  const tr = document.createElement('tr');
-  const typeClass = type === '数据表' ? 'tag-blue' : type === '报表' ? 'tag-orange' : 'tag-gray';
-  tr.innerHTML = `<td><span style="font-weight:600;">${name}</span><br><span style="font-size:12px;color:var(--gray-500);">${display}</span></td>
-    <td><span class="tag ${typeClass}">${type}</span></td>
-    <td>${biz}</td>
-    <td>-</td>
-    <td><button class="btn-text" style="color:var(--danger);" onclick="removeCartItem(this)">移除</button></td>`;
-  tbody.appendChild(tr);
-
-  // 更新计数
-  document.getElementById('cart-count').textContent = document.querySelectorAll('#cart-table-body tr').length;
-
-  // 按钮变为已加入
-  btn.textContent = '已加入';
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
-  btn.className = 'btn btn-default btn-sm';
-}
-
-/* ===== Cart functions ===== */
-function removeCartItem(btn) {
-  const row = btn.closest('tr');
-  row.style.transition = 'opacity .2s';
-  row.style.opacity = '0';
-  setTimeout(() => {
-    row.remove();
-    updateCartCount();
-  }, 200);
-}
-
-function updateCartCount() {
-  const count = document.querySelectorAll('#cart-table-body tr').length;
-  document.getElementById('cart-count').textContent = count;
-}
-
-function clearCart() {
-  if (!confirm('确认清空申请单？')) return;
-  document.getElementById('cart-table-body').innerHTML = '';
-  updateCartCount();
-  showNotification('info', '申请单已清空');
-}
-
-function submitCart() {
-  const reason = document.getElementById('cart-reason').value.trim();
-  if (reason.length < 10) {
-    showNotification('warning', '申请理由至少 10 字');
-    return;
-  }
-  const count = document.querySelectorAll('#cart-table-body tr').length;
-  if (count === 0) {
-    showNotification('warning', '申请单为空，请先添加资产');
-    return;
-  }
-  showNotification('success', '申请已提交，共生成 4 个审批流');
-  setTimeout(() => {
-    switchSection('my-apply');
-    // highlight the sidebar item
-    document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.sidebar-item')[1].classList.add('active');
-  }, 800);
-}
-
-function toggleIndividualReason() {
-  const el = document.getElementById('individual-reasons');
-  const checked = document.getElementById('toggle-individual-reason').checked;
-  el.style.display = checked ? 'block' : 'none';
-}
-
-/* ===== My Apply: detail toggle ===== */
-function showApplyDetail(id) {
-  document.getElementById('apply-list-view').style.display = 'none';
-  document.getElementById('apply-detail-view').style.display = 'block';
-  // In a real app, load detail by id
-}
-
-function backToApplyList() {
-  document.getElementById('apply-list-view').style.display = 'block';
-  document.getElementById('apply-detail-view').style.display = 'none';
-}
-
-function withdrawSubOrder(btn) {
-  if (!confirm('确认撤回该审批流？撤回后需重新提交申请')) return;
-  const card = btn.closest('.sub-order');
-  card.className = 'sub-order status-cancelled';
-  card.querySelector('.sub-order-header').innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-gray">已撤回</span><span style="font-weight:600;">子单已撤回</span></div><span style="font-size:12px;color:var(--gray-500);">撤回时间：2026-03-31 17:00</span>';
-  showNotification('info', '已撤回该审批流');
-}
-
-function retrySubOrder(btn) {
-  // 从子单 header 读取资产名称
-  const subOrder = btn.closest('.sub-order');
-  const nameEl = subOrder.querySelector('.sub-order-header span[style*="font-weight"]');
-  const rawNames = nameEl ? nameEl.textContent.trim() : '';
-  const assetNames = rawNames.split(',').map(n => n.trim()).filter(Boolean);
-  const tagEl = subOrder.querySelector('.sub-order-header .tag-orange, .sub-order-header .tag-blue, .sub-order-header .tag-gray');
-  const tagText = tagEl ? tagEl.textContent.trim() : '';
-  const parts = tagText.split('·');
-  const assetType = parts[0] ? parts[0].trim() : '数据表';
-  const bizLine = parts[1] ? parts[1].trim() : '-';
-
-  // 插入到申请单
-  const tbody = document.getElementById('cart-table-body');
-  assetNames.forEach(name => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td><span style="font-weight:600;">${name}</span><br><span style="font-size:12px;color:var(--gray-500);">（重新申请）</span></td>
-      <td><span class="tag tag-blue">${assetType}</span></td>
-      <td>${bizLine}</td>
-      <td>-</td>
-      <td><button class="btn-text" style="color:var(--danger);" onclick="removeCartItem(this)">移除</button></td>`;
-    tbody.appendChild(tr);
-  });
-
-  // 更新计数
-  const count = document.querySelectorAll('#cart-table-body tr').length;
-  document.getElementById('cart-count').textContent = count;
-
-  // 按钮改为已加入状态
-  btn.textContent = '已加入申请单';
-  btn.disabled = true;
-  btn.style.opacity = '0.6';
-
-  // 跳转到申请单页面
-  const cartNav = document.querySelector('.sidebar-item[onclick*="cart"]');
-  if (cartNav) {
-    document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-    cartNav.classList.add('active');
-  }
-  document.querySelectorAll('.perm-page').forEach(el => el.classList.remove('active'));
-  document.getElementById('page-cart').classList.add('active');
-}
 
 /* ===== Pending approve page ===== */
 function switchPendingTab(id) {
@@ -1598,6 +1206,110 @@ function backToGovList() {
   document.getElementById('gov-list-view').style.display = 'block';
   document.getElementById('gov-detail-view').style.display = 'none';
 }
+
+function showApplyDetail(id) {
+  document.getElementById('apply-list-view').style.display = 'none';
+  document.getElementById('apply-detail-view').style.display = 'block';
+}
+
+function backToApplyList() {
+  document.getElementById('apply-list-view').style.display = 'block';
+  document.getElementById('apply-detail-view').style.display = 'none';
+}
+
+function withdrawSubOrder(btn) {
+  if (!confirm('确认撤回该审批流？撤回后需重新提交申请')) return;
+  const card = btn.closest('.sub-order');
+  card.className = 'sub-order status-cancelled';
+  card.querySelector('.sub-order-header').innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span class="tag tag-gray">已撤回</span><span style="font-weight:600;">子单已撤回</span></div><span style="font-size:12px;color:var(--gray-500);">撤回时间：' + new Date().toLocaleString('zh-CN') + '</span>';
+  showNotification('info', '已撤回该审批流');
+}
+
+function retrySubOrder(btn) {
+  const subOrder = btn.closest('.sub-order');
+  const nameEl = subOrder.querySelector('.sub-order-header span[style*="font-weight"]');
+  const assetName = nameEl ? nameEl.textContent.trim() : '未知资产';
+  btn.textContent = '已加入申请单';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  showNotification('success', '已加入申请单', assetName + ' 已加入「我的 → 申请单」，请前往提交');
+}
+
+/* ===== Ticket query: mock data + render ===== */
+let currentTicketStatus = 'all';
+
+const CURRENT_USER = '张三';
+const IS_ADMIN = false; // 切换为 true 可模拟超管
+
+const MOCK_TICKETS = [
+  { id:'PA-2026033100001', type:'权限申请', category:'perm', assetName:'dwd_trade_order', assetDisplay:'交易订单宽表', assetType:'数据表', applyTime:'2026-03-31 14:30', status:'pending', applicant:'张三' },
+  { id:'PA-2026032800012', type:'权限申请', category:'perm', assetName:'dim_user_profile', assetDisplay:'用户画像维表', assetType:'数据表', applyTime:'2026-03-28 09:15', status:'approved', applicant:'李四' },
+  { id:'PA-2026032500008', type:'权限申请', category:'perm', assetName:'api_logistics_track', assetDisplay:'物流追踪接口', assetType:'API', applyTime:'2026-03-25 16:40', status:'rejected', applicant:'张三' },
+  { id:'PA-2026032200003', type:'权限申请', category:'perm', assetName:'rpt_finance_monthly', assetDisplay:'金融月度报表', assetType:'报表', applyTime:'2026-03-22 11:00', status:'withdrawn', applicant:'王五' },
+  { id:'GA-2026033100042', type:'上架申请', category:'gov', assetName:'dwd_user_behavior', assetDisplay:'用户行为宽表', assetType:'数据表', applyTime:'2026-03-31 10:15', status:'pending', applicant:'张三' },
+  { id:'GA-2026033000038', type:'下架申请', category:'gov', assetName:'dwd_order_legacy', assetDisplay:'历史订单表（已废弃）', assetType:'数据表', applyTime:'2026-03-30 15:20', status:'approved', applicant:'赵六' },
+  { id:'GA-2026032900035', type:'目录变更', category:'gov', assetName:'dwd_click_stream', assetDisplay:'点击流日志表', assetType:'数据表', applyTime:'2026-03-29 11:30', status:'rejected', applicant:'张三' },
+  { id:'GA-2026032800020', type:'打标签',   category:'gov', assetName:'metric_gmv_daily', assetDisplay:'GMV日指标', assetType:'指标', applyTime:'2026-03-28 08:45', status:'approved', applicant:'李四' },
+];
+
+function filterTickets(status, el) {
+  currentTicketStatus = status;
+  document.querySelectorAll('#ticket-status-tabs .tab-item').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTicketTable();
+}
+
+function renderTicketTable() {
+  const tbody = document.getElementById('ticket-table-body');
+  if (!tbody) return;
+  const typeFilter = (document.getElementById('ticket-type-filter') || {}).value || 'all';
+  const categoryFilter = (document.getElementById('ticket-category-filter') || {}).value || 'all';
+  const kw = (document.getElementById('ticket-search') || {}).value.toLowerCase();
+  const applicantKw = (document.getElementById('ticket-applicant-search') || {}).value.toLowerCase();
+
+  const statusMap = { pending:'审批中', approved:'已通过', rejected:'已拒绝', withdrawn:'已撤回' };
+  const statusTagClass = { pending:'tag-orange', approved:'tag-green', rejected:'tag-red', withdrawn:'tag-gray' };
+  const assetTypeTagClass = { '数据表':'tag-blue', 'API':'tag-gray', '报表':'tag-orange', '指标':'tag-purple', '标签':'tag-green' };
+
+  const data = MOCK_TICKETS.filter(t => {
+    if (currentTicketStatus !== 'all' && t.status !== currentTicketStatus) return false;
+    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
+    if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+    if (kw && !t.assetName.toLowerCase().includes(kw) && !t.assetDisplay.toLowerCase().includes(kw)) return false;
+    if (applicantKw && !t.applicant.toLowerCase().includes(applicantKw)) return false;
+    return true;
+  });
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--gray-400);">暂无工单记录</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(t => {
+    const detailFn = t.category === 'perm' ? 'showApplyDetail' : 'showGovDetail';
+    const canOperate = IS_ADMIN || t.applicant === CURRENT_USER;
+    let ops = `<button class="btn-text btn-sm" onclick="event.stopPropagation();${detailFn}('${t.id}')">查看详情</button>`;
+    if (canOperate && t.status === 'pending') ops += ` <button class="btn-text btn-sm" style="color:var(--danger);" onclick="event.stopPropagation();showNotification('info','已撤回','工单 ${t.id} 已撤回')">撤回</button>`;
+    if (canOperate && t.status === 'rejected') ops += ` <button class="btn-text btn-sm" style="color:var(--primary);" onclick="event.stopPropagation();showNotification('info','已重新提交','工单 ${t.id} 已重新提交')">重新申请</button>`;
+    const categoryTag = t.category === 'perm'
+      ? '<span class="tag tag-blue">权限</span>'
+      : '<span class="tag tag-orange">治理</span>';
+    return `<tr onclick="${detailFn}('${t.id}')" style="cursor:pointer;">
+      <td style="color:var(--primary);font-weight:500;">${t.id}</td>
+      <td>${categoryTag}</td>
+      <td><span class="tag ${t.type==='权限申请'?'tag-blue':t.type==='上架申请'?'tag-green':t.type==='下架申请'?'tag-red':t.type==='目录变更'?'tag-gray':'tag-orange'}">${t.type}</span></td>
+      <td><div style="font-size:13px;font-weight:500;">${t.assetName}</div><div style="font-size:11px;color:var(--gray-500);">${t.assetDisplay}</div></td>
+      <td><span class="tag ${assetTypeTagClass[t.assetType]||'tag-gray'}">${t.assetType}</span></td>
+      <td style="font-size:12px;">${t.applyTime}</td>
+      <td style="font-size:12px;">${t.applicant}</td>
+      <td><span class="tag ${statusTagClass[t.status]}">${statusMap[t.status]}</span></td>
+      <td>${ops}</td>
+    </tr>`;
+  }).join('');
+}
+
+// 初始渲染
+setTimeout(renderTicketTable, 0);
 
 /* ===== Template & Role management ===== */
 function switchTplTab(id) {
@@ -1849,7 +1561,15 @@ function enterPlatformMenu(menuId) {
   // system — 当前页面即系统管理，关闭菜单即可
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderPlatformMenu(); });
+document.addEventListener('DOMContentLoaded', () => {
+  renderPlatformMenu();
+  const params = new URLSearchParams(window.location.search);
+  const ticketId = params.get('ticket');
+  if (ticketId) {
+    switchSection('ticket-query');
+    setTimeout(() => showApplyDetail(ticketId), 100);
+  }
+});
 </script>
 </body>
 </html>
