@@ -830,17 +830,17 @@
                     <td><button class="btn-text btn-sm" onclick="openTplModal()">编辑</button> <button class="btn-text btn-sm" style="color:var(--danger);">停用</button></td>
                   </tr>
                   <tr>
-                    <td style="font-weight:600;">报表-金融业务线</td>
-                    <td><span class="tag tag-orange" style="margin-right:4px;">报表</span><span class="tag tag-gray">金融</span></td>
-                    <td style="font-size:12px;">① 金融业务线审批人</td>
+                    <td style="font-weight:600;">报表-S3/S4安全等级</td>
+                    <td><span class="tag tag-orange" style="margin-right:4px;">报表</span><span class="tag tag-gray">S3</span><span class="tag tag-gray">S4</span></td>
+                    <td style="font-size:12px;">① 申请人上级 → ② 资产负责人</td>
                     <td>2</td>
                     <td><span class="tag tag-green">启用</span></td>
                     <td><button class="btn-text btn-sm" onclick="openTplModal()">编辑</button> <button class="btn-text btn-sm" style="color:var(--danger);">停用</button></td>
                   </tr>
                   <tr>
-                    <td style="font-weight:600;">报表-物流业务线</td>
-                    <td><span class="tag tag-orange" style="margin-right:4px;">报表</span><span class="tag tag-gray">物流</span></td>
-                    <td style="font-size:12px;">① 物流业务线审批人</td>
+                    <td style="font-weight:600;">报表-S5安全等级</td>
+                    <td><span class="tag tag-orange" style="margin-right:4px;">报表</span><span class="tag tag-gray">S5</span></td>
+                    <td style="font-size:12px;">① 申请人上级 → ② 治理负责人 → ③ 资产负责人</td>
                     <td>2</td>
                     <td><span class="tag tag-green">启用</span></td>
                     <td><button class="btn-text btn-sm" onclick="openTplModal()">编辑</button> <button class="btn-text btn-sm" style="color:var(--danger);">停用</button></td>
@@ -1012,7 +1012,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">模板名称 <span style="color:var(--danger);">*</span></label>
-        <input class="form-input" placeholder="如：报表-金融业务线" />
+        <input class="form-input" placeholder="如：报表-S3/S4安全等级" />
       </div>
 
       <div style="font-size:13px;font-weight:600;color:var(--gray-600);margin-bottom:12px;padding-top:8px;border-top:1px solid var(--gray-200);">匹配条件（至少选择一项）</div>
@@ -1025,10 +1025,15 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">业务线</label>
-          <select class="form-select">
-            <option>全部</option><option selected>金融</option><option>物流</option><option>用户增长</option>
-          </select>
+          <label class="form-label">安全等级</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);background:#fff;min-height:42px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;"><input type="checkbox"> S1</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;"><input type="checkbox"> S2</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;"><input type="checkbox" checked> S3</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;"><input type="checkbox" checked> S4</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;"><input type="checkbox"> S5</label>
+          </div>
+          <div style="font-size:11px;color:var(--gray-500);margin-top:6px;">支持多选；命中任一已选安全等级即可套用该模板</div>
         </div>
         <div class="form-group">
           <label class="form-label">来源平台</label>
