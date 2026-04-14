@@ -615,6 +615,40 @@
     .detail-action-chip.is-clickable:hover { border-color: #91caff; color: var(--primary); background: var(--primary-light); }
     .detail-action-chip.status-applying { color: #b45309; border-color: #f8d3a3; background: #fff7ed; }
     .detail-action-chip.status-granted { color: #15803d; border-color: #bbe3c4; background: #f0fdf4; }
+    .detail-action-chip.is-disabled {
+      color: var(--gray-400);
+      border-color: var(--gray-200);
+      background: var(--gray-50);
+      cursor: not-allowed;
+      position: relative;
+    }
+    .detail-action-chip[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 220px;
+      max-width: 320px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(17, 24, 39, .94);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: normal;
+      box-shadow: 0 4px 14px rgba(0,0,0,.18);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+      z-index: 10;
+    }
+    .detail-action-chip[data-tooltip]:hover::after {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
     .asset-card-fav {
       position: absolute; top: 10px; right: 10px;
       font-size: 15px; color: var(--gray-300); cursor: pointer;
@@ -1148,6 +1182,39 @@
     .asset-card-label { font-size:11px; color:var(--gray-400); margin-right:2px; }
     .asset-card-apply { position:absolute; top:12px; right:34px; font-size:13px; color:var(--primary); cursor:pointer; white-space:nowrap; z-index:1; }
     .asset-card-apply:hover { text-decoration:underline; }
+    .asset-card-apply.is-disabled {
+      color: var(--gray-400);
+      cursor: not-allowed;
+      text-decoration: none;
+    }
+    .asset-card-apply[data-tooltip] { position:absolute; }
+    .asset-card-apply[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      min-width: 220px;
+      max-width: 320px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(17, 24, 39, .94);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: normal;
+      box-shadow: 0 4px 14px rgba(0,0,0,.18);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(4px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+      z-index: 10;
+    }
+    .asset-card-apply[data-tooltip]:hover::after {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
     .asset-card-row2 { display:flex; align-items:center; gap:16px; margin-bottom:6px; flex-wrap:wrap; }
     .asset-card-catalog { font-size:12px; color:var(--gray-500); }
     .asset-card-stats { display:flex; align-items:center; gap:12px; margin-left:auto; }
@@ -4211,8 +4278,8 @@ const MOCK_ASSETS = [
       { name:'page_id', type:'STRING', comment:'页面标识', description:'触发事件的页面唯一标识，用于页面级行为分析。', securityLevel:'S1', nullable:true },
     ] },
   { id:'ads_user_profile', name:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df', display:'用户画像汇总表', type:'table', summary:'基于行为数据构建的用户标签与画像汇总', tech_owner:'李四', biz_owner:'王五', tags:['用户画像','ADS'], updated:'2026-03-19', heat:7230, catalog:'用户域/画像/用户标签', status:'正常', source_type:'analytic_db', source_system:'SelectDB', source_location:'画像分析集群', permission_status:'applying', favorite:false },
-  { id:'metric_gmv_daily', name:'metric_gmv_daily', display:'GMV日指标', type:'metric', summary:'按天统计的全平台成交金额指标', tech_owner:'张三', biz_owner:'赵六', tags:['GMV','指标','交易'], updated:'2026-03-21', heat:6890, catalog:'交易域/指标/核心指标', status:'正常', source_type:'metric_platform', source_system:'指标平台', permission_status:'granted', favorite:true },
-  { id:'label_user_value_tier', name:'label_user_value_tier', display:'用户价值等级标签', type:'label', summary:'根据近30天成交金额、活跃度和复购情况生成的用户价值等级标签', tech_owner:'王五', biz_owner:'赵六', tags:['标签','用户分层','营销'], updated:'2026-03-22', heat:3640, catalog:'用户域/标签/用户价值', status:'正常', source_type:'label_platform', source_system:'标签画像平台', source_location:'用户画像中心', permission_status:'granted', favorite:false },
+  { id:'metric_gmv_daily', name:'metric_gmv_daily', display:'GMV日指标', type:'metric', summary:'按天统计的全平台成交金额指标', tech_owner:'张三', biz_owner:'赵六', tags:['GMV','指标','交易'], updated:'2026-03-21', heat:6890, catalog:'交易域/指标/核心指标', status:'正常', source_type:'metric_platform', source_system:'指标平台', source_location:'指标中心', upstream_guidance:'底层来源：dwd_order_detail / api_trade_query', permission_status:'granted', favorite:true },
+  { id:'label_user_value_tier', name:'label_user_value_tier', display:'用户价值等级标签', type:'label', summary:'根据近30天成交金额、活跃度和复购情况生成的用户价值等级标签', tech_owner:'王五', biz_owner:'赵六', tags:['标签','用户分层','营销'], updated:'2026-03-22', heat:3640, catalog:'用户域/标签/用户价值', status:'正常', source_type:'label_platform', source_system:'标签画像平台', source_location:'用户画像中心', upstream_guidance:'来源平台：标签画像平台', permission_status:'granted', favorite:false },
   { id:'dwd_payment_detail', name:'wlyd_mc_beijing.dm_difp_pay_mt_account_aggregate_info_df', display:'支付明细宽表', type:'table', summary:'包含支付渠道、金额、状态的支付流水宽表', tech_owner:'李四', biz_owner:'王五', tags:['支付','交易域'], updated:'2026-03-18', heat:5420, catalog:'交易域/支付/支付流水', status:'正常', source_type:'warehouse_engine', source_system:'MaxCompute', source_location:'支付主题域集群', permission_status:'none', favorite:false },
   { id:'rpt_sales_daily', name:'rpt_sales_daily', display:'销售日报', type:'report', summary:'按业务线汇总的每日销售数据报表', tech_owner:'张三', biz_owner:'赵六', tags:['销售','报表','日报'], updated:'2026-03-21', heat:4980, catalog:'交易域/报表/销售报表', status:'正常', source_type:'report_system', source_system:'万联灵析', permission_status:'granted', favorite:false },
   { id:'api_user_info', name:'api_user_info', display:'用户信息查询API', type:'api', summary:'根据用户ID查询用户基础信息的标准API', tech_owner:'李四', biz_owner:'王五', tags:['API','用户'], updated:'2026-03-17', heat:4120, catalog:'用户域/API/基础API', status:'正常', source_type:'api_service', source_system:'内部微服务', source_location:'用户中心服务', permission_status:'granted', favorite:false },
@@ -5539,11 +5606,64 @@ function copyCurrentDetailName() {
   showNotification('success', '已复制', record.name);
 }
 
-function renderPermissionControl(record) {
+function getPermissionApplyMeta(record) {
+  if (!record) {
+    return { canApply: false, reason: '当前对象信息缺失，暂不支持申请。' };
+  }
+  if (record.type === 'metric') {
+    return {
+      canApply: false,
+      reason: '指标权限依赖底层表或 API，请先通过查看指标来源，再申请对应表/API 权限。'
+    };
+  }
+  if (record.type === 'label') {
+    return {
+      canApply: false,
+      reason: '标签权限需前往对应来源平台申请，平台仅提供展示与说明。'
+    };
+  }
+  const sourceSystem = String(record.source_system || '').toLowerCase();
+  if (record.source_type === 'business_db' || sourceSystem === 'mysql') {
+    return {
+      canApply: false,
+      reason: '该对象权限不由本平台管理，请前往详情页-血缘关系 Tab 查看对应数仓表后申请权限。'
+    };
+  }
+  const applyTypes = ['table', 'view', 'api'];
+  if (applyTypes.includes(record.type)) {
+    return { canApply: true, reason: '' };
+  }
+  return {
+    canApply: false,
+    reason: '该对象暂不支持在本平台内直接申请权限，请查看来源说明后处理。'
+  };
+}
+
+function renderPermissionTrigger(record, domain = currentDetailType, variant = 'detail') {
+  const meta = getPermissionApplyMeta(record);
   const status = getPermissionStatus(record);
-  if (status === 'granted') return `<span class="detail-action-chip status-granted">✔ 已有权限</span>`;
-  if (status === 'applying') return `<span class="detail-action-chip status-applying">◔ 申请中</span>`;
-  return `<button class="detail-action-chip is-clickable" onclick="openPermModal('${record.id}','${currentDetailType}')">🔐 申请权限</button>`;
+  if (meta.canApply) {
+    if (status === 'granted') {
+      return variant === 'detail'
+        ? `<span class="detail-action-chip status-granted">✔ 已有权限</span>`
+        : `<span class="asset-card-apply">已有权限</span>`;
+    }
+    if (status === 'applying') {
+      return variant === 'detail'
+        ? `<span class="detail-action-chip status-applying">◔ 申请中</span>`
+        : `<span class="asset-card-apply">申请中</span>`;
+    }
+    return variant === 'detail'
+      ? `<button class="detail-action-chip is-clickable" onclick="openPermModal('${record.id}','${domain}')">🔐 申请权限</button>`
+      : `<span class="asset-card-apply" onclick="event.stopPropagation();openPermModal('${record.id}','${domain}')">申请权限</span>`;
+  }
+  return variant === 'detail'
+    ? `<button class="detail-action-chip is-disabled" data-tooltip="${meta.reason}">🔒 申请权限</button>`
+    : `<span class="asset-card-apply is-disabled" data-tooltip="${meta.reason}" onclick="event.stopPropagation()">申请权限</span>`;
+}
+
+function renderPermissionControl(record) {
+  return renderPermissionTrigger(record, currentDetailType, 'detail');
 }
 
 function renderFavoriteControl(record) {
@@ -7207,7 +7327,7 @@ function renderAssetCards() {
             ${isDeprecated ? '<span class="tag tag-gray">已废弃</span>' : '<span class="tag tag-green">正常</span>'}
             ${a.tags.slice(0,2).map(t => `<span class="tag tag-gray">${t}</span>`).join('')}
           </div>
-          <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
+          ${renderPermissionTrigger(a, 'asset', 'card')}
           <span class="asset-card-fav${a.favorite ? ' active' : ''}" title="${a.favorite ? '取消收藏' : '收藏'}" onclick="event.stopPropagation();toggleCardFavorite('asset','${a.id}',this)">${a.favorite ? '★' : '☆'}</span>
           <div class="asset-card-row2">
             <span class="asset-card-catalog"><span class="asset-card-label">来源</span> ${getPlatformShort(a)}</span>
@@ -7355,7 +7475,7 @@ function renderResourceTable() {
             ${domainTag}
             ${tagsHtml}
           </div>
-          <span class="asset-card-apply" onclick="event.stopPropagation();openPermModal()">申请权限</span>
+          ${renderPermissionTrigger(r, r.domain, 'card')}
           <span class="asset-card-fav${r.favorite ? ' active' : ''}" title="${r.favorite ? '取消收藏' : '收藏'}" onclick="event.stopPropagation();toggleCardFavorite('${r.domain}','${r.id}',this)">${r.favorite ? '★' : '☆'}</span>
           <div class="asset-card-row2">
             <span class="asset-card-catalog"><span class="asset-card-label">来源</span> ${getPlatformShort(r)}</span>
@@ -8120,6 +8240,9 @@ function clearMgmtSelection() {
 // ===== 目录选择弹窗相关 =====
 // 当前选中的归属目录
 let catalogPrimarySelected = null;
+// 关联目录为旧版多目录设计遗留状态；当前产品口径为单资源单目录，
+// 这里保留为空集合仅用于兼容现有公共渲染逻辑，避免弹窗打开时报错。
+let catalogRelatedSelected = new Set();
 
 // 生成目录路径字符串
 function buildCatalogPath(tree, targetId, prefix) {
@@ -8213,7 +8336,7 @@ function refreshCatalogPrimarySelected() {
     const path = buildCatalogPath(CATALOG_TREE, catalogPrimarySelected, '');
     el.innerHTML = `<span style="background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:10px;">✓ ${path}</span>`;
   } else {
-    el.innerHTML = '<span style="color:var(--gray-400);">未选择主目录</span>';
+    el.innerHTML = '<span style="color:var(--gray-400);">未选择归属目录</span>';
   }
 }
 
@@ -8252,7 +8375,7 @@ function refreshCatalogModal() {
 
 // 开启目录弹窗公共方法
 function openCatalogModal(isSingle, resourceIds, currentPrimary, currentRelated) {
-  document.getElementById('catalog-modal-title').textContent = isSingle ? '修改目录' : '批量修改目录（提交审批）';
+  document.getElementById('catalog-modal-title').textContent = isSingle ? '修改目录归属（提交审批）' : '批量修改目录（提交审批）';
   // 已选资源展示
   const names = resourceIds.map(id => {
     const r = MOCK_RESOURCES.find(r => r.id === id);
@@ -8263,6 +8386,7 @@ function openCatalogModal(isSingle, resourceIds, currentPrimary, currentRelated)
   ).join('');
   // 初始化选中状态
   catalogPrimarySelected = currentPrimary || null;
+  catalogRelatedSelected = new Set(Array.isArray(currentRelated) ? currentRelated : []);
   document.getElementById('batch-catalog-reason').value = '';
   refreshCatalogModal();
   openModal('modal-batch-catalog');
@@ -12201,6 +12325,11 @@ function openPermModal(id = currentDetailId, type = currentDetailType) {
   currentPermTargetId = id || currentDetailId || 'dwd_order_detail';
   currentPermTargetType = type || currentDetailType || 'asset';
   const record = getDetailRecord(currentPermTargetType, currentPermTargetId) || MOCK_ASSETS[0];
+  const applyMeta = getPermissionApplyMeta(record);
+  if (!applyMeta.canApply) {
+    showNotification('warning', '当前对象不可直接申请', applyMeta.reason);
+    return;
+  }
   if (!window._cartCount) window._cartCount = 0;
   window._cartCount++;
   document.getElementById('perm-modal-asset-name').textContent = record?.name || '-';
