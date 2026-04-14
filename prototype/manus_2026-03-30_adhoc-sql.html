@@ -3323,12 +3323,12 @@
             </div>
             <div style="padding:0;">
               <table class="table">
-                <thead><tr><th>资产名称</th><th>类型</th><th>业务线</th><th>来源平台</th><th>负责人</th><th>操作</th></tr></thead>
+                <thead><tr><th>资产名称</th><th>类型</th><th>目录</th><th>安全等级</th><th>来源平台</th><th>负责人</th><th>操作</th></tr></thead>
                 <tbody id="my-cart-body">
-                  <tr><td><span style="font-weight:600;">dwd_trade_order</span><br><span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td>Hive</td><td>张三</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
-                  <tr><td><span style="font-weight:600;">dwd_trade_payment</span><br><span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span></td><td><span class="tag tag-blue">数据表</span></td><td>金融</td><td>Hive</td><td>李四</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
-                  <tr><td><span style="font-weight:600;">rpt_finance_monthly</span><br><span style="font-size:12px;color:var(--gray-500);">金融月度报表</span></td><td><span class="tag tag-orange">报表</span></td><td>金融</td><td>报表平台</td><td>王五</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
-                  <tr><td><span style="font-weight:600;">api_trade_query</span><br><span style="font-size:12px;color:var(--gray-500);">交易查询接口</span></td><td><span class="tag tag-gray">API</span></td><td>金融</td><td>API网关</td><td>孙工</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
+                  <tr><td><span style="font-weight:600;">dwd_trade_order</span><br><span style="font-size:12px;color:var(--gray-500);">交易订单宽表</span></td><td><span class="tag tag-blue">数据表</span></td><td style="font-size:12px;color:var(--gray-600);">交易域/订单/订单明细</td><td><span class="field-security-tag s3" title="一定量泄漏会造成严重危害">S3 秘密级</span></td><td>Hive</td><td>张三</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
+                  <tr><td><span style="font-weight:600;">dwd_trade_payment</span><br><span style="font-size:12px;color:var(--gray-500);">交易支付明细表</span></td><td><span class="tag tag-blue">数据表</span></td><td style="font-size:12px;color:var(--gray-600);">交易域/支付/支付流水</td><td><span class="field-security-tag s3" title="一定量泄漏会造成严重危害">S3 秘密级</span></td><td>Hive</td><td>李四</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
+                  <tr><td><span style="font-weight:600;">rpt_finance_monthly</span><br><span style="font-size:12px;color:var(--gray-500);">金融月度报表</span></td><td><span class="tag tag-orange">报表</span></td><td style="font-size:12px;color:var(--gray-600);">财务域/报表/月报</td><td><span class="field-security-tag s2" title="不适合公开，危害较低">S2 内部级</span></td><td>报表平台</td><td>王五</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
+                  <tr><td><span style="font-weight:600;">api_trade_query</span><br><span style="font-size:12px;color:var(--gray-500);">交易查询接口</span></td><td><span class="tag tag-gray">API</span></td><td style="font-size:12px;color:var(--gray-600);">交易域/API/查询服务</td><td><span class="field-security-tag s2" title="不适合公开，危害较低">S2 内部级</span></td><td>API网关</td><td>孙工</td><td><button class="btn-text btn-sm" style="color:var(--danger);">移除</button></td></tr>
                 </tbody>
               </table>
             </div>
@@ -9284,9 +9284,7 @@ function renderCatalogNodeDetail(id) {
     <span style="font-size:14px;font-weight:600;">${path.join(' / ')}</span>
     <div style="margin-left:auto;display:flex;gap:8px;">
       <button class="btn btn-primary btn-sm" onclick="openCatalogBatchMountModal('${id}')" style="display:flex;align-items:center;gap:4px;">📥 批量挂载</button>
-      ${depth < 5 ? `<button class="btn btn-default btn-sm" onclick="openCatalogNodeModal('add','${id}')">+ 新增子目录</button>` : ''}
-      <button class="btn btn-default btn-sm" onclick="openCatalogNodeModal('edit','${id}')">编辑</button>
-      <button class="btn btn-danger btn-sm" onclick="openCatalogDeleteModal('${id}')">删除</button>
+      <button class="btn btn-default btn-sm" onclick="openCatalogBatchMigrateModal()" style="display:flex;align-items:center;gap:4px;">📦 批量迁移</button>
     </div>
   `;
 
@@ -9319,8 +9317,6 @@ function renderCatalogNodeDetail(id) {
           <div style="font-size:13px;font-weight:600;color:var(--gray-700);">挂载资源列表</div>
           <div id="catalog-detail-batch-bar" style="display:none;gap:8px;align-items:center;">
             <span style="font-size:12px;color:var(--gray-500);" id="catalog-detail-batch-count">已选 0 条</span>
-            <button class="btn btn-default btn-sm" onclick="openCatalogBatchMigrateModal()">📦 批量迁移</button>
-            <button class="btn btn-danger btn-sm" onclick="catalogBatchRemove()">🗑️ 批量移除</button>
           </div>
         </div>
         <div class="table-wrap" style="border:1px solid var(--gray-200);border-radius:var(--radius);">
@@ -9387,7 +9383,10 @@ function singleCatalogMigrate(resourceId) {
 // 批量迁移弹窗
 let catalogMigrateTargetId = null;
 function openCatalogBatchMigrateModal() {
-  if (catalogDetailSelected.size === 0) return;
+  if (catalogDetailSelected.size === 0) {
+    showNotification('warning', '请先选择资源', '至少选择 1 条当前目录下的资源后再发起批量迁移');
+    return;
+  }
   catalogMigrateTargetId = null;
   const names = [...catalogDetailSelected].map(id => { const r = MOCK_RESOURCES.find(r => r.id === id); return r ? r.name : id; });
   document.getElementById('catalog-migrate-selected').innerHTML = names.map(n => '<div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + n + '</div>').join('');
