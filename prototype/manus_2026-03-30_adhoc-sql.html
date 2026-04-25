@@ -35,7 +35,7 @@
       --shadow-md: 0 4px 16px rgba(0,0,0,.12);
       --transition: .2s ease;
     }
-    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; color: var(--gray-800); background: var(--gray-100); }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; color: var(--gray-800); background: #f3f6fb; }
     a { color: var(--primary); text-decoration: none; }
     a:hover { color: var(--primary-hover); }
     button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: 14px; }
@@ -180,7 +180,7 @@
 
     /* Card */
     .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; }
-    .card-title { font-size: 15px; font-weight: 600; color: var(--gray-800); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title { font-size: 18px; font-weight: 600; color: #1f2d3d; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
     /* Tag */
     .tag {
@@ -398,24 +398,41 @@
     /* ===== Page 1: 资产检索页 ===== */
     .search-page { flex-direction: column; }
     .search-hero {
-      background: linear-gradient(135deg, #e6f4ff 0%, #f0f5ff 100%);
-      padding: 40px 40px 32px; text-align: center; flex-shrink: 0;
+      /* 检索页首屏风格对齐原型：更浅背景+更聚焦的中轴布局 */
+      background: linear-gradient(180deg, #f6f9ff 0%, #f2f5fa 100%);
+      padding: 38px 40px 22px;
+      text-align: center;
+      flex-shrink: 0;
+      border-bottom: 1px solid #edf2f9;
     }
-    .search-hero-title { color: var(--gray-900); font-size: 26px; font-weight: 700; margin-bottom: 6px; }
-    .search-hero-sub { color: var(--gray-500); font-size: 14px; margin-bottom: 24px; }
-    .search-box-wrap { max-width: 600px; margin: 0 auto; position: relative; }
+    .search-hero-title { color: #2f54eb; font-size: 46px; font-weight: 700; margin-bottom: 6px; line-height: 1.1; letter-spacing: 1px; }
+    .search-hero-sub { color: #8b95a5; font-size: 13px; margin-bottom: 20px; }
+    .search-box-wrap { max-width: 760px; margin: 0 auto; position: relative; }
+    .search-input-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #b8c0cc;
+      font-size: 17px;
+      pointer-events: none;
+    }
     .search-box-wrap .search-input {
-      width: 100%; padding: 10px 48px 10px 16px; font-size: 15px;
-      border: 1px solid var(--gray-300); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.06);
+      width: 100%;
+      padding: 14px 150px 14px 48px;
+      font-size: 15px;
+      border: 1px solid #e8edf5;
+      border-radius: 28px;
+      box-shadow: 0 3px 12px rgba(31, 56, 88, .06);
       background: #fff;
     }
-    .search-box-wrap .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
+    .search-box-wrap .search-input:focus { border-color: #adc6ff; box-shadow: 0 0 0 2px rgba(22,119,255,.12); }
     .search-box-wrap .search-btn {
-      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-      background: var(--primary); color: #fff; border: none; border-radius: 6px;
-      padding: 6px 16px; cursor: pointer; font-size: 14px; transition: var(--transition);
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      background: linear-gradient(90deg, #3572ff 0%, #1967ff 100%); color: #fff; border: none; border-radius: 22px;
+      padding: 9px 32px; cursor: pointer; font-size: 15px; transition: var(--transition); font-weight: 500;
     }
-    .search-box-wrap .search-btn:hover { background: var(--primary-hover); }
+    .search-box-wrap .search-btn:hover { filter: brightness(1.05); }
     .search-suggest-panel {
       position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: #fff;
       border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); overflow: hidden;
@@ -957,14 +974,15 @@
       background:#0f172a; color:#e2e8f0; font-size:12px; line-height:1.7;
       overflow:auto; white-space:pre-wrap;
     }
-    .search-hints { margin-top: 12px; display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; }
-    .search-hint-label { color: var(--gray-400); font-size: 13px; }
+    .search-hints { margin-top: 12px; display: flex; align-items: center; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .search-hint-label { color: #8b95a5; font-size: 15px; }
     .search-hint-tag {
-      background: #fff; color: var(--gray-600); padding: 3px 10px;
-      border-radius: 4px; font-size: 12px; cursor: pointer; transition: var(--transition);
-      border: 1px solid var(--gray-300);
+      color: #7e8796;
+      font-size: 15px;
+      cursor: pointer;
+      transition: var(--transition);
     }
-    .search-hint-tag:hover { border-color: var(--primary); color: var(--primary); }
+    .search-hint-tag:hover { color: var(--primary); text-decoration: underline; }
     .quick-entries { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
     .quick-entry {
       background: #fff; color: var(--gray-600); padding: 6px 16px;
@@ -973,17 +991,25 @@
     }
     .quick-entry:hover { border-color: var(--primary); color: var(--primary); }
 
-    .search-body { display: flex; gap: 16px; padding: 20px; flex: 1; min-height: 0; }
+    .search-body { display: flex; gap: 16px; padding: 16px 20px 20px; flex: 1; min-height: 0; background: #f3f6fb; }
     .search-left { display: none; }
     .search-center { flex: 1; overflow-y: auto; min-width: 0; min-height: 0; }
-    .search-right { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    .search-right { width: 288px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+    .search-right .card {
+      /* 右侧卡片改为低阴影+浅边框，贴近原型清爽感 */
+      border-radius: 10px;
+      border: 1px solid #edf2f8;
+      box-shadow: none;
+      padding: 18px;
+      background: #fff;
+    }
 
     /* Discovery panel (replaces old left panel) */
-    .discovery-panel { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; margin-bottom:16px; }
-    .discovery-tabs { display:flex; gap:0; border-bottom:2px solid var(--gray-200); justify-content:flex-end; }
-    .discovery-tab { padding:10px 18px; text-align:center; cursor:pointer; font-size:13px; color:var(--gray-500); border-bottom:2px solid transparent; margin-bottom:-2px; transition:var(--transition); font-weight:500; }
+    .discovery-panel { background:#fff; border-radius:8px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:16px; }
+    .discovery-tabs { display:flex; gap:0; border-bottom:1px solid #eff3f8; justify-content:flex-start; background:#f7f9fd; }
+    .discovery-tab { padding:11px 18px; text-align:center; cursor:pointer; font-size:14px; color:#788396; border-bottom:2px solid transparent; margin-bottom:-1px; transition:var(--transition); font-weight:500; }
     .discovery-tab:hover { color:var(--primary); }
-    .discovery-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; background:var(--primary-light); border-radius:6px 6px 0 0; }
+    .discovery-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; background:#fff; border-radius:0; }
     .discovery-tab-content { display:none; padding:16px; }
     .discovery-tab-content.active { display:block; }
     .discovery-cards { display: flex; flex-direction: column; gap: 2px; }
@@ -1894,6 +1920,23 @@
     .catalog-sort-btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
     .catalog-tree-node .ct-sort-btns { display: none; gap: 2px; flex-shrink: 0; }
     .catalog-tree-node:hover .ct-sort-btns { display: flex; }
+    /* 目录拖拽态：高亮可放置位置，弱化无效目标 */
+    .catalog-tree-node.dragging { opacity: 0.45; }
+    .catalog-tree-node.dnd-disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: #fafafa;
+    }
+    .catalog-tree-node.drop-in {
+      background: #e6f4ff;
+      box-shadow: inset 0 0 0 1px #91caff;
+    }
+    .catalog-tree-node.drop-before {
+      box-shadow: inset 0 2px 0 0 var(--primary);
+    }
+    .catalog-tree-node.drop-after {
+      box-shadow: inset 0 -2px 0 0 var(--primary);
+    }
     .catalog-sort-mode-btn {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 10px; border-radius: var(--radius); font-size: 12px;
@@ -2389,10 +2432,11 @@
     <div class="page active flex-col" id="page-search">
       <!-- Hero -->
       <div class="search-hero">
-        <div class="search-hero-title">🔍 数据资产检索</div>
+        <div class="search-hero-title">数据资产检索</div>
         <div class="search-hero-sub">找资产 · 找不到时找资源 · 将资源治理成资产</div>
         <div class="search-box-wrap">
-          <input class="search-input" id="main-search-input" type="text" placeholder="搜索资产名称、描述、负责人、标签…"
+          <span class="search-input-icon">⌕</span>
+          <input class="search-input" id="main-search-input" type="text" placeholder="请输入搜索内容"
             oninput="handleMainSearchInput(event)"
             onfocus="handleMainSearchFocus()"
             onkeydown="handleMainSearchKeydown(event)"
@@ -2418,7 +2462,7 @@
           </div>
         </div>
         <div class="search-hints">
-          <span class="search-hint-label">热门：</span>
+          <span class="search-hint-label">热门搜索:</span>
           <span class="search-hint-tag" onclick="fillSearch('用户行为日志')">用户行为日志</span>
           <span class="search-hint-tag" onclick="fillSearch('订单明细表')">订单明细表</span>
           <span class="search-hint-tag" onclick="fillSearch('GMV指标')">GMV指标</span>
@@ -2438,10 +2482,10 @@
           <!-- Discovery panel: 最近浏览 / 我的收藏 / 热门榜单 -->
           <div class="discovery-panel" id="discovery-panel">
             <div class="discovery-tabs">
-              <div class="discovery-tab active" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">📖 最近浏览</div>
-              <div class="discovery-tab" id="dtab-favorite" onclick="switchDiscoveryTab('favorite',this)">⭐ 我的收藏</div>
-              <div class="discovery-tab" id="dtab-trending" onclick="switchDiscoveryTab('trending',this)">🔥 热门浏览</div>
-              <div class="discovery-tab" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">✨ 热门专题</div>
+              <div class="discovery-tab active" id="dtab-recent" onclick="switchDiscoveryTab('recent',this)">最近浏览</div>
+              <div class="discovery-tab" id="dtab-favorite" onclick="switchDiscoveryTab('favorite',this)">我的收藏</div>
+              <div class="discovery-tab" id="dtab-trending" onclick="switchDiscoveryTab('trending',this)">热门浏览</div>
+              <div class="discovery-tab" id="dtab-hot" onclick="switchDiscoveryTab('hot',this)">热门专题</div>
             </div>
             <!-- 最近浏览 -->
             <div class="discovery-tab-content active" id="dcontent-recent">
@@ -2558,7 +2602,7 @@
         <!-- Right -->
         <div class="search-right">
           <div class="card">
-            <div class="card-title">📊 平台概览</div>
+            <div class="card-title">平台概览</div>
             <div class="kpi-grid">
               <div class="kpi-item"><div class="kpi-value">1,284</div><div class="kpi-label">已上架资产</div></div>
               <div class="kpi-item"><div class="kpi-value">3,672</div><div class="kpi-label">资源总数</div></div>
@@ -2567,7 +2611,7 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-title">📌 专题推荐</div>
+            <div class="card-title">专题推荐</div>
             <div style="display:flex;flex-direction:column;gap:8px;">
               <div style="padding:10px;background:var(--primary-light);border-radius:var(--radius);cursor:pointer;" onclick="showNotification('info','专题','交易域核心资产专题')">
                 <div style="font-size:13px;font-weight:500;color:var(--primary);">交易域核心资产</div>
@@ -2584,7 +2628,7 @@
             </div>
           </div>
           <div class="card" style="background:#003a8c;color:#fff;">
-            <div class="card-title" style="color:#fff;">🤖 AI 助手</div>
+            <div class="card-title" style="color:#fff;">AI 助手</div>
             <div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:12px;">用自然语言描述你的数据需求，AI 帮你找到合适的资产</div>
             <button class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);width:100%;justify-content:center;" onclick="showNotification('info','AI助手','AI智能搜索能力将在后续版本上线，敬请期待！')">
               即将上线，敬请期待
@@ -7677,6 +7721,12 @@ let CATALOG_TREE = [
 let mgmtSelectedIds = new Set();
 // 当前选中的目录节点
 let currentCatalogNodeId = null;
+// 目录树最大层级
+const CATALOG_MAX_DEPTH = 5;
+// 目录拖拽状态
+let draggingCatalogNodeId = null;
+let catalogDropTargetId = null;
+let catalogDropPosition = null; // in | before | after
 
 // 侧边导航切换
 function switchMgmtPanel(panel, el) {
@@ -9227,13 +9277,28 @@ function renderCatalogTreeNodes(nodes, depth, parentId) {
     const isFirst = idx === 0;
     const isLast = idx === nodes.length - 1;
     const pidAttr = parentId ? `data-parent="${parentId}"` : 'data-parent="__root__"';
+    const dragReasonIn = getCatalogDropInvalidReason(draggingCatalogNodeId, node.id, 'in');
+    const dragReasonBefore = getCatalogDropInvalidReason(draggingCatalogNodeId, node.id, 'before');
+    const dragReasonAfter = getCatalogDropInvalidReason(draggingCatalogNodeId, node.id, 'after');
+    const isDropDisabled = !!draggingCatalogNodeId && !!dragReasonIn && !!dragReasonBefore && !!dragReasonAfter;
+    const isDragging = draggingCatalogNodeId === node.id;
+    const isDropTarget = catalogDropTargetId === node.id;
+    const dropCls = isDropTarget
+      ? (catalogDropPosition === 'before' ? ' drop-before' : catalogDropPosition === 'after' ? ' drop-after' : ' drop-in')
+      : '';
     return `
       <div>
-        <div class="catalog-tree-node${currentCatalogNodeId === node.id ? ' active' : ''}${hasChildren ? ' expanded' : ''}" 
+        <div class="catalog-tree-node${currentCatalogNodeId === node.id ? ' active' : ''}${hasChildren ? ' expanded' : ''}${isDragging ? ' dragging' : ''}${isDropDisabled ? ' dnd-disabled' : ''}${dropCls}" 
              id="ctnode-${node.id}"
              data-node-id="${node.id}"
              ${pidAttr}
+             draggable="true"
              style="padding-left:${12 + indent}px;"
+             ondragstart="onCatalogNodeDragStart(event,'${node.id}')"
+             ondragover="onCatalogNodeDragOver(event,'${node.id}')"
+             ondragleave="onCatalogNodeDragLeave(event,'${node.id}')"
+             ondrop="onCatalogNodeDrop(event,'${node.id}')"
+             ondragend="onCatalogNodeDragEnd()"
              onclick="selectCatalogNode('${node.id}')">
           <span class="ct-arrow">${hasChildren ? '▶' : ''}</span>
           <span class="ct-icon">${hasChildren ? '📂' : '📄'}</span>
@@ -9517,6 +9582,206 @@ function findParentNode(tree, id, parent = null) {
     }
   }
   return undefined;
+}
+
+// 获取目录子树高度（节点自身为1层）
+function getCatalogSubtreeHeight(node) {
+  if (!node || !node.children || node.children.length === 0) return 1;
+  return 1 + Math.max(...node.children.map(getCatalogSubtreeHeight));
+}
+
+// 判断某节点是否是另一个节点的后代
+function isCatalogDescendant(ancestorId, maybeDescendantId) {
+  const ancestorNode = findCatalogNode(CATALOG_TREE, ancestorId);
+  if (!ancestorNode || !ancestorNode.children || ancestorNode.children.length === 0) return false;
+  const stack = [...ancestorNode.children];
+  while (stack.length > 0) {
+    const cur = stack.pop();
+    if (!cur) continue;
+    if (cur.id === maybeDescendantId) return true;
+    if (cur.children && cur.children.length > 0) stack.push(...cur.children);
+  }
+  return false;
+}
+
+function getCatalogNodeSiblingsAndIndex(nodeId) {
+  const parent = findParentNode(CATALOG_TREE, nodeId);
+  const siblings = parent ? parent.children : CATALOG_TREE;
+  const index = siblings.findIndex(n => n.id === nodeId);
+  return { parent, siblings, index };
+}
+
+function calcCatalogDropPosition(evt) {
+  const targetEl = evt.currentTarget;
+  const rect = targetEl.getBoundingClientRect();
+  const y = evt.clientY - rect.top;
+  const ratio = rect.height > 0 ? (y / rect.height) : 0.5;
+  if (ratio < 0.28) return 'before';
+  if (ratio > 0.72) return 'after';
+  return 'in';
+}
+
+// 返回 null 表示可放置；返回字符串表示不可放置原因
+function getCatalogDropInvalidReason(dragNodeId, targetNodeId, dropPosition) {
+  if (!dragNodeId || !targetNodeId || !dropPosition) return '无效放置';
+  if (dragNodeId === targetNodeId) return '不能拖到自身';
+  if (isCatalogDescendant(dragNodeId, targetNodeId)) return '不能拖到后代目录';
+  const dragNode = findCatalogNode(CATALOG_TREE, dragNodeId);
+  if (!dragNode) return '拖拽节点不存在';
+  const subtreeHeight = getCatalogSubtreeHeight(dragNode);
+  const targetDepth = getCatalogDepth(CATALOG_TREE, targetNodeId);
+  if (!targetDepth) return '目标目录不存在';
+  const { parent: dragParent, siblings: dragSiblings, index: dragIndex } = getCatalogNodeSiblingsAndIndex(dragNodeId);
+  const dragParentId = dragParent ? dragParent.id : '__root__';
+  if (dropPosition === 'in') {
+    const newRootDepth = targetDepth + 1;
+    if (newRootDepth + subtreeHeight - 1 > CATALOG_MAX_DEPTH) return `超过最大层级（${CATALOG_MAX_DEPTH}级）`;
+    if (dragParentId === targetNodeId) return '该节点已在目标目录下';
+    return null;
+  }
+  const { parent: targetParent, siblings: targetSiblings, index: targetIndex } = getCatalogNodeSiblingsAndIndex(targetNodeId);
+  if (targetIndex === -1) return '目标目录不存在';
+  const targetParentId = targetParent ? targetParent.id : '__root__';
+  if (targetDepth + subtreeHeight - 1 > CATALOG_MAX_DEPTH) return `超过最大层级（${CATALOG_MAX_DEPTH}级）`;
+  if (dragParentId === targetParentId) {
+    if (dropPosition === 'before' && dragIndex === targetIndex - 1) return '目录位置未变化';
+    if (dropPosition === 'after' && dragIndex === targetIndex + 1) return '目录位置未变化';
+  }
+  if (dropPosition === 'before' && dragIndex === targetIndex) return '目录位置未变化';
+  if (dropPosition === 'after' && dragIndex === targetIndex) return '目录位置未变化';
+  return null;
+}
+
+function clearCatalogDragState(shouldRender) {
+  draggingCatalogNodeId = null;
+  catalogDropTargetId = null;
+  catalogDropPosition = null;
+  if (shouldRender) renderCatalogMgmtTree();
+}
+
+function onCatalogNodeDragStart(evt, nodeId) {
+  draggingCatalogNodeId = nodeId;
+  catalogDropTargetId = null;
+  catalogDropPosition = null;
+  evt.dataTransfer.effectAllowed = 'move';
+  evt.dataTransfer.setData('text/plain', nodeId);
+  // 直接操作 class，不重建 DOM
+  const srcEl = document.getElementById('ctnode-' + nodeId);
+  if (srcEl) srcEl.classList.add('dragging');
+  // 给所有无效目标加 dnd-disabled
+  document.querySelectorAll('.catalog-tree-node[data-node-id]').forEach(el => {
+    const nid = el.getAttribute('data-node-id');
+    if (nid === nodeId) return;
+    const reasonIn = getCatalogDropInvalidReason(nodeId, nid, 'in');
+    const reasonBefore = getCatalogDropInvalidReason(nodeId, nid, 'before');
+    const reasonAfter = getCatalogDropInvalidReason(nodeId, nid, 'after');
+    if (reasonIn && reasonBefore && reasonAfter) {
+      el.classList.add('dnd-disabled');
+    }
+  });
+}
+
+/* --- 拖拽期间的 CSS class 直接操作（不重建 DOM） --- */
+function _clearAllDropIndicators() {
+  document.querySelectorAll('.catalog-tree-node.drop-in,.catalog-tree-node.drop-before,.catalog-tree-node.drop-after')
+    .forEach(el => el.classList.remove('drop-in', 'drop-before', 'drop-after'));
+}
+
+function onCatalogNodeDragOver(evt, targetNodeId) {
+  if (!draggingCatalogNodeId) return;
+  const dropPos = calcCatalogDropPosition(evt);
+  const invalidReason = getCatalogDropInvalidReason(draggingCatalogNodeId, targetNodeId, dropPos);
+  if (invalidReason) {
+    evt.dataTransfer.dropEffect = 'none';
+    // 清除该节点上可能残留的高亮
+    const el = document.getElementById('ctnode-' + targetNodeId);
+    if (el) el.classList.remove('drop-in', 'drop-before', 'drop-after');
+    return;
+  }
+  evt.preventDefault();
+  evt.dataTransfer.dropEffect = 'move';
+  if (catalogDropTargetId !== targetNodeId || catalogDropPosition !== dropPos) {
+    // 先清除旧高亮
+    _clearAllDropIndicators();
+    catalogDropTargetId = targetNodeId;
+    catalogDropPosition = dropPos;
+    // 直接加 class，不重建 DOM
+    const el = document.getElementById('ctnode-' + targetNodeId);
+    if (el) el.classList.add('drop-' + dropPos);
+  }
+}
+
+function onCatalogNodeDragLeave(evt, targetNodeId) {
+  const related = evt.relatedTarget;
+  const currentEl = evt.currentTarget;
+  if (related && currentEl && currentEl.contains(related)) return;
+  if (catalogDropTargetId === targetNodeId) {
+    catalogDropTargetId = null;
+    catalogDropPosition = null;
+    // 直接移除 class，不重建 DOM
+    const el = document.getElementById('ctnode-' + targetNodeId);
+    if (el) el.classList.remove('drop-in', 'drop-before', 'drop-after');
+  }
+}
+
+function detachCatalogNode(nodeId) {
+  const { siblings, index } = getCatalogNodeSiblingsAndIndex(nodeId);
+  if (index < 0) return null;
+  const [node] = siblings.splice(index, 1);
+  return node || null;
+}
+
+function insertCatalogNode(dragNode, targetNodeId, dropPosition) {
+  if (!dragNode) return false;
+  if (dropPosition === 'in') {
+    const targetNode = findCatalogNode(CATALOG_TREE, targetNodeId);
+    if (!targetNode) return false;
+    targetNode.children = targetNode.children || [];
+    targetNode.children.push(dragNode);
+    return true;
+  }
+  const { siblings, index } = getCatalogNodeSiblingsAndIndex(targetNodeId);
+  if (index < 0) return false;
+  const insertIndex = dropPosition === 'before' ? index : index + 1;
+  siblings.splice(insertIndex, 0, dragNode);
+  return true;
+}
+
+function applyCatalogDragMove(dragNodeId, targetNodeId, dropPosition) {
+  const invalidReason = getCatalogDropInvalidReason(dragNodeId, targetNodeId, dropPosition);
+  if (invalidReason) {
+    showNotification('warning', '当前目录不可放置', invalidReason);
+    return false;
+  }
+  const dragNode = detachCatalogNode(dragNodeId);
+  if (!dragNode) return false;
+  const inserted = insertCatalogNode(dragNode, targetNodeId, dropPosition);
+  if (!inserted) return false;
+  return true;
+}
+
+function onCatalogNodeDrop(evt, targetNodeId) {
+  evt.preventDefault();
+  if (!draggingCatalogNodeId) return;
+  const dropPos = calcCatalogDropPosition(evt);
+  const moved = applyCatalogDragMove(draggingCatalogNodeId, targetNodeId, dropPos);
+  const fromNodeId = draggingCatalogNodeId;
+  clearCatalogDragState(false);
+  renderCatalogMgmtTree();
+  if (currentCatalogNodeId) renderCatalogNodeDetail(currentCatalogNodeId);
+  if (moved) {
+    const targetNode = findCatalogNode(CATALOG_TREE, targetNodeId);
+    const targetName = targetNode ? targetNode.name : targetNodeId;
+    const posText = dropPos === 'in' ? '作为子目录' : (dropPos === 'before' ? '移动到前面' : '移动到后面');
+    showNotification('success', '目录移动成功', `已将目录${posText}到「${targetName}」`);
+  } else {
+    const fromEl = document.getElementById(`ctnode-${fromNodeId}`);
+    if (fromEl) fromEl.classList.add('active');
+  }
+}
+
+function onCatalogNodeDragEnd() {
+  clearCatalogDragState(true);
 }
 
 // 目录节点排序（上移/下移）
