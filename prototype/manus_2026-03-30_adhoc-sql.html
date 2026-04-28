@@ -7746,32 +7746,27 @@ function switchMgmtPanel(panel, el) {
 }
 
 // ========== 工作台 Mock 数据 & 渲染 ==========
-const MOCK_WB_ANOMALIES = [
-  // 目录类
-  { id:'a1', type:'无目录', resource:'dwd_order_detail', desc:'资产未挂载任何目录', action:'分配目录', target:'catalog-mgmt', category:'catalog', level:'warn' },
-  { id:'a2', type:'目录悬空', resource:'ods_trade_flow', desc:'挂载目录"交易分析"已被删除', action:'重新分配', target:'catalog-mgmt', category:'catalog', level:'warn' },
-  // 更新类
-  { id:'a3', type:'长期未更新', resource:'dim_area_code', desc:'超过 90 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'warn' },
-  { id:'a4', type:'长期未更新', resource:'dim_product', desc:'超过 60 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'info' },
-  // 数据量类
-  { id:'a5', type:'数据量为空', resource:'ads_empty_table_test', desc:'表已创建但无任何数据（0行）', action:'查看详情', target:'detail', category:'data', level:'error' },
-  { id:'a6', type:'数据量为空', resource:'ods_abandoned_log', desc:'近 30 天数据量持续为 0', action:'查看详情', target:'detail', category:'data', level:'error' },
-  // 负责人类
-  { id:'a7', type:'负责人离职', resource:'ads_finance_report', desc:'技术负责人 王五 已离职，资源无人维护', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
-  { id:'a8', type:'负责人离职', resource:'dws_user_behavior', desc:'业务负责人 赵六 已离职', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
-  { id:'a9', type:'负责人缺失', resource:'ods_user_log', desc:'未指定业务负责人', action:'补全信息', target:'resource-list', category:'owner', level:'warn' },
-  // 元数据类
-  { id:'a10', type:'描述缺失', resource:'dwd_order_detail', desc:'资产无中文描述，影响检索和理解', action:'补全描述', target:'detail', category:'meta', level:'info' },
-  { id:'a11', type:'字段漂移', resource:'ods_trade_flow', desc:'物理字段与元数据不一致（+2 -1）', action:'同步字段', target:'detail', category:'meta', level:'warn' },
-  { id:'a12', type:'标签缺失', resource:'dim_city', desc:'未打任何业务标签', action:'打标签', target:'detail', category:'meta', level:'info' },
-  // 上游类
-  { id:'a13', type:'上游断裂', resource:'dws_user_behavior', desc:'上游 ods_click_log 已下线', action:'查看血缘', target:'detail', category:'upstream', level:'error' }
+// 待办事项 — 4大分类6种待办
+const MOCK_WB_TODO_ITEMS = [
+  // 数据识别类
+  { id:'t1', category:'identification', type:'数据无分类分级', resource:'dwd_order_detail', desc:'资源未进行数据分类分级标注', actionType:'contact' },
+  { id:'t2', category:'identification', type:'API详情描述不规范', resource:'api_inventory_check', desc:'API描述不完整，无法关联应用平台', actionType:'edit' },
+  // 数据管理类
+  { id:'t3', category:'management', type:'数据长时间未更新', resource:'dim_area_code', desc:'超过30天未更新，生命周期<30天', actionType:'resolve' },
+  // 数据退役类
+  { id:'t4', category:'retirement', type:'数据源已删除', resource:'ods_trade_flow', desc:'源系统已删除，平台仍存在该资源', actionType:'resolve' },
+  { id:'t5', category:'retirement', type:'表名不规范', resource:'tmp_export_20250101', desc:'临时表，无过期时间，需确认是否销毁', actionType:'resolve' },
+  // 负责人异常类
+  { id:'t6', category:'ownerAnomaly', type:'负责人离职', resource:'ads_finance_report', desc:'技术负责人 王五 已离职，资源无人维护', actionType:'claim' },
+  { id:'t7', category:'ownerAnomaly', type:'负责人缺失', resource:'ods_user_log', desc:'未指定负责人', actionType:'claim' }
 ];
-const MOCK_WB_PENDING = [
-  { group:'待上架', count:3, action:'去处理', target:'resource-list', filter:'maintain' },
-  { group:'待审批', count:2, action:'去审批', target:'perm', desc:'他人申请我负责资源的权限' },
-  { group:'待补全', count:5, action:'去补全', target:'resource-list', desc:'缺少描述/负责人/目录' }
-];
+// 待办分类配置
+const TODO_CATEGORY_CONFIG = {
+  identification: { label:'数据识别类', color:'#1890ff', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1890ff" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  management: { label:'数据管理类', color:'var(--warning)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+  retirement: { label:'数据退役类', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' },
+  ownerAnomaly: { label:'负责人异常类', color:'#722ed1', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/></svg>' }
+};
 const MOCK_WB_OPERATIONS = [
   { time:'10:42', operator:'张三', resource:'dwd_order_detail', action:'编辑', detail:'修改资源描述', icon:'edit' },
   { time:'10:30', operator:'张三', resource:'ods_user_log', action:'上架', detail:'状态：待维护 → 已上架', icon:'status' },
@@ -7793,7 +7788,7 @@ const MOCK_WB_MY_REQUESTS = [
 function renderWorkbench() {
   const myResources = MOCK_RESOURCES.filter(r => r.owner === '张三');
   const totalCount = myResources.length;
-  const todoCount = MOCK_WB_ANOMALIES.length + MOCK_WB_PENDING.reduce((s,p)=>s+p.count,0);
+  const todoCount = MOCK_WB_TODO_ITEMS.length;
   const healthPct = 89;
 
   // 统计卡片
@@ -7802,7 +7797,10 @@ function renderWorkbench() {
   const statChanges = document.getElementById('wb-stat-changes');
   const statHealth = document.getElementById('wb-stat-health');
   if(statTotal) { statTotal.textContent = totalCount; document.getElementById('wb-stat-total-sub').textContent = `表 ${myResources.filter(r=>r.type==='table').length} · 报表 ${myResources.filter(r=>r.type==='report').length} · 其他 ${myResources.filter(r=>!['table','report'].includes(r.type)).length}`; }
-  if(statTodo) { statTodo.textContent = todoCount; document.getElementById('wb-stat-todo-sub').textContent = `异常 ${MOCK_WB_ANOMALIES.length} · 待上架 ${MOCK_WB_PENDING[0].count} · 待审批 ${MOCK_WB_PENDING[1].count} · 待补全 ${MOCK_WB_PENDING[2].count}`; }
+  // 按分类统计待办数量
+  const todoByCat = {};
+  MOCK_WB_TODO_ITEMS.forEach(t => { todoByCat[t.category] = (todoByCat[t.category]||0) + 1; });
+  if(statTodo) { statTodo.textContent = todoCount; document.getElementById('wb-stat-todo-sub').textContent = `识别 ${todoByCat.identification||0} · 管理 ${todoByCat.management||0} · 退役 ${todoByCat.retirement||0} · 负责人 ${todoByCat.ownerAnomaly||0}`; }
   if(statChanges) { statChanges.textContent = 12; document.getElementById('wb-stat-changes-sub').textContent = '较上周 +3'; }
   if(statHealth) { statHealth.textContent = healthPct + '%'; statHealth.style.color = healthPct >= 80 ? '#52c41a' : healthPct >= 60 ? 'var(--warning)' : '#ff4d4f'; }
   const healthBar = document.getElementById('wb-health-bar');
@@ -7823,50 +7821,45 @@ function renderWorkbenchTodo() {
   const el = document.getElementById('wb-todo-list');
   if(!el) return;
   let html = '';
-  // 异常资源 - 按分类分组
-  const categoryMap = {
-    catalog: { label:'目录异常', color:'#722ed1', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
-    update: { label:'更新异常', color:'var(--warning)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-    data: { label:'数据异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
-    owner: { label:'负责人异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/></svg>' },
-    meta: { label:'元数据缺失', color:'var(--primary)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
-    upstream: { label:'上游异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' }
-  };
-  const levelDot = { error:'#ff4d4f', warn:'var(--warning)', info:'var(--primary)' };
+  // 按分类分组
   const groups = {};
-  MOCK_WB_ANOMALIES.forEach(a => {
-    if(!groups[a.category]) groups[a.category] = [];
-    groups[a.category].push(a);
+  MOCK_WB_TODO_ITEMS.forEach(t => {
+    if(!groups[t.category]) groups[t.category] = [];
+    groups[t.category].push(t);
   });
-  Object.keys(groups).forEach(cat => {
-    const cfg = categoryMap[cat] || { label:cat, color:'var(--gray-500)', icon:'' };
+  // 按配置顺序渲染各分类
+  const catOrder = ['identification','management','retirement','ownerAnomaly'];
+  catOrder.forEach(cat => {
+    if(!groups[cat] || !groups[cat].length) return;
+    const cfg = TODO_CATEGORY_CONFIG[cat];
     const items = groups[cat];
-    html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
-    items.forEach(a => {
-      const dot = levelDot[a.level] || 'var(--gray-400)';
+    html += '<div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
+    items.forEach(t => {
+      // 根据 actionType 生成不同操作按钮
+      let actionHtml = '';
+      if(t.actionType === 'contact') {
+        actionHtml = '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleTodoCopyEmail()">联系管理员</a>';
+      } else if(t.actionType === 'edit') {
+        actionHtml = '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleTodoEdit(\''+t.resource+'\')">编辑</a>';
+      } else if(t.actionType === 'resolve') {
+        actionHtml = '<a style="color:#52c41a;cursor:pointer;white-space:nowrap;margin-left:6px;font-size:11px;" onclick="openTodoResolveModal(\''+t.id+'\',\''+t.resource+'\')">已处理</a>' +
+          '<a style="color:var(--gray-400);cursor:pointer;white-space:nowrap;margin-left:6px;font-size:11px;" onclick="openTodoIgnoreModal(\''+t.id+'\',\''+t.resource+'\')">无需处理</a>';
+      } else if(t.actionType === 'claim') {
+        actionHtml = '<a style="color:#722ed1;cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="openTodoClaimModal(\''+t.id+'\',\''+t.resource+'\')">认领资源</a>';
+      }
       html += '<div style="padding:5px 16px 5px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
         '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';flex-shrink:0;"></span>' +
-          '<span style="color:var(--gray-800);font-weight:500;">'+a.resource+'</span>' +
-          '<span style="color:var(--gray-400);">'+a.type+'</span>' +
-          '<span style="color:var(--gray-400);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.desc+'</span>' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:'+cfg.color+';flex-shrink:0;"></span>' +
+          '<span style="color:var(--gray-800);font-weight:500;">'+t.resource+'</span>' +
+          '<span style="color:var(--gray-400);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+t.desc+'</span>' +
         '</div>' +
-        '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleWbTodoClick(\''+a.target+'\',\''+a.resource+'\')">'+a.action+'</a>' +
+        '<div style="display:flex;align-items:center;flex-shrink:0;">'+actionHtml+'</div>' +
       '</div>';
     });
   });
-  // 常规待办
-  html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:var(--warning);display:flex;align-items:center;gap:4px;margin-top:8px;border-top:1px solid var(--gray-100);padding-top:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 常规待办</div>';
-  MOCK_WB_PENDING.forEach(p => {
-    html += '<div style="padding:6px 16px 6px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
-      '<div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);margin-right:6px;"></span>' +
-        '<span style="font-weight:500;">'+p.group+'</span>' +
-        '<span style="color:var(--warning);margin-left:4px;">('+p.count+')</span>' +
-        (p.desc ? '<span style="color:var(--gray-400);margin-left:6px;font-size:11px;">'+p.desc+'</span>' : '') +
-      '</div>' +
-      '<a style="color:var(--primary);cursor:pointer;font-size:11px;" onclick="handleWbTodoClick(\''+p.target+'\',\'\')">'+p.action+' \u2192</a>' +
-    '</div>';
-  });
+  if(!MOCK_WB_TODO_ITEMS.length) {
+    html = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:12px;">暂无待办事项</div>';
+  }
   el.innerHTML = html;
 }
 
@@ -7923,7 +7916,7 @@ function renderWorkbenchMyResources() {
   let list = MOCK_RESOURCES.filter(r => r.owner === '张三');
   if(statusFilter === 'published') list = list.filter(r => r.status === '已上架');
   else if(statusFilter === 'maintain') list = list.filter(r => r.status === '待维护');
-  else if(statusFilter === 'error') list = list.filter(r => MOCK_WB_ANOMALIES.some(a => a.resource === r.name));
+  else if(statusFilter === 'error') list = list.filter(r => MOCK_WB_TODO_ITEMS.some(a => a.resource === r.name));
   if(kw) list = list.filter(r => r.name.toLowerCase().includes(kw) || (r.displayName||'').toLowerCase().includes(kw));
   // 健康度 mock
   const healthMap = { 'dwd_order_detail':95, 'ods_user_log':72, 'dim_city':88, 'dws_user_behavior':65, 'ads_finance_report':40, 'ods_trade_flow':78, 'dim_area_code':91, 'dim_product':85 };
@@ -7932,7 +7925,7 @@ function renderWorkbenchMyResources() {
   el.innerHTML = list.slice(0,8).map((r,i) => {
     const h = healthMap[r.name] || (70 + Math.floor(Math.random()*25));
     const hColor = h >= 80 ? '#52c41a' : h >= 60 ? 'var(--warning)' : '#ff4d4f';
-    const isAnomaly = MOCK_WB_ANOMALIES.some(a => a.resource === r.name);
+    const isAnomaly = MOCK_WB_TODO_ITEMS.some(a => a.resource === r.name);
     return `<tr style="border-bottom:1px solid var(--gray-50);${isAnomaly?'background:#fff2f0;':''}cursor:pointer;" >
       <td style="padding:8px 12px;">
         <div style="cursor:pointer;" onclick="openDetail('${r.id}')">
@@ -7964,6 +7957,167 @@ function handleWbTodoClick(target, resource) {
     const r = MOCK_RESOURCES.find(x => x.name === resource);
     if(r) openDetail(r.id);
   }
+}
+
+// ===== 待办事项处理函数 =====
+
+// 联系管理员：复制邮箱
+function handleTodoCopyEmail() {
+  const email = 'jiangbin@wanlianyida.com';
+  navigator.clipboard.writeText(email).then(() => {
+    showNotification('success', '已复制邮箱', '管理员邮箱：' + email);
+  }).catch(() => {
+    showNotification('info', '管理员邮箱', email);
+  });
+}
+
+// 编辑：打开资源编辑弹窗
+function handleTodoEdit(resourceName) {
+  const r = MOCK_RESOURCES.find(x => x.name === resourceName);
+  if(r) openResourceEditModal(r.id);
+  else showNotification('warning', '提示', '未找到资源：' + resourceName);
+}
+
+// 已处理弹窗
+function openTodoResolveModal(todoId, resourceName) {
+  let mask = document.getElementById('todo-modal-mask');
+  if(!mask) {
+    mask = document.createElement('div');
+    mask.id = 'todo-modal-mask';
+    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
+    mask.onclick = () => closeTodoModal();
+    document.body.appendChild(mask);
+  }
+  let modal = document.getElementById('todo-modal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'todo-modal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">确认已处理</div>
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
+    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">处理情况 <span style="color:#ff4d4f;">*</span></div>
+    <textarea id="todo-modal-input" style="width:100%;height:80px;border:1px solid var(--gray-200);border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;" placeholder="请描述处理情况..."></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitTodoResolve('${todoId}')">确认</button>
+    </div>`;
+  mask.style.display = 'block';
+  modal.style.display = 'block';
+}
+
+// 无需处理弹窗
+function openTodoIgnoreModal(todoId, resourceName) {
+  let mask = document.getElementById('todo-modal-mask');
+  if(!mask) {
+    mask = document.createElement('div');
+    mask.id = 'todo-modal-mask';
+    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
+    mask.onclick = () => closeTodoModal();
+    document.body.appendChild(mask);
+  }
+  let modal = document.getElementById('todo-modal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'todo-modal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">标记为无需处理</div>
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
+    <div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:8px 12px;font-size:11px;color:#d48806;margin-bottom:12px;">标记后该问题将不再出现在待办列表中</div>
+    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">原因说明 <span style="color:#ff4d4f;">*</span></div>
+    <textarea id="todo-modal-input" style="width:100%;height:80px;border:1px solid var(--gray-200);border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;" placeholder="请说明无需处理的原因..."></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitTodoIgnore('${todoId}')">确认</button>
+    </div>`;
+  mask.style.display = 'block';
+  modal.style.display = 'block';
+}
+
+// 认领资源弹窗
+function openTodoClaimModal(todoId, resourceName) {
+  let mask = document.getElementById('todo-modal-mask');
+  if(!mask) {
+    mask = document.createElement('div');
+    mask.id = 'todo-modal-mask';
+    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
+    mask.onclick = () => closeTodoModal();
+    document.body.appendChild(mask);
+  }
+  let modal = document.getElementById('todo-modal');
+  if(!modal) {
+    modal = document.createElement('div');
+    modal.id = 'todo-modal';
+    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">认领资源 - 指定负责人</div>
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
+    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">选择负责人 <span style="color:#ff4d4f;">*</span></div>
+    <select id="todo-modal-select" style="width:100%;height:32px;border:1px solid var(--gray-200);border-radius:6px;padding:0 8px;font-size:12px;box-sizing:border-box;">
+      <option value="">请选择负责人</option>
+      <option value="zhangsan">张三</option>
+      <option value="lisi">李四</option>
+      <option value="wangwu">王五</option>
+      <option value="zhaoliu">赵六</option>
+    </select>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="submitTodoClaim('${todoId}')">确认</button>
+    </div>`;
+  mask.style.display = 'block';
+  modal.style.display = 'block';
+}
+
+// 关闭弹窗
+function closeTodoModal() {
+  const mask = document.getElementById('todo-modal-mask');
+  const modal = document.getElementById('todo-modal');
+  if(mask) mask.style.display = 'none';
+  if(modal) modal.style.display = 'none';
+}
+
+// 提交已处理
+function submitTodoResolve(todoId) {
+  const input = document.getElementById('todo-modal-input');
+  if(!input || !input.value.trim()) { showNotification('warning', '提示', '请填写处理情况'); return; }
+  // 从列表移除该待办（模拟）
+  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
+  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
+  closeTodoModal();
+  renderWorkbenchTodo();
+  renderWorkbench();
+  showNotification('success', '已处理', '已标记为已处理');
+}
+
+// 提交无需处理
+function submitTodoIgnore(todoId) {
+  const input = document.getElementById('todo-modal-input');
+  if(!input || !input.value.trim()) { showNotification('warning', '提示', '请填写原因说明'); return; }
+  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
+  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
+  closeTodoModal();
+  renderWorkbenchTodo();
+  renderWorkbench();
+  showNotification('success', '无需处理', '已标记为无需处理，后续不再提醒');
+}
+
+// 提交认领资源
+function submitTodoClaim(todoId) {
+  const select = document.getElementById('todo-modal-select');
+  if(!select || !select.value) { showNotification('warning', '提示', '请选择负责人'); return; }
+  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
+  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
+  closeTodoModal();
+  renderWorkbenchTodo();
+  renderWorkbench();
+  showNotification('success', '认领成功', '资源已认领，负责人已更新');
 }
 
 
