@@ -1708,6 +1708,357 @@
     .action-dropdown-item:hover { background: var(--gray-50); color: var(--primary); }
     .action-dropdown.show { display: none; }
     .action-more-btn { font-size: 16px; letter-spacing: 2px; padding: 0 6px; }
+    .add-metric-modal { width: 1320px; max-width: calc(100vw - 48px); max-height: 90vh; display: flex; flex-direction: column; }
+    .add-metric-body { flex: 1; overflow-y: auto; padding: 20px 24px 24px; background: var(--gray-50); }
+    .add-metric-panel {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+    }
+    .add-metric-panel + .add-metric-panel { margin-top: 16px; }
+    .add-metric-panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 14px;
+    }
+    .add-metric-source-grid {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+    .metric-source-candidates {
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      background: #fff;
+      max-height: 204px;
+      overflow-y: auto;
+    }
+    .metric-source-candidate {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--gray-100);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .metric-source-candidate:last-child { border-bottom: none; }
+    .metric-source-candidate:hover { background: var(--primary-light); }
+    .metric-source-candidate.active {
+      background: var(--primary-light);
+      box-shadow: inset 0 0 0 1px #91caff;
+    }
+    .metric-source-candidate-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-800);
+      line-height: 1.5;
+    }
+    .metric-source-candidate-meta {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .metric-source-empty {
+      padding: 20px 12px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--gray-400);
+    }
+    .metric-selected-source {
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .metric-selected-source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .metric-fields-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .metric-fields-count {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+    .metric-fields-table {
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .metric-fields-table .table-wrap {
+      max-height: 260px;
+      overflow: auto;
+    }
+    .metric-fields-table table th {
+      position: sticky;
+      top: 0;
+      background: var(--gray-50);
+      z-index: 1;
+    }
+    .metric-card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .metric-empty-card {
+      border: 1px dashed var(--gray-300);
+      border-radius: 14px;
+      padding: 28px 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--gray-400);
+      background: linear-gradient(180deg, #fff, #fafcff);
+    }
+    .metric-config-card {
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+    .metric-config-card-header {
+      padding: 14px 18px;
+      background: linear-gradient(90deg, #f7fbff, #eef6ff);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .metric-config-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+    .metric-config-card-subtitle {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+    .metric-config-card-body { padding: 18px; }
+    .metric-config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 24px;
+    }
+    .metric-config-span-2 { grid-column: 1 / -1; }
+    .metric-tag-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-height: 40px;
+      padding: 6px 10px;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .metric-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--gray-100);
+      color: var(--gray-700);
+      font-size: 12px;
+    }
+    .metric-tag-chip-remove {
+      cursor: pointer;
+      color: var(--gray-400);
+      font-size: 14px;
+      line-height: 1;
+    }
+    .metric-tag-chip-remove:hover { color: var(--danger); }
+    .metric-tag-input {
+      border: none;
+      outline: none;
+      min-width: 120px;
+      flex: 1;
+      font-size: 13px;
+      padding: 4px 0;
+      background: transparent;
+    }
+    .metric-owner-picker {
+      position: relative;
+    }
+    .metric-owner-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 30;
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+      overflow: hidden;
+      display: none;
+    }
+    .metric-owner-dropdown.open { display: block; }
+    .metric-owner-search-meta {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 11px;
+      color: var(--gray-400);
+      background: var(--gray-50);
+    }
+    .metric-owner-options {
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .metric-richtext {
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .metric-richtext-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+    .metric-richtext-toolbar .btn { min-width: 30px; }
+    .metric-richtext-editor {
+      min-height: 110px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--gray-700);
+      outline: none;
+    }
+    .metric-readonly {
+      background: var(--gray-50);
+      color: var(--gray-500);
+      cursor: not-allowed;
+    }
+    .metric-helper-text {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--gray-400);
+      line-height: 1.5;
+    }
+    .metric-markdown-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+    .metric-markdown-input {
+      min-height: 180px;
+      resize: vertical;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      line-height: 1.6;
+    }
+    .metric-markdown-preview {
+      min-height: 180px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      background: linear-gradient(180deg, #fff, #fafcff);
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--gray-700);
+    }
+    .metric-markdown-preview h1,
+    .metric-markdown-preview h2,
+    .metric-markdown-preview h3,
+    .metric-markdown-preview h4,
+    .metric-markdown-preview h5,
+    .metric-markdown-preview h6 {
+      margin: 0 0 10px;
+      color: var(--gray-800);
+      line-height: 1.4;
+    }
+    .metric-markdown-preview p,
+    .metric-markdown-preview ul,
+    .metric-markdown-preview ol,
+    .metric-markdown-preview blockquote,
+    .metric-markdown-preview pre,
+    .metric-markdown-preview table {
+      margin: 0 0 12px;
+    }
+    .metric-markdown-preview ul,
+    .metric-markdown-preview ol {
+      padding-left: 20px;
+    }
+    .metric-markdown-preview blockquote {
+      padding: 8px 12px;
+      border-left: 3px solid #91caff;
+      background: #f8fbff;
+      color: var(--gray-600);
+    }
+    .metric-markdown-preview pre {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      overflow-x: auto;
+    }
+    .metric-markdown-preview code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+    }
+    .metric-markdown-preview :not(pre) > code {
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    .metric-markdown-preview table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .metric-markdown-preview th,
+    .metric-markdown-preview td {
+      border: 1px solid var(--gray-200);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .metric-markdown-preview th {
+      background: var(--gray-50);
+      color: var(--gray-700);
+    }
+    .metric-markdown-empty {
+      color: var(--gray-400);
+      font-size: 12px;
+    }
+    .metric-required-hint {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-left: auto;
+    }
+    @media (max-width: 1100px) {
+      .add-metric-source-grid { grid-template-columns: 1fr; }
+      .metric-config-grid { grid-template-columns: 1fr; }
+      .metric-config-span-2 { grid-column: auto; }
+      .metric-markdown-grid { grid-template-columns: 1fr; }
+    }
     /* 资源行权限状态 */
     .mgmt-row-disabled { opacity: 0.45; }
     .mgmt-row-disabled input[type=checkbox] { pointer-events: none; }
@@ -2970,7 +3321,12 @@
               <span style="color:var(--gray-600);" id="rl-only-mine-text">仅我负责</span>
             </label>
             <div class="mgmt-toolbar-right">
-              <button class="btn btn-primary btn-sm" onclick="openAddResourceModal()" style="display:flex;align-items:center;gap:4px;">＋ 新增资源</button>
+              <div class="action-more-wrap" style="position:relative;display:inline-block;">
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();toggleActionDropdown(this)" style="display:flex;align-items:center;gap:4px;">＋ 新增资源</button>
+                <div class="action-dropdown" style="display:none;position:fixed;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:9999;min-width:120px;">
+                  <div class="action-dropdown-item" onclick="openAddMetricModal()">指标</div>
+                </div>
+              </div>
               <button class="btn btn-default btn-sm" onclick="openMgmtLogsDrawer()" style="display:flex;align-items:center;gap:4px;">📝 操作记录</button>
             </div>
           </div>
@@ -4175,6 +4531,211 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-add-metric">
+  <div class="modal add-metric-modal">
+    <div class="modal-header">
+      <div class="modal-title">新增指标</div>
+      <span class="modal-close" onclick="closeAddMetricModal()">×</span>
+    </div>
+    <div class="add-metric-body">
+      <div class="add-metric-panel">
+        <div class="add-metric-panel-title">指标来源</div>
+        <div class="add-metric-source-grid">
+          <div class="form-item" style="margin-bottom:0;">
+            <label class="form-label required">来源</label>
+            <select class="select form-input" id="metric-source-type" onchange="updateMetricSourceType(this.value)">
+              <option value="data_model">数据模型</option>
+              <option value="api">API</option>
+            </select>
+          </div>
+          <div class="form-item" style="margin-bottom:0;">
+            <label class="form-label required" id="metric-source-search-label">数据表</label>
+            <input class="input form-input" id="metric-source-search" placeholder="输入搜索关键词（至少5个字符）" oninput="handleMetricSourceKeywordInput(this.value)" />
+          </div>
+        </div>
+        <div class="metric-source-candidates" id="metric-source-candidates"></div>
+        <div class="metric-selected-source" id="metric-selected-source"></div>
+        <div class="metric-fields-head">
+          <div style="font-size:13px;font-weight:600;color:var(--gray-700);" id="metric-fields-title">字段列表</div>
+          <div class="metric-fields-count" id="metric-fields-count">未选择来源</div>
+        </div>
+        <div class="metric-fields-table">
+          <div class="table-wrap">
+            <table>
+              <thead id="metric-fields-thead"></thead>
+              <tbody id="metric-fields-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="add-metric-panel">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div class="add-metric-panel-title" style="margin-bottom:0;">指标配置</div>
+          <div class="metric-required-hint">已选字段/出参会实时生成指标卡片</div>
+        </div>
+        <div class="metric-card-stack" id="metric-cards-container"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeAddMetricModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitAddMetric()">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-metric-edit-resource">
+  <div class="modal add-metric-modal">
+    <div class="modal-header">
+      <div class="modal-title">编辑指标</div>
+      <span class="modal-close" onclick="closeMetricResourceEditModal()">×</span>
+    </div>
+    <div class="add-metric-body">
+      <div class="add-metric-panel">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+          <div>
+            <div class="add-metric-panel-title" style="margin-bottom:6px;">指标配置</div>
+            <div id="metric-edit-source-meta" style="font-size:12px;color:var(--gray-500);line-height:1.6;">来源信息</div>
+          </div>
+          <div style="font-size:12px;color:var(--gray-400);">编辑时，指标英文名与指标时效性保持只读</div>
+        </div>
+        <input type="hidden" id="metric-edit-resource-id" />
+        <div class="metric-config-card" style="box-shadow:none;margin-top:12px;">
+          <div class="metric-config-card-header">
+            <div>
+              <div class="metric-config-card-title">指标配置卡</div>
+              <div class="metric-config-card-subtitle" id="metric-edit-card-subtitle">来源字段：-</div>
+            </div>
+          </div>
+          <div class="metric-config-card-body">
+            <div class="metric-config-grid">
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">指标英文名</label>
+                <input class="input form-input metric-readonly" id="metric-edit-name" readonly />
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">描述</label>
+                <input class="input form-input" id="metric-edit-description" placeholder="请输入指标描述" />
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">指标等级</label>
+                <select class="select form-input" id="metric-edit-level">
+                  <option value="1级">1级</option>
+                  <option value="2级">2级</option>
+                  <option value="3级">3级</option>
+                </select>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">安全等级</label>
+                <select class="select form-input" id="metric-edit-security">
+                  <option value="公开级">公开级</option>
+                  <option value="内部级">内部级</option>
+                  <option value="秘密级">秘密级</option>
+                  <option value="绝密级">绝密级</option>
+                </select>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">指标目录</label>
+                <select class="select form-input" id="metric-edit-catalog"></select>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label">标签</label>
+                <div class="metric-tag-input-wrap">
+                  <span id="metric-edit-tag-chips"></span>
+                  <input
+                    class="metric-tag-input"
+                    id="metric-edit-tag-input"
+                    placeholder="输入后按回车确认"
+                    onkeydown="handleMetricEditTagInputKeydown(event)"
+                    onblur="commitMetricEditTagInput()"
+                  />
+                </div>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">技术负责人</label>
+                <select class="select form-input" id="metric-edit-tech-owner"></select>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">业务负责人</label>
+                <div class="metric-owner-picker" onclick="event.stopPropagation()">
+                  <input
+                    class="input form-input"
+                    id="metric-edit-biz-owner-input"
+                    placeholder="请输入姓名或邮箱搜索"
+                    onfocus="openMetricEditBizOwnerDropdown()"
+                    oninput="filterMetricEditBizOwner(this.value)"
+                  />
+                  <div class="metric-owner-dropdown" id="metric-edit-biz-owner-dropdown">
+                    <div class="metric-owner-search-meta">输入姓名或邮箱进行筛选，单选业务负责人</div>
+                    <div class="metric-owner-options" id="metric-edit-biz-owner-options"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-item" style="margin-bottom:0;">
+                <label class="form-label required">指标时效性</label>
+                <select class="select form-input metric-readonly" id="metric-edit-timeliness" disabled>
+                  <option value="">请选择指标时效性</option>
+                  <option value="实时">实时</option>
+                  <option value="离线">离线</option>
+                </select>
+              </div>
+              <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+                <label class="form-label required">表达式</label>
+                <div class="metric-richtext">
+                  <div class="metric-richtext-toolbar">
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','bold')">B</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','italic')">I</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','underline')">U</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','insertUnorderedList')">• 列表</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','insertOrderedList')">1. 列表</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','createLink')">链接</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-expression','formatBlock')">代码</button>
+                  </div>
+                  <div class="metric-richtext-editor" id="metric-edit-expression" contenteditable="true"></div>
+                </div>
+                <div class="metric-helper-text">请填写指标计算表达式，支持基础富文本格式。</div>
+              </div>
+              <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+                <label class="form-label required">口径说明</label>
+                <div class="metric-richtext">
+                  <div class="metric-richtext-toolbar">
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','bold')">B</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','italic')">I</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','underline')">U</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','insertUnorderedList')">• 列表</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','insertOrderedList')">1. 列表</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','createLink')">链接</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextEditorCommand('metric-edit-caliber','formatBlock')">代码</button>
+                  </div>
+                  <div class="metric-richtext-editor" id="metric-edit-caliber" contenteditable="true"></div>
+                </div>
+                <div class="metric-helper-text">请补充业务口径、统计边界、刷新说明等信息。</div>
+              </div>
+              <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+                <label class="form-label">使用说明（Markdown）</label>
+                <div class="metric-markdown-grid">
+                  <textarea
+                    class="form-textarea metric-markdown-input"
+                    id="metric-edit-usage-md"
+                    placeholder="# 使用说明&#10;&#10;- 支持标题、列表、引用、代码块和链接"
+                    oninput="updateMetricEditUsageMarkdown(this.value)"
+                  ></textarea>
+                  <div class="metric-markdown-preview" id="metric-edit-usage-preview"></div>
+                </div>
+                <div class="metric-helper-text">左侧输入 Markdown 原文，右侧实时预览展示效果。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeMetricResourceEditModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitMetricResourceEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 标签编辑 Modal -->
 <div class="modal-overlay" id="modal-tag-edit">
   <div class="modal" style="width:480px;">
@@ -4905,7 +5466,7 @@ function getOwnerDirectory() {
       name,
       email,
       label: `${name}（${email}）`,
-      searchText: `${name} ${email}`.toLowerCase()
+      searchText: `${name} ${email} ${name}（${email}） ${name}(${email})`.toLowerCase()
     };
   }).sort((a, b) => {
     if (a.name === CURRENT_USER) return -1;
@@ -4915,6 +5476,126 @@ function getOwnerDirectory() {
 }
 
 const OWNER_DIRECTORY = getOwnerDirectory();
+
+function createDefaultMetricCreateState() {
+  return {
+    sourceType: 'data_model',
+    sourceId: '',
+    keyword: '',
+    selectedFieldKeys: [],
+    cardsByFieldKey: {},
+  };
+}
+
+let metricCreateState = createDefaultMetricCreateState();
+let metricEditState = null;
+
+function getMetricSourceTypeLabel(sourceType) {
+  return sourceType === 'api' ? 'API' : '数据模型';
+}
+
+function getMetricSourceOptions(sourceType) {
+  if (sourceType === 'api') {
+    const recordMap = new Map();
+    [...MOCK_ASSETS, ...MOCK_RESOURCES]
+      .filter(item => item.type === 'api')
+      .forEach(item => {
+        recordMap.set(item.id, item);
+      });
+    return Object.keys(DETAIL_API_DEFINITIONS).map(id => {
+      const record = recordMap.get(id);
+      const apiDef = DETAIL_API_DEFINITIONS[id] || {};
+      return {
+        id,
+        name: record?.name || id,
+        display: record?.display || apiDef.summary || id,
+        techOwner: record?.tech_owner || CURRENT_USER,
+        sourceSystem: record?.source_system || 'API',
+        sourceLocation: record?.source_location || apiDef.service || apiDef.path || '-',
+        searchText: `${record?.name || id} ${record?.display || ''} ${apiDef.summary || ''} ${apiDef.service || ''} ${apiDef.path || ''}`.toLowerCase(),
+      };
+    });
+  }
+  return SQL_PERMISSION_TABLES.map(item => {
+    const relatedRecord = [...MOCK_ASSETS, ...MOCK_RESOURCES].find(record => record.id === item.id || record.name === item.fullName);
+    return {
+      id: item.id,
+      name: item.fullName,
+      display: item.cnName,
+      techOwner: relatedRecord?.tech_owner || CURRENT_USER,
+      sourceSystem: item.sourceSystem || item.sourceType || '数据模型',
+      sourceLocation: relatedRecord?.source_location || item.sourceSystem || item.sourceType || '-',
+      searchText: `${item.id} ${item.fullName} ${item.cnName} ${item.sourceSystem || ''}`.toLowerCase(),
+    };
+  });
+}
+
+function getMetricSourceFields(sourceType, sourceId) {
+  if (!sourceId) return [];
+  if (sourceType === 'api') {
+    const apiDef = DETAIL_API_DEFINITIONS[sourceId];
+    return (apiDef?.response || []).map((row, index) => ({
+      key: `${sourceId}::${row[0] || index}`,
+      name: row[0] || `field_${index + 1}`,
+      type: row[1] || '-',
+      comment: row[2] || '-',
+      sourceKindLabel: '出参',
+    }));
+  }
+  return (SQL_TABLE_FIELDS[sourceId] || []).map((field, index) => ({
+    key: `${sourceId}::${field.name || index}`,
+    name: field.name || `field_${index + 1}`,
+    type: field.type || '-',
+    comment: field.comment || field.description || '-',
+    sourceKindLabel: '字段',
+  }));
+}
+
+function getMetricSourceMeta(sourceType, sourceId) {
+  const options = getMetricSourceOptions(sourceType);
+  const selected = options.find(item => item.id === sourceId);
+  if (!selected) return null;
+  const apiDef = sourceType === 'api' ? DETAIL_API_DEFINITIONS[sourceId] : null;
+  return {
+    id: selected.id,
+    name: selected.name,
+    display: selected.display,
+    techOwner: selected.techOwner || CURRENT_USER,
+    sourceSystem: sourceType === 'api' ? 'API' : '数据模型',
+    sourceLocation: selected.sourceLocation,
+    path: apiDef?.path || '',
+    service: apiDef?.service || selected.sourceLocation,
+  };
+}
+
+function getMetricCardState(fieldKey) {
+  return metricCreateState.cardsByFieldKey[fieldKey] || null;
+}
+
+function ensureMetricCardState(fieldKey) {
+  const existing = getMetricCardState(fieldKey);
+  if (existing) return existing;
+  const field = getMetricSourceFields(metricCreateState.sourceType, metricCreateState.sourceId).find(item => item.key === fieldKey);
+  const meta = getMetricSourceMeta(metricCreateState.sourceType, metricCreateState.sourceId);
+  const cardState = {
+    fieldKey,
+    fieldName: field?.name || '',
+    description: field?.comment || '-',
+    metricLevel: '1级',
+    securityLevel: '秘密级',
+    catalog: '',
+    tags: [],
+    techOwner: meta?.techOwner || CURRENT_USER,
+    bizOwner: '',
+    timeliness: '',
+    expressionHtml: '',
+    caliberHtml: '',
+    usageMd: '',
+    usageHtml: '',
+  };
+  metricCreateState.cardsByFieldKey[fieldKey] = cardState;
+  return cardState;
+}
 
 function getOwnerFilterValue(domain) {
   return domain === 'asset' ? assetOwnerFilter : resourceOwnerFilter;
@@ -7746,27 +8427,32 @@ function switchMgmtPanel(panel, el) {
 }
 
 // ========== 工作台 Mock 数据 & 渲染 ==========
-// 待办事项 — 4大分类6种待办
-const MOCK_WB_TODO_ITEMS = [
-  // 数据识别类
-  { id:'t1', category:'identification', type:'数据无分类分级', resource:'dwd_order_detail', desc:'资源未进行数据分类分级标注', actionType:'contact' },
-  { id:'t2', category:'identification', type:'API详情描述不规范', resource:'api_inventory_check', desc:'API描述不完整，无法关联应用平台', actionType:'edit' },
-  // 数据管理类
-  { id:'t3', category:'management', type:'数据长时间未更新', resource:'dim_area_code', desc:'超过30天未更新，生命周期<30天', actionType:'resolve' },
-  // 数据退役类
-  { id:'t4', category:'retirement', type:'数据源已删除', resource:'ods_trade_flow', desc:'源系统已删除，平台仍存在该资源', actionType:'resolve' },
-  { id:'t5', category:'retirement', type:'表名不规范', resource:'tmp_export_20250101', desc:'临时表，无过期时间，需确认是否销毁', actionType:'resolve' },
-  // 负责人异常类
-  { id:'t6', category:'ownerAnomaly', type:'负责人离职', resource:'ads_finance_report', desc:'技术负责人 王五 已离职，资源无人维护', actionType:'claim' },
-  { id:'t7', category:'ownerAnomaly', type:'负责人缺失', resource:'ods_user_log', desc:'未指定负责人', actionType:'claim' }
+const MOCK_WB_ANOMALIES = [
+  // 目录类
+  { id:'a1', type:'无目录', resource:'dwd_order_detail', desc:'资产未挂载任何目录', action:'分配目录', target:'catalog-mgmt', category:'catalog', level:'warn' },
+  { id:'a2', type:'目录悬空', resource:'ods_trade_flow', desc:'挂载目录"交易分析"已被删除', action:'重新分配', target:'catalog-mgmt', category:'catalog', level:'warn' },
+  // 更新类
+  { id:'a3', type:'长期未更新', resource:'dim_area_code', desc:'超过 90 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'warn' },
+  { id:'a4', type:'长期未更新', resource:'dim_product', desc:'超过 60 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'info' },
+  // 数据量类
+  { id:'a5', type:'数据量为空', resource:'ads_empty_table_test', desc:'表已创建但无任何数据（0行）', action:'查看详情', target:'detail', category:'data', level:'error' },
+  { id:'a6', type:'数据量为空', resource:'ods_abandoned_log', desc:'近 30 天数据量持续为 0', action:'查看详情', target:'detail', category:'data', level:'error' },
+  // 负责人类
+  { id:'a7', type:'负责人离职', resource:'ads_finance_report', desc:'技术负责人 王五 已离职，资源无人维护', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
+  { id:'a8', type:'负责人离职', resource:'dws_user_behavior', desc:'业务负责人 赵六 已离职', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
+  { id:'a9', type:'负责人缺失', resource:'ods_user_log', desc:'未指定业务负责人', action:'补全信息', target:'resource-list', category:'owner', level:'warn' },
+  // 元数据类
+  { id:'a10', type:'描述缺失', resource:'dwd_order_detail', desc:'资产无中文描述，影响检索和理解', action:'补全描述', target:'detail', category:'meta', level:'info' },
+  { id:'a11', type:'字段漂移', resource:'ods_trade_flow', desc:'物理字段与元数据不一致（+2 -1）', action:'同步字段', target:'detail', category:'meta', level:'warn' },
+  { id:'a12', type:'标签缺失', resource:'dim_city', desc:'未打任何业务标签', action:'打标签', target:'detail', category:'meta', level:'info' },
+  // 上游类
+  { id:'a13', type:'上游断裂', resource:'dws_user_behavior', desc:'上游 ods_click_log 已下线', action:'查看血缘', target:'detail', category:'upstream', level:'error' }
 ];
-// 待办分类配置
-const TODO_CATEGORY_CONFIG = {
-  identification: { label:'数据识别类', color:'#1890ff', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1890ff" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
-  management: { label:'数据管理类', color:'var(--warning)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-  retirement: { label:'数据退役类', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' },
-  ownerAnomaly: { label:'负责人异常类', color:'#722ed1', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/></svg>' }
-};
+const MOCK_WB_PENDING = [
+  { group:'待上架', count:3, action:'去处理', target:'resource-list', filter:'maintain' },
+  { group:'待审批', count:2, action:'去审批', target:'perm', desc:'他人申请我负责资源的权限' },
+  { group:'待补全', count:5, action:'去补全', target:'resource-list', desc:'缺少描述/负责人/目录' }
+];
 const MOCK_WB_OPERATIONS = [
   { time:'10:42', operator:'张三', resource:'dwd_order_detail', action:'编辑', detail:'修改资源描述', icon:'edit' },
   { time:'10:30', operator:'张三', resource:'ods_user_log', action:'上架', detail:'状态：待维护 → 已上架', icon:'status' },
@@ -7788,7 +8474,7 @@ const MOCK_WB_MY_REQUESTS = [
 function renderWorkbench() {
   const myResources = MOCK_RESOURCES.filter(r => r.owner === '张三');
   const totalCount = myResources.length;
-  const todoCount = MOCK_WB_TODO_ITEMS.length;
+  const todoCount = MOCK_WB_ANOMALIES.length + MOCK_WB_PENDING.reduce((s,p)=>s+p.count,0);
   const healthPct = 89;
 
   // 统计卡片
@@ -7797,10 +8483,7 @@ function renderWorkbench() {
   const statChanges = document.getElementById('wb-stat-changes');
   const statHealth = document.getElementById('wb-stat-health');
   if(statTotal) { statTotal.textContent = totalCount; document.getElementById('wb-stat-total-sub').textContent = `表 ${myResources.filter(r=>r.type==='table').length} · 报表 ${myResources.filter(r=>r.type==='report').length} · 其他 ${myResources.filter(r=>!['table','report'].includes(r.type)).length}`; }
-  // 按分类统计待办数量
-  const todoByCat = {};
-  MOCK_WB_TODO_ITEMS.forEach(t => { todoByCat[t.category] = (todoByCat[t.category]||0) + 1; });
-  if(statTodo) { statTodo.textContent = todoCount; document.getElementById('wb-stat-todo-sub').textContent = `识别 ${todoByCat.identification||0} · 管理 ${todoByCat.management||0} · 退役 ${todoByCat.retirement||0} · 负责人 ${todoByCat.ownerAnomaly||0}`; }
+  if(statTodo) { statTodo.textContent = todoCount; document.getElementById('wb-stat-todo-sub').textContent = `异常 ${MOCK_WB_ANOMALIES.length} · 待上架 ${MOCK_WB_PENDING[0].count} · 待审批 ${MOCK_WB_PENDING[1].count} · 待补全 ${MOCK_WB_PENDING[2].count}`; }
   if(statChanges) { statChanges.textContent = 12; document.getElementById('wb-stat-changes-sub').textContent = '较上周 +3'; }
   if(statHealth) { statHealth.textContent = healthPct + '%'; statHealth.style.color = healthPct >= 80 ? '#52c41a' : healthPct >= 60 ? 'var(--warning)' : '#ff4d4f'; }
   const healthBar = document.getElementById('wb-health-bar');
@@ -7821,45 +8504,50 @@ function renderWorkbenchTodo() {
   const el = document.getElementById('wb-todo-list');
   if(!el) return;
   let html = '';
-  // 按分类分组
+  // 异常资源 - 按分类分组
+  const categoryMap = {
+    catalog: { label:'目录异常', color:'#722ed1', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
+    update: { label:'更新异常', color:'var(--warning)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+    data: { label:'数据异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
+    owner: { label:'负责人异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/></svg>' },
+    meta: { label:'元数据缺失', color:'var(--primary)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
+    upstream: { label:'上游异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' }
+  };
+  const levelDot = { error:'#ff4d4f', warn:'var(--warning)', info:'var(--primary)' };
   const groups = {};
-  MOCK_WB_TODO_ITEMS.forEach(t => {
-    if(!groups[t.category]) groups[t.category] = [];
-    groups[t.category].push(t);
+  MOCK_WB_ANOMALIES.forEach(a => {
+    if(!groups[a.category]) groups[a.category] = [];
+    groups[a.category].push(a);
   });
-  // 按配置顺序渲染各分类
-  const catOrder = ['identification','management','retirement','ownerAnomaly'];
-  catOrder.forEach(cat => {
-    if(!groups[cat] || !groups[cat].length) return;
-    const cfg = TODO_CATEGORY_CONFIG[cat];
+  Object.keys(groups).forEach(cat => {
+    const cfg = categoryMap[cat] || { label:cat, color:'var(--gray-500)', icon:'' };
     const items = groups[cat];
-    html += '<div style="padding:8px 16px 4px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
-    items.forEach(t => {
-      // 根据 actionType 生成不同操作按钮
-      let actionHtml = '';
-      if(t.actionType === 'contact') {
-        actionHtml = '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleTodoCopyEmail()">联系管理员</a>';
-      } else if(t.actionType === 'edit') {
-        actionHtml = '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleTodoEdit(\''+t.resource+'\')">编辑</a>';
-      } else if(t.actionType === 'resolve') {
-        actionHtml = '<a style="color:#52c41a;cursor:pointer;white-space:nowrap;margin-left:6px;font-size:11px;" onclick="openTodoResolveModal(\''+t.id+'\',\''+t.resource+'\')">已处理</a>' +
-          '<a style="color:var(--gray-400);cursor:pointer;white-space:nowrap;margin-left:6px;font-size:11px;" onclick="openTodoIgnoreModal(\''+t.id+'\',\''+t.resource+'\')">无需处理</a>';
-      } else if(t.actionType === 'claim') {
-        actionHtml = '<a style="color:#722ed1;cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="openTodoClaimModal(\''+t.id+'\',\''+t.resource+'\')">认领资源</a>';
-      }
+    html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
+    items.forEach(a => {
+      const dot = levelDot[a.level] || 'var(--gray-400)';
       html += '<div style="padding:5px 16px 5px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
         '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:'+cfg.color+';flex-shrink:0;"></span>' +
-          '<span style="color:var(--gray-800);font-weight:500;">'+t.resource+'</span>' +
-          '<span style="color:var(--gray-400);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+t.desc+'</span>' +
+          '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';flex-shrink:0;"></span>' +
+          '<span style="color:var(--gray-800);font-weight:500;">'+a.resource+'</span>' +
+          '<span style="color:var(--gray-400);">'+a.type+'</span>' +
+          '<span style="color:var(--gray-400);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.desc+'</span>' +
         '</div>' +
-        '<div style="display:flex;align-items:center;flex-shrink:0;">'+actionHtml+'</div>' +
+        '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleWbTodoClick(\''+a.target+'\',\''+a.resource+'\')">'+a.action+'</a>' +
       '</div>';
     });
   });
-  if(!MOCK_WB_TODO_ITEMS.length) {
-    html = '<div style="padding:32px;text-align:center;color:var(--gray-400);font-size:12px;">暂无待办事项</div>';
-  }
+  // 常规待办
+  html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:var(--warning);display:flex;align-items:center;gap:4px;margin-top:8px;border-top:1px solid var(--gray-100);padding-top:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 常规待办</div>';
+  MOCK_WB_PENDING.forEach(p => {
+    html += '<div style="padding:6px 16px 6px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
+      '<div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);margin-right:6px;"></span>' +
+        '<span style="font-weight:500;">'+p.group+'</span>' +
+        '<span style="color:var(--warning);margin-left:4px;">('+p.count+')</span>' +
+        (p.desc ? '<span style="color:var(--gray-400);margin-left:6px;font-size:11px;">'+p.desc+'</span>' : '') +
+      '</div>' +
+      '<a style="color:var(--primary);cursor:pointer;font-size:11px;" onclick="handleWbTodoClick(\''+p.target+'\',\'\')">'+p.action+' \u2192</a>' +
+    '</div>';
+  });
   el.innerHTML = html;
 }
 
@@ -7916,7 +8604,7 @@ function renderWorkbenchMyResources() {
   let list = MOCK_RESOURCES.filter(r => r.owner === '张三');
   if(statusFilter === 'published') list = list.filter(r => r.status === '已上架');
   else if(statusFilter === 'maintain') list = list.filter(r => r.status === '待维护');
-  else if(statusFilter === 'error') list = list.filter(r => MOCK_WB_TODO_ITEMS.some(a => a.resource === r.name));
+  else if(statusFilter === 'error') list = list.filter(r => MOCK_WB_ANOMALIES.some(a => a.resource === r.name));
   if(kw) list = list.filter(r => r.name.toLowerCase().includes(kw) || (r.displayName||'').toLowerCase().includes(kw));
   // 健康度 mock
   const healthMap = { 'dwd_order_detail':95, 'ods_user_log':72, 'dim_city':88, 'dws_user_behavior':65, 'ads_finance_report':40, 'ods_trade_flow':78, 'dim_area_code':91, 'dim_product':85 };
@@ -7925,7 +8613,7 @@ function renderWorkbenchMyResources() {
   el.innerHTML = list.slice(0,8).map((r,i) => {
     const h = healthMap[r.name] || (70 + Math.floor(Math.random()*25));
     const hColor = h >= 80 ? '#52c41a' : h >= 60 ? 'var(--warning)' : '#ff4d4f';
-    const isAnomaly = MOCK_WB_TODO_ITEMS.some(a => a.resource === r.name);
+    const isAnomaly = MOCK_WB_ANOMALIES.some(a => a.resource === r.name);
     return `<tr style="border-bottom:1px solid var(--gray-50);${isAnomaly?'background:#fff2f0;':''}cursor:pointer;" >
       <td style="padding:8px 12px;">
         <div style="cursor:pointer;" onclick="openDetail('${r.id}')">
@@ -7957,167 +8645,6 @@ function handleWbTodoClick(target, resource) {
     const r = MOCK_RESOURCES.find(x => x.name === resource);
     if(r) openDetail(r.id);
   }
-}
-
-// ===== 待办事项处理函数 =====
-
-// 联系管理员：复制邮箱
-function handleTodoCopyEmail() {
-  const email = 'jiangbin@wanlianyida.com';
-  navigator.clipboard.writeText(email).then(() => {
-    showNotification('success', '已复制邮箱', '管理员邮箱：' + email);
-  }).catch(() => {
-    showNotification('info', '管理员邮箱', email);
-  });
-}
-
-// 编辑：打开资源编辑弹窗
-function handleTodoEdit(resourceName) {
-  const r = MOCK_RESOURCES.find(x => x.name === resourceName);
-  if(r) openResourceEditModal(r.id);
-  else showNotification('warning', '提示', '未找到资源：' + resourceName);
-}
-
-// 已处理弹窗
-function openTodoResolveModal(todoId, resourceName) {
-  let mask = document.getElementById('todo-modal-mask');
-  if(!mask) {
-    mask = document.createElement('div');
-    mask.id = 'todo-modal-mask';
-    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
-    mask.onclick = () => closeTodoModal();
-    document.body.appendChild(mask);
-  }
-  let modal = document.getElementById('todo-modal');
-  if(!modal) {
-    modal = document.createElement('div');
-    modal.id = 'todo-modal';
-    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `
-    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">确认已处理</div>
-    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
-    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">处理情况 <span style="color:#ff4d4f;">*</span></div>
-    <textarea id="todo-modal-input" style="width:100%;height:80px;border:1px solid var(--gray-200);border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;" placeholder="请描述处理情况..."></textarea>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
-      <button class="btn btn-primary btn-sm" onclick="submitTodoResolve('${todoId}')">确认</button>
-    </div>`;
-  mask.style.display = 'block';
-  modal.style.display = 'block';
-}
-
-// 无需处理弹窗
-function openTodoIgnoreModal(todoId, resourceName) {
-  let mask = document.getElementById('todo-modal-mask');
-  if(!mask) {
-    mask = document.createElement('div');
-    mask.id = 'todo-modal-mask';
-    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
-    mask.onclick = () => closeTodoModal();
-    document.body.appendChild(mask);
-  }
-  let modal = document.getElementById('todo-modal');
-  if(!modal) {
-    modal = document.createElement('div');
-    modal.id = 'todo-modal';
-    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `
-    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">标记为无需处理</div>
-    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
-    <div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:8px 12px;font-size:11px;color:#d48806;margin-bottom:12px;">标记后该问题将不再出现在待办列表中</div>
-    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">原因说明 <span style="color:#ff4d4f;">*</span></div>
-    <textarea id="todo-modal-input" style="width:100%;height:80px;border:1px solid var(--gray-200);border-radius:6px;padding:8px;font-size:12px;resize:vertical;box-sizing:border-box;" placeholder="请说明无需处理的原因..."></textarea>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
-      <button class="btn btn-primary btn-sm" onclick="submitTodoIgnore('${todoId}')">确认</button>
-    </div>`;
-  mask.style.display = 'block';
-  modal.style.display = 'block';
-}
-
-// 认领资源弹窗
-function openTodoClaimModal(todoId, resourceName) {
-  let mask = document.getElementById('todo-modal-mask');
-  if(!mask) {
-    mask = document.createElement('div');
-    mask.id = 'todo-modal-mask';
-    mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1100;display:none;';
-    mask.onclick = () => closeTodoModal();
-    document.body.appendChild(mask);
-  }
-  let modal = document.getElementById('todo-modal');
-  if(!modal) {
-    modal = document.createElement('div');
-    modal.id = 'todo-modal';
-    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:8px;padding:24px;width:420px;z-index:1101;display:none;box-shadow:0 4px 20px rgba(0,0,0,.15);';
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `
-    <div style="font-size:15px;font-weight:600;margin-bottom:16px;">认领资源 - 指定负责人</div>
-    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">资源：${resourceName}</div>
-    <div style="margin-bottom:6px;font-size:12px;font-weight:500;">选择负责人 <span style="color:#ff4d4f;">*</span></div>
-    <select id="todo-modal-select" style="width:100%;height:32px;border:1px solid var(--gray-200);border-radius:6px;padding:0 8px;font-size:12px;box-sizing:border-box;">
-      <option value="">请选择负责人</option>
-      <option value="zhangsan">张三</option>
-      <option value="lisi">李四</option>
-      <option value="wangwu">王五</option>
-      <option value="zhaoliu">赵六</option>
-    </select>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-      <button class="btn btn-default btn-sm" onclick="closeTodoModal()">取消</button>
-      <button class="btn btn-primary btn-sm" onclick="submitTodoClaim('${todoId}')">确认</button>
-    </div>`;
-  mask.style.display = 'block';
-  modal.style.display = 'block';
-}
-
-// 关闭弹窗
-function closeTodoModal() {
-  const mask = document.getElementById('todo-modal-mask');
-  const modal = document.getElementById('todo-modal');
-  if(mask) mask.style.display = 'none';
-  if(modal) modal.style.display = 'none';
-}
-
-// 提交已处理
-function submitTodoResolve(todoId) {
-  const input = document.getElementById('todo-modal-input');
-  if(!input || !input.value.trim()) { showNotification('warning', '提示', '请填写处理情况'); return; }
-  // 从列表移除该待办（模拟）
-  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
-  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
-  closeTodoModal();
-  renderWorkbenchTodo();
-  renderWorkbench();
-  showNotification('success', '已处理', '已标记为已处理');
-}
-
-// 提交无需处理
-function submitTodoIgnore(todoId) {
-  const input = document.getElementById('todo-modal-input');
-  if(!input || !input.value.trim()) { showNotification('warning', '提示', '请填写原因说明'); return; }
-  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
-  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
-  closeTodoModal();
-  renderWorkbenchTodo();
-  renderWorkbench();
-  showNotification('success', '无需处理', '已标记为无需处理，后续不再提醒');
-}
-
-// 提交认领资源
-function submitTodoClaim(todoId) {
-  const select = document.getElementById('todo-modal-select');
-  if(!select || !select.value) { showNotification('warning', '提示', '请选择负责人'); return; }
-  const idx = MOCK_WB_TODO_ITEMS.findIndex(t => t.id === todoId);
-  if(idx > -1) MOCK_WB_TODO_ITEMS.splice(idx, 1);
-  closeTodoModal();
-  renderWorkbenchTodo();
-  renderWorkbench();
-  showNotification('success', '认领成功', '资源已认领，负责人已更新');
 }
 
 
@@ -8781,10 +9308,956 @@ function submitTransferOwner() {
   showNotification('success', '负责人转移成功', `已转移至 ${newOwner}`);
 }
 
+function escapeMetricHtml(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function metricDomKey(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function stripMetricHtml(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html || '';
+  return div.textContent.trim();
+}
+
+function renderMetricMarkdownPreview(markdown) {
+  const source = String(markdown || '').replace(/\r\n?/g, '\n');
+  if (!source.trim()) return '<div class="metric-markdown-empty">暂无预览内容</div>';
+
+  function applyInlineMarkdown(text) {
+    const placeholders = [];
+    let html = escapeMetricHtml(text);
+    html = html.replace(/`([^`]+)`/g, (_, code) => {
+      const token = `__MD_CODE_${placeholders.length}__`;
+      placeholders.push(`<code>${escapeMetricHtml(code)}</code>`);
+      return token;
+    });
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (_, label, url) => `<a href="${escapeMetricHtml(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    placeholders.forEach((value, index) => {
+      html = html.replace(`__MD_CODE_${index}__`, value);
+    });
+    return html;
+  }
+
+  const lines = source.split('\n');
+  const chunks = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith('```')) {
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      chunks.push(`<pre><code>${escapeMetricHtml(codeLines.join('\n'))}</code></pre>`);
+      index += 1;
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(headingMatch[1].length, 6);
+      chunks.push(`<h${level}>${applyInlineMarkdown(headingMatch[2])}</h${level}>`);
+      index += 1;
+      continue;
+    }
+
+    if (/^>\s?/.test(trimmed)) {
+      const quoteLines = [];
+      while (index < lines.length && /^>\s?/.test(lines[index].trim())) {
+        quoteLines.push(lines[index].trim().replace(/^>\s?/, ''));
+        index += 1;
+      }
+      chunks.push(`<blockquote>${quoteLines.map(item => `<p>${applyInlineMarkdown(item)}</p>`).join('')}</blockquote>`);
+      continue;
+    }
+
+    if (/^[-*+]\s+/.test(trimmed)) {
+      const items = [];
+      while (index < lines.length && /^[-*+]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[-*+]\s+/, ''));
+        index += 1;
+      }
+      chunks.push(`<ul>${items.map(item => `<li>${applyInlineMarkdown(item)}</li>`).join('')}</ul>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items = [];
+      while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^\d+\.\s+/, ''));
+        index += 1;
+      }
+      chunks.push(`<ol>${items.map(item => `<li>${applyInlineMarkdown(item)}</li>`).join('')}</ol>`);
+      continue;
+    }
+
+    const paragraphLines = [];
+    while (index < lines.length) {
+      const current = lines[index];
+      const currentTrimmed = current.trim();
+      if (!currentTrimmed) break;
+      if (
+        currentTrimmed.startsWith('```')
+        || /^(#{1,6})\s+/.test(currentTrimmed)
+        || /^>\s?/.test(currentTrimmed)
+        || /^[-*+]\s+/.test(currentTrimmed)
+        || /^\d+\.\s+/.test(currentTrimmed)
+      ) break;
+      paragraphLines.push(currentTrimmed);
+      index += 1;
+    }
+    chunks.push(`<p>${paragraphLines.map(item => applyInlineMarkdown(item)).join('<br>')}</p>`);
+  }
+
+  return chunks.join('');
+}
+
+function buildMetricDetailDefinition(resourceRecord) {
+  return {
+    ...(DETAIL_METRIC_DEFINITIONS[resourceRecord.id] || {}),
+    summary: resourceRecord.summary || '',
+    object: `来源字段：${resourceRecord.source_field || resourceRecord.name || '-'}`,
+    grain: '字段级',
+    cycle: resourceRecord.timeliness === '实时' ? '实时' : '自然日',
+    frequency: resourceRecord.timeliness === '实时' ? '实时' : 'T+1 09:00',
+    latency: resourceRecord.timeliness === '实时' ? '通常延迟 1 到 5 分钟。' : '通常延迟 30 分钟到 2 小时，月底补数会顺延。',
+    formula: resourceRecord.expression_text || '',
+    dimensions: [...(resourceRecord.tags || [])],
+    scenarios: DETAIL_METRIC_DEFINITIONS[resourceRecord.id]?.scenarios || ['资源管理新增指标'],
+    cautions: [resourceRecord.caliber_text || ''],
+    example: DETAIL_METRIC_DEFINITIONS[resourceRecord.id]?.example || '待补充',
+  };
+}
+
+function getMetricLeafCatalogOptions() {
+  const result = [];
+  function walk(nodes, pathParts) {
+    nodes.forEach(node => {
+      const nextPath = [...pathParts, node.name];
+      if (node.children && node.children.length > 0) {
+        walk(node.children, nextPath);
+      } else {
+        result.push({ id: node.id, path: nextPath.join('/'), label: nextPath.join(' / ') });
+      }
+    });
+  }
+  walk(CATALOG_TREE, []);
+  return result;
+}
+
+function resetAddMetricState() {
+  metricCreateState = createDefaultMetricCreateState();
+  const sourceTypeEl = document.getElementById('metric-source-type');
+  const sourceSearchEl = document.getElementById('metric-source-search');
+  if (sourceTypeEl) sourceTypeEl.value = metricCreateState.sourceType;
+  if (sourceSearchEl) sourceSearchEl.value = '';
+  renderMetricSourceCandidates();
+  renderMetricFieldTable();
+  renderMetricCards();
+}
+
+function openAddMetricModal() {
+  const dropdown = document.getElementById('global-action-dropdown');
+  if (dropdown) dropdown.remove();
+  resetAddMetricState();
+  openModal('modal-add-metric');
+}
+
+function closeAddMetricModal() {
+  closeModal('modal-add-metric');
+  hideAllMetricBizOwnerDropdowns();
+}
+
+function updateMetricSourceType(value) {
+  metricCreateState.sourceType = value || 'data_model';
+  metricCreateState.sourceId = '';
+  metricCreateState.keyword = '';
+  metricCreateState.selectedFieldKeys = [];
+  metricCreateState.cardsByFieldKey = {};
+  const sourceSearchEl = document.getElementById('metric-source-search');
+  if (sourceSearchEl) sourceSearchEl.value = '';
+  renderMetricSourceCandidates();
+  renderMetricFieldTable();
+  renderMetricCards();
+}
+
+function handleMetricSourceKeywordInput(value) {
+  metricCreateState.keyword = String(value || '');
+  renderMetricSourceCandidates();
+}
+
+function renderMetricSourceCandidates() {
+  const sourceType = metricCreateState.sourceType || 'data_model';
+  const labelEl = document.getElementById('metric-source-search-label');
+  const searchEl = document.getElementById('metric-source-search');
+  const container = document.getElementById('metric-source-candidates');
+  const selectedEl = document.getElementById('metric-selected-source');
+  const fieldsTitleEl = document.getElementById('metric-fields-title');
+  const keyword = metricCreateState.keyword.trim().toLowerCase();
+  const minChars = 5;
+  if (labelEl) labelEl.textContent = sourceType === 'api' ? 'API' : '数据表';
+  if (searchEl) searchEl.placeholder = `输入搜索关键词（至少${minChars}个字符）`;
+  if (fieldsTitleEl) fieldsTitleEl.textContent = sourceType === 'api' ? '出参列表' : '字段列表';
+  if (!container || !selectedEl) return;
+
+  const meta = getMetricSourceMeta(sourceType, metricCreateState.sourceId);
+  if (meta) {
+    const extraLabel = sourceType === 'api' && meta.path ? `${meta.service} · ${meta.path}` : (meta.sourceLocation || meta.name);
+    selectedEl.innerHTML = `
+      <span style="font-size:12px;color:var(--gray-500);">已选择来源</span>
+      <span class="metric-selected-source-chip">${getMetricSourceTypeLabel(sourceType)} · ${escapeMetricHtml(meta.name)}</span>
+      <span style="font-size:12px;color:var(--gray-500);">${escapeMetricHtml(extraLabel)}</span>
+    `;
+  } else {
+    selectedEl.innerHTML = '<span style="font-size:12px;color:var(--gray-400);">尚未选择来源</span>';
+  }
+
+  if (keyword.length < minChars) {
+    container.innerHTML = `<div class="metric-source-empty">请输入至少 ${minChars} 个字符后再搜索${sourceType === 'api' ? ' API' : '数据表'}。</div>`;
+    return;
+  }
+
+  const options = getMetricSourceOptions(sourceType).filter(item => item.searchText.includes(keyword));
+  if (!options.length) {
+    container.innerHTML = `<div class="metric-source-empty">没有命中的${sourceType === 'api' ? ' API' : '数据表'}候选。</div>`;
+    return;
+  }
+
+  container.innerHTML = options.map(item => {
+    const isActive = item.id === metricCreateState.sourceId;
+    const extraMeta = sourceType === 'api'
+      ? `${item.sourceLocation || '-'}`
+      : `${item.display || '-'} · ${item.sourceLocation || '-'}`;
+    return `
+      <div class="metric-source-candidate${isActive ? ' active' : ''}" onclick="selectMetricSource('${item.id}')">
+        <div class="metric-source-candidate-name">${escapeMetricHtml(item.name)}</div>
+        <div class="metric-source-candidate-meta">${escapeMetricHtml(extraMeta)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectMetricSource(sourceId) {
+  metricCreateState.sourceId = sourceId;
+  metricCreateState.selectedFieldKeys = [];
+  metricCreateState.cardsByFieldKey = {};
+  renderMetricSourceCandidates();
+  renderMetricFieldTable();
+  renderMetricCards();
+}
+
+function renderMetricFieldTable() {
+  const thead = document.getElementById('metric-fields-thead');
+  const tbody = document.getElementById('metric-fields-tbody');
+  const countEl = document.getElementById('metric-fields-count');
+  if (!thead || !tbody || !countEl) return;
+
+  const sourceType = metricCreateState.sourceType || 'data_model';
+  const fields = getMetricSourceFields(sourceType, metricCreateState.sourceId);
+  const selectedCount = metricCreateState.selectedFieldKeys.length;
+  const headerLabel = sourceType === 'api' ? '出参名称' : '字段名称';
+  const descLabel = sourceType === 'api' ? '出参描述' : '字段描述';
+  thead.innerHTML = `
+    <tr>
+      <th style="width:40px;">#</th>
+      <th style="min-width:220px;">${headerLabel}</th>
+      <th style="width:140px;">${sourceType === 'api' ? '类型' : '字段类型'}</th>
+      <th style="min-width:240px;">${descLabel}</th>
+      <th style="width:100px;">录入指标</th>
+    </tr>
+  `;
+
+  if (!metricCreateState.sourceId) {
+    countEl.textContent = '未选择来源';
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--gray-400);">请选择${sourceType === 'api' ? ' API' : '数据表'}后查看${sourceType === 'api' ? '出参' : '字段'}。</td></tr>`;
+    return;
+  }
+
+  countEl.textContent = `共 ${fields.length} 项，已勾选 ${selectedCount} 项`;
+  if (!fields.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--gray-400);">当前来源暂无${sourceType === 'api' ? '出参' : '字段'}数据。</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = fields.map((field, index) => {
+    const checked = metricCreateState.selectedFieldKeys.includes(field.key);
+    return `
+      <tr>
+        <td style="color:var(--gray-400);">${index + 1}</td>
+        <td style="font-weight:600;color:var(--gray-800);">${escapeMetricHtml(field.name)}</td>
+        <td style="font-size:12px;color:var(--gray-600);">${escapeMetricHtml(field.type)}</td>
+        <td style="font-size:12px;color:var(--gray-600);line-height:1.5;">${escapeMetricHtml(field.comment)}</td>
+        <td style="text-align:center;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleMetricFieldSelection('${field.key}', this.checked)" /></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleMetricFieldSelection(fieldKey, checked) {
+  if (checked) {
+    if (!metricCreateState.selectedFieldKeys.includes(fieldKey)) {
+      metricCreateState.selectedFieldKeys.push(fieldKey);
+      ensureMetricCardState(fieldKey);
+    }
+  } else {
+    metricCreateState.selectedFieldKeys = metricCreateState.selectedFieldKeys.filter(item => item !== fieldKey);
+    delete metricCreateState.cardsByFieldKey[fieldKey];
+  }
+  renderMetricFieldTable();
+  renderMetricCards();
+}
+
+function renderMetricTagChips(card) {
+  if (!card.tags.length) return '';
+  return card.tags.map((tag, index) => `
+    <span class="metric-tag-chip">
+      <span>${escapeMetricHtml(tag)}</span>
+      <span class="metric-tag-chip-remove" onclick="removeMetricTag('${card.fieldKey}', ${index})">×</span>
+    </span>
+  `).join('');
+}
+
+function renderMetricBizOwnerOptions(fieldKey, keyword) {
+  const card = ensureMetricCardState(fieldKey);
+  const lowerKeyword = String(keyword || '').trim().toLowerCase();
+  const options = OWNER_DIRECTORY.filter(item => !lowerKeyword || item.searchText.includes(lowerKeyword));
+  if (!options.length) return '<div class="metric-source-empty">没有匹配的负责人</div>';
+  return options.map(item => `
+    <div class="owner-filter-option${item.name === card.bizOwner ? ' active' : ''}" onclick="selectMetricBizOwner('${fieldKey}', '${item.name}')">
+      <div class="owner-filter-option-name">${escapeMetricHtml(item.label)}</div>
+      <div class="owner-filter-option-meta">${item.name === CURRENT_USER ? '当前登录用户' : '可按姓名或邮箱命中'}</div>
+    </div>
+  `).join('');
+}
+
+function renderMetricCards() {
+  const container = document.getElementById('metric-cards-container');
+  if (!container) return;
+  const fields = getMetricSourceFields(metricCreateState.sourceType, metricCreateState.sourceId);
+  const fieldMap = new Map(fields.map(item => [item.key, item]));
+  const catalogOptions = getMetricLeafCatalogOptions();
+  if (!metricCreateState.selectedFieldKeys.length) {
+    container.innerHTML = '<div class="metric-empty-card">先在上方勾选字段/出参，系统会按勾选结果自动生成指标配置卡片。</div>';
+    return;
+  }
+
+  container.innerHTML = metricCreateState.selectedFieldKeys.map((fieldKey, index) => {
+    const card = ensureMetricCardState(fieldKey);
+    const field = fieldMap.get(fieldKey);
+    const domKey = metricDomKey(fieldKey);
+    return `
+      <div class="metric-config-card">
+        <div class="metric-config-card-header">
+          <div>
+            <div class="metric-config-card-title">指标${index + 1}</div>
+            <div class="metric-config-card-subtitle">来源${metricCreateState.sourceType === 'api' ? '出参' : '字段'}：${escapeMetricHtml(field?.name || card.fieldName)}</div>
+          </div>
+          <div style="font-size:12px;color:var(--gray-400);">必填项请在提交前补齐</div>
+        </div>
+        <div class="metric-config-card-body">
+          <div class="metric-config-grid">
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">指标英文名</label>
+              <input class="input form-input metric-readonly" readonly value="${escapeMetricHtml(card.fieldName)}" />
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">描述</label>
+              <input class="input form-input" value="${escapeMetricHtml(card.description)}" placeholder="请输入指标描述" onchange="updateMetricCardValue('${fieldKey}', 'description', this.value)" />
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">指标等级</label>
+              <select class="select form-input" onchange="updateMetricCardValue('${fieldKey}', 'metricLevel', this.value)">
+                <option value="1级" ${card.metricLevel === '1级' ? 'selected' : ''}>1级</option>
+                <option value="2级" ${card.metricLevel === '2级' ? 'selected' : ''}>2级</option>
+                <option value="3级" ${card.metricLevel === '3级' ? 'selected' : ''}>3级</option>
+              </select>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">安全等级</label>
+              <select class="select form-input" onchange="updateMetricCardValue('${fieldKey}', 'securityLevel', this.value)">
+                <option value="公开级" ${card.securityLevel === '公开级' ? 'selected' : ''}>公开级</option>
+                <option value="内部级" ${card.securityLevel === '内部级' ? 'selected' : ''}>内部级</option>
+                <option value="秘密级" ${card.securityLevel === '秘密级' ? 'selected' : ''}>秘密级</option>
+                <option value="绝密级" ${card.securityLevel === '绝密级' ? 'selected' : ''}>绝密级</option>
+              </select>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">指标目录</label>
+              <select class="select form-input" onchange="updateMetricCardValue('${fieldKey}', 'catalog', this.value)">
+                <option value="">请选择指标目录</option>
+                ${catalogOptions.map(option => `<option value="${escapeMetricHtml(option.path)}" ${card.catalog === option.path ? 'selected' : ''}>${escapeMetricHtml(option.label)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label">标签</label>
+              <div class="metric-tag-input-wrap">
+                ${renderMetricTagChips(card)}
+                <input
+                  class="metric-tag-input"
+                  id="metric-card-tag-input-${domKey}"
+                  placeholder="输入后按回车确认"
+                  onkeydown="handleMetricTagInputKeydown('${fieldKey}', event)"
+                  onblur="commitMetricTagInput('${fieldKey}')"
+                />
+              </div>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">技术负责人</label>
+              <select class="select form-input" onchange="updateMetricCardValue('${fieldKey}', 'techOwner', this.value)">
+                ${OWNER_DIRECTORY.map(owner => `<option value="${owner.name}" ${card.techOwner === owner.name ? 'selected' : ''}>${escapeMetricHtml(owner.label)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">业务负责人</label>
+              <div class="metric-owner-picker" onclick="event.stopPropagation()">
+                <input
+                  class="input form-input"
+                  id="metric-card-biz-owner-input-${domKey}"
+                  placeholder="请输入姓名或邮箱搜索"
+                  value="${escapeMetricHtml(card.bizOwner ? getOwnerTriggerLabel(card.bizOwner) : '')}"
+                  onfocus="openMetricBizOwnerDropdown('${fieldKey}')"
+                  oninput="filterMetricBizOwner('${fieldKey}', this.value)"
+                />
+                <div class="metric-owner-dropdown" id="metric-card-biz-owner-dropdown-${domKey}">
+                  <div class="metric-owner-search-meta">输入姓名或邮箱进行筛选，单选业务负责人</div>
+                  <div class="metric-owner-options" id="metric-card-biz-owner-options-${domKey}">
+                    ${renderMetricBizOwnerOptions(fieldKey, '')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-item" style="margin-bottom:0;">
+              <label class="form-label required">指标时效性</label>
+              <select class="select form-input" onchange="updateMetricCardValue('${fieldKey}', 'timeliness', this.value)">
+                <option value="">请选择指标时效性</option>
+                <option value="实时" ${card.timeliness === '实时' ? 'selected' : ''}>实时</option>
+                <option value="离线" ${card.timeliness === '离线' ? 'selected' : ''}>离线</option>
+              </select>
+            </div>
+            <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+              <label class="form-label required">表达式</label>
+              <div class="metric-richtext">
+                <div class="metric-richtext-toolbar">
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','bold')">B</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','italic')">I</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','underline')">U</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','insertUnorderedList')">• 列表</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','insertOrderedList')">1. 列表</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','createLink')">链接</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('expression','${fieldKey}','formatBlock')">代码</button>
+                </div>
+                <div class="metric-richtext-editor" id="metric-card-expression-${domKey}" contenteditable="true" oninput="updateMetricCardRichText('${fieldKey}','expressionHtml',this)">${card.expressionHtml || ''}</div>
+              </div>
+              <div class="metric-helper-text">请填写指标计算表达式，支持基础富文本格式。</div>
+            </div>
+            <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+              <label class="form-label required">口径说明</label>
+              <div class="metric-richtext">
+                <div class="metric-richtext-toolbar">
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','bold')">B</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','italic')">I</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','underline')">U</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','insertUnorderedList')">• 列表</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','insertOrderedList')">1. 列表</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','createLink')">链接</button>
+                  <button type="button" class="btn btn-link btn-sm" onclick="applyMetricRichtextCommand('caliber','${fieldKey}','formatBlock')">代码</button>
+                </div>
+                <div class="metric-richtext-editor" id="metric-card-caliber-${domKey}" contenteditable="true" oninput="updateMetricCardRichText('${fieldKey}','caliberHtml',this)">${card.caliberHtml || ''}</div>
+              </div>
+              <div class="metric-helper-text">请补充业务口径、统计边界、刷新说明等信息。</div>
+            </div>
+            <div class="form-item metric-config-span-2" style="margin-bottom:0;">
+              <label class="form-label">使用说明（Markdown）</label>
+              <div class="metric-markdown-grid">
+                <textarea
+                  class="form-textarea metric-markdown-input"
+                  id="metric-card-usage-md-${domKey}"
+                  placeholder="# 使用说明&#10;&#10;- 支持标题、列表、引用、代码块和链接"
+                  oninput="updateMetricUsageMarkdown('${fieldKey}', this.value)"
+                >${escapeMetricHtml(card.usageMd || '')}</textarea>
+                <div class="metric-markdown-preview" id="metric-card-usage-preview-${domKey}">${card.usageHtml || renderMetricMarkdownPreview(card.usageMd)}</div>
+              </div>
+              <div class="metric-helper-text">左侧输入 Markdown 原文，右侧实时预览展示效果。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateMetricCardValue(fieldKey, prop, value) {
+  const card = ensureMetricCardState(fieldKey);
+  card[prop] = value;
+}
+
+function updateMetricCardRichText(fieldKey, prop, el) {
+  const card = ensureMetricCardState(fieldKey);
+  card[prop] = el.innerHTML;
+}
+
+function updateMetricUsageMarkdown(fieldKey, value) {
+  const card = ensureMetricCardState(fieldKey);
+  card.usageMd = String(value || '');
+  card.usageHtml = renderMetricMarkdownPreview(card.usageMd);
+  const preview = document.getElementById(`metric-card-usage-preview-${metricDomKey(fieldKey)}`);
+  if (preview) preview.innerHTML = card.usageHtml;
+}
+
+function applyMetricRichtextCommand(kind, fieldKey, command) {
+  const editorId = kind === 'expression'
+    ? `metric-card-expression-${metricDomKey(fieldKey)}`
+    : `metric-card-caliber-${metricDomKey(fieldKey)}`;
+  const editor = document.getElementById(editorId);
+  if (!editor) return;
+  editor.focus();
+  if (command === 'createLink') {
+    const url = prompt('请输入链接地址', 'https://');
+    if (url) document.execCommand('createLink', false, url);
+  } else if (command === 'formatBlock') {
+    document.execCommand('formatBlock', false, 'pre');
+  } else {
+    document.execCommand(command, false, null);
+  }
+  updateMetricCardRichText(fieldKey, kind === 'expression' ? 'expressionHtml' : 'caliberHtml', editor);
+}
+
+function handleMetricTagInputKeydown(fieldKey, event) {
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    commitMetricTagInput(fieldKey, true);
+    return;
+  }
+  if (event.key === 'Backspace') {
+    const input = document.getElementById(`metric-card-tag-input-${metricDomKey(fieldKey)}`);
+    const card = ensureMetricCardState(fieldKey);
+    if (input && !input.value.trim() && card.tags.length > 0) {
+      card.tags.pop();
+      renderMetricCards();
+      setTimeout(() => document.getElementById(`metric-card-tag-input-${metricDomKey(fieldKey)}`)?.focus(), 0);
+    }
+  }
+}
+
+function commitMetricTagInput(fieldKey, keepFocus) {
+  const inputId = `metric-card-tag-input-${metricDomKey(fieldKey)}`;
+  const input = document.getElementById(inputId);
+  const card = ensureMetricCardState(fieldKey);
+  if (!input || !card) return;
+  const raw = input.value.trim().replace(/,+$/g, '');
+  if (raw) {
+    if (!card.tags.includes(raw)) card.tags.push(raw);
+    renderMetricCards();
+    if (keepFocus) setTimeout(() => document.getElementById(inputId)?.focus(), 0);
+  }
+}
+
+function removeMetricTag(fieldKey, index) {
+  const card = ensureMetricCardState(fieldKey);
+  card.tags.splice(index, 1);
+  renderMetricCards();
+}
+
+function hideAllMetricBizOwnerDropdowns() {
+  document.querySelectorAll('.metric-owner-dropdown.open').forEach(el => el.classList.remove('open'));
+}
+
+function openMetricBizOwnerDropdown(fieldKey) {
+  hideAllMetricBizOwnerDropdowns();
+  const domKey = metricDomKey(fieldKey);
+  const dropdown = document.getElementById(`metric-card-biz-owner-dropdown-${domKey}`);
+  const input = document.getElementById(`metric-card-biz-owner-input-${domKey}`);
+  const options = document.getElementById(`metric-card-biz-owner-options-${domKey}`);
+  if (!dropdown || !options || !input) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderMetricBizOwnerOptions(fieldKey, input.value);
+}
+
+function filterMetricBizOwner(fieldKey, value) {
+  const domKey = metricDomKey(fieldKey);
+  const dropdown = document.getElementById(`metric-card-biz-owner-dropdown-${domKey}`);
+  const options = document.getElementById(`metric-card-biz-owner-options-${domKey}`);
+  if (!dropdown || !options) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderMetricBizOwnerOptions(fieldKey, value);
+}
+
+function selectMetricBizOwner(fieldKey, ownerName) {
+  const card = ensureMetricCardState(fieldKey);
+  const domKey = metricDomKey(fieldKey);
+  const input = document.getElementById(`metric-card-biz-owner-input-${domKey}`);
+  card.bizOwner = ownerName;
+  if (input) input.value = getOwnerTriggerLabel(ownerName);
+  hideAllMetricBizOwnerDropdowns();
+}
+
+function submitAddMetric() {
+  if (!metricCreateState.sourceId) {
+    showNotification('error', '请选择指标来源', '请先选择数据表或 API。');
+    return;
+  }
+  if (!metricCreateState.selectedFieldKeys.length) {
+    showNotification('error', '请勾选字段/出参', '至少选择 1 个字段或出参后再生成指标。');
+    return;
+  }
+
+  const sourceType = metricCreateState.sourceType;
+  const sourceMeta = getMetricSourceMeta(sourceType, metricCreateState.sourceId);
+  const fields = getMetricSourceFields(sourceType, metricCreateState.sourceId);
+  const fieldMap = new Map(fields.map(item => [item.key, item]));
+  const createdResources = [];
+
+  for (let index = 0; index < metricCreateState.selectedFieldKeys.length; index++) {
+    const fieldKey = metricCreateState.selectedFieldKeys[index];
+    const card = ensureMetricCardState(fieldKey);
+    const domKey = metricDomKey(fieldKey);
+    const expressionEl = document.getElementById(`metric-card-expression-${domKey}`);
+    const caliberEl = document.getElementById(`metric-card-caliber-${domKey}`);
+    const usageMdEl = document.getElementById(`metric-card-usage-md-${domKey}`);
+    if (expressionEl) card.expressionHtml = expressionEl.innerHTML;
+    if (caliberEl) card.caliberHtml = caliberEl.innerHTML;
+    if (usageMdEl) {
+      card.usageMd = usageMdEl.value;
+      card.usageHtml = renderMetricMarkdownPreview(card.usageMd);
+    }
+
+    const requiredChecks = [
+      ['description', '请填写指标描述'],
+      ['catalog', '请选择指标目录'],
+      ['techOwner', '请选择技术负责人'],
+      ['bizOwner', '请选择业务负责人'],
+      ['timeliness', '请选择指标时效性'],
+    ];
+    for (const [prop, message] of requiredChecks) {
+      if (!String(card[prop] || '').trim()) {
+        showNotification('error', `请完善指标${index + 1}`, message);
+        return;
+      }
+    }
+    if (!stripMetricHtml(card.expressionHtml)) {
+      showNotification('error', `请完善指标${index + 1}`, '请填写表达式。');
+      return;
+    }
+    if (!stripMetricHtml(card.caliberHtml)) {
+      showNotification('error', `请完善指标${index + 1}`, '请填写口径说明。');
+      return;
+    }
+
+    const field = fieldMap.get(fieldKey);
+    const expressionText = stripMetricHtml(card.expressionHtml);
+    const caliberText = stripMetricHtml(card.caliberHtml);
+    const resourceId = `metric_${metricDomKey(field?.name || `item_${index + 1}`)}_${Date.now()}_${index + 1}`;
+    const sourceLocation = sourceType === 'api'
+      ? [sourceMeta?.service, sourceMeta?.path].filter(Boolean).join(' / ')
+      : (sourceMeta?.name || sourceMeta?.sourceLocation || '');
+    const resourceRecord = {
+      id: resourceId,
+      name: card.fieldName,
+      display: card.description,
+      type: 'metric',
+      summary: card.description,
+      tech_owner: card.techOwner,
+      biz_owner: card.bizOwner,
+      tags: [...card.tags],
+      updated: new Date().toLocaleDateString('zh-CN'),
+      status: 'maintain',
+      source_type: 'metric_platform',
+      source_system: getMetricSourceTypeLabel(sourceType),
+      source_location: sourceLocation,
+      source: sourceLocation || sourceMeta?.name || '',
+      platform: sourceType === 'api' ? 'API' : '数据模型',
+      permission_status: 'none',
+      favorite: false,
+      catalog: card.catalog,
+      metric_level: card.metricLevel,
+      security_level: card.securityLevel,
+      timeliness: card.timeliness,
+      expression_html: card.expressionHtml,
+      expression_text: expressionText,
+      caliber_html: card.caliberHtml,
+      caliber_text: caliberText,
+      usage_md: card.usageMd || '',
+      usage_html: card.usageHtml || renderMetricMarkdownPreview(card.usageMd),
+      usage: card.usageHtml || renderMetricMarkdownPreview(card.usageMd),
+      source_field: field?.name || card.fieldName,
+      upstream_guidance: `来源：${sourceMeta?.name || '-'} / ${field?.sourceKindLabel || '字段'}：${field?.name || card.fieldName}`,
+    };
+    MOCK_RESOURCES.push(resourceRecord);
+    DETAIL_METRIC_DEFINITIONS[resourceId] = buildMetricDetailDefinition(resourceRecord);
+    createdResources.push(resourceRecord);
+  }
+
+  MOCK_MGMT_LOGS.unshift({
+    id: `l${Date.now()}`,
+    action: '新增指标',
+    resource: `${createdResources.length}条指标`,
+    operator: CURRENT_USER,
+    result: `来源：${sourceMeta?.name || '-'}（${getMetricSourceTypeLabel(sourceType)}）`,
+    time: new Date().toLocaleString('zh-CN')
+  });
+
+  closeAddMetricModal();
+  resetAddMetricState();
+  renderMgmtResourceList();
+  updateMgmtStatusBadges();
+  showNotification('success', '新增指标成功', `已创建 ${createdResources.length} 条指标，当前状态：待维护`);
+}
+
+function renderMetricEditTagChips() {
+  const chips = document.getElementById('metric-edit-tag-chips');
+  if (!chips) return;
+  chips.innerHTML = (metricEditState?.tags || []).map((tag, index) => `
+    <span class="metric-tag-chip">
+      <span>${escapeMetricHtml(tag)}</span>
+      <span class="metric-tag-chip-remove" onclick="removeMetricEditTag(${index})">×</span>
+    </span>
+  `).join('');
+}
+
+function handleMetricEditTagInputKeydown(event) {
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    commitMetricEditTagInput(true);
+    return;
+  }
+  if (event.key === 'Backspace') {
+    const input = document.getElementById('metric-edit-tag-input');
+    if (input && !input.value.trim() && metricEditState?.tags?.length) {
+      metricEditState.tags.pop();
+      renderMetricEditTagChips();
+    }
+  }
+}
+
+function commitMetricEditTagInput(keepFocus) {
+  const input = document.getElementById('metric-edit-tag-input');
+  if (!input || !metricEditState) return;
+  const raw = input.value.trim().replace(/,+$/g, '');
+  input.value = '';
+  if (!raw) return;
+  if (!metricEditState.tags.includes(raw)) metricEditState.tags.push(raw);
+  renderMetricEditTagChips();
+  if (keepFocus) setTimeout(() => input.focus(), 0);
+}
+
+function removeMetricEditTag(index) {
+  if (!metricEditState) return;
+  metricEditState.tags.splice(index, 1);
+  renderMetricEditTagChips();
+}
+
+function renderMetricEditBizOwnerOptions(keyword) {
+  const lowerKeyword = String(keyword || '').trim().toLowerCase();
+  const options = OWNER_DIRECTORY.filter(item => !lowerKeyword || item.searchText.includes(lowerKeyword));
+  if (!options.length) return '<div class="metric-source-empty">没有匹配的负责人</div>';
+  return options.map(item => `
+    <div class="owner-filter-option${item.name === metricEditState?.bizOwner ? ' active' : ''}" onclick="selectMetricEditBizOwner('${item.name}')">
+      <div class="owner-filter-option-name">${escapeMetricHtml(item.label)}</div>
+      <div class="owner-filter-option-meta">${item.name === CURRENT_USER ? '当前登录用户' : '可按姓名或邮箱命中'}</div>
+    </div>
+  `).join('');
+}
+
+function hideMetricEditBizOwnerDropdown() {
+  document.getElementById('metric-edit-biz-owner-dropdown')?.classList.remove('open');
+}
+
+function openMetricEditBizOwnerDropdown() {
+  const dropdown = document.getElementById('metric-edit-biz-owner-dropdown');
+  const options = document.getElementById('metric-edit-biz-owner-options');
+  const input = document.getElementById('metric-edit-biz-owner-input');
+  if (!dropdown || !options || !input) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderMetricEditBizOwnerOptions(input.value);
+}
+
+function filterMetricEditBizOwner(value) {
+  const dropdown = document.getElementById('metric-edit-biz-owner-dropdown');
+  const options = document.getElementById('metric-edit-biz-owner-options');
+  if (!dropdown || !options) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderMetricEditBizOwnerOptions(value);
+}
+
+function selectMetricEditBizOwner(ownerName) {
+  if (!metricEditState) return;
+  metricEditState.bizOwner = ownerName;
+  const input = document.getElementById('metric-edit-biz-owner-input');
+  if (input) input.value = getOwnerTriggerLabel(ownerName);
+  hideMetricEditBizOwnerDropdown();
+}
+
+function updateMetricEditUsageMarkdown(value) {
+  if (!metricEditState) return;
+  metricEditState.usageMd = String(value || '');
+  metricEditState.usageHtml = renderMetricMarkdownPreview(metricEditState.usageMd);
+  const preview = document.getElementById('metric-edit-usage-preview');
+  if (preview) preview.innerHTML = metricEditState.usageHtml;
+}
+
+function applyMetricRichtextEditorCommand(editorId, command) {
+  const editor = document.getElementById(editorId);
+  if (!editor) return;
+  editor.focus();
+  if (command === 'createLink') {
+    const url = prompt('请输入链接地址', 'https://');
+    if (url) document.execCommand('createLink', false, url);
+  } else if (command === 'formatBlock') {
+    document.execCommand('formatBlock', false, 'pre');
+  } else {
+    document.execCommand(command, false, null);
+  }
+}
+
+function openMetricResourceEditModal(id) {
+  const resource = MOCK_RESOURCES.find(item => item.id === id && item.type === 'metric');
+  if (!resource) return;
+  metricEditState = {
+    resourceId: id,
+    tags: [...(resource.tags || [])],
+    bizOwner: resource.biz_owner || '',
+    usageMd: resource.usage_md || '',
+    usageHtml: resource.usage_html || renderMetricMarkdownPreview(resource.usage_md || ''),
+  };
+  const catalogOptions = getMetricLeafCatalogOptions();
+  document.getElementById('metric-edit-resource-id').value = id;
+  document.getElementById('metric-edit-name').value = resource.name || '';
+  document.getElementById('metric-edit-description').value = resource.summary || '';
+  document.getElementById('metric-edit-level').value = resource.metric_level || '1级';
+  document.getElementById('metric-edit-security').value = resource.security_level || '秘密级';
+  document.getElementById('metric-edit-catalog').innerHTML = `
+    <option value="">请选择指标目录</option>
+    ${catalogOptions.map(option => `<option value="${escapeMetricHtml(option.path)}" ${resource.catalog === option.path ? 'selected' : ''}>${escapeMetricHtml(option.label)}</option>`).join('')}
+  `;
+  document.getElementById('metric-edit-tech-owner').innerHTML = OWNER_DIRECTORY.map(owner => `<option value="${owner.name}" ${resource.tech_owner === owner.name ? 'selected' : ''}>${escapeMetricHtml(owner.label)}</option>`).join('');
+  document.getElementById('metric-edit-timeliness').value = resource.timeliness || '';
+  document.getElementById('metric-edit-expression').innerHTML = resource.expression_html || '';
+  document.getElementById('metric-edit-caliber').innerHTML = resource.caliber_html || '';
+  document.getElementById('metric-edit-usage-md').value = metricEditState.usageMd;
+  document.getElementById('metric-edit-usage-preview').innerHTML = metricEditState.usageHtml;
+  document.getElementById('metric-edit-biz-owner-input').value = resource.biz_owner ? getOwnerTriggerLabel(resource.biz_owner) : '';
+  document.getElementById('metric-edit-card-subtitle').textContent = `来源字段：${resource.source_field || resource.name || '-'}`;
+  document.getElementById('metric-edit-source-meta').textContent = `来源：${resource.source_system || '指标平台'} · ${resource.source_location || '-'} · 上游说明：${resource.upstream_guidance || '-'}`;
+  renderMetricEditTagChips();
+  hideMetricEditBizOwnerDropdown();
+  openModal('modal-metric-edit-resource');
+}
+
+function closeMetricResourceEditModal() {
+  hideMetricEditBizOwnerDropdown();
+  closeModal('modal-metric-edit-resource');
+  metricEditState = null;
+}
+
+function submitMetricResourceEdit() {
+  const id = document.getElementById('metric-edit-resource-id').value;
+  const resource = MOCK_RESOURCES.find(item => item.id === id && item.type === 'metric');
+  if (!resource || !metricEditState) return;
+
+  commitMetricEditTagInput(false);
+  const description = document.getElementById('metric-edit-description').value.trim();
+  const metricLevel = document.getElementById('metric-edit-level').value;
+  const securityLevel = document.getElementById('metric-edit-security').value;
+  const catalog = document.getElementById('metric-edit-catalog').value;
+  const techOwner = document.getElementById('metric-edit-tech-owner').value;
+  const bizOwner = metricEditState.bizOwner || '';
+  const timeliness = document.getElementById('metric-edit-timeliness').value;
+  const expressionHtml = document.getElementById('metric-edit-expression').innerHTML;
+  const caliberHtml = document.getElementById('metric-edit-caliber').innerHTML;
+  const expressionText = stripMetricHtml(expressionHtml);
+  const caliberText = stripMetricHtml(caliberHtml);
+  const usageMd = document.getElementById('metric-edit-usage-md').value || '';
+  const usageHtml = renderMetricMarkdownPreview(usageMd);
+
+  const checks = [
+    [description, '请填写指标描述'],
+    [catalog, '请选择指标目录'],
+    [techOwner, '请选择技术负责人'],
+    [bizOwner, '请选择业务负责人'],
+    [timeliness, '指标时效性缺失，请联系管理员修复'],
+  ];
+  for (const [value, message] of checks) {
+    if (!value) {
+      showNotification('error', message, '');
+      return;
+    }
+  }
+  if (!expressionText) {
+    showNotification('error', '请填写表达式', '');
+    return;
+  }
+  if (!caliberText) {
+    showNotification('error', '请填写口径说明', '');
+    return;
+  }
+
+  metricEditState.usageMd = usageMd;
+  metricEditState.usageHtml = usageHtml;
+  resource.summary = description;
+  resource.display = description;
+  resource.metric_level = metricLevel;
+  resource.security_level = securityLevel;
+  resource.catalog = catalog;
+  resource.tags = [...metricEditState.tags];
+  resource.tech_owner = techOwner;
+  resource.biz_owner = bizOwner;
+  resource.timeliness = timeliness;
+  resource.expression_html = expressionHtml;
+  resource.expression_text = expressionText;
+  resource.caliber_html = caliberHtml;
+  resource.caliber_text = caliberText;
+  resource.usage_md = usageMd;
+  resource.usage_html = usageHtml;
+  resource.usage = usageHtml;
+  resource.updated = new Date().toLocaleDateString('zh-CN');
+  DETAIL_METRIC_DEFINITIONS[id] = buildMetricDetailDefinition(resource);
+
+  MOCK_MGMT_LOGS.unshift({
+    id: `l${Date.now()}`,
+    action: '编辑指标信息',
+    resource: resource.name,
+    operator: CURRENT_USER,
+    result: '已保存',
+    time: new Date().toLocaleString('zh-CN')
+  });
+
+  closeMetricResourceEditModal();
+  renderMgmtResourceList();
+  if (currentDetailType === 'resource' && currentDetailId === id) {
+    renderDetailHeader(resource, 'resource');
+    renderDetailTabs(resource);
+    switchDetailTab(currentDetailTab, getDetailTabElement(currentDetailTab));
+  }
+  showNotification('success', '指标保存成功', '');
+}
+
 // 单条资源编辑
 function openResourceEditModal(id) {
   const r = MOCK_RESOURCES.find(r => r.id === id);
   if (!r) return;
+  if (r.type === 'metric') {
+    openMetricResourceEditModal(id);
+    return;
+  }
   // 编辑模式：显示只读名称行，隐藏新增专用行
   document.getElementById('resource-edit-name-readonly-row').style.display = '';
   document.getElementById('resource-add-name-row').style.display = 'none';
@@ -10350,46 +11823,60 @@ function switchDetailTab(tab, el) {
   } else if (tab === 'manage') {
     const obj = getDetailRecord();
     const usageContent = getUsageContent(obj);
-    body.innerHTML = renderDetailShell(`
-      <div class="detail-section">
-        <div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">
-          <span>使用说明</span>
-          <span style="font-size:11px;color:var(--gray-400);font-weight:400;">最后编辑：${obj?.tech_owner || '张三'} · 2026-03-28 14:30</span>
-        </div>
-        <div class="card" style="box-shadow:none;border:1px solid var(--gray-200);padding:0;">
-          <div class="detail-editor-toolbar">
-            <button class="detail-editor-btn" title="撤销" onclick="formatUsageEditor('undo')">↩</button>
-            <button class="detail-editor-btn" title="重做" onclick="formatUsageEditor('redo')">↪</button>
-            <div class="detail-editor-sep"></div>
-            <select class="select" style="height:28px;font-size:12px;padding:0 6px;border:none;background:transparent;" onchange="formatUsageHeading(this.value);this.value='';">
-              <option value="">段落格式</option>
-              <option value="H1">标题 1</option>
-              <option value="H2">标题 2</option>
-              <option value="H3">标题 3</option>
-              <option value="P">正文</option>
-            </select>
-            <div class="detail-editor-sep"></div>
-            <button class="detail-editor-btn" title="加粗" onclick="formatUsageEditor('bold')"><b>B</b></button>
-            <button class="detail-editor-btn" title="斜体" onclick="formatUsageEditor('italic')"><i>I</i></button>
-            <button class="detail-editor-btn" title="下划线" onclick="formatUsageEditor('underline')"><u>U</u></button>
-            <button class="detail-editor-btn" title="删除线" onclick="formatUsageEditor('strikeThrough')"><s>S</s></button>
-            <div class="detail-editor-sep"></div>
-            <button class="detail-editor-btn" title="无序列表" onclick="formatUsageEditor('insertUnorderedList')">•≡</button>
-            <button class="detail-editor-btn" title="有序列表" onclick="formatUsageEditor('insertOrderedList')">1.</button>
-            <button class="detail-editor-btn" title="引用" onclick="insertUsageBlockquote()">❝</button>
-            <div class="detail-editor-sep"></div>
-            <button class="detail-editor-btn" title="插入代码块" onclick="insertUsageCodeBlock()">⌨</button>
-            <button class="detail-editor-btn" title="插入表格" onclick="insertUsageTable()">⊞</button>
-            <button class="detail-editor-btn" title="插入分割线" onclick="formatUsageEditor('insertHorizontalRule')">—</button>
-            <button class="detail-editor-btn" title="插入链接" onclick="insertUsageLink()">🔗</button>
-            <div class="detail-editor-sep"></div>
-            <button class="detail-editor-btn" title="左对齐" onclick="formatUsageEditor('justifyLeft')">≡←</button>
-            <button class="detail-editor-btn" title="居中" onclick="formatUsageEditor('justifyCenter')">≡↔</button>
+    if (obj?.type === 'metric') {
+      body.innerHTML = renderDetailShell(`
+        <div class="detail-section">
+          <div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>使用说明</span>
+            <span style="font-size:11px;color:var(--gray-400);font-weight:400;">最近维护：${obj?.tech_owner || '张三'} · 2026-03-28 14:30</span>
           </div>
-          <div id="usage-editor" contenteditable="true" class="form-textarea detail-editor-box">${usageContent}</div>
+          <div class="card" style="box-shadow:none;border:1px solid var(--gray-200);">
+            <div class="metric-markdown-preview" style="max-height:none;min-height:220px;border:none;padding:0;background:transparent;">${usageContent}</div>
+          </div>
         </div>
-      </div>
-    `);
+      `);
+    } else {
+      body.innerHTML = renderDetailShell(`
+        <div class="detail-section">
+          <div class="detail-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>使用说明</span>
+            <span style="font-size:11px;color:var(--gray-400);font-weight:400;">最后编辑：${obj?.tech_owner || '张三'} · 2026-03-28 14:30</span>
+          </div>
+          <div class="card" style="box-shadow:none;border:1px solid var(--gray-200);padding:0;">
+            <div class="detail-editor-toolbar">
+              <button class="detail-editor-btn" title="撤销" onclick="formatUsageEditor('undo')">↩</button>
+              <button class="detail-editor-btn" title="重做" onclick="formatUsageEditor('redo')">↪</button>
+              <div class="detail-editor-sep"></div>
+              <select class="select" style="height:28px;font-size:12px;padding:0 6px;border:none;background:transparent;" onchange="formatUsageHeading(this.value);this.value='';">
+                <option value="">段落格式</option>
+                <option value="H1">标题 1</option>
+                <option value="H2">标题 2</option>
+                <option value="H3">标题 3</option>
+                <option value="P">正文</option>
+              </select>
+              <div class="detail-editor-sep"></div>
+              <button class="detail-editor-btn" title="加粗" onclick="formatUsageEditor('bold')"><b>B</b></button>
+              <button class="detail-editor-btn" title="斜体" onclick="formatUsageEditor('italic')"><i>I</i></button>
+              <button class="detail-editor-btn" title="下划线" onclick="formatUsageEditor('underline')"><u>U</u></button>
+              <button class="detail-editor-btn" title="删除线" onclick="formatUsageEditor('strikeThrough')"><s>S</s></button>
+              <div class="detail-editor-sep"></div>
+              <button class="detail-editor-btn" title="无序列表" onclick="formatUsageEditor('insertUnorderedList')">•≡</button>
+              <button class="detail-editor-btn" title="有序列表" onclick="formatUsageEditor('insertOrderedList')">1.</button>
+              <button class="detail-editor-btn" title="引用" onclick="insertUsageBlockquote()">❝</button>
+              <div class="detail-editor-sep"></div>
+              <button class="detail-editor-btn" title="插入代码块" onclick="insertUsageCodeBlock()">⌨</button>
+              <button class="detail-editor-btn" title="插入表格" onclick="insertUsageTable()">⊞</button>
+              <button class="detail-editor-btn" title="插入分割线" onclick="formatUsageEditor('insertHorizontalRule')">—</button>
+              <button class="detail-editor-btn" title="插入链接" onclick="insertUsageLink()">🔗</button>
+              <div class="detail-editor-sep"></div>
+              <button class="detail-editor-btn" title="左对齐" onclick="formatUsageEditor('justifyLeft')">≡←</button>
+              <button class="detail-editor-btn" title="居中" onclick="formatUsageEditor('justifyCenter')">≡↔</button>
+            </div>
+            <div id="usage-editor" contenteditable="true" class="form-textarea detail-editor-box">${usageContent}</div>
+          </div>
+        </div>
+      `);
+    }
   } else if (tab === 'ddl') {
     body.innerHTML = renderDetailShell(`
       <div class="detail-section">
@@ -10504,6 +11991,7 @@ function insertUsageLink() {
 function getUsageContent(obj) {
   if (!obj) return '<p style="color:var(--gray-400);">暂无使用说明</p>';
   const t = obj.type || 'table';
+  if (t === 'metric' && obj.usage_html) return obj.usage_html;
   if (t === 'table' || t === 'view') {
     return `<h2>概述</h2>
 <p>本表为<strong>${obj.display || obj.name}</strong>，主要用于经营分析、专题看板与临时分析取数场景。数据来源于上游 ODS 层经清洗加工后写入。</p>
@@ -13872,6 +15360,8 @@ document.addEventListener('click', () => {
   document.querySelectorAll('.action-dropdown.show').forEach(d => { d.classList.remove('show'); d.style.display = 'none'; });
   const g = document.getElementById('global-action-dropdown');
   if (g) g.remove();
+  if (typeof hideAllMetricBizOwnerDropdowns === 'function') hideAllMetricBizOwnerDropdowns();
+  if (typeof hideMetricEditBizOwnerDropdown === 'function') hideMetricEditBizOwnerDropdown();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
