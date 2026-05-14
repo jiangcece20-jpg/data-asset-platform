@@ -4274,6 +4274,64 @@
   </div>
 </div>
 
+<!-- 工作台待办处理 Modal -->
+<div class="modal-overlay" id="modal-workbench-todo-action">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="workbench-todo-action-title">确认已处理</div>
+      <span class="modal-close" onclick="closeWorkbenchTodoActionModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="workbench-todo-action-id" />
+      <input type="hidden" id="workbench-todo-action-mode" />
+      <div id="workbench-todo-action-summary" style="font-size:12px;color:var(--gray-500);margin-bottom:12px;padding:8px 12px;background:var(--gray-50);border-radius:6px;line-height:1.6;"></div>
+      <div id="workbench-todo-action-hint" style="font-size:12px;color:var(--warning);margin-bottom:12px;padding:8px 12px;background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;line-height:1.6;"></div>
+      <div class="form-item" style="margin-bottom:0;">
+        <label class="form-label required" id="workbench-todo-action-label">处理情况</label>
+        <textarea class="form-textarea" id="workbench-todo-action-note" placeholder="请填写处理说明" rows="4"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeWorkbenchTodoActionModal()">取消</button>
+      <button class="btn btn-primary" id="workbench-todo-action-submit" onclick="submitWorkbenchTodoAction()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- 工作台认领资源 Modal -->
+<div class="modal-overlay" id="modal-workbench-todo-claim">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">认领资源</div>
+      <span class="modal-close" onclick="closeWorkbenchTodoClaimModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div id="workbench-todo-claim-summary" style="font-size:12px;color:var(--gray-500);margin-bottom:12px;padding:8px 12px;background:var(--gray-50);border-radius:6px;line-height:1.6;"></div>
+      <div class="form-item" style="margin-bottom:0;">
+        <label class="form-label required">指定负责人</label>
+        <div class="metric-owner-picker" onclick="event.stopPropagation()">
+          <input
+            class="input form-input"
+            id="workbench-todo-claim-input"
+            placeholder="请输入姓名或邮箱搜索"
+            onfocus="openWorkbenchTodoClaimDropdown()"
+            oninput="filterWorkbenchTodoClaimOwner(this.value)"
+            onblur="setTimeout(hideWorkbenchTodoClaimDropdown, 150)"
+          />
+          <div class="metric-owner-dropdown" id="workbench-todo-claim-dropdown">
+            <div class="metric-owner-search-meta">输入姓名或邮箱进行筛选，单选认领负责人</div>
+            <div id="workbench-todo-claim-options"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeWorkbenchTodoClaimModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitWorkbenchTodoClaim()">确认认领</button>
+    </div>
+  </div>
+</div>
+
 <!-- 单条资源信息编辑 Modal -->
 <!-- ===== 治理操作弹窗 ===== -->
 
@@ -8427,31 +8485,187 @@ function switchMgmtPanel(panel, el) {
 }
 
 // ========== 工作台 Mock 数据 & 渲染 ==========
-const MOCK_WB_ANOMALIES = [
-  // 目录类
-  { id:'a1', type:'无目录', resource:'dwd_order_detail', desc:'资产未挂载任何目录', action:'分配目录', target:'catalog-mgmt', category:'catalog', level:'warn' },
-  { id:'a2', type:'目录悬空', resource:'ods_trade_flow', desc:'挂载目录"交易分析"已被删除', action:'重新分配', target:'catalog-mgmt', category:'catalog', level:'warn' },
-  // 更新类
-  { id:'a3', type:'长期未更新', resource:'dim_area_code', desc:'超过 90 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'warn' },
-  { id:'a4', type:'长期未更新', resource:'dim_product', desc:'超过 60 天无数据写入', action:'确认处理', target:'resource-list', category:'update', level:'info' },
-  // 数据量类
-  { id:'a5', type:'数据量为空', resource:'ads_empty_table_test', desc:'表已创建但无任何数据（0行）', action:'查看详情', target:'detail', category:'data', level:'error' },
-  { id:'a6', type:'数据量为空', resource:'ods_abandoned_log', desc:'近 30 天数据量持续为 0', action:'查看详情', target:'detail', category:'data', level:'error' },
-  // 负责人类
-  { id:'a7', type:'负责人离职', resource:'ads_finance_report', desc:'技术负责人 王五 已离职，资源无人维护', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
-  { id:'a8', type:'负责人离职', resource:'dws_user_behavior', desc:'业务负责人 赵六 已离职', action:'认领资源', target:'resource-list', category:'owner', level:'error' },
-  { id:'a9', type:'负责人缺失', resource:'ods_user_log', desc:'未指定业务负责人', action:'补全信息', target:'resource-list', category:'owner', level:'warn' },
-  // 元数据类
-  { id:'a10', type:'描述缺失', resource:'dwd_order_detail', desc:'资产无中文描述，影响检索和理解', action:'补全描述', target:'detail', category:'meta', level:'info' },
-  { id:'a11', type:'字段漂移', resource:'ods_trade_flow', desc:'物理字段与元数据不一致（+2 -1）', action:'同步字段', target:'detail', category:'meta', level:'warn' },
-  { id:'a12', type:'标签缺失', resource:'dim_city', desc:'未打任何业务标签', action:'打标签', target:'detail', category:'meta', level:'info' },
-  // 上游类
-  { id:'a13', type:'上游断裂', resource:'dws_user_behavior', desc:'上游 ods_click_log 已下线', action:'查看血缘', target:'detail', category:'upstream', level:'error' }
-];
-const MOCK_WB_PENDING = [
-  { group:'待上架', count:3, action:'去处理', target:'resource-list', filter:'maintain' },
-  { group:'待审批', count:2, action:'去审批', target:'perm', desc:'他人申请我负责资源的权限' },
-  { group:'待补全', count:5, action:'去补全', target:'resource-list', desc:'缺少描述/负责人/目录' }
+const WORKBENCH_TODO_CATEGORY_META = {
+  identification: {
+    label: '数据识别类',
+    color: 'var(--primary)',
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>'
+  },
+  management: {
+    label: '数据管理类',
+    color: 'var(--warning)',
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  },
+  retirement: {
+    label: '数据退役类',
+    color: '#ff4d4f',
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>'
+  },
+  owner: {
+    label: '负责人异常类',
+    color: '#722ed1',
+    icon: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+  }
+};
+const WORKBENCH_TODO_LEVEL_COLORS = { error:'#ff4d4f', warn:'var(--warning)', info:'var(--primary)' };
+const MOCK_WB_TODOS = [
+  {
+    id:'wbt001',
+    resourceId:'r001',
+    resourceName:'wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di',
+    resourceType:'table',
+    category:'identification',
+    issueType:'missing-classification',
+    issueTitle:'数据无分类分级',
+    issueDesc:'资源未进行数据分类分级标注，请联系管理员线下处理。',
+    primaryAction:'contact-admin',
+    primaryActionLabel:'联系管理员',
+    secondaryAction:'',
+    secondaryActionLabel:'',
+    scanDate:'2026-05-14',
+    status:'open',
+    level:'warn'
+  },
+  {
+    id:'wbt002',
+    resourceId:'r005',
+    resourceName:'api_inventory_check',
+    resourceType:'api',
+    category:'identification',
+    issueType:'api-description-invalid',
+    issueTitle:'API详情描述不规范',
+    issueDesc:'API 描述信息不完整，当前无法关联应用平台。',
+    primaryAction:'edit-resource',
+    primaryActionLabel:'编辑',
+    secondaryAction:'',
+    secondaryActionLabel:'',
+    scanDate:'2026-05-14',
+    status:'open',
+    level:'info'
+  },
+  {
+    id:'wbt003',
+    resourceId:'r004',
+    resourceName:'wlyd_mc_beijing.dm_difp_pay_mt_account_aggregate_info_df',
+    resourceType:'table',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-14',
+    status:'open',
+    level:'warn'
+  },
+  {
+    id:'wbt004',
+    resourceId:'r003',
+    resourceName:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df',
+    resourceType:'table',
+    category:'retirement',
+    issueType:'source-deleted',
+    issueTitle:'数据源已删除',
+    issueDesc:'源系统已删除该数据资源，但平台中仍保留对应记录。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-14',
+    status:'open',
+    level:'error'
+  },
+  {
+    id:'wbt005',
+    resourceId:'r006',
+    resourceName:'rpt_weekly_summary',
+    resourceType:'report',
+    category:'retirement',
+    issueType:'nonstandard-name-temp',
+    issueTitle:'表名不规范 / 临时表',
+    issueDesc:'命名不规范、无过期时间或为临时表，需确认是否销毁。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-14',
+    status:'open',
+    level:'warn'
+  },
+  {
+    id:'wbt006',
+    resourceId:'r002',
+    resourceName:'kafka_user_click_raw',
+    resourceType:'table',
+    category:'owner',
+    issueType:'owner-resigned',
+    issueTitle:'负责人离职',
+    issueDesc:'技术负责人已离职，资源当前无有效维护人。',
+    primaryAction:'claim-owner',
+    primaryActionLabel:'认领资源',
+    secondaryAction:'',
+    secondaryActionLabel:'',
+    scanDate:'2026-05-14',
+    status:'open',
+    claimRole:'tech',
+    level:'error'
+  },
+  {
+    id:'wbt007',
+    resourceId:'r009',
+    resourceName:'label_user_value_tier',
+    resourceType:'label',
+    category:'owner',
+    issueType:'owner-missing',
+    issueTitle:'负责人缺失',
+    issueDesc:'未指定业务负责人，资源无法闭环治理。',
+    primaryAction:'claim-owner',
+    primaryActionLabel:'认领资源',
+    secondaryAction:'',
+    secondaryActionLabel:'',
+    scanDate:'2026-05-14',
+    status:'open',
+    claimRole:'biz',
+    level:'warn'
+  },
+  {
+    id:'wbt008',
+    resourceId:'r010',
+    resourceName:'wlyd_mc_beijing.ads_user_retention_week_df',
+    resourceType:'table',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'已填处理情况，等待次日扫描确认是否恢复。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-13',
+    status:'resolved_pending_rescan',
+    level:'info',
+    resolutionNote:'已通知数据源负责人检查同步任务。'
+  },
+  {
+    id:'wbt009',
+    resourceId:'api_user_info',
+    resourceName:'api_user_info',
+    resourceType:'api',
+    category:'retirement',
+    issueType:'source-deleted',
+    issueTitle:'数据源已删除',
+    issueDesc:'已标记无需处理，后续不再重复扫描。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-12',
+    status:'waived',
+    level:'info',
+    waiveReason:'已完成系统迁移，保留历史记录用于审计。'
+  }
 ];
 const MOCK_WB_OPERATIONS = [
   { time:'10:42', operator:'张三', resource:'dwd_order_detail', action:'编辑', detail:'修改资源描述', icon:'edit' },
@@ -8470,11 +8684,65 @@ const MOCK_WB_MY_REQUESTS = [
   { resource:'ods_user_log', type:'权限申请', status:'审批中', time:'03-29 11:00' },
   { resource:'dim_product', type:'目录变更', status:'审批中', time:'03-28 16:30' }
 ];
+let workbenchTodoClaimState = null;
+
+function getWorkbenchTodoById(id) {
+  return MOCK_WB_TODOS.find(item => item.id === id) || null;
+}
+
+function getOpenWorkbenchTodos() {
+  return MOCK_WB_TODOS.filter(item => item.status === 'open');
+}
+
+function getWorkbenchTodoCategoryCounts() {
+  const counts = { identification:0, management:0, retirement:0, owner:0 };
+  getOpenWorkbenchTodos().forEach(item => {
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  });
+  return counts;
+}
+
+function getWorkbenchTodoResource(record) {
+  if (!record) return null;
+  return MOCK_RESOURCES.find(item => item.id === record.resourceId || item.name === record.resourceName) || null;
+}
+
+function hasOpenWorkbenchTodoForResource(record) {
+  if (!record) return false;
+  return getOpenWorkbenchTodos().some(item => item.resourceId === record.id || item.resourceName === record.name);
+}
+
+function logWorkbenchOperation(action, resource, detail, icon = 'edit') {
+  MOCK_WB_OPERATIONS.unshift({
+    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    operator: CURRENT_USER,
+    resource,
+    action,
+    detail,
+    icon
+  });
+  if (MOCK_WB_OPERATIONS.length > 12) MOCK_WB_OPERATIONS.length = 12;
+}
+
+function refreshWorkbenchAfterTodoChange(resourceId) {
+  renderWorkbench();
+  renderMgmtResourceList();
+  updateMgmtStatusBadges();
+  if (currentDetailType === 'resource' && currentDetailId === resourceId) {
+    const resource = MOCK_RESOURCES.find(item => item.id === resourceId);
+    if (resource) {
+      renderDetailHeader(resource, 'resource');
+      renderDetailTabs(resource);
+      switchDetailTab(currentDetailTab, getDetailTabElement(currentDetailTab));
+    }
+  }
+}
 
 function renderWorkbench() {
   const myResources = MOCK_RESOURCES.filter(r => r.owner === '张三');
   const totalCount = myResources.length;
-  const todoCount = MOCK_WB_ANOMALIES.length + MOCK_WB_PENDING.reduce((s,p)=>s+p.count,0);
+  const todoCount = getOpenWorkbenchTodos().length;
+  const todoCounts = getWorkbenchTodoCategoryCounts();
   const healthPct = 89;
 
   // 统计卡片
@@ -8483,7 +8751,10 @@ function renderWorkbench() {
   const statChanges = document.getElementById('wb-stat-changes');
   const statHealth = document.getElementById('wb-stat-health');
   if(statTotal) { statTotal.textContent = totalCount; document.getElementById('wb-stat-total-sub').textContent = `表 ${myResources.filter(r=>r.type==='table').length} · 报表 ${myResources.filter(r=>r.type==='report').length} · 其他 ${myResources.filter(r=>!['table','report'].includes(r.type)).length}`; }
-  if(statTodo) { statTodo.textContent = todoCount; document.getElementById('wb-stat-todo-sub').textContent = `异常 ${MOCK_WB_ANOMALIES.length} · 待上架 ${MOCK_WB_PENDING[0].count} · 待审批 ${MOCK_WB_PENDING[1].count} · 待补全 ${MOCK_WB_PENDING[2].count}`; }
+  if(statTodo) {
+    statTodo.textContent = todoCount;
+    document.getElementById('wb-stat-todo-sub').textContent = `识别 ${todoCounts.identification || 0} · 管理 ${todoCounts.management || 0} · 退役 ${todoCounts.retirement || 0} · 负责人 ${todoCounts.owner || 0}`;
+  }
   if(statChanges) { statChanges.textContent = 12; document.getElementById('wb-stat-changes-sub').textContent = '较上周 +3'; }
   if(statHealth) { statHealth.textContent = healthPct + '%'; statHealth.style.color = healthPct >= 80 ? '#52c41a' : healthPct >= 60 ? 'var(--warning)' : '#ff4d4f'; }
   const healthBar = document.getElementById('wb-health-bar');
@@ -8503,50 +8774,44 @@ function renderWorkbench() {
 function renderWorkbenchTodo() {
   const el = document.getElementById('wb-todo-list');
   if(!el) return;
+  const openTodos = getOpenWorkbenchTodos();
+  if (!openTodos.length) {
+    el.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--gray-400);font-size:12px;">当前暂无待处理治理事项</div>';
+    return;
+  }
+
   let html = '';
-  // 异常资源 - 按分类分组
-  const categoryMap = {
-    catalog: { label:'目录异常', color:'#722ed1', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#722ed1" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
-    update: { label:'更新异常', color:'var(--warning)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-    data: { label:'数据异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>' },
-    owner: { label:'负责人异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="2" y1="2" x2="22" y2="22" stroke-width="1.5"/></svg>' },
-    meta: { label:'元数据缺失', color:'var(--primary)', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
-    upstream: { label:'上游异常', color:'#ff4d4f', icon:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff4d4f" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' }
-  };
-  const levelDot = { error:'#ff4d4f', warn:'var(--warning)', info:'var(--primary)' };
-  const groups = {};
-  MOCK_WB_ANOMALIES.forEach(a => {
-    if(!groups[a.category]) groups[a.category] = [];
-    groups[a.category].push(a);
-  });
-  Object.keys(groups).forEach(cat => {
-    const cfg = categoryMap[cat] || { label:cat, color:'var(--gray-500)', icon:'' };
-    const items = groups[cat];
+  Object.keys(WORKBENCH_TODO_CATEGORY_META).forEach(categoryKey => {
+    const items = openTodos.filter(item => item.category === categoryKey);
+    if (!items.length) return;
+    const cfg = WORKBENCH_TODO_CATEGORY_META[categoryKey];
     html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
-    items.forEach(a => {
-      const dot = levelDot[a.level] || 'var(--gray-400)';
-      html += '<div style="padding:5px 16px 5px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
-        '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px;">' +
-          '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';flex-shrink:0;"></span>' +
-          '<span style="color:var(--gray-800);font-weight:500;">'+a.resource+'</span>' +
-          '<span style="color:var(--gray-400);">'+a.type+'</span>' +
-          '<span style="color:var(--gray-400);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+a.desc+'</span>' +
-        '</div>' +
-        '<a style="color:var(--primary);cursor:pointer;white-space:nowrap;margin-left:8px;font-size:11px;" onclick="handleWbTodoClick(\''+a.target+'\',\''+a.resource+'\')">'+a.action+'</a>' +
-      '</div>';
+    items.forEach(item => {
+      const dot = WORKBENCH_TODO_LEVEL_COLORS[item.level] || 'var(--gray-400)';
+      const resource = getWorkbenchTodoResource(item);
+      const resourceLabel = resource?.display || resource?.displayName || item.resourceName;
+      const secondaryBtn = item.secondaryAction && item.secondaryActionLabel
+        ? '<button class="btn btn-default btn-sm" style="padding:2px 8px;height:auto;line-height:1.5;" onclick="handleWorkbenchTodoAction(\''+item.id+'\', \'secondary\')">'+item.secondaryActionLabel+'</button>'
+        : '';
+      html += '' +
+        '<div style="padding:8px 16px 8px 32px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
+          '<div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;">' +
+            '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';margin-top:6px;flex-shrink:0;"></span>' +
+            '<div style="min-width:0;">' +
+              '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+                '<span style="color:var(--gray-800);font-weight:600;">'+resourceLabel+'</span>' +
+                '<span style="color:var(--gray-400);">'+item.issueTitle+'</span>' +
+              '</div>' +
+              '<div style="color:var(--gray-500);line-height:1.6;margin-top:2px;">'+item.issueDesc+'</div>' +
+              '<div style="font-size:11px;color:var(--gray-400);margin-top:4px;">扫描时间：'+item.scanDate+'</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+            '<button class="btn btn-primary btn-sm" style="padding:2px 8px;height:auto;line-height:1.5;" onclick="handleWorkbenchTodoAction(\''+item.id+'\', \'primary\')">'+item.primaryActionLabel+'</button>' +
+            secondaryBtn +
+          '</div>' +
+        '</div>';
     });
-  });
-  // 常规待办
-  html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:var(--warning);display:flex;align-items:center;gap:4px;margin-top:8px;border-top:1px solid var(--gray-100);padding-top:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 常规待办</div>';
-  MOCK_WB_PENDING.forEach(p => {
-    html += '<div style="padding:6px 16px 6px 32px;display:flex;align-items:center;justify-content:space-between;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
-      '<div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warning);margin-right:6px;"></span>' +
-        '<span style="font-weight:500;">'+p.group+'</span>' +
-        '<span style="color:var(--warning);margin-left:4px;">('+p.count+')</span>' +
-        (p.desc ? '<span style="color:var(--gray-400);margin-left:6px;font-size:11px;">'+p.desc+'</span>' : '') +
-      '</div>' +
-      '<a style="color:var(--primary);cursor:pointer;font-size:11px;" onclick="handleWbTodoClick(\''+p.target+'\',\'\')">'+p.action+' \u2192</a>' +
-    '</div>';
   });
   el.innerHTML = html;
 }
@@ -8604,7 +8869,7 @@ function renderWorkbenchMyResources() {
   let list = MOCK_RESOURCES.filter(r => r.owner === '张三');
   if(statusFilter === 'published') list = list.filter(r => r.status === '已上架');
   else if(statusFilter === 'maintain') list = list.filter(r => r.status === '待维护');
-  else if(statusFilter === 'error') list = list.filter(r => MOCK_WB_ANOMALIES.some(a => a.resource === r.name));
+  else if(statusFilter === 'error') list = list.filter(r => hasOpenWorkbenchTodoForResource(r));
   if(kw) list = list.filter(r => r.name.toLowerCase().includes(kw) || (r.displayName||'').toLowerCase().includes(kw));
   // 健康度 mock
   const healthMap = { 'dwd_order_detail':95, 'ods_user_log':72, 'dim_city':88, 'dws_user_behavior':65, 'ads_finance_report':40, 'ods_trade_flow':78, 'dim_area_code':91, 'dim_product':85 };
@@ -8613,7 +8878,7 @@ function renderWorkbenchMyResources() {
   el.innerHTML = list.slice(0,8).map((r,i) => {
     const h = healthMap[r.name] || (70 + Math.floor(Math.random()*25));
     const hColor = h >= 80 ? '#52c41a' : h >= 60 ? 'var(--warning)' : '#ff4d4f';
-    const isAnomaly = MOCK_WB_ANOMALIES.some(a => a.resource === r.name);
+    const isAnomaly = hasOpenWorkbenchTodoForResource(r);
     return `<tr style="border-bottom:1px solid var(--gray-50);${isAnomaly?'background:#fff2f0;':''}cursor:pointer;" >
       <td style="padding:8px 12px;">
         <div style="cursor:pointer;" onclick="openDetail('${r.id}')">
@@ -8634,17 +8899,178 @@ function renderWorkbenchMyResources() {
   }).join('');
 }
 
-function handleWbTodoClick(target, resource) {
-  if(target === 'resource-list') {
-    switchMgmtPanel('resource-list', document.getElementById('mgmt-nav-resource-list'));
-  } else if(target === 'catalog-mgmt') {
-    switchMgmtPanel('catalog-mgmt', document.getElementById('mgmt-nav-catalog-mgmt'));
-  } else if(target === 'perm') {
-    switchPage('perm', document.querySelector('[data-page=perm]'));
-  } else if(target === 'detail' && resource) {
-    const r = MOCK_RESOURCES.find(x => x.name === resource);
-    if(r) openDetail(r.id);
+function handleWorkbenchTodoAction(todoId, actionSlot) {
+  const todo = getWorkbenchTodoById(todoId);
+  if (!todo) return;
+  const actionType = actionSlot === 'secondary' ? todo.secondaryAction : todo.primaryAction;
+  const resource = getWorkbenchTodoResource(todo);
+  if (actionType === 'contact-admin') {
+    navigator.clipboard?.writeText('jiangbin@wanlianyida.com');
+    logWorkbenchOperation('联系管理员', todo.resourceName, '已复制管理员邮箱，线下沟通待处理。', 'warn');
+    MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'联系管理员', resource:todo.resourceName, operator:CURRENT_USER, result:'已复制邮箱：jiangbin@wanlianyida.com', time:new Date().toLocaleString('zh-CN') });
+    renderWorkbenchOperations();
+    showNotification('success', '已复制管理员邮箱', 'jiangbin@wanlianyida.com，请线下联系处理');
+    return;
   }
+  if (actionType === 'edit-resource') {
+    if (resource) openResourceEditModal(resource.id);
+    return;
+  }
+  if (actionType === 'mark-handled') {
+    openWorkbenchTodoActionModal(todoId, 'handled');
+    return;
+  }
+  if (actionType === 'waive') {
+    openWorkbenchTodoActionModal(todoId, 'waived');
+    return;
+  }
+  if (actionType === 'claim-owner') {
+    openWorkbenchTodoClaimModal(todoId);
+  }
+}
+
+function openWorkbenchTodoActionModal(todoId, mode) {
+  const todo = getWorkbenchTodoById(todoId);
+  if (!todo) return;
+  const resource = getWorkbenchTodoResource(todo);
+  document.getElementById('workbench-todo-action-id').value = todoId;
+  document.getElementById('workbench-todo-action-mode').value = mode;
+  document.getElementById('workbench-todo-action-note').value = '';
+  document.getElementById('workbench-todo-action-summary').textContent = `${resource?.display || todo.resourceName} · ${todo.issueTitle}`;
+  if (mode === 'handled') {
+    document.getElementById('workbench-todo-action-title').textContent = '确认已处理';
+    document.getElementById('workbench-todo-action-label').textContent = '处理情况';
+    document.getElementById('workbench-todo-action-note').placeholder = '请填写处理情况';
+    document.getElementById('workbench-todo-action-hint').textContent = '提交后当前记录会从工作台移除；系统将在次日扫描时重新检查该问题，若仍存在会再次显示。';
+    document.getElementById('workbench-todo-action-submit').textContent = '确认';
+  } else {
+    document.getElementById('workbench-todo-action-title').textContent = '标记为无需处理';
+    document.getElementById('workbench-todo-action-label').textContent = '原因说明';
+    document.getElementById('workbench-todo-action-note').placeholder = '请填写无需处理原因';
+    document.getElementById('workbench-todo-action-hint').textContent = '标记后该资源的该类问题将不再出现在待办列表中，后续扫描也不会再次生成。';
+    document.getElementById('workbench-todo-action-submit').textContent = '确认标记';
+  }
+  openModal('modal-workbench-todo-action');
+}
+
+function closeWorkbenchTodoActionModal() {
+  document.getElementById('workbench-todo-action-id').value = '';
+  document.getElementById('workbench-todo-action-mode').value = '';
+  document.getElementById('workbench-todo-action-note').value = '';
+  closeModal('modal-workbench-todo-action');
+}
+
+function submitWorkbenchTodoAction() {
+  const todoId = document.getElementById('workbench-todo-action-id').value;
+  const mode = document.getElementById('workbench-todo-action-mode').value;
+  const note = document.getElementById('workbench-todo-action-note').value.trim();
+  const todo = getWorkbenchTodoById(todoId);
+  if (!todo) return;
+  if (!note) {
+    showNotification('error', mode === 'handled' ? '请填写处理情况' : '请填写无需处理原因', '');
+    return;
+  }
+  const resource = getWorkbenchTodoResource(todo);
+  if (mode === 'handled') {
+    todo.status = 'resolved_pending_rescan';
+    todo.resolutionNote = note;
+    logWorkbenchOperation('已处理待办', todo.resourceName, `${todo.issueTitle}：${note}`, 'status');
+    MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'已处理待办', resource:todo.resourceName, operator:CURRENT_USER, result:todo.issueTitle, time:new Date().toLocaleString('zh-CN') });
+    closeWorkbenchTodoActionModal();
+    refreshWorkbenchAfterTodoChange(resource?.id || todo.resourceId);
+    showNotification('success', '处理情况已记录', '当前记录已移出工作台，系统将在次日重新扫描。');
+    return;
+  }
+  todo.status = 'waived';
+  todo.waiveReason = note;
+  logWorkbenchOperation('无需处理', todo.resourceName, `${todo.issueTitle}：${note}`, 'status');
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'标记无需处理', resource:todo.resourceName, operator:CURRENT_USER, result:todo.issueTitle, time:new Date().toLocaleString('zh-CN') });
+  closeWorkbenchTodoActionModal();
+  refreshWorkbenchAfterTodoChange(resource?.id || todo.resourceId);
+  showNotification('success', '已标记无需处理', '该资源的该类问题后续将不再出现在待办列表中。');
+}
+
+function renderWorkbenchTodoClaimOptions(keyword) {
+  const lowerKeyword = String(keyword || '').trim().toLowerCase();
+  const options = OWNER_DIRECTORY.filter(item => !lowerKeyword || item.searchText.includes(lowerKeyword));
+  if (!options.length) return '<div class="metric-source-empty">没有匹配的负责人</div>';
+  return options.map(item => `
+    <div class="owner-filter-option${item.name === workbenchTodoClaimState?.ownerName ? ' active' : ''}" onclick="selectWorkbenchTodoClaimOwner('${item.name}')">
+      <div class="owner-filter-option-name">${escapeMetricHtml(item.label)}</div>
+      <div class="owner-filter-option-meta">${item.name === CURRENT_USER ? '当前登录用户' : '可按姓名或邮箱命中'}</div>
+    </div>
+  `).join('');
+}
+
+function hideWorkbenchTodoClaimDropdown() {
+  document.getElementById('workbench-todo-claim-dropdown')?.classList.remove('open');
+}
+
+function openWorkbenchTodoClaimDropdown() {
+  const dropdown = document.getElementById('workbench-todo-claim-dropdown');
+  const options = document.getElementById('workbench-todo-claim-options');
+  const input = document.getElementById('workbench-todo-claim-input');
+  if (!dropdown || !options || !input) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderWorkbenchTodoClaimOptions(input.value);
+}
+
+function filterWorkbenchTodoClaimOwner(value) {
+  const dropdown = document.getElementById('workbench-todo-claim-dropdown');
+  const options = document.getElementById('workbench-todo-claim-options');
+  if (!dropdown || !options) return;
+  dropdown.classList.add('open');
+  options.innerHTML = renderWorkbenchTodoClaimOptions(value);
+}
+
+function selectWorkbenchTodoClaimOwner(ownerName) {
+  if (!workbenchTodoClaimState) return;
+  workbenchTodoClaimState.ownerName = ownerName;
+  const input = document.getElementById('workbench-todo-claim-input');
+  if (input) input.value = getOwnerTriggerLabel(ownerName);
+  hideWorkbenchTodoClaimDropdown();
+}
+
+function openWorkbenchTodoClaimModal(todoId) {
+  const todo = getWorkbenchTodoById(todoId);
+  if (!todo) return;
+  const resource = getWorkbenchTodoResource(todo);
+  workbenchTodoClaimState = { todoId, ownerName: '' };
+  document.getElementById('workbench-todo-claim-summary').textContent = `${resource?.display || todo.resourceName} · ${todo.issueTitle} · ${todo.issueDesc}`;
+  document.getElementById('workbench-todo-claim-input').value = '';
+  document.getElementById('workbench-todo-claim-options').innerHTML = renderWorkbenchTodoClaimOptions('');
+  hideWorkbenchTodoClaimDropdown();
+  openModal('modal-workbench-todo-claim');
+}
+
+function closeWorkbenchTodoClaimModal() {
+  hideWorkbenchTodoClaimDropdown();
+  document.getElementById('workbench-todo-claim-input').value = '';
+  document.getElementById('workbench-todo-claim-options').innerHTML = '';
+  workbenchTodoClaimState = null;
+  closeModal('modal-workbench-todo-claim');
+}
+
+function submitWorkbenchTodoClaim() {
+  const todo = getWorkbenchTodoById(workbenchTodoClaimState?.todoId || '');
+  if (!todo || !workbenchTodoClaimState) return;
+  if (!workbenchTodoClaimState.ownerName) {
+    showNotification('error', '请选择负责人', '');
+    return;
+  }
+  const resource = getWorkbenchTodoResource(todo);
+  if (resource) {
+    if (todo.claimRole === 'tech' || todo.claimRole === 'both') resource.tech_owner = workbenchTodoClaimState.ownerName;
+    if (todo.claimRole === 'biz' || todo.claimRole === 'both') resource.biz_owner = workbenchTodoClaimState.ownerName;
+    resource.updated = new Date().toLocaleDateString('zh-CN');
+  }
+  todo.status = 'resolved_pending_rescan';
+  todo.resolutionNote = `已认领给 ${workbenchTodoClaimState.ownerName}`;
+  logWorkbenchOperation('认领资源', todo.resourceName, `负责人已更新为 ${workbenchTodoClaimState.ownerName}`, 'transfer');
+  MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'认领资源', resource:todo.resourceName, operator:CURRENT_USER, result:`已指定负责人：${workbenchTodoClaimState.ownerName}`, time:new Date().toLocaleString('zh-CN') });
+  closeWorkbenchTodoClaimModal();
+  refreshWorkbenchAfterTodoChange(resource?.id || todo.resourceId);
+  showNotification('success', '认领成功', `已指定负责人：${workbenchTodoClaimState.ownerName}`);
 }
 
 
@@ -10242,6 +10668,7 @@ function submitMetricResourceEdit() {
 
   closeMetricResourceEditModal();
   renderMgmtResourceList();
+  renderWorkbench();
   if (currentDetailType === 'resource' && currentDetailId === id) {
     renderDetailHeader(resource, 'resource');
     renderDetailTabs(resource);
@@ -10343,6 +10770,7 @@ function submitResourceEdit() {
   r.usage = document.getElementById('resource-edit-usage').innerHTML;
   MOCK_MGMT_LOGS.unshift({ id:`l${Date.now()}`, action:'编辑资源信息', resource:r.name, operator:CURRENT_USER, result:'已保存', time:new Date().toLocaleString('zh-CN') });
   closeModal('modal-resource-edit');
+  renderWorkbench();
   renderMgmtResourceList();
   showNotification('success', '保存成功', '');
 }
