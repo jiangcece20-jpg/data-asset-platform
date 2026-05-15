@@ -11,7 +11,7 @@ describe('App routing', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: '资产检索' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '数据资产检索' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: '即席查询' }));
     expect(screen.getByRole('heading', { name: '即席查询' })).toBeInTheDocument();

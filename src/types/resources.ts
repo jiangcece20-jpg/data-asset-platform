@@ -12,4 +12,8 @@ export type ResourceSummary = {
   status?: string;
   permissionStatus?: 'granted' | 'none' | 'pending' | 'unknown';
   tags?: string[];
+  domain?: string;
+  updatedAt?: string;
+  usageCount?: number;
+  qualityScore?: number;
 };

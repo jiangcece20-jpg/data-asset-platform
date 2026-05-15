@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AssetSearchPage } from '../features/asset-search/AssetSearchPage';
 import { ComponentGalleryPage } from '../features/component-gallery/ComponentGalleryPage';
 import { ProductPage } from '../features/product-pages/ProductPage';
 import { AppShell } from './AppShell';
@@ -23,7 +24,7 @@ export function App() {
 
   return (
     <AppShell activeRoute={activeRoute}>
-      {activeRoute === 'components' ? <ComponentGalleryPage /> : <ProductPage route={activeRoute} />}
+      {activeRoute === 'components' ? <ComponentGalleryPage /> : activeRoute === 'search' ? <AssetSearchPage /> : <ProductPage route={activeRoute} />}
     </AppShell>
   );
 }
