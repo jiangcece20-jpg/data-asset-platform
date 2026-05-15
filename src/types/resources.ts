@@ -13,6 +13,7 @@ export type ResourceSummary = {
   permissionStatus?: 'granted' | 'none' | 'pending' | 'unknown';
   tags?: string[];
   domain?: string;
+  catalogPath?: string;
   updatedAt?: string;
   usageCount?: number;
   qualityScore?: number;
