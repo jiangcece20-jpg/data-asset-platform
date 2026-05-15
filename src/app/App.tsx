@@ -1,10 +1,29 @@
+import { useEffect, useState } from 'react';
 import { ComponentGalleryPage } from '../features/component-gallery/ComponentGalleryPage';
+import { ProductPage } from '../features/product-pages/ProductPage';
 import { AppShell } from './AppShell';
+import { appRoutes, type AppRouteKey } from './routes';
+
+function getRouteFromHash(): AppRouteKey {
+  const hash = window.location.hash.replace('#', '');
+  const route = appRoutes.find((item) => item.key === hash);
+
+  return route?.key ?? 'search';
+}
 
 export function App() {
+  const [activeRoute, setActiveRoute] = useState<AppRouteKey>(() => getRouteFromHash());
+
+  useEffect(() => {
+    const handleHashChange = () => setActiveRoute(getRouteFromHash());
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   return (
-    <AppShell activeRoute="components">
-      <ComponentGalleryPage />
+    <AppShell activeRoute={activeRoute}>
+      {activeRoute === 'components' ? <ComponentGalleryPage /> : <ProductPage route={activeRoute} />}
     </AppShell>
   );
 }
