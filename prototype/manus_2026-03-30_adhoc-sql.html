@@ -2081,6 +2081,86 @@
     .mgmt-workbench-tab:hover { color: var(--primary); }
     .mgmt-workbench-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
     .wb-panel { padding: 0; }
+    .wb-todo-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .wb-todo-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px 16px 0;
+      border-bottom: 1px solid var(--gray-100);
+      flex-shrink: 0;
+    }
+    .wb-todo-tab {
+      border: 1px solid var(--gray-200);
+      background: #fff;
+      color: var(--gray-500);
+      border-radius: 10px 10px 0 0;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-align: center;
+    }
+    .wb-todo-tab:hover { color: var(--primary); border-color: #91caff; background: #f8fbff; }
+    .wb-todo-tab.active {
+      color: var(--primary);
+      border-color: #91caff;
+      background: var(--primary-light);
+      box-shadow: inset 0 -2px 0 var(--primary);
+    }
+    .wb-todo-tab-count { font-weight: 700; }
+    .wb-todo-tab-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding: 8px 0 0;
+    }
+    .wb-todo-items {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .wb-todo-items.is-expanded {
+      overflow-y: auto;
+      max-height: 296px;
+    }
+    .wb-todo-empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--gray-400);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .wb-todo-footer {
+      padding: 10px 16px 14px;
+      border-top: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: #fff;
+    }
+    .wb-todo-toggle {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+    .wb-todo-toggle:hover { opacity: 0.85; }
     /* 徽章数字 */
     .mgmt-badge {
       display: inline-flex; align-items: center; justify-content: center;
@@ -3256,7 +3336,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 待办事项
               </div>
-              <div style="flex:1;overflow-y:auto;padding:8px 0;" id="wb-todo-list"></div>
+              <div class="wb-todo-shell" id="wb-todo-list"></div>
             </div>
             <!-- 右：资源动态 -->
             <div class="card" style="padding:0;max-height:420px;display:flex;flex-direction:column;">
@@ -8561,6 +8641,91 @@ const MOCK_WB_TODOS = [
     level:'warn'
   },
   {
+    id:'wbt010',
+    resourceId:'r002',
+    resourceName:'kafka_user_click_raw',
+    resourceType:'table',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-15',
+    status:'open',
+    level:'warn'
+  },
+  {
+    id:'wbt011',
+    resourceId:'r001',
+    resourceName:'wlyd_industry_beijing.ods_wlyd_industry_news_industrial_info_di',
+    resourceType:'table',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-15',
+    status:'open',
+    level:'info'
+  },
+  {
+    id:'wbt012',
+    resourceId:'r005',
+    resourceName:'api_inventory_check',
+    resourceType:'api',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-15',
+    status:'open',
+    level:'warn'
+  },
+  {
+    id:'wbt013',
+    resourceId:'r006',
+    resourceName:'rpt_weekly_summary',
+    resourceType:'report',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-15',
+    status:'open',
+    level:'info'
+  },
+  {
+    id:'wbt014',
+    resourceId:'r009',
+    resourceName:'label_user_value_tier',
+    resourceType:'label',
+    category:'management',
+    issueType:'stale-data-short-lifecycle',
+    issueTitle:'数据长时间未更新',
+    issueDesc:'超过 30 天未更新，且生命周期小于 30 天。',
+    primaryAction:'mark-handled',
+    primaryActionLabel:'已处理',
+    secondaryAction:'waive',
+    secondaryActionLabel:'无需处理',
+    scanDate:'2026-05-15',
+    status:'open',
+    level:'warn'
+  },
+  {
     id:'wbt004',
     resourceId:'r003',
     resourceName:'wlyd_mc_beijing.dws_vlsp_mb_domain_entire_business_process_1m_df',
@@ -8685,6 +8850,9 @@ const MOCK_WB_MY_REQUESTS = [
   { resource:'dim_product', type:'目录变更', status:'审批中', time:'03-28 16:30' }
 ];
 let workbenchTodoClaimState = null;
+const WORKBENCH_TODO_DEFAULT_VISIBLE_COUNT = 5;
+let workbenchTodoActiveTab = '';
+let workbenchTodoExpanded = false;
 
 function getWorkbenchTodoById(id) {
   return MOCK_WB_TODOS.find(item => item.id === id) || null;
@@ -8700,6 +8868,25 @@ function getWorkbenchTodoCategoryCounts() {
     counts[item.category] = (counts[item.category] || 0) + 1;
   });
   return counts;
+}
+
+function getWorkbenchTodoTabs() {
+  const counts = getWorkbenchTodoCategoryCounts();
+  return Object.keys(WORKBENCH_TODO_CATEGORY_META).map(category => ({
+    key: category,
+    label: WORKBENCH_TODO_CATEGORY_META[category].label,
+    count: counts[category] || 0,
+  }));
+}
+
+function resolveDefaultWorkbenchTodoTab() {
+  const tabs = getWorkbenchTodoTabs();
+  return tabs.find(tab => tab.count > 0)?.key || 'identification';
+}
+
+function getWorkbenchTodoVisibleItems(category) {
+  const items = getOpenWorkbenchTodos().filter(item => item.category === category);
+  return workbenchTodoExpanded ? items : items.slice(0, WORKBENCH_TODO_DEFAULT_VISIBLE_COUNT);
 }
 
 function getWorkbenchTodoResource(record) {
@@ -8722,6 +8909,17 @@ function logWorkbenchOperation(action, resource, detail, icon = 'edit') {
     icon
   });
   if (MOCK_WB_OPERATIONS.length > 12) MOCK_WB_OPERATIONS.length = 12;
+}
+
+function switchWorkbenchTodoTab(category) {
+  workbenchTodoActiveTab = category;
+  workbenchTodoExpanded = false;
+  renderWorkbenchTodo();
+}
+
+function toggleWorkbenchTodoExpanded() {
+  workbenchTodoExpanded = !workbenchTodoExpanded;
+  renderWorkbenchTodo();
 }
 
 function refreshWorkbenchAfterTodoChange(resourceId) {
@@ -8774,27 +8972,35 @@ function renderWorkbench() {
 function renderWorkbenchTodo() {
   const el = document.getElementById('wb-todo-list');
   if(!el) return;
-  const openTodos = getOpenWorkbenchTodos();
-  if (!openTodos.length) {
-    el.innerHTML = '<div style="padding:32px 16px;text-align:center;color:var(--gray-400);font-size:12px;">当前暂无待处理治理事项</div>';
-    return;
-  }
+  const tabs = getWorkbenchTodoTabs();
+  const activeTab = tabs.some(tab => tab.key === workbenchTodoActiveTab) ? workbenchTodoActiveTab : '';
+  workbenchTodoActiveTab = activeTab || resolveDefaultWorkbenchTodoTab();
+  const currentTab = tabs.find(tab => tab.key === workbenchTodoActiveTab) || tabs[0];
+  const currentItems = getOpenWorkbenchTodos().filter(item => item.category === workbenchTodoActiveTab);
+  const visibleItems = getWorkbenchTodoVisibleItems(workbenchTodoActiveTab);
+  const currentMeta = WORKBENCH_TODO_CATEGORY_META[workbenchTodoActiveTab];
+  const hasMore = currentItems.length > WORKBENCH_TODO_DEFAULT_VISIBLE_COUNT;
 
-  let html = '';
-  Object.keys(WORKBENCH_TODO_CATEGORY_META).forEach(categoryKey => {
-    const items = openTodos.filter(item => item.category === categoryKey);
-    if (!items.length) return;
-    const cfg = WORKBENCH_TODO_CATEGORY_META[categoryKey];
-    html += '<div style="padding:6px 16px 2px;font-size:12px;font-weight:600;color:'+cfg.color+';display:flex;align-items:center;gap:4px;margin-top:4px;">'+cfg.icon+' '+cfg.label+'（'+items.length+'）</div>';
-    items.forEach(item => {
+  const tabsHtml = tabs.map(tab => `
+    <button class="wb-todo-tab${tab.key === workbenchTodoActiveTab ? ' active' : ''}" onclick="switchWorkbenchTodoTab('${tab.key}')">
+      <span>${tab.label}</span>
+      <span class="wb-todo-tab-count">（${tab.count}）</span>
+    </button>
+  `).join('');
+
+  let itemsHtml = '';
+  if (!currentItems.length) {
+    itemsHtml = `<div class="wb-todo-empty">当前暂无${currentTab?.label || currentMeta.label}待办</div>`;
+  } else {
+    itemsHtml = visibleItems.map(item => {
       const dot = WORKBENCH_TODO_LEVEL_COLORS[item.level] || 'var(--gray-400)';
       const resource = getWorkbenchTodoResource(item);
       const resourceLabel = resource?.display || resource?.displayName || item.resourceName;
       const secondaryBtn = item.secondaryAction && item.secondaryActionLabel
         ? '<button class="btn btn-default btn-sm" style="padding:2px 8px;height:auto;line-height:1.5;" onclick="handleWorkbenchTodoAction(\''+item.id+'\', \'secondary\')">'+item.secondaryActionLabel+'</button>'
         : '';
-      html += '' +
-        '<div style="padding:8px 16px 8px 32px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
+      return '' +
+        '<div style="padding:8px 16px 8px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;font-size:12px;border-bottom:1px dashed var(--gray-50);">' +
           '<div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;">' +
             '<span style="width:6px;height:6px;border-radius:50%;background:'+dot+';margin-top:6px;flex-shrink:0;"></span>' +
             '<div style="min-width:0;">' +
@@ -8811,9 +9017,24 @@ function renderWorkbenchTodo() {
             secondaryBtn +
           '</div>' +
         '</div>';
-    });
-  });
-  el.innerHTML = html;
+    }).join('');
+  }
+
+  const footerHtml = hasMore ? `
+    <div class="wb-todo-footer">
+      <button class="wb-todo-toggle" onclick="toggleWorkbenchTodoExpanded()">
+        ${workbenchTodoExpanded ? '收起' : `展开查看更多（还有 ${currentItems.length - WORKBENCH_TODO_DEFAULT_VISIBLE_COUNT} 条）`}
+      </button>
+    </div>
+  ` : '';
+
+  el.innerHTML = `
+    <div class="wb-todo-tabs">${tabsHtml}</div>
+    <div class="wb-todo-tab-panel">
+      <div class="wb-todo-items${workbenchTodoExpanded ? ' is-expanded' : ''}">${itemsHtml}</div>
+      ${footerHtml}
+    </div>
+  `;
 }
 
 function renderWorkbenchOperations() {
