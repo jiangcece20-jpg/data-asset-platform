@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { mockResources } from '../../mocks/resources';
@@ -127,6 +126,16 @@ const typeLabels: Record<ResourceType, string> = {
   view: '视图',
 };
 
+const typeIcons: Record<ResourceType, string> = {
+  table: '🗃️',
+  metric: '📈',
+  report: '📊',
+  dashboard: '📊',
+  api: '🔌',
+  label: '🏷️',
+  view: '👁️',
+};
+
 const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>, { label: string; tone: 'blue' | 'success' | 'warning' | 'gray' }> = {
   granted: { label: '已授权', tone: 'success' },
   none: { label: '可申请', tone: 'blue' },
@@ -135,6 +144,7 @@ const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>,
 };
 
 const treeNodes = ['交易域', '用户域', '供应链'];
+const initialFavoriteIds = new Set(discoveryRecords.filter((record) => record.favorite).map((record) => record.id));
 
 function getTitle(record: DiscoveryRecord) {
   return record.displayName ?? record.name;
@@ -186,55 +196,110 @@ function getTreeFilterLabel(treeFilter: TreeFilter) {
   return treeFilter;
 }
 
-function DiscoveryCard({ record }: { record: DiscoveryRecord }) {
+function formatUsage(value = 0) {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
+}
+
+function DiscoveryCard({
+  record,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  record: DiscoveryRecord;
+  isFavorite: boolean;
+  onToggleFavorite: (resourceId: string) => void;
+}) {
   const permission = permissionLabels[record.permissionStatus ?? 'unknown'];
+  const title = getTitle(record);
+  const queryCount = Math.floor((record.usageCount ?? 0) * 0.35);
 
   return (
-    <article className="resource-discovery__card">
-      <div className="resource-discovery__card-main">
-        <div className="resource-discovery__card-top">
+    <article className="resource-discovery__asset-card">
+      <div className="resource-discovery__asset-row resource-discovery__asset-row--top">
+        <div className="resource-discovery__asset-title">
+          <span className="resource-discovery__asset-icon" aria-hidden="true">
+            {typeIcons[record.type]}
+          </span>
+          <div>
+            <div className="resource-discovery__asset-name-line">
+              <h2>{title}</h2>
+              <button type="button" className="resource-discovery__copy-button" aria-label={`复制 ${record.name}`}>
+                📋
+              </button>
+            </div>
+            <div className="resource-discovery__technical-name">{record.name}</div>
+          </div>
+        </div>
+
+        <div className="resource-discovery__asset-tags">
+          <Tag tone={record.type === 'metric' ? 'purple' : 'blue'}>{typeLabels[record.type]}</Tag>
           <Tag tone={record.discoveryKind === 'asset' ? 'blue' : 'cyan'}>{record.discoveryKind === 'asset' ? '资产' : '资源'}</Tag>
-          <Tag tone={record.type === 'metric' ? 'purple' : 'gray'}>{typeLabels[record.type]}</Tag>
           <Tag tone={record.discoveryStatus === 'published' ? 'success' : record.discoveryStatus === 'maintain' ? 'warning' : 'gray'}>
             {record.discoveryStatus === 'published' ? '已上架' : record.discoveryStatus === 'maintain' ? '待维护' : '不上架'}
           </Tag>
-        </div>
-        <h2>{getTitle(record)}</h2>
-        <div className="resource-discovery__technical-name">{record.name}</div>
-        <p>{record.description}</p>
-        <div className="resource-discovery__tag-row">
-          {(record.tags ?? []).slice(0, 4).map((tag) => (
-            <span key={tag}>{tag}</span>
+          {(record.tags ?? []).slice(0, 2).map((tag) => (
+            <Tag key={tag}>{tag}</Tag>
           ))}
         </div>
-      </div>
-      <aside className="resource-discovery__card-side">
-        <Tag tone={permission.tone}>{permission.label}</Tag>
-        <dl>
-          <div>
-            <dt>来源</dt>
-            <dd>{record.sourceSystem}</dd>
-          </div>
-          <div>
-            <dt>目录</dt>
-            <dd>{record.catalogPath ?? '未归属'}</dd>
-          </div>
-          <div>
-            <dt>负责人</dt>
-            <dd>{record.owner}</dd>
-          </div>
-          <div>
-            <dt>热度</dt>
-            <dd>{record.usageCount}</dd>
-          </div>
-        </dl>
-        <div className="resource-discovery__card-actions">
-          <Button size="sm">查看详情</Button>
-          <Button size="sm" variant={record.permissionStatus === 'granted' ? 'primary' : 'default'}>
+
+        <div className="resource-discovery__asset-actions">
+          <button
+            type="button"
+            className={`resource-discovery__favorite-button ${isFavorite ? 'is-favorite' : ''}`}
+            aria-pressed={isFavorite}
+            aria-label={`${isFavorite ? '取消收藏' : '收藏'} ${title}`}
+            onClick={() => onToggleFavorite(record.id)}
+          >
+            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
+            {isFavorite ? '取消收藏' : '收藏'}
+          </button>
+          <button type="button" className="resource-discovery__asset-action">
+            查看详情
+          </button>
+          <button type="button" className="resource-discovery__asset-action resource-discovery__asset-action--primary">
             {record.permissionStatus === 'granted' ? '直接使用' : '加入申请单'}
-          </Button>
+          </button>
         </div>
-      </aside>
+      </div>
+
+      <div className="resource-discovery__asset-row resource-discovery__asset-row--meta">
+        <span>
+          <strong>来源</strong>
+          {record.sourceSystem ?? '-'}
+        </span>
+        <span>
+          <strong>目录</strong>
+          {record.catalogPath ?? '未归属'}
+        </span>
+        <div>
+          <span>🔍 {queryCount.toLocaleString('zh-CN')}</span>
+          <span>👁 {formatUsage(record.usageCount)}</span>
+        </div>
+      </div>
+
+      <div className="resource-discovery__asset-row resource-discovery__asset-row--description">
+        <strong>描述</strong>
+        <span>{record.description}</span>
+      </div>
+
+      <div className="resource-discovery__asset-row resource-discovery__asset-row--owners">
+        <span>
+          <strong>技术负责人</strong>
+          {record.owner ?? '-'}
+        </span>
+        <span>
+          <strong>业务负责人</strong>
+          {record.owner ?? '-'}
+        </span>
+        <span>
+          <strong>权限</strong>
+          <Tag tone={permission.tone}>{permission.label}</Tag>
+        </span>
+        <span className="resource-discovery__asset-times">
+          <span>创建时间 {record.updatedAt ?? '-'}</span>
+          <span>更新时间 {record.updatedAt ?? '-'}</span>
+        </span>
+      </div>
     </article>
   );
 }
@@ -246,6 +311,7 @@ export function ResourceDiscoveryPage() {
   const [status, setStatus] = useState<'all' | DiscoveryStatus>('all');
   const [activeType, setActiveType] = useState<TypeFilter>('all');
   const [myResourcesOnly, setMyResourcesOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(() => initialFavoriteIds);
 
   const records = useMemo(() => {
     return discoveryRecords
@@ -258,145 +324,163 @@ export function ResourceDiscoveryPage() {
       .sort((a, b) => (b.usageCount ?? 0) - (a.usageCount ?? 0));
   }, [activeType, keyword, myResourcesOnly, scope, status, treeFilter]);
 
-  const recommended = discoveryRecords
-    .filter((record) => record.discoveryKind === 'asset' && record.permissionStatus === 'granted')
-    .sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0))
-    .slice(0, 3);
-  const hotCount = discoveryRecords.filter((record) => (record.usageCount ?? 0) > 700).length;
+  const toggleFavorite = (resourceId: string) => {
+    setFavoriteIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (nextIds.has(resourceId)) {
+        nextIds.delete(resourceId);
+      } else {
+        nextIds.add(resourceId);
+      }
+      return nextIds;
+    });
+  };
 
   return (
     <section className="resource-discovery">
-      <aside className="resource-discovery__tree-panel">
-        <div className="resource-discovery__tree-header">业务目录</div>
-        <button className={treeFilter === 'all' ? 'is-active' : ''} type="button" onClick={() => setTreeFilter('all')}>
-          <span>全部</span>
-          <strong>{getTreeCount('all')}</strong>
-        </button>
-        <button className={treeFilter === 'unassigned' ? 'is-active is-warning' : 'is-warning'} type="button" onClick={() => setTreeFilter('unassigned')}>
-          <span>未归属</span>
-          <strong>{getTreeCount('unassigned')}</strong>
-        </button>
-        <div className="resource-discovery__tree-divider" />
-        {treeNodes.map((node) => (
-          <button key={node} className={treeFilter === node ? 'is-active' : ''} type="button" onClick={() => setTreeFilter(node)}>
-            <span>{node}</span>
-            <strong>{getTreeCount(node)}</strong>
-          </button>
-        ))}
-      </aside>
-
-      <main className="resource-discovery__content">
-        <header className="resource-discovery__hero">
-          <div>
-            <div className="resource-discovery__eyebrow">Discovery workspace</div>
-            <h1>资源发现</h1>
-            <p>把已上架资产、待维护资源和可申请数据入口放进同一个发现池。</p>
+      <div className="resource-discovery__layout">
+        <aside className="resource-discovery__sidebar" aria-label="业务目录">
+          <div className="resource-discovery__sidebar-header">
+            <span>业务目录</span>
           </div>
-          <div className="resource-discovery__hero-actions">
-            <Button variant="primary">查看推荐</Button>
-            <Button>筛选资源</Button>
-          </div>
-        </header>
-
-        <section className="resource-discovery__overview" aria-label="资源发现概览">
-          <div>
-            <span>统一资源池</span>
-            <strong>{discoveryRecords.length}</strong>
-          </div>
-          <div>
-            <span>推荐资源</span>
-            <strong>{recommended.length}</strong>
-          </div>
-          <div>
-            <span>热门资源</span>
-            <strong>{hotCount}</strong>
-          </div>
-          <div>
-            <span>未归属</span>
-            <strong>{getTreeCount('unassigned')}</strong>
-          </div>
-        </section>
-
-        <section className="resource-discovery__recommend-panel">
-          <div className="resource-discovery__panel-head">
-            <h2>推荐资源</h2>
-            <span>优先展示已授权、高质量、高热度资源</span>
-          </div>
-          <div className="resource-discovery__recommend-grid">
-            {recommended.map((record) => (
-              <button key={record.id} type="button" onClick={() => setKeyword(getTitle(record))}>
-                <Tag tone="success">已授权</Tag>
-                <strong>{getTitle(record)}</strong>
-                <span>{record.catalogPath}</span>
+          <div className="resource-discovery__tree-body">
+            <button className={treeFilter === 'all' ? 'is-active' : ''} type="button" onClick={() => setTreeFilter('all')}>
+              <span>
+                <span aria-hidden="true">🌐</span>
+                <span>全部</span>
+              </span>
+              <strong>{getTreeCount('all')}</strong>
+            </button>
+            <button className={treeFilter === 'unassigned' ? 'is-active is-warning' : 'is-warning'} type="button" onClick={() => setTreeFilter('unassigned')}>
+              <span>
+                <span aria-hidden="true">⚠️</span>
+                <span>未归属</span>
+              </span>
+              <strong>{getTreeCount('unassigned')}</strong>
+            </button>
+            <div className="resource-discovery__tree-divider" />
+            {treeNodes.map((node) => (
+              <button key={node} className={treeFilter === node ? 'is-active' : ''} type="button" onClick={() => setTreeFilter(node)}>
+                <span>{node}</span>
+                <strong>{getTreeCount(node)}</strong>
               </button>
             ))}
           </div>
-        </section>
+        </aside>
 
-        <section className="resource-discovery__filter-panel">
-          <div className="resource-discovery__filter-top">
-            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="请输入资产名称/描述关键字" />
-            <button className={myResourcesOnly ? 'is-active' : ''} type="button" onClick={() => setMyResourcesOnly((value) => !value)}>
-              我的表
-            </button>
-            <select aria-label="排序字段">
-              <option>热度排序</option>
-              <option>创建时间</option>
-              <option>更新时间</option>
-            </select>
-            <Button size="sm">标签筛选</Button>
-          </div>
-          <div className="resource-discovery__filter-groups">
-            <div>
-              <span>范围</span>
-              <button className={scope === 'all' ? 'is-active' : ''} type="button" onClick={() => setScope('all')}>
-                全部
-              </button>
-              <button className={scope === 'asset' ? 'is-active' : ''} type="button" onClick={() => setScope('asset')}>
-                仅资产
-              </button>
-              <button className={scope === 'resource' ? 'is-active' : ''} type="button" onClick={() => setScope('resource')}>
-                仅资源
-              </button>
-            </div>
-            <div>
-              <span>状态</span>
-              {statusFilters.map((filter) => (
-                <button key={filter.key} className={status === filter.key ? 'is-active' : ''} type="button" onClick={() => setStatus(filter.key)}>
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-            <div className="resource-discovery__type-tabs" role="tablist" aria-label="资源类型">
-              <span>类型</span>
-              {typeTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  role="tab"
-                  type="button"
-                  aria-selected={activeType === tab.key}
-                  className={activeType === tab.key ? 'is-active' : ''}
-                  onClick={() => setActiveType(tab.key)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+        <main className="resource-discovery__content">
+          <section className="resource-discovery__filter-panel">
+            <div className="resource-discovery__filter-top">
+              <label className="resource-discovery__search-wrap">
+                <span aria-hidden="true">🔍</span>
+                <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="请输入资产名称/描述关键字" />
+              </label>
 
-        <section className="resource-discovery__list" aria-label="资源发现列表">
-          <div className="resource-discovery__list-head">
-            <strong>共 {records.length} 条</strong>
-            <span>当前范围：{getTreeFilterLabel(treeFilter)}</span>
-          </div>
-          {records.length > 0 ? (
-            records.map((record) => <DiscoveryCard key={`${record.discoveryKind}-${record.id}`} record={record} />)
-          ) : (
-            <EmptyState title="暂无数据" description="可以切换目录、范围、状态或类型筛选。" />
-          )}
-        </section>
-      </main>
+              <button type="button" className="resource-discovery__owner-trigger">
+                <span>
+                  <span className="resource-discovery__owner-dot" aria-hidden="true" />
+                  <span>负责人</span>
+                </span>
+                <span>
+                  <span>请选择负责人</span>
+                  <span aria-hidden="true">▾</span>
+                </span>
+              </button>
+
+              <button
+                className={`resource-discovery__quick-check ${myResourcesOnly ? 'is-active' : ''}`}
+                type="button"
+                onClick={() => setMyResourcesOnly((value) => !value)}
+              >
+                ✓ 我的表
+              </button>
+
+              <div className="resource-discovery__sort-split">
+                <span>
+                  <span className="resource-discovery__sort-dot" aria-hidden="true" />
+                  <span>排序</span>
+                </span>
+                <button type="button">倒序 ↓</button>
+                <select aria-label="排序字段">
+                  <option>热度排序</option>
+                  <option>创建时间</option>
+                  <option>更新时间</option>
+                </select>
+              </div>
+
+              <button type="button" className="resource-discovery__tag-filter">
+                🏷️ 标签筛选
+              </button>
+            </div>
+            <div className="resource-discovery__filter-groups">
+              <div className="resource-discovery__filter-block">
+                <span className="resource-discovery__filter-label">范围</span>
+                <div className="resource-discovery__seg" role="group" aria-label="结果范围">
+                  <button className={scope === 'all' ? 'is-active' : ''} type="button" onClick={() => setScope('all')}>
+                    全部
+                  </button>
+                  <button className={scope === 'asset' ? 'is-active' : ''} type="button" onClick={() => setScope('asset')}>
+                    仅资产
+                  </button>
+                  <button className={scope === 'resource' ? 'is-active' : ''} type="button" onClick={() => setScope('resource')}>
+                    仅资源
+                  </button>
+                </div>
+              </div>
+              <div className="resource-discovery__filter-block">
+                <span className="resource-discovery__filter-label">状态</span>
+                <div className="resource-discovery__seg" role="group" aria-label="资源状态">
+                  {statusFilters.map((filter) => (
+                    <button key={filter.key} className={status === filter.key ? 'is-active' : ''} type="button" onClick={() => setStatus(filter.key)}>
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="resource-discovery__filter-block resource-discovery__filter-block--type">
+                <span className="resource-discovery__filter-label">类型</span>
+                <div className="resource-discovery__type-scroll">
+                  <div className="resource-discovery__seg resource-discovery__type-tabs" role="tablist" aria-label="资源类型">
+                    {typeTabs.map((tab) => (
+                      <button
+                        key={tab.key}
+                        role="tab"
+                        type="button"
+                        aria-selected={activeType === tab.key}
+                        className={activeType === tab.key ? 'is-active' : ''}
+                        onClick={() => setActiveType(tab.key)}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="resource-discovery__list" aria-label="资源发现列表">
+            <div className="resource-discovery__list-count">
+              共 {records.length} 条
+              {treeFilter !== 'all' ? <span>{getTreeFilterLabel(treeFilter)}</span> : null}
+            </div>
+            <div className="resource-discovery__asset-card-list">
+              {records.length > 0 ? (
+                records.map((record) => (
+                  <DiscoveryCard
+                    key={`${record.discoveryKind}-${record.id}`}
+                    record={record}
+                    isFavorite={favoriteIds.has(record.id)}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))
+              ) : (
+                <EmptyState title="暂无数据" description="可以切换目录、范围、状态或类型筛选。" />
+              )}
+            </div>
+          </section>
+        </main>
+      </div>
     </section>
   );
 }
