@@ -6,11 +6,19 @@ describe('AssetCatalogPage', () => {
   it('renders catalog tree and all assets by default', () => {
     render(<AssetCatalogPage />);
 
-    expect(screen.getByRole('heading', { name: '资产目录' })).toBeInTheDocument();
     expect(screen.getByText('业务线目录')).toBeInTheDocument();
+    expect(screen.getAllByText('全部').length).toBeGreaterThan(0);
+    expect(screen.getByText('负责人')).toBeInTheDocument();
+    expect(screen.getByText('请选择负责人')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '倒序 ↓' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '🏷️ 标签筛选' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /交易域/ })).toBeInTheDocument();
     expect(screen.getByText('共 7 条资产')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '订单明细表' })).toBeInTheDocument();
+    expect(screen.getAllByText('来源').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('目录').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('技术负责人').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('业务负责人').length).toBeGreaterThan(0);
   });
 
   it('filters assets by selected business catalog node', async () => {
