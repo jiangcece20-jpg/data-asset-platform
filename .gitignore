@@ -2,11 +2,13 @@
 .DS_Store
 **/.DS_Store
 
-# 不发布的内容
+# 文档目录（不上传到 GitHub）
 docs/
 backups/
-backup/
-archive/
 deliverables/
+archive/
 .worktrees/
+
+# 备份文件
 *.bak
+prototype/backup/
