@@ -7,3 +7,8 @@ docs/
 backups/
 deliverables/
 archive/
+.worktrees/
+
+# 备份文件
+*.bak
+prototype/backup/
