@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# 不发布的内容
+docs/
+backups/
+backup/
+archive/
+deliverables/
+.worktrees/
+*.bak
