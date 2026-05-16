@@ -8,7 +8,12 @@ describe('AssetSearchPage', () => {
 
     expect(screen.getByRole('heading', { name: '数据资产检索' })).toBeInTheDocument();
     expect(screen.getByText('最近浏览')).toBeInTheDocument();
-    expect(screen.getByText('热门搜索')).toBeInTheDocument();
+    expect(screen.getByText('我的收藏')).toBeInTheDocument();
+    expect(screen.getByText('热门浏览')).toBeInTheDocument();
+    expect(screen.getByText('热门专题')).toBeInTheDocument();
+    expect(screen.getByText('平台概览')).toBeInTheDocument();
+    expect(screen.getByText('AI 助手')).toBeInTheDocument();
+    expect(screen.getByText('热门搜索:')).toBeInTheDocument();
     expect(screen.getAllByText('订单明细表').length).toBeGreaterThan(0);
   });
 
