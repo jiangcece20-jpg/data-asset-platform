@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
+import { Button } from '../../components/base/Button';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Tag } from '../../components/base/Tag';
 import { mockResources } from '../../mocks/resources';
@@ -76,6 +77,8 @@ const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>,
   unknown: '未知',
 };
 
+const initialFavoriteIds = new Set(mockResources.filter((resource) => resource.permissionStatus === 'granted').map((resource) => resource.id));
+
 function getResourceTitle(resource: ResourceSummary) {
   return resource.displayName ?? resource.name;
 }
@@ -117,9 +120,18 @@ function getTechnicalName(resource: ResourceSummary) {
   return `${schema}.${resource.name}`;
 }
 
-function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
+function CatalogAssetCard({
+  resource,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  resource: ResourceSummary;
+  isFavorite: boolean;
+  onToggleFavorite: (resourceId: string) => void;
+}) {
   const permissionStatus = resource.permissionStatus ?? 'unknown';
   const permissionTone = permissionStatus === 'granted' ? 'success' : permissionStatus === 'pending' ? 'warning' : 'gray';
+  const title = getResourceTitle(resource);
 
   return (
     <article className="asset-catalog__asset-card">
@@ -130,7 +142,7 @@ function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
           </span>
           <div>
             <div className="asset-catalog__asset-name-line">
-              <h2>{getResourceTitle(resource)}</h2>
+              <h2>{title}</h2>
               <button type="button" className="asset-catalog__copy-button" aria-label={`复制 ${resource.name}`}>
                 📋
               </button>
@@ -147,9 +159,21 @@ function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
           ))}
         </div>
 
-        <button type="button" className="asset-catalog__asset-action">
-          {permissionStatus === 'granted' ? '查看资产' : '申请权限'}
-        </button>
+        <div className="asset-catalog__asset-actions">
+          <button
+            type="button"
+            className={`asset-catalog__favorite-button ${isFavorite ? 'is-favorite' : ''}`}
+            aria-pressed={isFavorite}
+            aria-label={`${isFavorite ? '取消收藏' : '收藏'} ${title}`}
+            onClick={() => onToggleFavorite(resource.id)}
+          >
+            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
+            {isFavorite ? '取消收藏' : '收藏'}
+          </button>
+          <button type="button" className="asset-catalog__asset-action">
+            {permissionStatus === 'granted' ? '查看资产' : '申请权限'}
+          </button>
+        </div>
       </div>
 
       <div className="asset-catalog__asset-row asset-catalog__asset-row--meta">
@@ -202,17 +226,36 @@ export function AssetCatalogPage() {
   const flatCatalog = useMemo(() => flattenCatalog(catalogTree), []);
   const [selectedPath, setSelectedPath] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [submittedKeyword, setSubmittedKeyword] = useState('');
   const [activeType, setActiveType] = useState<TypeFilter>('all');
   const [myAssetsOnly, setMyAssetsOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState(() => initialFavoriteIds);
 
   const filteredResources = useMemo(() => {
     return mockResources.filter((resource) => {
       const matchesCatalog = selectedPath ? resource.catalogPath?.startsWith(selectedPath) : true;
       const matchesType = activeType === 'all' ? true : resource.type === activeType;
       const matchesOwner = myAssetsOnly ? resource.permissionStatus === 'granted' : true;
-      return matchesCatalog && matchesType && matchesOwner && matchesKeyword(resource, keyword);
+      return matchesCatalog && matchesType && matchesOwner && matchesKeyword(resource, submittedKeyword);
     });
-  }, [activeType, keyword, myAssetsOnly, selectedPath]);
+  }, [activeType, myAssetsOnly, selectedPath, submittedKeyword]);
+
+  const submitSearch = (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    setSubmittedKeyword(keyword.trim());
+  };
+
+  const toggleFavorite = (resourceId: string) => {
+    setFavoriteIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (nextIds.has(resourceId)) {
+        nextIds.delete(resourceId);
+      } else {
+        nextIds.add(resourceId);
+      }
+      return nextIds;
+    });
+  };
 
   return (
     <section className="asset-catalog">
@@ -244,17 +287,23 @@ export function AssetCatalogPage() {
         <main className="asset-catalog__content">
           <div className="asset-catalog__breadcrumb">{selectedPath ? `全部 / ${selectedPath}` : '全部'}</div>
 
-          <div className="asset-catalog__filter-bar">
-            <label className="asset-catalog__search-wrap">
-              <span aria-hidden="true">🔍</span>
-              <input
-                type="search"
-                placeholder="请输入资产名称/描述关键字"
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-              />
-            </label>
+          <form className="asset-catalog__search-box" role="search" onSubmit={submitSearch}>
+            <span className="asset-catalog__search-icon" aria-hidden="true">
+              ⌕
+            </span>
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="请输入搜索内容"
+              aria-label="请输入搜索内容"
+              autoComplete="off"
+            />
+            <Button variant="primary" className="asset-catalog__submit" type="submit">
+              搜索
+            </Button>
+          </form>
 
+          <div className="asset-catalog__filter-bar">
             <button type="button" className="asset-catalog__owner-trigger">
               <span>
                 <span className="asset-catalog__owner-dot" aria-hidden="true" />
@@ -311,7 +360,14 @@ export function AssetCatalogPage() {
             <div className="asset-catalog__list-count">共 {filteredResources.length} 条资产</div>
             <div className="asset-catalog__asset-card-list">
               {filteredResources.length > 0 ? (
-                filteredResources.map((resource) => <CatalogAssetCard key={resource.id} resource={resource} />)
+                filteredResources.map((resource) => (
+                  <CatalogAssetCard
+                    key={resource.id}
+                    resource={resource}
+                    isFavorite={favoriteIds.has(resource.id)}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))
               ) : (
                 <EmptyState title="暂无匹配资产" description="可以调整目录、类型或关键字后再试。" />
               )}
