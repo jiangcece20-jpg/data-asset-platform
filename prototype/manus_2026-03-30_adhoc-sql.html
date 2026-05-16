@@ -2219,6 +2219,10 @@
     }
     .ct-action-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
     .ct-action-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-light); }
+    /* 目录管理 - 资源范围分段控件 */
+    .catalog-scope-btn { padding:2px 10px; font-size:12px; cursor:pointer; transition:var(--transition); border:none; background:#fff; color:var(--gray-600); line-height:22px; }
+    .catalog-scope-btn.active { background:var(--primary); color:#fff; }
+    .catalog-scope-btn:not(.active):hover { color:var(--primary); }
     /* 标签编辑 */
     .tag-edit-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border: 1px solid var(--gray-200); border-radius: var(--radius); min-height: 40px; cursor: text; }
     .tag-edit-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
@@ -11529,12 +11533,20 @@ function getCatalogDepth(tree, targetId, depth = 1) {
   return null;
 }
 
-// 获取节点资源数
+// 获取节点资源数（含子目录）
 function getCatalogResourceCount(nodeId) {
   const path = getCatalogPath(CATALOG_TREE, nodeId);
   if (!path) return 0;
   const pathStr = path.join('/');
   return MOCK_RESOURCES.filter(r => r.catalog && r.catalog.startsWith(pathStr)).length;
+}
+
+// 获取节点直接挂载资源数（不含子目录）
+function getDirectResourceCount(nodeId) {
+  const path = getCatalogPath(CATALOG_TREE, nodeId);
+  if (!path) return 0;
+  const pathStr = path.join('/');
+  return MOCK_RESOURCES.filter(r => r.catalog === pathStr).length;
 }
 
 // 渲染目录管理树
@@ -11579,7 +11591,7 @@ function renderCatalogTreeNodes(nodes, depth, parentId) {
           <span class="ct-arrow">${hasChildren ? '▶' : ''}</span>
           <span class="ct-icon">${hasChildren ? '📂' : '📄'}</span>
           <span class="ct-label">${node.name}</span>
-          ${count > 0 ? `<span class="ct-count">${count}</span>` : ''}
+          ${count > 0 ? `<span class="ct-count" title="含子目录共 ${count} 条资源">${count}</span>` : ''}
           <span class="ct-sort-btns" onclick="event.stopPropagation()">
             <span class="catalog-sort-btn${isFirst ? ' disabled' : ''}" title="上移" onclick="catalogMoveNode('${node.id}','up')">↑</span>
             <span class="catalog-sort-btn${isLast ? ' disabled' : ''}" title="下移" onclick="catalogMoveNode('${node.id}','down')">↓</span>
@@ -11598,6 +11610,9 @@ function renderCatalogTreeNodes(nodes, depth, parentId) {
 
 function selectCatalogNode(id) {
   currentCatalogNodeId = id;
+  // 根据节点是否有子目录设置默认 scope
+  const node = findCatalogNode(CATALOG_TREE, id);
+  catalogDetailScope = (node && node.children && node.children.length > 0) ? 'all' : 'direct';
   // 更新激活状态
   document.querySelectorAll('.catalog-tree-node').forEach(n => n.classList.remove('active'));
   const el = document.getElementById(`ctnode-${id}`);
@@ -11606,8 +11621,14 @@ function selectCatalogNode(id) {
   renderCatalogNodeDetail(id);
 }
 
+function setCatalogDetailScope(scope) {
+  catalogDetailScope = scope;
+  if (currentCatalogNodeId) renderCatalogNodeDetail(currentCatalogNodeId);
+}
+
 // 目录详情中选中的资源ID集合
 let catalogDetailSelected = new Set();
+let catalogDetailScope = 'all'; // 'direct' | 'all'
 
 function renderCatalogNodeDetail(id) {
   catalogDetailSelected.clear();
@@ -11617,7 +11638,16 @@ function renderCatalogNodeDetail(id) {
 
   const depth = path.length;
   const pathStr = path.join('/');
-  const resources = MOCK_RESOURCES.filter(r => r.catalog && r.catalog.startsWith(pathStr));
+  const directResources = MOCK_RESOURCES.filter(r => r.catalog === pathStr);
+  const descendantResources = MOCK_RESOURCES.filter(r => r.catalog && r.catalog.startsWith(pathStr));
+  const hasDescendants = directResources.length !== descendantResources.length;
+  const hasChildren = node.children && node.children.length > 0;
+
+  // 根据 scope 决定展示哪些资源
+  const displayResources = (catalogDetailScope === 'direct' || !hasChildren)
+    ? directResources
+    : descendantResources;
+
   const header = document.getElementById('catalog-mgmt-detail-header');
   const body = document.getElementById('catalog-mgmt-detail-body');
 
@@ -11629,33 +11659,53 @@ function renderCatalogNodeDetail(id) {
     </div>
   `;
 
+  // KPI 统计卡片：2列或3列
+  const kpiCols = hasDescendants ? '1fr 1fr 1fr' : '1fr 1fr';
   let bodyHtml = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:${kpiCols};gap:12px;margin-bottom:16px;">
       <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;">
         <div style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">目录层级</div>
         <div style="font-size:20px;font-weight:700;color:var(--primary);">${depth} 级</div>
       </div>
       <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;">
-        <div style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">挂载资源数</div>
-        <div style="font-size:20px;font-weight:700;color:var(--primary);">${resources.length}</div>
+        <div style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">直接挂载</div>
+        <div style="font-size:20px;font-weight:700;color:${directResources.length > 0 ? 'var(--primary)' : 'var(--gray-400)'};">${directResources.length}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">仅当前节点</div>
       </div>
+      ${hasDescendants ? `
+      <div style="background:var(--gray-50);border-radius:var(--radius);padding:12px;">
+        <div style="font-size:12px;color:var(--gray-400);margin-bottom:4px;">含子目录</div>
+        <div style="font-size:20px;font-weight:700;color:var(--gray-600);">${descendantResources.length}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">含所有子目录（同左侧树计数）</div>
+      </div>
+      ` : ''}
     </div>
     ${node.desc ? `<div style="font-size:13px;color:var(--gray-600);margin-bottom:16px;padding:10px 12px;background:var(--gray-50);border-radius:var(--radius);">${node.desc}</div>` : ''}
-    ${node.children && node.children.length > 0 ? `
+    ${hasChildren ? `
       <div style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:8px;">子目录（${node.children.length}）</div>
+        <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:8px;">子目录（${node.children.length}）<span style="font-size:11px;color:var(--gray-400);font-weight:400;margin-left:4px;">点击可跳转</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${node.children.map(c => `<span style="padding:4px 12px;border:1px solid var(--gray-200);border-radius:4px;font-size:12px;color:var(--gray-600);cursor:pointer;" onclick="selectCatalogNode('${c.id}')">${c.name}</span>`).join('')}
+          ${node.children.map(c => `<span style="padding:4px 10px 4px 12px;border:1px solid #91caff;border-radius:4px;font-size:12px;color:var(--primary);background:var(--primary-light);cursor:pointer;transition:var(--transition);display:inline-flex;align-items:center;gap:4px;" onmouseenter="this.style.borderColor='var(--primary)';this.style.background='#fff';" onmouseleave="this.style.borderColor='#91caff';this.style.background='var(--primary-light)';" onclick="this.style.transform='scale(0.96)';setTimeout(()=>this.style.transform='',150);selectCatalogNode('${c.id}')">${c.name} <span style="font-size:10px;opacity:.6;">›</span></span>`).join('')}
         </div>
       </div>
     ` : ''}
   `;
 
-  if (resources.length > 0) {
+  if (displayResources.length > 0) {
+    const showScopeToggle = hasChildren;
+    const showCatalogCol = catalogDetailScope === 'all' && hasChildren;
     bodyHtml += `
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:13px;font-weight:600;color:var(--gray-700);">挂载资源列表</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:13px;font-weight:600;color:var(--gray-700);">挂载资源</div>
+            ${showScopeToggle ? `
+            <div style="display:inline-flex;border:1px solid var(--gray-300);border-radius:var(--radius);overflow:hidden;">
+              <span class="catalog-scope-btn${catalogDetailScope === 'direct' ? ' active' : ''}" onclick="setCatalogDetailScope('direct')">仅当前目录</span>
+              <span class="catalog-scope-btn${catalogDetailScope === 'all' ? ' active' : ''}" onclick="setCatalogDetailScope('all')">含子目录</span>
+            </div>
+            ` : ''}
+          </div>
           <div id="catalog-detail-batch-bar" style="display:none;gap:8px;align-items:center;">
             <span style="font-size:12px;color:var(--gray-500);" id="catalog-detail-batch-count">已选 0 条</span>
           </div>
@@ -11664,17 +11714,19 @@ function renderCatalogNodeDetail(id) {
           <table>
             <thead><tr>
               <th style="width:36px;"><input type="checkbox" onchange="toggleCatalogDetailAll(this)" /></th>
-              <th>资源名称</th><th>类型</th><th>状态</th><th>技术负责人</th><th style="width:80px;">操作</th>
+              <th>资源名称</th>${showCatalogCol ? '<th>所属目录</th>' : ''}<th>类型</th><th>状态</th><th>技术负责人</th><th style="width:80px;">操作</th>
             </tr></thead>
             <tbody>
-              ${resources.map(r => {
+              ${displayResources.map(r => {
                 const isPendingApproval = ['reviewing', 'unlisting', 'catalog_reviewing'].includes(r.status);
                 const rowStyle = isPendingApproval ? 'opacity:0.45;background:var(--gray-50);' : '';
                 const tip = isPendingApproval ? '<span class="mgmt-no-perm-tip">（审批中，不可迁移）</span>' : '';
+                const catalogCell = showCatalogCol ? `<td style="font-size:12px;color:var(--gray-500);">${r.catalog === pathStr ? '当前目录' : r.catalog.replace(pathStr + '/', '')}</td>` : '';
                 return `
                 <tr style="${rowStyle}">
                   <td><input type="checkbox" value="${r.id}" ${isPendingApproval ? 'disabled' : ''} onchange="toggleCatalogDetailItem(this)" /></td>
                   <td style="font-size:12px;">${r.name}${tip}</td>
+                  ${catalogCell}
                   <td><span class="tag tag-gray">${typeLabel(r.type)}</span></td>
                   <td>${statusBadge(r.status)}</td>
                   <td style="font-size:12px;">${r.tech_owner || '-'}${r.pendingCatalog ? `<div style="font-size:11px;color:var(--gray-400);margin-top:2px;">目标目录：${r.pendingCatalog}</div>` : ''}</td>
@@ -11687,7 +11739,10 @@ function renderCatalogNodeDetail(id) {
       </div>
     `;
   } else {
-    bodyHtml += '<div style="color:var(--gray-400);font-size:13px;">该目录下暂无挂载资源</div>';
+    const emptyText = catalogDetailScope === 'direct'
+      ? '当前目录暂无直接挂载的资源'
+      : '当前目录及子目录下暂无挂载资源';
+    bodyHtml += `<div style="color:var(--gray-400);font-size:13px;">${emptyText}</div>`;
   }
 
   body.innerHTML = bodyHtml;
@@ -11725,7 +11780,7 @@ function singleCatalogMigrate(resourceId) {
 let catalogMigrateTargetId = null;
 function openCatalogBatchMigrateModal() {
   if (catalogDetailSelected.size === 0) {
-    showNotification('warning', '请先选择资源', '至少选择 1 条当前目录下的资源后再发起批量迁移');
+    showNotification('warning', '请先选择资源', '至少选择 1 条资源后再发起批量迁移');
     return;
   }
   catalogMigrateTargetId = null;
@@ -11807,7 +11862,7 @@ function openCatalogBatchMountModal(catalogId) {
   const container = document.getElementById('catalog-mount-list');
   if (!container) return;
   if (unassigned.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);">暂无未归属资源</div>';
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);">暂无未归属资源可挂载</div>';
   } else {
     container.innerHTML = '<div style="margin-bottom:8px;font-size:12px;color:var(--gray-500);">共 ' + unassigned.length + ' 条未归属资源</div>' +
       '<div class="table-wrap" style="border:1px solid var(--gray-200);border-radius:var(--radius);max-height:300px;overflow-y:auto;">' +
@@ -11831,7 +11886,7 @@ function submitCatalogBatchMount() {
   closeModal('modal-catalog-mount');
   renderCatalogNodeDetail(currentCatalogNodeId);
   renderCatalogMgmtTree();
-  showNotification('success', '批量挂载成功', selected.length + ' 条资源已挂载至「'+targetPath+'」');
+  showNotification('success', '批量挂载成功', selected.length + ' 条资源已挂载至「'+targetPath+'」，可在详情面板查看');
 }
 
 
@@ -12116,11 +12171,11 @@ function openCatalogNodeModal(mode, parentOrEditId) {
           // 第一次新增子目录：自动迁移模式
           pendingAutoMigrateParentId = parentOrEditId;
           hintEl.style.display = 'block';
-          hintEl.innerHTML = `⚠️ 该目录下已挂载 <strong>${resCount}</strong> 条资源，目录新增成功后，系统会自动将这些资源迁移到新子目录中。`;
+          hintEl.innerHTML = `⚠️ 该目录直接挂载了 <strong>${resCount}</strong> 条资源，目录新增成功后，系统会自动将这些资源迁移到新子目录中。`;
         } else if (!isLeaf && resCount > 0) {
           // 已有子目录，且当前节点还挂载着资源（中间节点情况）
           hintEl.style.display = 'block';
-          hintEl.innerHTML = `ℹ️ 该目录下已有子目录，且仍有 <strong>${resCount}</strong> 条资源直接挂载在当前节点。新增子目录后，请通过「批量修改目录」手动将这些资源迁移到对应子目录。`;
+          hintEl.innerHTML = `ℹ️ 该目录有子目录，且直接挂载了 <strong>${resCount}</strong> 条资源。新增子目录后，请通过「批量迁移」手动将这些资源迁移到对应子目录。`;
         } else {
           hintEl.style.display = 'none';
           hintEl.innerHTML = '';
@@ -12220,7 +12275,11 @@ function openCatalogDeleteModal(id) {
   document.getElementById('catalog-delete-id').value = id;
   document.getElementById('catalog-delete-name').textContent = node.name;
   if (count > 0) {
-    document.getElementById('catalog-delete-tip').innerHTML = `该目录下挂载了 <strong>${count}</strong> 条资源，<span style="color:var(--danger);font-weight:600;">请先将资源迁移至其他目录后再删除</span>。<br><span style="font-size:12px;color:var(--gray-400);margin-top:4px;display:inline-block;">提示：可在目录详情中使用「批量迁移」功能快速转移资源。</span>`;
+    const directCount = getDirectResourceCount(id);
+    const countText = count !== directCount
+      ? `该目录及其子目录下共有 <strong>${count}</strong> 条资源（其中直接挂载 ${directCount} 条）`
+      : `该目录下共有 <strong>${count}</strong> 条资源`;
+    document.getElementById('catalog-delete-tip').innerHTML = `${countText}，<span style="color:var(--danger);font-weight:600;">请先将资源迁移至其他目录后再删除</span>。<br><span style="font-size:12px;color:var(--gray-400);margin-top:4px;display:inline-block;">提示：可在目录详情中使用「批量迁移」功能快速转移资源。</span>`;
     // 禁用确认按钮
     const confirmBtn = document.getElementById('catalog-delete-confirm-btn');
     if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.5'; confirmBtn.style.cursor = 'not-allowed'; }
