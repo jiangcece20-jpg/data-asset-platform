@@ -3,6 +3,7 @@ import { AssetCatalogPage } from '../features/asset-catalog/AssetCatalogPage';
 import { AssetSearchPage } from '../features/asset-search/AssetSearchPage';
 import { ComponentGalleryPage } from '../features/component-gallery/ComponentGalleryPage';
 import { ProductPage } from '../features/product-pages/ProductPage';
+import { ResourceDiscoveryPage } from '../features/resource-discovery/ResourceDiscoveryPage';
 import { AppShell } from './AppShell';
 import { appRoutes, type AppRouteKey } from './routes';
 
@@ -31,6 +32,8 @@ export function App() {
         <AssetSearchPage />
       ) : activeRoute === 'catalog' ? (
         <AssetCatalogPage />
+      ) : activeRoute === 'discovery' ? (
+        <ResourceDiscoveryPage />
       ) : (
         <ProductPage route={activeRoute} />
       )}
