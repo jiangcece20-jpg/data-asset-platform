@@ -99,9 +99,8 @@ type ApprovalRouteRule = {
   applicantDepartment: string;
   ownerDepartment: string;
   flow: string;
-  approverRule: string;
+  nodeScheme: string;
   split: string;
-  approvalMode: '单人审批' | '或签' | '会签';
   priority: number;
   isFallback: boolean;
   status: '启用' | '停用';
@@ -239,11 +238,11 @@ const feishuApprovalNodes: Record<string, FeishuApprovalNode[]> = {
 };
 
 const approvalRouteRules: ApprovalRouteRule[] = [
-  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '工单类型 in 上架申请/下架申请/目录修改', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_RESOURCE_GOV', approverRule: '资源业务负责人', split: '不拆分', approvalMode: '单人审批', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', approverRule: '资源技术负责人', split: '按资源负责人分组', approvalMode: '或签', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '高敏对象授权；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', approverRule: '治理负责人', split: '按审批人分组', approvalMode: '会签', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '工单类型 = 负责人交接', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_OWNER_TRANSFER', approverRule: '申请目标人', split: '按接收人分组', approvalMode: '单人审批', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '工单类型 = 血缘修正', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_LINEAGE_FIX', approverRule: '治理负责人', split: '不拆分', approvalMode: '单人审批', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '工单类型 in 上架申请/下架申请/目录修改', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_RESOURCE_GOV', nodeScheme: '资源治理-负责人审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', nodeScheme: '权限申请-S5 多级审批', split: '按资源负责人分组', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '高敏对象授权；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', nodeScheme: '权限申请-S5 多级审批', split: '按审批人分组', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '工单类型 = 负责人交接', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_OWNER_TRANSFER', nodeScheme: '负责人交接-接收人确认', split: '按接收人分组', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '工单类型 = 血缘修正', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_LINEAGE_FIX', nodeScheme: '血缘修正-治理审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
 ];
 
 const approverResolutionRules: ApproverRule[] = [
@@ -276,6 +275,28 @@ const nodeApprovalSchemes: NodeApprovalScheme[] = [
     flow: 'APPROVAL_RESOURCE_GOV',
     nodes: [
       { nodeId: 'resource_owner', nodeName: '资源负责人审批', approverRule: '资源业务负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+      { nodeId: 'governance_owner', nodeName: '治理负责人审批', approverRule: '治理负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '启用',
+    updatedAt: '2026-06-05 10:40',
+    used: true,
+  },
+  {
+    name: '负责人交接-接收人确认',
+    flow: 'APPROVAL_OWNER_TRANSFER',
+    nodes: [
+      { nodeId: 'target_owner', nodeName: '接收人确认', approverRule: '申请目标人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '启用',
+    updatedAt: '2026-06-05 10:40',
+    used: true,
+  },
+  {
+    name: '血缘修正-治理审批',
+    flow: 'APPROVAL_LINEAGE_FIX',
+    nodes: [
       { nodeId: 'governance_owner', nodeName: '治理负责人审批', approverRule: '治理负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
     ],
     schemeFallbackRule: '数据管理员',
@@ -811,9 +832,8 @@ const emptyRouteForm: ApprovalRouteRule = {
   applicantDepartment: '',
   ownerDepartment: '',
   flow: '',
-  approverRule: '',
+  nodeScheme: '',
   split: '',
-  approvalMode: '单人审批',
   priority: 20,
   isFallback: false,
   status: '启用',
@@ -915,7 +935,8 @@ function ApprovalRoutingManagementPanel() {
   ));
   const canSaveWorkOrder = Boolean(workOrderForm.name.trim() && workOrderForm.code.trim());
   const canSaveFlow = Boolean(flowForm.name.trim() && flowForm.approvalCode.trim() && !duplicateFlowCode);
-  const canSaveRoute = Boolean(routeForm.name.trim() && routeForm.workOrderType && routeForm.flow && routeForm.approverRule && routeForm.split && routeForm.priority);
+  const availableNodeSchemes = nodeSchemes.filter(scheme => scheme.flow === routeForm.flow && scheme.status === '启用');
+  const canSaveRoute = Boolean(routeForm.name.trim() && routeForm.workOrderType && routeForm.flow && routeForm.nodeScheme && routeForm.split && routeForm.priority);
   const canSaveApprover = Boolean(approverForm.name.trim() && (!approverForm.fallbackEnabled || approverForm.fallbackTarget.trim()));
   const canSaveNodeScheme = Boolean(
     nodeSchemeForm.name.trim() &&
@@ -1110,11 +1131,11 @@ function ApprovalRoutingManagementPanel() {
         <>
           <div className="permission-management__panel-actions">
             <p className="permission-management__hint">审批路由按优先级从小到大命中第一条；兜底规则用于避免新工单无流程可走。</p>
-            <Button variant="primary" size="sm" onClick={() => { setRouteForm({ ...emptyRouteForm, flow: flows[0]?.approvalCode || '', approverRule: approverRules[0]?.name || '', split: '不拆分' }); setRouteDrawer({ mode: 'create' }); }}>+ 新建路由规则</Button>
+            <Button variant="primary" size="sm" onClick={() => { setRouteForm({ ...emptyRouteForm, split: '不拆分' }); setRouteDrawer({ mode: 'create' }); }}>+ 新建路由规则</Button>
           </div>
           <TableShell>
             <table>
-              <thead><tr><th>规则名称</th><th>工单类型</th><th>条件摘要</th><th>飞书流程</th><th>审批人规则</th><th>拆分方式</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>规则名称</th><th>工单类型</th><th>条件摘要</th><th>飞书流程</th><th>节点审批方案</th><th>拆分方式</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
                 {routeRules.map(rule => (
                   <tr key={rule.name}>
@@ -1122,7 +1143,7 @@ function ApprovalRoutingManagementPanel() {
                     <td>{rule.workOrderType}</td>
                     <td>{rule.conditionSummary}</td>
                     <td><Tag tone="blue">{rule.flow}</Tag></td>
-                    <td>{rule.approverRule}</td>
+                    <td>{rule.nodeScheme}</td>
                     <td>{rule.split}</td>
                     <td>{rule.priority}</td>
                     <td><Tag tone={statusTone(rule.status)}>{rule.status}</Tag></td>
@@ -1340,13 +1361,10 @@ function ApprovalRoutingManagementPanel() {
               </div>
               <div className="permission-management__form-section-title">路由结果</div>
               <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-flow">飞书流程</label><select id="route-flow" className="permission-management__form-select" value={routeForm.flow} onChange={e => setRouteForm(prev => ({ ...prev, flow: e.target.value }))}><option value="">请选择</option>{flows.map(flow => <option key={flow.approvalCode} value={flow.approvalCode}>{flow.approvalCode}</option>)}</select></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-approver">审批人规则</label><select id="route-approver" className="permission-management__form-select" value={routeForm.approverRule} onChange={e => setRouteForm(prev => ({ ...prev, approverRule: e.target.value }))}><option value="">请选择</option>{approverRules.map(rule => <option key={rule.name} value={rule.name}>{rule.name}</option>)}</select></div>
+                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-flow">飞书流程</label><select id="route-flow" className="permission-management__form-select" value={routeForm.flow} onChange={e => setRouteForm(prev => ({ ...prev, flow: e.target.value, nodeScheme: '' }))}><option value="">请选择</option>{flows.map(flow => <option key={flow.approvalCode} value={flow.approvalCode}>{flow.approvalCode}</option>)}</select></div>
+                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-node-scheme">节点审批方案</label><select id="route-node-scheme" className="permission-management__form-select" value={routeForm.nodeScheme} disabled={!routeForm.flow} onChange={e => setRouteForm(prev => ({ ...prev, nodeScheme: e.target.value }))}><option value="">请选择</option>{availableNodeSchemes.map(scheme => <option key={scheme.name} value={scheme.name}>{scheme.name}</option>)}</select></div>
               </div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-split">拆分方式</label><select id="route-split" className="permission-management__form-select" value={routeForm.split} onChange={e => setRouteForm(prev => ({ ...prev, split: e.target.value }))}><option value="">请选择</option><option>不拆分</option><option>按审批人分组</option><option>按接收人分组</option><option>按治理负责人分组</option></select></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-mode">审批方式</label><select id="route-mode" className="permission-management__form-select" value={routeForm.approvalMode} onChange={e => setRouteForm(prev => ({ ...prev, approvalMode: e.target.value as ApprovalRouteRule['approvalMode'] }))}><option>单人审批</option><option>或签</option><option>会签</option></select></div>
-              </div>
+              <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-split">拆分方式</label><select id="route-split" className="permission-management__form-select" value={routeForm.split} onChange={e => setRouteForm(prev => ({ ...prev, split: e.target.value }))}><option value="">请选择</option><option>不拆分</option><option>按审批人分组</option><option>按接收人分组</option><option>按治理负责人分组</option></select></div>
             </div>
             <div className="permission-management__drawer-footer"><Button onClick={closeRouteDrawer}>取消</Button><Button variant="primary" disabled={!canSaveRoute} onClick={saveRoute}>保存</Button></div>
           </aside>

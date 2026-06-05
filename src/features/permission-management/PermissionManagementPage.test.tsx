@@ -121,6 +121,7 @@ describe('PermissionManagementPage', () => {
     expect(screen.getByRole('button', { name: '+ 新建路由规则' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: '条件摘要' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: '飞书流程' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '节点审批方案' })).toBeInTheDocument();
     expect(screen.getByText('资源治理：上架/下架/目录修改')).toBeInTheDocument();
     expect(screen.getByText('权限申请：S5 高敏授权')).toBeInTheDocument();
     expect(screen.getByText('按审批人分组')).toBeInTheDocument();
@@ -211,7 +212,9 @@ describe('PermissionManagementPage', () => {
     await user.selectOptions(screen.getByLabelText('安全等级'), ['S5']);
     await user.type(screen.getByLabelText('业务域'), '金融');
     await user.selectOptions(screen.getByLabelText('飞书流程'), 'APPROVAL_PERMISSION');
-    await user.selectOptions(screen.getByLabelText('审批人规则'), '治理负责人');
+    expect(screen.getByRole('option', { name: '权限申请-S5 多级审批' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '资源治理-负责人审批' })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('节点审批方案'), '权限申请-S5 多级审批');
     await user.selectOptions(screen.getByLabelText('拆分方式'), '按审批人分组');
 
     await user.click(screen.getByRole('button', { name: '保存' }));
@@ -219,6 +222,7 @@ describe('PermissionManagementPage', () => {
     expect(screen.queryByRole('heading', { name: '新建审批路由' })).not.toBeInTheDocument();
     expect(screen.getByText('权限申请：金融 S5')).toBeInTheDocument();
     expect(screen.getByText(/安全等级 in S5/)).toBeInTheDocument();
+    expect(screen.getAllByText('权限申请-S5 多级审批').length).toBeGreaterThan(0);
   });
 
   it('creates an approver rule with fallback strategy and shows sync monitor feedback', async () => {
