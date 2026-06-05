@@ -248,6 +248,27 @@ describe('PermissionManagementPage', () => {
     expect(screen.getByText('已触发批量补偿同步')).toBeInTheDocument();
   });
 
+  it('shows approver resolution rules and node approval schemes as separate sub-tabs', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+
+    await user.click(screen.getByRole('button', { name: /审批管理/ }));
+    await user.click(screen.getByRole('tab', { name: '审批人规则' }));
+
+    expect(screen.getByRole('tab', { name: '解析规则' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: '节点审批方案' })).toBeInTheDocument();
+    expect(screen.getByText('资源技术负责人')).toBeInTheDocument();
+    expect(screen.getByText('从资产 technicalOwner 字段解析')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: '节点审批方案' }));
+
+    expect(screen.getByRole('button', { name: '+ 新建节点审批方案' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '绑定飞书流程' })).toBeInTheDocument();
+    expect(screen.getByText('权限申请-S5 多级审批')).toBeInTheDocument();
+    expect(screen.getByText('applicant_manager → 申请人直属上级')).toBeInTheDocument();
+    expect(screen.getByText('resource_owner → 资源技术负责人')).toBeInTheDocument();
+  });
+
   it('shows approval records', async () => {
     const user = userEvent.setup();
     render(<PermissionManagementPage />);

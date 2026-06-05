@@ -122,6 +122,28 @@ type ApproverRule = {
   updatedAt: string;
   used: boolean;
 };
+type FeishuApprovalNode = {
+  nodeId: string;
+  name: string;
+  approvalMode: '单人审批' | '或签' | '会签';
+  source: '飞书同步' | '手动维护';
+  required: boolean;
+};
+type NodeApprovalScheme = {
+  name: string;
+  flow: string;
+  nodes: Array<{
+    nodeId: string;
+    nodeName: string;
+    approverRule: string;
+    fallbackRule: string;
+    approvalMode: '单人审批' | '或签' | '会签';
+  }>;
+  schemeFallbackRule: string;
+  status: '启用' | '停用';
+  updatedAt: string;
+  used: boolean;
+};
 type SyncHealthItem = {
   name: string;
   kind: string;
@@ -197,6 +219,25 @@ const feishuApprovalDefinitions: FeishuApprovalFlow[] = [
   { name: '血缘修正审批', approvalCode: 'APPROVAL_LINEAGE_FIX', description: '承载血缘新增、删除、字段映射修正', feishuStatus: '已启用', formMappingStatus: '控件缺失', nodeSyncStatus: '待同步', subscriptionStatus: '已订阅', status: '启用', updatedAt: '2026-06-05 09:30', referenced: true },
 ];
 
+const feishuApprovalNodes: Record<string, FeishuApprovalNode[]> = {
+  APPROVAL_PERMISSION: [
+    { nodeId: 'applicant_manager', name: '申请人上级审批', approvalMode: '单人审批', source: '飞书同步', required: true },
+    { nodeId: 'resource_owner', name: '资源负责人审批', approvalMode: '或签', source: '飞书同步', required: true },
+    { nodeId: 'fixed_leader', name: '固定领导审批', approvalMode: '单人审批', source: '手动维护', required: false },
+    { nodeId: 'governance_owner', name: '治理负责人审批', approvalMode: '会签', source: '飞书同步', required: true },
+  ],
+  APPROVAL_RESOURCE_GOV: [
+    { nodeId: 'resource_owner', name: '资源负责人审批', approvalMode: '单人审批', source: '飞书同步', required: true },
+    { nodeId: 'governance_owner', name: '治理负责人审批', approvalMode: '单人审批', source: '飞书同步', required: true },
+  ],
+  APPROVAL_OWNER_TRANSFER: [
+    { nodeId: 'target_owner', name: '接收人确认', approvalMode: '单人审批', source: '手动维护', required: true },
+  ],
+  APPROVAL_LINEAGE_FIX: [
+    { nodeId: 'governance_owner', name: '治理负责人审批', approvalMode: '单人审批', source: '飞书同步', required: true },
+  ],
+};
+
 const approvalRouteRules: ApprovalRouteRule[] = [
   { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '工单类型 in 上架申请/下架申请/目录修改', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_RESOURCE_GOV', approverRule: '资源业务负责人', split: '不拆分', approvalMode: '单人审批', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
   { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', approverRule: '资源技术负责人', split: '按资源负责人分组', approvalMode: '或签', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
@@ -209,8 +250,39 @@ const approverResolutionRules: ApproverRule[] = [
   { name: '资源技术负责人', resolveType: '资源技术负责人', source: '从资产 technicalOwner 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
   { name: '资源业务负责人', resolveType: '资源业务负责人', source: '从资产 businessOwner 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
   { name: '治理负责人', resolveType: '指定角色', source: '从平台角色“数据管理员”解析', fallbackEnabled: false, fallbackType: '', fallbackTarget: '', approvalMode: '或签', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '申请人直属上级', resolveType: '申请人直属上级', source: '从员工接口 manager 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '固定领导', resolveType: '固定人员', source: '固定人员 open_id：ou_fixed_leader', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
   { name: '申请目标人', resolveType: '申请目标人', source: '从负责人交接的新负责人字段解析', fallbackEnabled: false, fallbackType: '', fallbackTarget: '', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
   { name: '金融业务线审批人', resolveType: '业务域负责人', source: '按资产业务域解析金融业务线审批角色', fallbackEnabled: true, fallbackType: '解析规则', fallbackTarget: '资源业务负责人', approvalMode: '或签', openIdSource: '员工接口', status: '启用', checkStatus: '待校验', updatedAt: '2026-06-05 09:50', used: false },
+];
+
+const nodeApprovalSchemes: NodeApprovalScheme[] = [
+  {
+    name: '权限申请-S5 多级审批',
+    flow: 'APPROVAL_PERMISSION',
+    nodes: [
+      { nodeId: 'applicant_manager', nodeName: '申请人上级审批', approverRule: '申请人直属上级', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+      { nodeId: 'resource_owner', nodeName: '资源负责人审批', approverRule: '资源技术负责人', fallbackRule: '数据管理员', approvalMode: '或签' },
+      { nodeId: 'fixed_leader', nodeName: '固定领导审批', approverRule: '固定领导', fallbackRule: '治理负责人', approvalMode: '单人审批' },
+      { nodeId: 'governance_owner', nodeName: '治理负责人审批', approverRule: '治理负责人', fallbackRule: '数据管理员', approvalMode: '会签' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '启用',
+    updatedAt: '2026-06-05 10:40',
+    used: true,
+  },
+  {
+    name: '资源治理-负责人审批',
+    flow: 'APPROVAL_RESOURCE_GOV',
+    nodes: [
+      { nodeId: 'resource_owner', nodeName: '资源负责人审批', approverRule: '资源业务负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+      { nodeId: 'governance_owner', nodeName: '治理负责人审批', approverRule: '治理负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '启用',
+    updatedAt: '2026-06-05 10:40',
+    used: true,
+  },
 ];
 
 const syncMonitorItems: SyncHealthItem[] = [
@@ -799,10 +871,12 @@ function severityTone(severity: SyncHealthItem['severity']) {
 
 function ApprovalRoutingManagementPanel() {
   const [tab, setTab] = useState<ManagementTab>('work-order-types');
+  const [approverSubTab, setApproverSubTab] = useState<'resolution' | 'node-schemes'>('resolution');
   const [workOrders, setWorkOrders] = useState<WorkOrderType[]>(workOrderTypes);
   const [flows, setFlows] = useState<FeishuApprovalFlow[]>(feishuApprovalDefinitions);
   const [routeRules, setRouteRules] = useState<ApprovalRouteRule[]>(approvalRouteRules);
   const [approverRules, setApproverRules] = useState<ApproverRule[]>(approverResolutionRules);
+  const [nodeSchemes, setNodeSchemes] = useState<NodeApprovalScheme[]>(nodeApprovalSchemes);
   const [workOrderForm, setWorkOrderForm] = useState<WorkOrderType>(emptyWorkOrderForm);
   const [flowForm, setFlowForm] = useState<FeishuApprovalFlow>(emptyFlowForm);
   const [routeForm, setRouteForm] = useState<ApprovalRouteRule>(emptyRouteForm);
@@ -1017,35 +1091,81 @@ function ApprovalRoutingManagementPanel() {
 
       {tab === 'approver-rules' ? (
         <>
-          <div className="permission-management__panel-actions">
-            <p className="permission-management__hint">审批人解析只维护规则，员工 open_id 由员工接口提供；解析失败时按兜底策略处理。</p>
-            <Button variant="primary" size="sm" onClick={() => { setApproverForm(emptyApproverForm); setApproverDrawer({ mode: 'create' }); }}>+ 新建审批人规则</Button>
+          <div className="permission-management__sub-tabs" role="tablist" aria-label="审批人规则类型">
+            <button type="button" role="tab" aria-selected={approverSubTab === 'resolution'} className={approverSubTab === 'resolution' ? 'active' : ''} onClick={() => setApproverSubTab('resolution')}>解析规则</button>
+            <button type="button" role="tab" aria-selected={approverSubTab === 'node-schemes'} className={approverSubTab === 'node-schemes' ? 'active' : ''} onClick={() => setApproverSubTab('node-schemes')}>节点审批方案</button>
           </div>
-          <TableShell>
-            <table>
-              <thead><tr><th>规则名称</th><th>解析方式</th><th>解析来源</th><th>审批方式</th><th>open_id 来源</th><th>兜底策略</th><th>校验</th><th>状态</th><th>操作</th></tr></thead>
-              <tbody>
-                {approverRules.map(rule => (
-                  <tr key={rule.name}>
-                    <td><strong>{rule.name}</strong></td>
-                    <td>{rule.resolveType === rule.name ? '资产负责人字段' : rule.resolveType}</td>
-                    <td>{rule.source}</td>
-                    <td>{rule.approvalMode}</td>
-                    <td><Tag tone="blue">{rule.openIdSource}</Tag></td>
-                    <td>{rule.fallbackEnabled ? <><span>{rule.fallbackType}</span><span>{rule.fallbackTarget}</span></> : '不启用'}</td>
-                    <td><Tag tone={fieldStatusTone(rule.checkStatus)}>{rule.checkStatus}</Tag></td>
-                    <td><Tag tone={statusTone(rule.status)}>{rule.status}</Tag></td>
-                    <td>
-                      <div className="permission-management__row-actions">
-                        <button type="button" onClick={() => { setApproverForm(rule); setApproverDrawer({ mode: 'edit', name: rule.name }); }}>编辑</button>
-                        <button type="button" onClick={() => setApproverRules(prev => prev.map(row => row.name === rule.name ? { ...row, checkStatus: '已校验' } : row))}>校验</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableShell>
+          {approverSubTab === 'resolution' ? (
+            <>
+              <div className="permission-management__panel-actions">
+                <p className="permission-management__hint">审批人解析只维护规则，员工 open_id 由员工接口提供；解析失败时按兜底策略处理。</p>
+                <Button variant="primary" size="sm" onClick={() => { setApproverForm(emptyApproverForm); setApproverDrawer({ mode: 'create' }); }}>+ 新建审批人规则</Button>
+              </div>
+              <TableShell>
+                <table>
+                  <thead><tr><th>规则名称</th><th>解析方式</th><th>解析来源</th><th>审批方式</th><th>open_id 来源</th><th>兜底策略</th><th>校验</th><th>状态</th><th>操作</th></tr></thead>
+                  <tbody>
+                    {approverRules.map(rule => (
+                      <tr key={rule.name}>
+                        <td><strong>{rule.name}</strong></td>
+                        <td>{rule.resolveType === rule.name ? '资产负责人字段' : rule.resolveType}</td>
+                        <td>{rule.source}</td>
+                        <td>{rule.approvalMode}</td>
+                        <td><Tag tone="blue">{rule.openIdSource}</Tag></td>
+                        <td>{rule.fallbackEnabled ? <><span>{rule.fallbackType}</span><span>{rule.fallbackTarget}</span></> : '不启用'}</td>
+                        <td><Tag tone={fieldStatusTone(rule.checkStatus)}>{rule.checkStatus}</Tag></td>
+                        <td><Tag tone={statusTone(rule.status)}>{rule.status}</Tag></td>
+                        <td>
+                          <div className="permission-management__row-actions">
+                            <button type="button" onClick={() => { setApproverForm(rule); setApproverDrawer({ mode: 'edit', name: rule.name }); }}>编辑</button>
+                            <button type="button" onClick={() => setApproverRules(prev => prev.map(row => row.name === rule.name ? { ...row, checkStatus: '已校验' } : row))}>校验</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableShell>
+            </>
+          ) : null}
+          {approverSubTab === 'node-schemes' ? (
+            <>
+              <div className="permission-management__panel-actions">
+                <p className="permission-management__hint">节点审批方案绑定一个飞书流程，并为该流程的每个 custom_node_id 配置审批人解析规则。</p>
+                <Button variant="primary" size="sm">+ 新建节点审批方案</Button>
+              </div>
+              <TableShell>
+                <table>
+                  <thead><tr><th>方案名称</th><th>绑定飞书流程</th><th>节点绑定</th><th>方案兜底</th><th>状态</th><th>操作</th></tr></thead>
+                  <tbody>
+                    {nodeSchemes.map(scheme => (
+                      <tr key={scheme.name}>
+                        <td><strong>{scheme.name}</strong></td>
+                        <td><Tag tone="blue">{scheme.flow}</Tag></td>
+                        <td>
+                          <div className="permission-management__node-list">
+                            {scheme.nodes.map(node => (
+                              <span key={node.nodeId} title={feishuApprovalNodes[scheme.flow]?.find(item => item.nodeId === node.nodeId)?.name || node.nodeName}>
+                                {node.nodeId} → {node.approverRule}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>{scheme.schemeFallbackRule}</td>
+                        <td><Tag tone={statusTone(scheme.status)}>{scheme.status}</Tag></td>
+                        <td>
+                          <div className="permission-management__row-actions">
+                            <button type="button">编辑</button>
+                            <button type="button" onClick={() => setNodeSchemes(prev => prev.map(row => row.name === scheme.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{scheme.status === '启用' ? '停用' : '启用'}</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableShell>
+            </>
+          ) : null}
         </>
       ) : null}
 
