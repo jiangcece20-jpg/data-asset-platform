@@ -971,6 +971,34 @@
   background: var(--bg-container);
 }
 
+.permission-management__node-editor {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.permission-management__node-editor-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1.4fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: var(--bg-layout);
+}
+
+.permission-management__node-editor-row strong,
+.permission-management__node-editor-row span {
+  display: block;
+}
+
+.permission-management__node-editor-row span {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+  margin-top: 4px;
+}
+
 @media (max-width: 1100px) {
   .permission-management__health-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

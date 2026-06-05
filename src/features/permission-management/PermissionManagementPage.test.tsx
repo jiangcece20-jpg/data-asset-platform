@@ -269,6 +269,39 @@ describe('PermissionManagementPage', () => {
     expect(screen.getByText('resource_owner → 资源技术负责人')).toBeInTheDocument();
   });
 
+  it('creates a node approval scheme with manual nodes and fallback rules', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+
+    await user.click(screen.getByRole('button', { name: /审批管理/ }));
+    await user.click(screen.getByRole('tab', { name: '审批人规则' }));
+    await user.click(screen.getByRole('tab', { name: '节点审批方案' }));
+    await user.click(screen.getByRole('button', { name: '+ 新建节点审批方案' }));
+
+    expect(screen.getByRole('heading', { name: '新建节点审批方案' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled();
+
+    await user.type(screen.getByLabelText('方案名称'), '权限申请-固定领导加审');
+    await user.selectOptions(screen.getByLabelText('绑定飞书流程'), 'APPROVAL_PERMISSION');
+
+    expect(screen.getByText('applicant_manager')).toBeInTheDocument();
+    expect(screen.getByText('resource_owner')).toBeInTheDocument();
+    expect(screen.getByText('fixed_leader')).toBeInTheDocument();
+    expect(screen.getByText('governance_owner')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('applicant_manager 审批人解析规则'), '申请人直属上级');
+    await user.selectOptions(screen.getByLabelText('resource_owner 审批人解析规则'), '资源技术负责人');
+    await user.selectOptions(screen.getByLabelText('fixed_leader 审批人解析规则'), '固定领导');
+    await user.selectOptions(screen.getByLabelText('governance_owner 审批人解析规则'), '治理负责人');
+    await user.selectOptions(screen.getByLabelText('方案级兜底'), '数据管理员');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(screen.queryByRole('heading', { name: '新建节点审批方案' })).not.toBeInTheDocument();
+    expect(screen.getByText('权限申请-固定领导加审')).toBeInTheDocument();
+    const row = screen.getByRole('row', { name: /权限申请-固定领导加审/ });
+    expect(within(row).getByText('fixed_leader → 固定领导')).toBeInTheDocument();
+  });
+
   it('shows approval records', async () => {
     const user = userEvent.setup();
     render(<PermissionManagementPage />);

@@ -836,6 +836,16 @@ const emptyApproverForm: ApproverRule = {
   used: false,
 };
 
+const emptyNodeSchemeForm: NodeApprovalScheme = {
+  name: '',
+  flow: '',
+  nodes: [],
+  schemeFallbackRule: '',
+  status: '启用',
+  updatedAt: '',
+  used: false,
+};
+
 const currentMockTime = '2026-06-05 10:30';
 
 function selectedOptions(select: HTMLSelectElement) {
@@ -863,6 +873,16 @@ function fieldStatusTone(status: string) {
   return 'success';
 }
 
+function hydrateNodeSchemeNodes(flow: string): NodeApprovalScheme['nodes'] {
+  return (feishuApprovalNodes[flow] || []).map(node => ({
+    nodeId: node.nodeId,
+    nodeName: node.name,
+    approverRule: '',
+    fallbackRule: '',
+    approvalMode: node.approvalMode,
+  }));
+}
+
 function severityTone(severity: SyncHealthItem['severity']) {
   if (severity === '严重') return 'danger';
   if (severity === '警告') return 'warning';
@@ -881,10 +901,12 @@ function ApprovalRoutingManagementPanel() {
   const [flowForm, setFlowForm] = useState<FeishuApprovalFlow>(emptyFlowForm);
   const [routeForm, setRouteForm] = useState<ApprovalRouteRule>(emptyRouteForm);
   const [approverForm, setApproverForm] = useState<ApproverRule>(emptyApproverForm);
+  const [nodeSchemeForm, setNodeSchemeForm] = useState<NodeApprovalScheme>(emptyNodeSchemeForm);
   const [workOrderModal, setWorkOrderModal] = useState<{ mode: 'create' | 'edit'; code?: string } | null>(null);
   const [flowModal, setFlowModal] = useState<{ mode: 'create' | 'edit'; approvalCode?: string } | null>(null);
   const [routeDrawer, setRouteDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
   const [approverDrawer, setApproverDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
+  const [nodeSchemeDrawer, setNodeSchemeDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
   const [actionMessage, setActionMessage] = useState('');
 
   const duplicateFlowCode = Boolean(flowForm.approvalCode.trim()) && flows.some(item => (
@@ -895,6 +917,13 @@ function ApprovalRoutingManagementPanel() {
   const canSaveFlow = Boolean(flowForm.name.trim() && flowForm.approvalCode.trim() && !duplicateFlowCode);
   const canSaveRoute = Boolean(routeForm.name.trim() && routeForm.workOrderType && routeForm.flow && routeForm.approverRule && routeForm.split && routeForm.priority);
   const canSaveApprover = Boolean(approverForm.name.trim() && (!approverForm.fallbackEnabled || approverForm.fallbackTarget.trim()));
+  const canSaveNodeScheme = Boolean(
+    nodeSchemeForm.name.trim() &&
+    nodeSchemeForm.flow &&
+    nodeSchemeForm.schemeFallbackRule &&
+    nodeSchemeForm.nodes.length > 0 &&
+    nodeSchemeForm.nodes.every(node => node.nodeId && node.approverRule),
+  );
 
   const closeWorkOrderModal = () => {
     setWorkOrderModal(null);
@@ -914,6 +943,11 @@ function ApprovalRoutingManagementPanel() {
   const closeApproverDrawer = () => {
     setApproverDrawer(null);
     setApproverForm(emptyApproverForm);
+  };
+
+  const closeNodeSchemeDrawer = () => {
+    setNodeSchemeDrawer(null);
+    setNodeSchemeForm(emptyNodeSchemeForm);
   };
 
   const saveWorkOrder = () => {
@@ -965,6 +999,23 @@ function ApprovalRoutingManagementPanel() {
       ? prev.map(item => item.name === approverDrawer.name ? next : item)
       : [next, ...prev]);
     closeApproverDrawer();
+  };
+
+  const saveNodeScheme = () => {
+    if (!canSaveNodeScheme) return;
+    const next = {
+      ...nodeSchemeForm,
+      name: nodeSchemeForm.name.trim(),
+      nodes: nodeSchemeForm.nodes.map(node => ({
+        ...node,
+        fallbackRule: node.fallbackRule || nodeSchemeForm.schemeFallbackRule,
+      })),
+      updatedAt: currentMockTime,
+    };
+    setNodeSchemes(prev => nodeSchemeDrawer?.mode === 'edit'
+      ? prev.map(item => item.name === nodeSchemeDrawer.name ? next : item)
+      : [next, ...prev]);
+    closeNodeSchemeDrawer();
   };
 
   return (
@@ -1132,7 +1183,16 @@ function ApprovalRoutingManagementPanel() {
             <>
               <div className="permission-management__panel-actions">
                 <p className="permission-management__hint">节点审批方案绑定一个飞书流程，并为该流程的每个 custom_node_id 配置审批人解析规则。</p>
-                <Button variant="primary" size="sm">+ 新建节点审批方案</Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setNodeSchemeForm(emptyNodeSchemeForm);
+                    setNodeSchemeDrawer({ mode: 'create' });
+                  }}
+                >
+                  + 新建节点审批方案
+                </Button>
               </div>
               <TableShell>
                 <table>
@@ -1155,7 +1215,7 @@ function ApprovalRoutingManagementPanel() {
                         <td><Tag tone={statusTone(scheme.status)}>{scheme.status}</Tag></td>
                         <td>
                           <div className="permission-management__row-actions">
-                            <button type="button">编辑</button>
+                            <button type="button" onClick={() => { setNodeSchemeForm(scheme); setNodeSchemeDrawer({ mode: 'edit', name: scheme.name }); }}>编辑</button>
                             <button type="button" onClick={() => setNodeSchemes(prev => prev.map(row => row.name === scheme.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{scheme.status === '启用' ? '停用' : '启用'}</button>
                           </div>
                         </td>
@@ -1310,6 +1370,98 @@ function ApprovalRoutingManagementPanel() {
               </div>
             </div>
             <div className="permission-management__drawer-footer"><Button onClick={closeApproverDrawer}>取消</Button><Button variant="primary" disabled={!canSaveApprover} onClick={saveApprover}>保存</Button></div>
+          </aside>
+        </div>
+      ) : null}
+
+      {nodeSchemeDrawer ? (
+        <div className="permission-management__drawer-overlay" onClick={closeNodeSchemeDrawer}>
+          <aside className="permission-management__drawer" onClick={event => event.stopPropagation()}>
+            <div className="permission-management__drawer-header">
+              <h3>{nodeSchemeDrawer.mode === 'edit' ? '编辑节点审批方案' : '新建节点审批方案'}</h3>
+              <button type="button" className="permission-management__modal-close" onClick={closeNodeSchemeDrawer}>×</button>
+            </div>
+            <div className="permission-management__drawer-body">
+              <div className="permission-management__form-section-title">基础信息</div>
+              <div className="permission-management__form-row-2col">
+                <div className="permission-management__form-group">
+                  <label className="permission-management__form-label" htmlFor="node-scheme-name">方案名称</label>
+                  <input id="node-scheme-name" className="permission-management__form-input" value={nodeSchemeForm.name} onChange={e => setNodeSchemeForm(prev => ({ ...prev, name: e.target.value }))} />
+                </div>
+                <div className="permission-management__form-group">
+                  <label className="permission-management__form-label" htmlFor="node-scheme-flow">绑定飞书流程</label>
+                  <select
+                    id="node-scheme-flow"
+                    className="permission-management__form-select"
+                    value={nodeSchemeForm.flow}
+                    onChange={e => {
+                      const flow = e.target.value;
+                      setNodeSchemeForm(prev => ({
+                        ...prev,
+                        flow,
+                        nodes: hydrateNodeSchemeNodes(flow),
+                      }));
+                    }}
+                  >
+                    <option value="">请选择</option>
+                    {flows.map(flow => <option key={flow.approvalCode} value={flow.approvalCode}>{flow.approvalCode}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="permission-management__form-section-title">节点绑定</div>
+              <div className="permission-management__node-editor">
+                {nodeSchemeForm.nodes.length ? nodeSchemeForm.nodes.map(node => (
+                  <div className="permission-management__node-editor-row" key={node.nodeId}>
+                    <div>
+                      <strong>{node.nodeId}</strong>
+                      <span>{node.nodeName} / {node.approvalMode}</span>
+                    </div>
+                    <div className="permission-management__form-group">
+                      <label className="permission-management__form-label" htmlFor={`node-rule-${node.nodeId}`}>{node.nodeId} 审批人解析规则</label>
+                      <select
+                        id={`node-rule-${node.nodeId}`}
+                        className="permission-management__form-select"
+                        value={node.approverRule}
+                        onChange={e => setNodeSchemeForm(prev => ({
+                          ...prev,
+                          nodes: prev.nodes.map(item => item.nodeId === node.nodeId ? { ...item, approverRule: e.target.value } : item),
+                        }))}
+                      >
+                        <option value="">请选择</option>
+                        {approverRules.filter(rule => rule.status === '启用').map(rule => <option key={rule.name} value={rule.name}>{rule.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="permission-management__hint">先选择飞书流程，平台会按流程节点同步结果带出 custom_node_id。</p>
+                )}
+              </div>
+
+              <div className="permission-management__form-section-title">兜底与状态</div>
+              <div className="permission-management__form-row-2col">
+                <div className="permission-management__form-group">
+                  <label className="permission-management__form-label" htmlFor="node-scheme-fallback">方案级兜底</label>
+                  <select id="node-scheme-fallback" className="permission-management__form-select" value={nodeSchemeForm.schemeFallbackRule} onChange={e => setNodeSchemeForm(prev => ({ ...prev, schemeFallbackRule: e.target.value }))}>
+                    <option value="">请选择</option>
+                    <option>数据管理员</option>
+                    {approverRules.filter(rule => rule.status === '启用').map(rule => <option key={rule.name} value={rule.name}>{rule.name}</option>)}
+                  </select>
+                </div>
+                <div className="permission-management__form-group">
+                  <label className="permission-management__form-label" htmlFor="node-scheme-status">状态</label>
+                  <select id="node-scheme-status" className="permission-management__form-select" value={nodeSchemeForm.status} onChange={e => setNodeSchemeForm(prev => ({ ...prev, status: e.target.value as NodeApprovalScheme['status'] }))}>
+                    <option>启用</option>
+                    <option>停用</option>
+                  </select>
+                </div>
+              </div>
+              <p className="permission-management__hint">飞书后台决定节点顺序，平台只把每个 custom_node_id 解析成 open_id 并传给飞书审批实例。</p>
+            </div>
+            <div className="permission-management__drawer-footer">
+              <Button onClick={closeNodeSchemeDrawer}>取消</Button>
+              <Button variant="primary" disabled={!canSaveNodeScheme} onClick={saveNodeScheme}>保存</Button>
+            </div>
           </aside>
         </div>
       ) : null}
