@@ -1,0 +1,26 @@
+.ui-form-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ui-form-control__label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.ui-form-control__input {
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  color: var(--text-primary);
+  background: var(--bg-container);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.ui-form-control__input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+}
