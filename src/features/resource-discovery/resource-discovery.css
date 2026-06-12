@@ -317,17 +317,12 @@
   gap: 0;
 }
 
-/* --- Asset Card (4-Row Layout) --- */
-
 .resource-discovery__asset-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
   border: 1px solid #e5e9f0;
   border-bottom: 0;
   background: #fff;
-  padding: 16px 20px;
-  cursor: pointer;
+  padding: 14px 18px;
   transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
@@ -343,230 +338,110 @@
 }
 
 .resource-discovery__asset-card:hover {
-  border-color: #1677ff;
-  background: #f0f7ff;
-  z-index: 1;
+  border-color: #cfe3ff;
+  background: #f6fbff;
 }
 
-/* --- Row 1: icon + name + copy + tags --- */
-
-.resource-discovery__card-row1 {
+.resource-discovery__asset-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
   min-width: 0;
+}
+
+.resource-discovery__asset-row--top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.resource-discovery__tech-name {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  color: #1677ff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-discovery__tech-name:hover {
+  text-decoration: underline;
+}
+
+.resource-discovery__db-prefix {
+  color: #8c96a8;
+  font-weight: 400;
+  font-size: 13px;
+  font-family: monospace;
 }
 
 .resource-discovery__asset-icon {
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 0 0 30px;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 4px;
   background: #eef6ff;
   color: #1677ff;
-}
-
-.resource-discovery__asset-icon svg {
-  display: block;
-}
-
-.resource-discovery__asset-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1677ff;
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
-
-.resource-discovery__asset-name:hover {
-  text-decoration: underline;
-}
-
-.resource-discovery__name-prefix {
-  font-size: 11px;
-  color: #8c96a8;
-  font-weight: 400;
-}
-
-.resource-discovery__copy-btn {
-  color: #8c96a8;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 4px;
-  border: 0;
-  background: 0;
-  border-radius: 4px;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-
-.resource-discovery__copy-btn:hover {
-  color: #1677ff;
-  background: #eef6ff;
-}
-
-.resource-discovery__card-tags {
-  display: inline-flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-/* --- Permission (absolute top-right) --- */
-
-.resource-discovery__permission {
-  position: absolute;
-  top: 14px;
-  right: 34px;
-  font-size: 13px;
-  white-space: nowrap;
-  z-index: 1;
-}
-
-.resource-discovery__permission--apply {
-  color: #1677ff;
-  cursor: pointer;
-}
-
-.resource-discovery__permission--apply:hover {
-  text-decoration: underline;
-}
-
-.resource-discovery__permission.is-clickable {
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.resource-discovery__permission--pending {
-  color: #1677ff;
-  cursor: default;
-}
-
-.resource-discovery__permission--granted {
-  color: #8c96a8;
-  cursor: default;
-}
-
-.resource-discovery__permission--disabled {
-  color: #8c96a8;
-  cursor: not-allowed;
-}
-
-/* --- Favorite (absolute top-right corner) --- */
-
-.resource-discovery__fav {
-  position: absolute;
-  top: 12px;
-  right: 10px;
   font-size: 15px;
-  color: #d1d5db;
-  cursor: pointer;
-  padding: 2px;
-  line-height: 1;
-  z-index: 1;
-  border: 0;
-  background: 0;
-  transition: all 0.15s;
 }
 
-.resource-discovery__fav:hover,
-.resource-discovery__fav.is-fav {
-  color: #f59e0b;
-}
 
-/* --- Row 2: source + catalog + stats --- */
 
-.resource-discovery__card-row2 {
+.resource-discovery__asset-tags {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 6px;
+  flex: 0 1 auto;
   flex-wrap: wrap;
-}
-
-.resource-discovery__meta-item {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.resource-discovery__stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 6px;
   margin-left: auto;
 }
 
-.resource-discovery__stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.resource-discovery__copy-button {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 0;
   font-size: 12px;
-  color: #6b7280;
+}
+
+.resource-discovery__copy-button:hover {
+  opacity: 0.8;
+}
+
+.resource-discovery__asset-row--meta,
+.resource-discovery__asset-row--owners {
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.resource-discovery__asset-row--meta {
+  margin-bottom: 6px;
+}
+
+.resource-discovery__asset-row--description {
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.resource-discovery__asset-row strong {
+  margin-right: 6px;
+  color: #8c96a8;
   font-weight: 500;
 }
-
-.resource-discovery__stat svg {
-  color: #8c96a8;
-  flex-shrink: 0;
-}
-
-/* --- Row 3: description --- */
-
-.resource-discovery__card-row3 {
-  font-size: 13px;
-  color: #4b5563;
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-/* --- Row 4: owners + times --- */
-
-.resource-discovery__card-row4 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.resource-discovery__owner {
-  font-size: 12px;
-  color: #4b5563;
-}
-
-.resource-discovery__owner strong {
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.resource-discovery__card-row4-right {
-  margin-left: auto;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.resource-discovery__time {
-  font-size: 11px;
-  color: #8c96a8;
-}
-
-/* --- Label --- */
-
-.resource-discovery__label {
-  font-size: 11px;
-  color: #8c96a8;
-  margin-right: 2px;
-}
-
-/* --- Responsive --- */
 
 @media (min-width: 960px) {
   .resource-discovery__filter-block--type {
@@ -577,15 +452,6 @@
 @media (max-width: 1180px) {
   .resource-discovery__filter-top {
     align-items: flex-start;
-  }
-
-  .resource-discovery__card-row1 {
-    flex-wrap: wrap;
-  }
-
-  .resource-discovery__permission,
-  .resource-discovery__fav {
-    position: static;
   }
 }
 
@@ -607,5 +473,15 @@
 
   .resource-discovery__content {
     padding: 16px;
+  }
+
+  .resource-discovery__asset-row--top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .resource-discovery__asset-tags {
+    justify-content: flex-start;
+    margin-left: 0;
   }
 }

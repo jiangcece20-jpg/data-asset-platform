@@ -622,7 +622,6 @@ const typeLabels: Record<ResourceType, string> = {
   table: '表',
   metric: '指标',
   report: '报表',
-  dashboard: '看板',
   api: 'API',
   label: '标签',
   view: '视图',

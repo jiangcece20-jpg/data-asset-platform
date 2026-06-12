@@ -19,7 +19,7 @@ describe('DetailPage', () => {
     render(<DetailPage />);
 
     expect(document.querySelector('.detail-header__tech-name')?.textContent)
-      .toBe('dwd_ctps_product_browsed_company_shop_device_product_d1');
+      .toBe('dwd_trade_order');
     expect(document.querySelector('.detail-header__db-name')?.textContent).toContain('dwd.');
     expect(document.querySelector('.detail-header__display-name')?.textContent).toBe('订单明细表');
   });
@@ -38,28 +38,32 @@ describe('DetailPage', () => {
     expect(document.querySelector('.detail-header__perm-chip--pending')?.textContent).toBe('申请中');
   });
 
-  it('renders tab navigation for table type with management tabs', () => {
+  it('renders tab navigation for table type with 7 tabs per PRD §5', () => {
     setHash('#detail?domain=asset&id=resource-table-order-detail');
     render(<DetailPage />);
 
     const tablist = screen.getByRole('tablist');
     const tabs = within(tablist).getAllByRole('tab');
-    expect(tabs.length).toBe(10);
+    expect(tabs.length).toBe(7);
     expect(within(tablist).getByRole('tab', { name: '字段信息' })).toBeTruthy();
-    expect(within(tablist).getByRole('tab', { name: '上架' })).toBeTruthy();
-    expect(within(tablist).getByRole('tab', { name: '交接' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: '样例数据' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: '分区信息' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: '血缘关系' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: '使用说明' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: 'DDL变更' })).toBeTruthy();
     expect(within(tablist).getByRole('tab', { name: '操作记录' })).toBeTruthy();
   });
 
-  it('renders tab navigation for metric type with definition tab', () => {
+  it('renders tab navigation for metric type with 4 tabs per PRD §5', () => {
     setHash('#detail?domain=asset&id=resource-metric-gmv-core');
     render(<DetailPage />);
 
     const tablist = screen.getByRole('tablist');
     const tabs = within(tablist).getAllByRole('tab');
-    expect(tabs.length).toBe(7);
+    expect(tabs.length).toBe(4);
     expect(within(tablist).getByRole('tab', { name: '指标定义' })).toBeTruthy();
     expect(within(tablist).getByRole('tab', { name: '血缘关系' })).toBeTruthy();
+    expect(within(tablist).getByRole('tab', { name: '使用说明' })).toBeTruthy();
     expect(within(tablist).getByRole('tab', { name: '操作记录' })).toBeTruthy();
   });
 

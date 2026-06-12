@@ -6,7 +6,7 @@ const enriched: ResourceDetail[] = mockResources.map((r) => {
     case 'table':
       return {
         ...r,
-        databaseName: r.name.includes('.') ? r.name.slice(0, r.name.lastIndexOf('.')) : 'dwd',
+        databaseName: r.databaseName ?? (r.name.includes('.') ? r.name.slice(0, r.name.lastIndexOf('.')) : 'dwd'),
         isPartitioned: true,
         storageFormat: 'Parquet',
         lifecycle: '30天',
@@ -26,7 +26,7 @@ const enriched: ResourceDetail[] = mockResources.map((r) => {
     case 'view':
       return {
         ...r,
-        databaseName: r.name.includes('.') ? r.name.slice(0, r.name.lastIndexOf('.')) : 'dwd',
+        databaseName: r.databaseName ?? (r.name.includes('.') ? r.name.slice(0, r.name.lastIndexOf('.')) : 'dwd'),
         isPartitioned: false,
         storageFormat: 'Parquet',
         lifecycle: '永久',
@@ -71,15 +71,6 @@ const enriched: ResourceDetail[] = mockResources.map((r) => {
       return {
         ...r,
         infoCompleteness: 80,
-        reportDefinition: getReportDefinition(r.id),
-        operationLogs: getOperationLogs(r.id),
-        usageNotes: '',
-        maintenanceNote: '',
-      };
-    case 'dashboard':
-      return {
-        ...r,
-        infoCompleteness: 75,
         reportDefinition: getReportDefinition(r.id),
         operationLogs: getOperationLogs(r.id),
         usageNotes: '',

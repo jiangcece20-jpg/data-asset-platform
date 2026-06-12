@@ -865,6 +865,17 @@
   flex-shrink: 0;
 }
 
+/* ─── Embedded mode ───────────────────────────── */
+
+.lineage-page--embedded {
+  height: 100%;
+  width: 100%;
+}
+
+.lineage-page--embedded .lineage-toolbar {
+  border-radius: 0;
+}
+
 /* ─── Responsive ───────────────────────────────── */
 
 @media (max-width: 1024px) {

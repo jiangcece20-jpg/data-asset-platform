@@ -6,9 +6,10 @@ import { Button } from '../../components/base/Button';
 import { Tooltip } from '../../components/data-display/Tooltip';
 import { Progress } from '../../components/data-display/Progress';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import { Modal } from '../../components/feedback/Modal';
+
 import { DataTable, type DataTableColumn } from '../../components/data-display/DataTable';
 import { mockDetails } from '../../mocks/detailData';
+import { LineagePage } from '../lineage/LineagePage';
 import { sourceSystemLabels, type SourceSystem, type ResourceDetail, type ResourceType } from '../../types/resources';
 import './detail.css';
 
@@ -32,7 +33,6 @@ const resourceTypeLabels: Record<ResourceType, string> = {
   label: '标签',
   api: 'API',
   report: '报表',
-  dashboard: '看板',
 };
 
 /* ── Tab matrix per resource type (§5 PRD) ──────────────── */
@@ -43,10 +43,7 @@ const tabMatrix: Record<ResourceType, TabItem[]> = {
     { key: 'sample', label: '样例数据' },
     { key: 'partitions', label: '分区信息' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'ddl', label: 'DDL变更' },
     { key: 'logs', label: '操作记录' },
   ],
@@ -54,56 +51,32 @@ const tabMatrix: Record<ResourceType, TabItem[]> = {
     { key: 'fields', label: '字段信息' },
     { key: 'sample', label: '样例数据' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'ddl', label: 'DDL变更' },
     { key: 'logs', label: '操作记录' },
   ],
   metric: [
     { key: 'definition', label: '指标定义' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
   label: [
     { key: 'definition', label: '标签定义' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
   api: [
     { key: 'params', label: '参数信息' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
   report: [
     { key: 'definition', label: '报表定义' },
     { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
-    { key: 'logs', label: '操作记录' },
-  ],
-  dashboard: [
-    { key: 'definition', label: '报表定义' },
-    { key: 'lineage', label: '血缘关系' },
-    { key: 'listing', label: '上架' },
-    { key: 'unlisting', label: '下架' },
-    { key: 'catalog', label: '目录修改' },
-    { key: 'handover', label: '交接' },
+    { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
 };
@@ -116,7 +89,7 @@ function getPermState(detail: ResourceDetail): PermState {
   if (detail.permissionStatus === 'granted') return 'granted';
   if (detail.permissionStatus === 'pending') return 'pending';
   if (detail.type === 'metric' || detail.type === 'label') return 'disabled';
-  if (detail.type === 'report' || detail.type === 'dashboard') return 'disabled';
+  if (detail.type === 'report') return 'disabled';
   if (detail.permissionStatus === 'none') return 'apply';
   return 'disabled';
 }
@@ -125,7 +98,6 @@ const permDisabledReasons: Record<ResourceType, string> = {
   metric: '请先查看指标来源，再申请底层表/API权限',
   label: '需前往来源平台申请，平台仅做展示说明',
   report: '当前报表对象暂不支持平台内直接申请',
-  dashboard: '当前看板对象暂不支持平台内直接申请',
   api: '',
   table: '请去"血缘关系"Tab查看对应数仓表后申请',
   view: '请去"血缘关系"Tab查看对应数仓表后申请',
@@ -417,7 +389,7 @@ function DetailSidebar({ detail }: { detail: ResourceDetail }) {
       { label: '近30天调用量', value: String(detail.usageCount ?? 0) },
       { label: '近30天浏览量', value: String(detail.viewCount ?? 0) },
     );
-  } else if (detail.type === 'report' || detail.type === 'dashboard') {
+  } else if (detail.type === 'report') {
     const rd = detail.reportDefinition;
     baseInfo.push(
       { label: '中文名', value: detail.displayName ?? '' },
@@ -799,9 +771,7 @@ function ManageTab({ detail }: { detail: ResourceDetail }) {
   );
 }
 
-function LineagePlaceholder() {
-  return <EmptyState title="暂无血缘信息" description="如需补充请使用修正入口" />;
-}
+
 
 /* ── Approval status badge ──────────────────────────────── */
 type ApprovalBadgeInfo = {
@@ -822,346 +792,11 @@ function ApprovalStatusBadge({ status }: { status: string }) {
   return <Tag tone="warning">{info.label}</Tag>
 }
 
-/* ── ListingTab (上架) ────────────────────────────────── */
-function ListingTab({ detail, onStatusChange }: { detail: ResourceDetail; onStatusChange: (id: string, status: string) => void }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const isReviewing = detail.resourceStatus === 'reviewing';
-
-  const requiredFields = [
-    { label: '中文名', ok: !!detail.displayName },
-    { label: '描述', ok: !!detail.description },
-    { label: '目录归属', ok: !!detail.catalogPath },
-    { label: '技术负责人', ok: !!detail.owner },
-    { label: '业务负责人', ok: !!detail.businessOwner },
-    { label: '来源类型', ok: !!detail.sourceType },
-    { label: '来源系统', ok: !!detail.sourceSystem },
-  ];
-  const allFilled = requiredFields.every(f => f.ok);
-
-  if (isReviewing) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__approval-notice">
-          <Tag tone="warning">上架审批中</Tag>
-          <span>该资源已提交上架申请，正在等待审批人处理。</span>
-        </div>
-        <div className="detail-manage__info-grid">
-          <div className="detail-manage__info-row">
-            <span>提交时间</span><strong>{new Date().toLocaleString('zh-CN')}</strong>
-          </div>
-          <div className="detail-manage__info-row">
-            <span>当前状态</span><Tag tone="warning">上架审批中</Tag>
-          </div>
-        </div>
-        <div className="detail-manage__actions">
-          <Button size="sm" variant="danger" onClick={() => { onStatusChange(detail.id ?? '', 'maintain'); }}>撤回上架申请</Button>
-          <Button size="sm" disabled>提交上架</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__success">
-          <div className="detail-manage__success-icon">✅</div>
-          <div className="detail-manage__success-text">上架申请已提交</div>
-          <div className="detail-manage__success-sub">审批通过后资源将进入正式资产目录</div>
-          <Button size="sm" variant="primary" onClick={() => setSubmitted(false)}>继续操作</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="detail-tab-content">
-      <div className="detail-manage__section">
-        <h3>信息完整度检查</h3>
-        <div className="detail-manage__checklist">
-          {requiredFields.map(f => (
-            <div key={f.label} className={`detail-manage__check-item ${f.ok ? 'ok' : 'missing'}`}>
-              <span>{f.ok ? '✓' : '✗'}</span>{f.label}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>当前信息摘要</h3>
-        <div className="detail-manage__summary-grid">
-          <div><span>中文名</span><strong>{detail.displayName || '—'}</strong></div>
-          <div><span>目录归属</span><strong>{detail.catalogPath || '—'}</strong></div>
-          <div><span>技术负责人</span><strong>{detail.owner || '—'}</strong></div>
-          <div><span>业务负责人</span><strong>{detail.businessOwner || '—'}</strong></div>
-        </div>
-      </div>
-
-      <div className="detail-manage__actions">
-        <Button size="sm" variant="primary" disabled={!allFilled} onClick={() => allFilled ? setConfirmOpen(true) : null}>
-          {allFilled ? '提交上架' : '信息不完整，无法提交'}
-        </Button>
-      </div>
-
-      <Modal open={confirmOpen} title="确认提交上架申请" onClose={() => setConfirmOpen(false)}>
-        <div className="detail-manage__confirm-body">
-          <p>确定提交上架申请？提交后将进入审批流程。</p>
-          <p>提交后将由业务负责人和治理负责人进行审批，审批通过后资源将进入正式资产目录。</p>
-        </div>
-        <div className="detail-manage__modal-footer">
-          <Button onClick={() => setConfirmOpen(false)}>取消</Button>
-          <Button variant="primary" onClick={() => { onStatusChange(detail.id ?? '', 'reviewing'); setConfirmOpen(false); setSubmitted(true); }}>确认提交</Button>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
-/* ── UnlistingTab (下架) ──────────────────────────────── */
-function UnlistingTab({ detail, onStatusChange }: { detail: ResourceDetail; onStatusChange: (id: string, status: string) => void }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const isUnlisting = detail.resourceStatus === 'unlisting';
-
-  if (isUnlisting) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__approval-notice">
-          <Tag tone="warning">下架审批中</Tag>
-          <span>该资源已提交下架申请，正在等待审批人处理。</span>
-        </div>
-        <div className="detail-manage__info-grid">
-          <div className="detail-manage__info-row">
-            <span>提交时间</span><strong>{new Date().toLocaleString('zh-CN')}</strong>
-          </div>
-          <div className="detail-manage__info-row">
-            <span>当前状态</span><Tag tone="warning">下架审批中</Tag>
-          </div>
-        </div>
-        <div className="detail-manage__actions">
-          <Button size="sm" variant="danger" onClick={() => { onStatusChange(detail.id ?? '', 'published'); }}>撤回下架申请</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__success">
-          <div className="detail-manage__success-icon">✅</div>
-          <div className="detail-manage__success-text">下架申请已提交</div>
-          <div className="detail-manage__success-sub">审批通过后资源将退出资产目录</div>
-          <Button size="sm" variant="primary" onClick={() => setSubmitted(false)}>继续操作</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="detail-tab-content">
-      <div className="detail-manage__section">
-        <h3>下架影响说明</h3>
-        <p className="detail-manage__notice-text">下架后资源将从正式资产目录移除，但仍保留治理信息。有权限用户仍可申请重新上架。</p>
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>当前资源信息</h3>
-        <div className="detail-manage__summary-grid">
-          <div><span>资源名称</span><strong>{detail.displayName || detail.name}</strong></div>
-          <div><span>目录归属</span><strong>{detail.catalogPath || '—'}</strong></div>
-        </div>
-      </div>
-
-      <div className="detail-manage__actions">
-        <Button size="sm" variant="primary" onClick={() => setConfirmOpen(true)}>申请下架</Button>
-      </div>
-
-      <Modal open={confirmOpen} title="确认申请下架" onClose={() => setConfirmOpen(false)}>
-        <div className="detail-manage__confirm-body">
-          <p>确定提交下架申请？提交后将进入审批流程。</p>
-          <p>审批通过后，资源将退出正式资产目录，回到待维护状态。</p>
-        </div>
-        <div className="detail-manage__modal-footer">
-          <Button onClick={() => setConfirmOpen(false)}>取消</Button>
-          <Button variant="primary" onClick={() => { onStatusChange(detail.id ?? '', 'unlisting'); setConfirmOpen(false); setSubmitted(true); }}>确认提交</Button>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
-/* ── CatalogTab (目录修改) ───────────────────────────── */
-function CatalogTab({ detail, onStatusChange }: { detail: ResourceDetail; onStatusChange: (id: string, status: string, extra?: Record<string, string>) => void }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const isCatalogReviewing = detail.resourceStatus === 'catalog_reviewing';
-
-  const catalogOptions = [
-    '交易域/订单/订单明细',
-    '交易域/支付/支付流水',
-    '用户域/行为/行为日志',
-    '财务域/报表/日报',
-    '用户域/画像/用户标签',
-  ];
-
-  if (isCatalogReviewing) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__approval-notice">
-          <Tag tone="warning">目录修改审批中</Tag>
-          <span>该资源已提交目录修改申请，正在等待审批人处理。</span>
-        </div>
-        <div className="detail-manage__info-grid">
-          <div className="detail-manage__info-row"><span>原目录</span><strong>{detail.catalogPath || '—'}</strong></div>
-          <div className="detail-manage__info-row"><span>目标目录</span><strong>{detail.pendingCatalog || '—'}</strong></div>
-        </div>
-        <div className="detail-manage__actions">
-          <Button size="sm" disabled>撤回（功能开发中）</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__success">
-          <div className="detail-manage__success-icon">✅</div>
-          <div className="detail-manage__success-text">目录修改申请已提交</div>
-          <Button size="sm" variant="primary" onClick={() => setSubmitted(false)}>继续操作</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="detail-tab-content">
-      <div className="detail-manage__section">
-        <h3>当前目录</h3>
-        <div className="detail-manage__current-catalog">{detail.catalogPath || '未归属目录'}</div>
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>目标目录 <span className="detail-manage__required">*</span></h3>
-        <select className="detail-manage__select" defaultValue="" onChange={() => {}}>
-          <option value="" disabled>请选择目标目录</option>
-          {catalogOptions.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-
-      <div className="detail-manage__actions">
-        <Button size="sm" variant="primary" onClick={() => setConfirmOpen(true)}>提交目录修改</Button>
-      </div>
-
-      <Modal open={confirmOpen} title="确认提交目录修改" onClose={() => setConfirmOpen(false)}>
-        <div className="detail-manage__confirm-body">
-          <p>拖动目录需审批，是否继续？</p>
-          <p>提交后将由目标目录负责人审批。</p>
-        </div>
-        <div className="detail-manage__modal-footer">
-          <Button onClick={() => setConfirmOpen(false)}>取消</Button>
-          <Button variant="primary" onClick={() => { onStatusChange(detail.id ?? '', 'catalog_reviewing', { pendingCatalog: '交易域/订单/订单明细' }); setConfirmOpen(false); setSubmitted(true); }}>确认提交</Button>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
-/* ── HandoverTab (负责人交接) ────────────────────────── */
-function HandoverTab({ detail, onStatusChange }: { detail: ResourceDetail; onStatusChange: (id: string, status: string, extra?: Record<string, string>) => void }) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const isHandoverReviewing = detail.resourceStatus === 'handover_reviewing';
-
-  if (isHandoverReviewing) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__approval-notice">
-          <Tag tone="warning">交接审批中</Tag>
-          <span>该资源已提交负责人交接申请，等待接收人确认。</span>
-        </div>
-        <div className="detail-manage__info-grid">
-          <div className="detail-manage__info-row"><span>当前技术负责人</span><strong>{detail.owner || '—'}</strong></div>
-          <div className="detail-manage__info-row"><span>接收人</span><strong>{detail.handoverReceiver || '—'}</strong></div>
-        </div>
-        <div className="detail-manage__actions">
-          <Button size="sm" disabled>撤回（功能开发中）</Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="detail-tab-content">
-        <div className="detail-manage__success">
-          <div className="detail-manage__success-icon">✅</div>
-          <div className="detail-manage__success-text">交接申请已提交</div>
-          <div className="detail-manage__success-sub">接收人确认后负责人将变更</div>
-          <Button size="sm" variant="primary" onClick={() => setSubmitted(false)}>继续操作</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="detail-tab-content">
-      <div className="detail-manage__section">
-        <h3>当前负责人</h3>
-        <div className="detail-manage__summary-grid">
-          <div><span>技术负责人</span><strong>{detail.owner || '—'}</strong></div>
-          <div><span>业务负责人</span><strong>{detail.businessOwner || '—'}</strong></div>
-        </div>
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>交接类型</h3>
-        <div className="detail-manage__radio-group">
-          {(['tech', 'biz', 'both'] as const).map(t => (
-            <label key={t} className="detail-manage__radio-label">
-              <input type="radio" name="handoverType" value={t} defaultChecked={t === 'tech'} />
-              {t === 'tech' ? '技术负责人' : t === 'biz' ? '业务负责人' : '技术+业务负责人'}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>接收人</h3>
-        <input className="detail-manage__input" placeholder="搜索姓名或工号..." />
-      </div>
-
-      <div className="detail-manage__section">
-        <h3>交接说明</h3>
-        <textarea className="detail-manage__textarea" placeholder="请填写交接原因..." rows={3} />
-      </div>
-
-      <div className="detail-manage__actions">
-        <Button size="sm" variant="primary" onClick={() => setConfirmOpen(true)}>提交交接</Button>
-      </div>
-
-      <Modal open={confirmOpen} title="确认提交交接申请" onClose={() => setConfirmOpen(false)}>
-        <div className="detail-manage__confirm-body">
-          <p>确定提交交接申请？</p>
-          <p>接收人确认后负责人将变更，请确保交接内容已同步。</p>
-        </div>
-        <div className="detail-manage__modal-footer">
-          <Button onClick={() => setConfirmOpen(false)}>取消</Button>
-          <Button variant="primary" onClick={() => { onStatusChange(detail.id ?? '', 'handover_reviewing', { handoverReceiver: '新负责人' }); setConfirmOpen(false); setSubmitted(true); }}>确认提交</Button>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
 /* ── Main DetailPage ──────────────────────────────────────── */
 
 export function DetailPage() {
   const { domain, id } = parseDetailHash();
-  const [details, setDetails] = useState(mockDetails);
-  const detail = details[id];
+  const detail = mockDetails[id];
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (!detail) return '';
     const tabs = tabMatrix[detail.type];
@@ -1173,12 +808,7 @@ export function DetailPage() {
 
   const handleToggleFav = useCallback(() => setIsFav((prev) => !prev), []);
 
-  function handleStatusChange(resId: string, status: string, extra?: Record<string, string>) {
-    setDetails(prev => ({
-      ...prev,
-      [resId]: { ...prev[resId], resourceStatus: status as ResourceDetail['resourceStatus'], ...extra },
-    }));
-  }
+
 
   if (!detail) {
     return (
@@ -1223,15 +853,16 @@ export function DetailPage() {
           {activeTab === 'partitions' && <PartitionsTab detail={detail} />}
           {activeTab === 'definition' && detail.type === 'metric' && <MetricDefinitionTab detail={detail} />}
           {activeTab === 'definition' && detail.type === 'label' && <LabelDefinitionTab detail={detail} />}
-          {activeTab === 'definition' && (detail.type === 'report' || detail.type === 'dashboard') && <ReportDefinitionTab detail={detail} />}
+          {activeTab === 'definition' && detail.type === 'report' && <ReportDefinitionTab detail={detail} />}
           {activeTab === 'params' && <APIParamsTab detail={detail} />}
           {activeTab === 'ddl' && <DDLTab detail={detail} />}
           {activeTab === 'logs' && <LogsTab detail={detail} />}
-          {activeTab === 'listing' && <ListingTab detail={detail} onStatusChange={handleStatusChange} />}
-          {activeTab === 'unlisting' && <UnlistingTab detail={detail} onStatusChange={handleStatusChange} />}
-          {activeTab === 'catalog' && <CatalogTab detail={detail} onStatusChange={handleStatusChange} />}
-          {activeTab === 'handover' && <HandoverTab detail={detail} onStatusChange={handleStatusChange} />}
-          {activeTab === 'lineage' && <LineagePlaceholder />}
+          {activeTab === 'manage' && <ManageTab detail={detail} />}
+          {activeTab === 'lineage' && (
+            <div style={{ height: '600px', position: 'relative' }}>
+              <LineagePage centerNodeId={detail.name} isEmbedded={true} />
+            </div>
+          )}
         </div>
 
         {showSidebar && <DetailSidebar detail={detail} />}
