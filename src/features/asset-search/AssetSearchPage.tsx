@@ -30,7 +30,6 @@ const typeLabels: Record<ResourceType, string> = {
   table: '表',
   metric: '指标',
   report: '报表',
-  dashboard: '看板',
   api: 'API',
   label: '标签',
   view: '视图',
@@ -40,7 +39,6 @@ const typeIcons: Record<ResourceType, string> = {
   table: '🗃️',
   metric: '📈',
   report: '📊',
-  dashboard: '📊',
   api: '🔌',
   label: '🏷️',
   view: '👁️',
@@ -147,7 +145,13 @@ function ResultCard({ resource }: { resource: ResourceSummary }) {
           <Tag key={tag}>{tag}</Tag>
         ))}
       </div>
-      <button className="asset-search__apply" type="button">
+      <button
+        className="asset-search__apply"
+        type="button"
+        onClick={() => {
+          window.location.hash = `detail?domain=asset&id=${resource.id}`;
+        }}
+      >
         {resource.permissionStatus === 'granted' ? '查看详情' : '申请权限'}
       </button>
       <div className="asset-search__asset-row2">

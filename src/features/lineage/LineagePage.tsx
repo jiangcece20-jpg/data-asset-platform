@@ -285,13 +285,13 @@ function getNodeRenderHeight(node: LineageNodeData, isExpanded: boolean, fieldPa
   return height;
 }
 
-function isUpstreamOf(nodeId: string, targetId: string, visited = new Set<string>()): boolean {
+function isUpstreamOf(nodeId: string, targetId: string, visited = new Set<string>(), db: Record<string, LineageNodeData> = NODES_DB): boolean {
   if (visited.has(nodeId)) return false;
   visited.add(nodeId);
-  const node = NODES_DB[nodeId];
+  const node = db[nodeId];
   if (!node) return false;
   if (node.downstream.includes(targetId)) return true;
-  return node.downstream.some((d) => isUpstreamOf(d, targetId, visited));
+  return node.downstream.some((d) => isUpstreamOf(d, targetId, visited, db));
 }
 
 function getDrawerTabs(node: LineageNodeData): Array<{ key: string; label: string }> {
@@ -313,8 +313,9 @@ function buildVisibleNodes(
   scope: LineageScope,
   depth: number,
   expandedNodes: Set<string>,
+  db: Record<string, LineageNodeData> = NODES_DB,
 ): { nodes: LineageNodeData[]; edges: LineageEdge[] } {
-  const center = NODES_DB[centerNodeId];
+  const center = db[centerNodeId];
   if (!center) return { nodes: [], edges: [] };
 
   const visibleIds = new Set<string>([centerNodeId]);
@@ -322,11 +323,11 @@ function buildVisibleNodes(
 
   function expand(nodeId: string, dir: 'up' | 'down', d: number) {
     if (d <= 0) return;
-    const node = NODES_DB[nodeId];
+    const node = db[nodeId];
     if (!node) return;
     const neighbors = dir === 'up' ? node.upstream : node.downstream;
     neighbors.forEach((nid) => {
-      if (!NODES_DB[nid]) return;
+      if (!db[nid]) return;
       visibleIds.add(nid);
       if (dir === 'up') edges.push({ from: nid, to: nodeId, type: 'table' });
       else edges.push({ from: nodeId, to: nid, type: 'table' });
@@ -344,18 +345,18 @@ function buildVisibleNodes(
   // Expand manually expanded non-center nodes
   expandedNodes.forEach((nid) => {
     if (nid === centerNodeId) return;
-    const node = NODES_DB[nid];
+    const node = db[nid];
     if (!node) return;
-    const up = isUpstreamOf(nid, centerNodeId);
+    const up = isUpstreamOf(nid, centerNodeId, new Set(), db);
     if (up && scope !== 'downstream') {
       node.upstream.forEach((uid) => {
-        if (!NODES_DB[uid]) return;
+        if (!db[uid]) return;
         visibleIds.add(uid);
         edges.push({ from: uid, to: nid, type: 'table' });
       });
     } else if (!up && scope !== 'upstream') {
       node.downstream.forEach((did) => {
-        if (!NODES_DB[did]) return;
+        if (!db[did]) return;
         visibleIds.add(did);
         edges.push({ from: nid, to: did, type: 'table' });
       });
@@ -372,7 +373,7 @@ function buildVisibleNodes(
   });
 
   return {
-    nodes: [...visibleIds].map((id) => NODES_DB[id]).filter(Boolean),
+    nodes: [...visibleIds].map((id) => db[id]).filter(Boolean),
     edges: uniqueEdges,
   };
 }
@@ -388,6 +389,7 @@ function layoutNodes(
   fieldPageMap: Record<string, number>,
   canvasW: number,
   canvasH: number,
+  db: Record<string, LineageNodeData> = NODES_DB,
 ): { positions: Record<string, NodePosition>; colMap: Record<string, number> } {
   const colMap: Record<string, number> = {};
   colMap[centerNodeId] = 0;
@@ -398,7 +400,7 @@ function layoutNodes(
     if (visited.has(nodeId)) return;
     visited.add(nodeId);
     colMap[nodeId] = col;
-    const node = NODES_DB[nodeId];
+    const node = db[nodeId];
     if (!node) return;
     if (dir === 'up' || dir === 'all') {
       node.upstream.forEach((uid) => {
@@ -439,14 +441,14 @@ function layoutNodes(
     const colNodeIds = cols[c];
     const totalH =
       colNodeIds.reduce((sum, nid) => {
-        const node = NODES_DB[nid];
+        const node = db[nid];
         return sum + getNodeRenderHeight(node!, expandedNodes.has(nid), fieldPageMap[nid] ?? 0);
       }, 0) +
       Math.max(0, colNodeIds.length - 1) * ROW_GAP;
     const startY = canvasH / 2 - totalH / 2;
     let currentY = startY;
     colNodeIds.forEach((nid) => {
-      const node = NODES_DB[nid]!;
+      const node = db[nid]!;
       const nodeHeight = getNodeRenderHeight(node, expandedNodes.has(nid), fieldPageMap[nid] ?? 0);
       positions[nid] = { x: colXMap[c], y: currentY };
       currentY += nodeHeight + ROW_GAP;
@@ -539,6 +541,7 @@ function LineageNodeCard({
   onActivateField,
   onCorrectModeClick,
   onCorrectModeContextMenu,
+  db,
 }: {
   node: LineageNodeData;
   pos: NodePosition;
@@ -560,14 +563,15 @@ function LineageNodeCard({
   onActivateField: (nodeId: string, fieldName: string) => void;
   onCorrectModeClick?: (id: string) => void;
   onCorrectModeContextMenu?: (e: React.MouseEvent, id: string) => void;
+  db: Record<string, LineageNodeData>;
 }) {
   const totalFields = node.fields.length;
   const totalPages = Math.ceil(totalFields / FIELDS_PER_PAGE);
   const visibleFields = node.fields.slice(fieldPage * FIELDS_PER_PAGE, (fieldPage + 1) * FIELDS_PER_PAGE);
   const hasFields = nodeHasFieldSection(node);
 
-  const upCount = node.upstream.filter((uid) => NODES_DB[uid]).length;
-  const downCount = node.downstream.filter((did) => NODES_DB[did]).length;
+  const upCount = node.upstream.filter((uid) => db[uid]).length;
+  const downCount = node.downstream.filter((did) => db[did]).length;
   const showUpBadge = isCenter ? upCount > 0 && scope !== 'downstream' : upCount > 0 && colNum <= 0 && scope !== 'downstream';
   const showDownBadge = isCenter ? downCount > 0 && scope !== 'upstream' : downCount > 0 && colNum >= 0 && scope !== 'upstream';
 
@@ -676,26 +680,30 @@ function LineageEdges({
   activeField,
   expandedNodes,
   fieldPageMap,
+  db,
+  fieldEdges,
 }: {
   edges: LineageEdge[];
   positions: Record<string, NodePosition>;
   activeField: ActiveField | null;
   expandedNodes: Set<string>;
   fieldPageMap: Record<string, number>;
+  db: Record<string, LineageNodeData>;
+  fieldEdges: FieldEdge[];
 }) {
   const activeFieldEdges = useMemo(() => {
     if (!activeField) return [];
-    return FIELD_EDGES.filter(
+    return fieldEdges.filter(
       (fe) =>
         (fe.from === activeField.nodeId && fe.fromField === activeField.fieldName) ||
         (fe.to === activeField.nodeId && fe.toField === activeField.fieldName),
     );
-  }, [activeField]);
+  }, [activeField, fieldEdges]);
 
   const hasFieldEdges = activeFieldEdges.length > 0;
 
   function getVisibleFieldIndex(nodeId: string, fieldName: string): number {
-    const node = NODES_DB[nodeId];
+    const node = db[nodeId];
     if (!node) return -1;
     const page = fieldPageMap[nodeId] ?? 0;
     const start = page * FIELDS_PER_PAGE;
@@ -724,7 +732,7 @@ function LineageEdges({
         const x2 = toPos.x;
         const y2 = toPos.y + NODE_HEAD_H / 2;
         const mx = (x1 + x2) / 2;
-        const fromNode = NODES_DB[e.from];
+        const fromNode = db[e.from];
         const edgeLabel = typeFullLabel(fromNode?.type ?? 'table');
 
         return (
@@ -819,6 +827,7 @@ function LineageDrawer({
   onClose,
   onActivateField,
   onJumpToNode,
+  db,
 }: {
   node: LineageNodeData | null;
   activeField: ActiveField | null;
@@ -827,6 +836,7 @@ function LineageDrawer({
   onClose: () => void;
   onActivateField: (nodeId: string, fieldName: string) => void;
   onJumpToNode: (id: string) => void;
+  db: Record<string, LineageNodeData>;
 }) {
   const [fieldSearch, setFieldSearch] = useState('');
   const [fieldPage, setFieldPage] = useState(0);
@@ -868,7 +878,7 @@ function LineageDrawer({
             />
           )}
           {validTab === 'params' && <DrawerParamsTab node={node} />}
-          {validTab === 'lineage' && <DrawerLineageTab node={node} onJumpToNode={onJumpToNode} />}
+          {validTab === 'lineage' && <DrawerLineageTab node={node} onJumpToNode={onJumpToNode} db={db} />}
         </div>
       </div>
     </div>
@@ -1010,12 +1020,14 @@ function DrawerParamsTab({ node }: { node: LineageNodeData }) {
 function DrawerLineageTab({
   node,
   onJumpToNode,
+  db,
 }: {
   node: LineageNodeData;
   onJumpToNode: (id: string) => void;
+  db: Record<string, LineageNodeData>;
 }) {
-  const upList = node.upstream.filter((id) => NODES_DB[id]);
-  const downList = node.downstream.filter((id) => NODES_DB[id]);
+  const upList = node.upstream.filter((id) => db[id]);
+  const downList = node.downstream.filter((id) => db[id]);
 
   return (
     <>
@@ -1023,7 +1035,7 @@ function DrawerLineageTab({
         <div className="detail-lineage-panel-title">上游 ({upList.length})</div>
         {upList.length > 0 ? (
           upList.map((id) => {
-            const related = NODES_DB[id];
+            const related = db[id];
             return (
               <div key={id} className="drawer-lineage-item" onClick={() => onJumpToNode(id)}>
                 <span className="drawer-lineage-name">{related?.name}</span>
@@ -1039,7 +1051,7 @@ function DrawerLineageTab({
         <div className="detail-lineage-panel-title">下游 ({downList.length})</div>
         {downList.length > 0 ? (
           downList.map((id) => {
-            const related = NODES_DB[id];
+            const related = db[id];
             return (
               <div key={id} className="drawer-lineage-item" onClick={() => onJumpToNode(id)}>
                 <span className="drawer-lineage-name">{related?.name}</span>
@@ -1055,10 +1067,17 @@ function DrawerLineageTab({
   );
 }
 
+/* ─── Props ────────────────────────────────── */
+
+interface LineagePageProps {
+  centerNodeId?: string;  // defaults to 'dwd_order_detail' for backward compat
+  isEmbedded?: boolean;   // when true, hides the "返回" button and adjusts layout for embedded use
+}
+
 /* ─── Main Component ──────────────────────────── */
 
-export function LineagePage() {
-  const [centerNodeId, setCenterNodeId] = useState('dwd_order_detail');
+export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false }: LineagePageProps = {}) {
+  const [centerNodeId, setCenterNodeId] = useState(propCenterNodeId ?? 'dwd_order_detail');
   const [scope, setScope] = useState<LineageScope>('all');
   const [depth, setDepth] = useState(1);
   const [activeField, setActiveField] = useState<ActiveField | null>(null);
@@ -1078,10 +1097,125 @@ export function LineagePage() {
   const draggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
+  // Effective nodes DB: if centerNodeId doesn't exist in NODES_DB,
+  // dynamically create a mock lineage graph for it
+  const effectiveNodes: Record<string, LineageNodeData> = useMemo(() => {
+    if (NODES_DB[centerNodeId]) return NODES_DB;
+
+    const srcId1 = `source_${centerNodeId}_1`;
+    const srcId2 = `source_${centerNodeId}_2`;
+    const tgtId1 = `target_${centerNodeId}_1`;
+
+    const dynamicNodes: Record<string, LineageNodeData> = {
+      [centerNodeId]: {
+        id: centerNodeId,
+        name: centerNodeId,
+        display: '当前资产',
+        type: 'table',
+        platform: '-',
+        db: '-',
+        tech_owner: '-',
+        biz_owner: '-',
+        catalog: '-',
+        updated: '-',
+        storage: '-',
+        partitioned: false,
+        fields: [
+          { name: 'id', type: 'BIGINT', comment: '主键' },
+          { name: 'name', type: 'STRING', comment: '名称' },
+          { name: 'created_at', type: 'TIMESTAMP', comment: '创建时间' },
+        ],
+        upstream: [srcId1, srcId2],
+        downstream: [tgtId1],
+      },
+      [srcId1]: {
+        id: srcId1,
+        name: srcId1,
+        display: '上游数据源1',
+        type: 'table',
+        platform: '-',
+        db: '-',
+        tech_owner: '-',
+        biz_owner: '-',
+        catalog: '-',
+        updated: '-',
+        storage: '-',
+        partitioned: false,
+        fields: [
+          { name: 'id', type: 'BIGINT', comment: '主键' },
+          { name: 'name', type: 'STRING', comment: '名称' },
+          { name: 'created_at', type: 'TIMESTAMP', comment: '创建时间' },
+        ],
+        upstream: [],
+        downstream: [centerNodeId],
+      },
+      [srcId2]: {
+        id: srcId2,
+        name: srcId2,
+        display: '上游数据源2',
+        type: 'api',
+        platform: '-',
+        db: '-',
+        tech_owner: '-',
+        biz_owner: '-',
+        catalog: '-',
+        updated: '-',
+        storage: '-',
+        partitioned: false,
+        fields: [
+          { name: 'id', type: 'BIGINT', comment: '主键' },
+          { name: 'name', type: 'STRING', comment: '名称' },
+          { name: 'created_at', type: 'TIMESTAMP', comment: '创建时间' },
+        ],
+        upstream: [],
+        downstream: [centerNodeId],
+      },
+      [tgtId1]: {
+        id: tgtId1,
+        name: tgtId1,
+        display: '下游应用1',
+        type: 'table',
+        platform: '-',
+        db: '-',
+        tech_owner: '-',
+        biz_owner: '-',
+        catalog: '-',
+        updated: '-',
+        storage: '-',
+        partitioned: false,
+        fields: [
+          { name: 'id', type: 'BIGINT', comment: '主键' },
+          { name: 'derived_value', type: 'STRING', comment: '衍生值' },
+          { name: 'dt', type: 'STRING', comment: '分区日期' },
+        ],
+        upstream: [centerNodeId],
+        downstream: [],
+      },
+    };
+
+    return { ...NODES_DB, ...dynamicNodes };
+  }, [centerNodeId]);
+
+  // Effective field edges: use static FIELD_EDGES for known nodes, generate dynamic ones otherwise
+  const effectiveFieldEdges: FieldEdge[] = useMemo(() => {
+    if (NODES_DB[centerNodeId]) return FIELD_EDGES;
+
+    const srcId1 = `source_${centerNodeId}_1`;
+    const tgtId1 = `target_${centerNodeId}_1`;
+
+    return [
+      { from: srcId1, fromField: 'id', to: centerNodeId, toField: 'id' },
+      { from: srcId1, fromField: 'name', to: centerNodeId, toField: 'name' },
+      { from: srcId1, fromField: 'created_at', to: centerNodeId, toField: 'created_at' },
+      { from: centerNodeId, fromField: 'id', to: tgtId1, toField: 'id' },
+      { from: centerNodeId, fromField: 'name', to: tgtId1, toField: 'name' },
+    ];
+  }, [centerNodeId]);
+
   // Build visible nodes and edges
   const { nodes, edges } = useMemo(
-    () => buildVisibleNodes(centerNodeId, scope, depth, expandedNodes),
-    [centerNodeId, scope, depth, expandedNodes],
+    () => buildVisibleNodes(centerNodeId, scope, depth, expandedNodes, effectiveNodes),
+    [centerNodeId, scope, depth, expandedNodes, effectiveNodes],
   );
 
   // Canvas dimensions (will be updated on resize)
@@ -1102,8 +1236,8 @@ export function LineagePage() {
 
   // Layout
   const { positions, colMap } = useMemo(
-    () => layoutNodes(nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize.w, canvasSize.h),
-    [nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize],
+    () => layoutNodes(nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize.w, canvasSize.h, effectiveNodes),
+    [nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize, effectiveNodes],
   );
 
   // Compute linked fields per node for highlighting
@@ -1113,7 +1247,7 @@ export function LineagePage() {
       map[n.id] = new Set<string>();
     });
     if (activeField) {
-      FIELD_EDGES.forEach((fe) => {
+      effectiveFieldEdges.forEach((fe) => {
         if (fe.from === activeField.nodeId && fe.fromField === activeField.fieldName) {
           map[fe.to]?.add(fe.toField);
           map[fe.from]?.add(fe.fromField);
@@ -1126,10 +1260,10 @@ export function LineagePage() {
       map[activeField.nodeId]?.add(activeField.fieldName);
     }
     return map;
-  }, [activeField, nodes]);
+  }, [activeField, nodes, effectiveFieldEdges]);
 
   // Selected node data
-  const selectedNode = selectedNodeId ? NODES_DB[selectedNodeId] ?? null : null;
+  const selectedNode = selectedNodeId ? effectiveNodes[selectedNodeId] ?? null : null;
 
   // Apply transform
   useEffect(() => {
@@ -1220,7 +1354,7 @@ export function LineagePage() {
   // Field page
   const handleFieldPage = useCallback((nodeId: string, delta: number) => {
     setFieldPageMap((prev) => {
-      const node = NODES_DB[nodeId];
+      const node = effectiveNodes[nodeId];
       if (!node) return prev;
       const totalPages = Math.ceil(node.fields.length / FIELDS_PER_PAGE);
       const cur = prev[nodeId] ?? 0;
@@ -1234,7 +1368,7 @@ export function LineagePage() {
       if (prev && prev.nodeId === nodeId && prev.fieldName === fieldName) return null;
       // Auto-expand connected nodes
       const newExpanded = new Set(expandedNodes);
-      FIELD_EDGES.forEach((fe) => {
+      effectiveFieldEdges.forEach((fe) => {
         if (fe.from === nodeId && fe.fromField === fieldName) newExpanded.add(fe.to);
         if (fe.to === nodeId && fe.toField === fieldName) newExpanded.add(fe.from);
       });
@@ -1242,7 +1376,7 @@ export function LineagePage() {
       setExpandedNodes(newExpanded);
       return { nodeId, fieldName };
     });
-  }, [expandedNodes]);
+  }, [expandedNodes, effectiveFieldEdges]);
 
   // Select node -> open drawer
   const handleSelectNode = useCallback((nodeId: string) => {
@@ -1262,14 +1396,14 @@ export function LineagePage() {
 
   // Jump to node
   const handleJumpToNode = useCallback((nodeId: string) => {
-    if (!NODES_DB[nodeId]) return;
+    if (!effectiveNodes[nodeId]) return;
     setCenterNodeId(nodeId);
     setSelectedNodeId(nodeId);
     setActiveField(null);
     setExpandedNodes(new Set());
     setFieldPageMap({});
     setDrawerTab('lineage');
-  }, []);
+  }, [effectiveNodes]);
 
   // Reset
   const handleReset = useCallback(() => {
@@ -1313,8 +1447,8 @@ export function LineagePage() {
       setConnectionSource(null);
     } else {
       // Second click: create connection (source -> target)
-      const sourceNode = NODES_DB[connectionSource];
-      const targetNode = NODES_DB[nodeId];
+      const sourceNode = effectiveNodes[connectionSource];
+      const targetNode = effectiveNodes[nodeId];
       if (sourceNode && targetNode) {
         const newChange: LineageChange = {
           id: `add-${connectionSource}-${nodeId}-${Date.now()}`,
@@ -1327,18 +1461,18 @@ export function LineagePage() {
       }
       setConnectionSource(null);
     }
-  }, [correctMode, connectionSource]);
+  }, [correctMode, connectionSource, effectiveNodes]);
 
   // Correct mode: handle right-click for marking edge deletion
   const handleCorrectModeContextMenu = useCallback((e: React.MouseEvent, nodeId: string) => {
     e.preventDefault();
     if (!correctMode) return;
-    const sourceNode = NODES_DB[nodeId];
+    const sourceNode = effectiveNodes[nodeId];
     if (!sourceNode) return;
     // Find an upstream edge to mark for deletion
-    const existingUpstream = sourceNode.upstream.find((uid) => NODES_DB[uid]);
+    const existingUpstream = sourceNode.upstream.find((uid) => effectiveNodes[uid]);
     if (existingUpstream) {
-      const upstreamNode = NODES_DB[existingUpstream];
+      const upstreamNode = effectiveNodes[existingUpstream];
       const newChange: LineageChange = {
         id: `delete-${existingUpstream}-${nodeId}-${Date.now()}`,
         type: 'delete',
@@ -1348,7 +1482,7 @@ export function LineagePage() {
       };
       setPendingChanges((prev) => [...prev, newChange]);
     }
-  }, [correctMode]);
+  }, [correctMode, effectiveNodes]);
 
   // Correct mode: remove a pending change
   const handleRemoveChange = useCallback((changeId: string) => {
@@ -1356,7 +1490,7 @@ export function LineagePage() {
   }, []);
 
   return (
-    <section className={`lineage-page${correctMode ? ' lineage-page--correct-mode' : ''}`} id="page-lineage-wrap">
+    <section className={`lineage-page${correctMode ? ' lineage-page--correct-mode' : ''}${isEmbedded ? ' lineage-page--embedded' : ''}`} id="page-lineage-wrap">
       {/* Correct mode banner */}
       {correctMode && (
         <div className="lineage-page__correct-banner">
@@ -1364,10 +1498,12 @@ export function LineagePage() {
       )}
       {/* Toolbar */}
       <div className="lineage-toolbar">
-        <button className="btn btn-default btn-sm" onClick={handleBack}>
-          <BackIcon /> 返回
-        </button>
-        <div className="lineage-toolbar-sep" />
+        {!isEmbedded && (
+          <button className="btn btn-default btn-sm" onClick={handleBack}>
+            <BackIcon /> 返回
+          </button>
+        )}
+        {!isEmbedded && <div className="lineage-toolbar-sep" />}
         <span className="lineage-toolbar-label">血缘范围：</span>
         <select
           className="lineage-toolbar-select"
@@ -1444,6 +1580,8 @@ export function LineagePage() {
               activeField={activeField}
               expandedNodes={expandedNodes}
               fieldPageMap={fieldPageMap}
+              db={effectiveNodes}
+              fieldEdges={effectiveFieldEdges}
             />
 
             {/* Node cards */}
@@ -1470,6 +1608,7 @@ export function LineagePage() {
                 onActivateField={handleActivateField}
                 onCorrectModeClick={handleCorrectModeClick}
                 onCorrectModeContextMenu={handleCorrectModeContextMenu}
+                db={effectiveNodes}
               />
             ))}
           </div>
@@ -1484,6 +1623,7 @@ export function LineagePage() {
           onClose={handleCloseDrawer}
           onActivateField={handleActivateField}
           onJumpToNode={handleJumpToNode}
+          db={effectiveNodes}
         />
       </div>
 

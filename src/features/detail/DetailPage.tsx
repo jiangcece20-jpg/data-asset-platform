@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/feedback/EmptyState';
 
 import { DataTable, type DataTableColumn } from '../../components/data-display/DataTable';
 import { mockDetails } from '../../mocks/detailData';
+import { LineagePage } from '../lineage/LineagePage';
 import { sourceSystemLabels, type SourceSystem, type ResourceDetail, type ResourceType } from '../../types/resources';
 import './detail.css';
 
@@ -32,7 +33,6 @@ const resourceTypeLabels: Record<ResourceType, string> = {
   label: '标签',
   api: 'API',
   report: '报表',
-  dashboard: '看板',
 };
 
 /* ── Tab matrix per resource type (§5 PRD) ──────────────── */
@@ -79,12 +79,6 @@ const tabMatrix: Record<ResourceType, TabItem[]> = {
     { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
-  dashboard: [
-    { key: 'definition', label: '报表定义' },
-    { key: 'lineage', label: '血缘关系' },
-    { key: 'manage', label: '使用说明' },
-    { key: 'logs', label: '操作记录' },
-  ],
 };
 
 /* ── Permission button state (§8.1 PRD) ──────────────────── */
@@ -95,7 +89,7 @@ function getPermState(detail: ResourceDetail): PermState {
   if (detail.permissionStatus === 'granted') return 'granted';
   if (detail.permissionStatus === 'pending') return 'pending';
   if (detail.type === 'metric' || detail.type === 'label') return 'disabled';
-  if (detail.type === 'report' || detail.type === 'dashboard') return 'disabled';
+  if (detail.type === 'report') return 'disabled';
   if (detail.permissionStatus === 'none') return 'apply';
   return 'disabled';
 }
@@ -104,7 +98,6 @@ const permDisabledReasons: Record<ResourceType, string> = {
   metric: '请先查看指标来源，再申请底层表/API权限',
   label: '需前往来源平台申请，平台仅做展示说明',
   report: '当前报表对象暂不支持平台内直接申请',
-  dashboard: '当前看板对象暂不支持平台内直接申请',
   api: '',
   table: '请去"血缘关系"Tab查看对应数仓表后申请',
   view: '请去"血缘关系"Tab查看对应数仓表后申请',
@@ -396,7 +389,7 @@ function DetailSidebar({ detail }: { detail: ResourceDetail }) {
       { label: '近30天调用量', value: String(detail.usageCount ?? 0) },
       { label: '近30天浏览量', value: String(detail.viewCount ?? 0) },
     );
-  } else if (detail.type === 'report' || detail.type === 'dashboard') {
+  } else if (detail.type === 'report') {
     const rd = detail.reportDefinition;
     baseInfo.push(
       { label: '中文名', value: detail.displayName ?? '' },
@@ -778,9 +771,7 @@ function ManageTab({ detail }: { detail: ResourceDetail }) {
   );
 }
 
-function LineagePlaceholder() {
-  return <EmptyState title="暂无血缘信息" description="如需补充请使用修正入口" />;
-}
+
 
 /* ── Approval status badge ──────────────────────────────── */
 type ApprovalBadgeInfo = {
@@ -862,12 +853,16 @@ export function DetailPage() {
           {activeTab === 'partitions' && <PartitionsTab detail={detail} />}
           {activeTab === 'definition' && detail.type === 'metric' && <MetricDefinitionTab detail={detail} />}
           {activeTab === 'definition' && detail.type === 'label' && <LabelDefinitionTab detail={detail} />}
-          {activeTab === 'definition' && (detail.type === 'report' || detail.type === 'dashboard') && <ReportDefinitionTab detail={detail} />}
+          {activeTab === 'definition' && detail.type === 'report' && <ReportDefinitionTab detail={detail} />}
           {activeTab === 'params' && <APIParamsTab detail={detail} />}
           {activeTab === 'ddl' && <DDLTab detail={detail} />}
           {activeTab === 'logs' && <LogsTab detail={detail} />}
           {activeTab === 'manage' && <ManageTab detail={detail} />}
-          {activeTab === 'lineage' && <LineagePlaceholder />}
+          {activeTab === 'lineage' && (
+            <div style={{ height: '600px', position: 'relative' }}>
+              <LineagePage centerNodeId={detail.name} isEmbedded={true} />
+            </div>
+          )}
         </div>
 
         {showSidebar && <DetailSidebar detail={detail} />}

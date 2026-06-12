@@ -11,7 +11,7 @@ type WorkspaceView = 'empty' | 'resource' | 'chatbi';
 type RecommendedResource = {
   name: string;
   displayName: string;
-  type: 'report' | 'dashboard' | 'table' | 'api';
+  type: 'report' | 'table' | 'api';
   description: string;
   reason: string;
   perm: 'ok' | 'apply' | 'pending';
@@ -42,7 +42,7 @@ const guideQuestions = [
 
 const mockResources: RecommendedResource[] = [
   { name: 'rpt_channel_gmv_daily', displayName: '渠道 GMV 日报', type: 'report', description: '按渠道统计每天GMV、订单量、退款率，每日T+1更新', reason: '匹配"渠道+GMV"关键词', perm: 'ok', owner: '李四', source: 'BI 平台', heat: '2,341 次' },
-  { name: 'dashboard_ops_overview', displayName: '运营大盘看板', type: 'dashboard', description: 'GMV、DAU、转化率等核心指标实时看板', reason: '运营核心看板', perm: 'ok', owner: '王五', source: 'BI 平台', heat: '5,120 次' },
+  { name: 'report_ops_overview', displayName: '运营大盘看板', type: 'report', description: 'GMV、DAU、转化率等核心指标实时看板', reason: '运营核心看板', perm: 'ok', owner: '王五', source: 'BI 平台', heat: '5,120 次' },
   { name: 'dws_trade_channel_day', displayName: '渠道交易日汇总表', type: 'table', description: 'DWS汇总层，按渠道+日期粒度，含GMV、订单量、退款金额', reason: '底层数据支撑', perm: 'apply', owner: '赵六', source: 'MaxCompute', heat: '1,890 次', tip: '申请后可查看字段详情和样例数据' },
 ];
 
@@ -65,11 +65,11 @@ const mockChatBIData = {
 const followUpOptions = ['加上环比', '只看华东区', '按城市分布', '最近7天趋势'];
 
 function typeLabel(type: RecommendedResource['type']): string {
-  return type === 'report' ? '报表' : type === 'dashboard' ? '看板' : type === 'table' ? '表' : 'API';
+  return type === 'report' ? '报表' : type === 'table' ? '表' : 'API';
 }
 
 function typeTone(type: RecommendedResource['type']): 'success' | 'purple' | 'blue' | 'warning' {
-  return type === 'report' ? 'success' : type === 'dashboard' ? 'purple' : type === 'table' ? 'blue' : 'warning';
+  return type === 'report' ? 'success' : type === 'table' ? 'blue' : 'warning';
 }
 
 function permLabel(perm: RecommendedResource['perm']): string {
@@ -138,7 +138,7 @@ function ResourceDetail({ resource, onSQLConfig }: { resource: RecommendedResour
         </div>
         <div className="ai-find__detail-actions">
           <Tag tone={permTone(resource.perm)}>{permLabel(resource.perm)}</Tag>
-          {resource.type === 'report' || resource.type === 'dashboard' ? (
+          {resource.type === 'report' ? (
             <Button variant="primary" size="sm">查看{typeLabel(resource.type)}</Button>
           ) : null}
         </div>

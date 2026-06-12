@@ -54,7 +54,6 @@ const typeLabels: Record<ResourceType, string> = {
   table: '表',
   metric: '指标',
   report: '报表',
-  dashboard: '看板',
   api: 'API',
   label: '标签',
   view: '视图',
@@ -64,24 +63,19 @@ const typeIcons: Record<ResourceType, string> = {
   table: '▦',
   metric: '◇',
   report: '▣',
-  dashboard: '▤',
   api: '⌁',
   label: '🏷️',
   view: '◫',
 };
 
-const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>, string> = {
-  granted: '已授权',
-  none: '未授权',
-  pending: '审批中',
-  unknown: '未知',
+const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger' | 'gray' | 'purple' | 'cyan'> = {
+  table: 'blue',
+  view: 'blue',
+  report: 'success',
+  metric: 'purple',
+  api: 'cyan',
+  label: 'gray',
 };
-
-const initialFavoriteIds = new Set(mockResources.filter((resource) => resource.permissionStatus === 'granted').map((resource) => resource.id));
-
-function getResourceTitle(resource: ResourceSummary) {
-  return resource.displayName ?? resource.name;
-}
 
 function flattenCatalog(nodes: CatalogNode[], depth = 0): Array<CatalogNode & { depth: number }> {
   return nodes.flatMap((node) => [
@@ -114,65 +108,35 @@ function matchesKeyword(resource: ResourceSummary, keyword: string) {
     .some((value) => String(value).toLowerCase().includes(normalizedKeyword));
 }
 
-function getTechnicalName(resource: ResourceSummary) {
-  const pathParts = resource.catalogPath?.split('/') ?? [];
-  const schema = pathParts.at(-2) ?? resource.domain ?? 'default';
-  return `${schema}.${resource.name}`;
-}
-
-function CatalogAssetCard({
-  resource,
-  isFavorite,
-  onToggleFavorite,
-}: {
-  resource: ResourceSummary;
-  isFavorite: boolean;
-  onToggleFavorite: (resourceId: string) => void;
-}) {
-  const permissionStatus = resource.permissionStatus ?? 'unknown';
-  const permissionTone = permissionStatus === 'granted' ? 'success' : permissionStatus === 'pending' ? 'warning' : 'gray';
-  const title = getResourceTitle(resource);
+function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
+  const dbName = resource.databaseName;
+  const showDbPrefix = dbName && (resource.type === 'table' || resource.type === 'view');
 
   return (
     <article className="asset-catalog__asset-card">
       <div className="asset-catalog__asset-row asset-catalog__asset-row--top">
-        <div className="asset-catalog__asset-title">
-          <span className="asset-catalog__asset-icon" aria-hidden="true">
-            {typeIcons[resource.type]}
-          </span>
-          <div>
-            <div className="asset-catalog__asset-name-line">
-              <h2>{title}</h2>
-              <button type="button" className="asset-catalog__copy-button" aria-label={`复制 ${resource.name}`}>
-                📋
-              </button>
-            </div>
-            <div className="asset-catalog__technical-name">{getTechnicalName(resource)}</div>
-          </div>
-        </div>
-
+        <span className="asset-catalog__asset-icon" aria-hidden="true">
+          {typeIcons[resource.type]}
+        </span>
+        <span
+          className="asset-catalog__tech-name"
+          role="link"
+          tabIndex={0}
+          onClick={() => { window.location.hash = `detail?domain=asset&id=${resource.id}`; }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { window.location.hash = `detail?domain=asset&id=${resource.id}`; } }}
+        >
+          {showDbPrefix && <span className="asset-catalog__db-prefix">{dbName}.</span>}
+          {resource.name}
+        </span>
+        <button type="button" className="asset-catalog__copy-button" aria-label={`复制 ${resource.name}`}>
+          📋
+        </button>
         <div className="asset-catalog__asset-tags">
-          <Tag tone="blue">{typeLabels[resource.type]}</Tag>
-          <Tag tone={permissionTone}>{permissionLabels[permissionStatus]}</Tag>
+          <Tag tone={typeTagTone[resource.type]}>{typeLabels[resource.type]}</Tag>
+          <Tag tone="success">正常</Tag>
           {(resource.tags ?? []).slice(0, 2).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
-        </div>
-
-        <div className="asset-catalog__asset-actions">
-          <button
-            type="button"
-            className={`asset-catalog__favorite-button ${isFavorite ? 'is-favorite' : ''}`}
-            aria-pressed={isFavorite}
-            aria-label={`${isFavorite ? '取消收藏' : '收藏'} ${title}`}
-            onClick={() => onToggleFavorite(resource.id)}
-          >
-            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
-            {isFavorite ? '取消收藏' : '收藏'}
-          </button>
-          <button type="button" className="asset-catalog__asset-action">
-            {permissionStatus === 'granted' ? '查看资产' : '申请权限'}
-          </button>
         </div>
       </div>
 
@@ -184,14 +148,6 @@ function CatalogAssetCard({
         <span>
           <strong>目录</strong>
           {resource.catalogPath ?? '-'}
-        </span>
-        <span>
-          <strong>查询</strong>
-          {resource.usageCount?.toLocaleString('zh-CN') ?? 0}
-        </span>
-        <span>
-          <strong>收藏</strong>
-          {Math.max(12, Math.round((resource.usageCount ?? 0) / 18))}
         </span>
       </div>
 
@@ -207,15 +163,7 @@ function CatalogAssetCard({
         </span>
         <span>
           <strong>业务负责人</strong>
-          {resource.owner ?? '-'}
-        </span>
-        <span>
-          <strong>创建时间</strong>
-          {resource.updatedAt ?? '-'}
-        </span>
-        <span>
-          <strong>更新时间</strong>
-          {resource.updatedAt ?? '-'}
+          {resource.businessOwner ?? resource.owner ?? '-'}
         </span>
       </div>
     </article>
@@ -229,7 +177,6 @@ export function AssetCatalogPage() {
   const [submittedKeyword, setSubmittedKeyword] = useState('');
   const [activeType, setActiveType] = useState<TypeFilter>('all');
   const [myAssetsOnly, setMyAssetsOnly] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState(() => initialFavoriteIds);
 
   const filteredResources = useMemo(() => {
     return mockResources.filter((resource) => {
@@ -245,17 +192,7 @@ export function AssetCatalogPage() {
     setSubmittedKeyword(keyword.trim());
   };
 
-  const toggleFavorite = (resourceId: string) => {
-    setFavoriteIds((currentIds) => {
-      const nextIds = new Set(currentIds);
-      if (nextIds.has(resourceId)) {
-        nextIds.delete(resourceId);
-      } else {
-        nextIds.add(resourceId);
-      }
-      return nextIds;
-    });
-  };
+
 
   return (
     <section className="asset-catalog">
@@ -364,8 +301,6 @@ export function AssetCatalogPage() {
                   <CatalogAssetCard
                     key={resource.id}
                     resource={resource}
-                    isFavorite={favoriteIds.has(resource.id)}
-                    onToggleFavorite={toggleFavorite}
                   />
                 ))
               ) : (

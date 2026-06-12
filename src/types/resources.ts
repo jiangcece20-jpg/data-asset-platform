@@ -1,4 +1,4 @@
-export type ResourceType = 'table' | 'metric' | 'report' | 'dashboard' | 'api' | 'label' | 'view';
+export type ResourceType = 'table' | 'metric' | 'report' | 'api' | 'label' | 'view';
 
 export type SourceSystem = 'MaxCompute' | 'Hive' | 'SelectDB' | 'MySQL' | 'Oracle' | '万联灵析' | 'API网关' | 'Kafka' | 'OSS' | '指标平台' | '画像标签系统' | '内部微服务';
 

@@ -120,7 +120,6 @@ const typeLabels: Record<ResourceType, string> = {
   table: '表',
   metric: '指标',
   report: '报表',
-  dashboard: '看板',
   api: 'API',
   label: '标签',
   view: '视图',
@@ -130,25 +129,21 @@ const typeIcons: Record<ResourceType, string> = {
   table: '🗃️',
   metric: '📈',
   report: '📊',
-  dashboard: '📊',
   api: '🔌',
   label: '🏷️',
   view: '👁️',
 };
 
-const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>, { label: string; tone: 'blue' | 'success' | 'warning' | 'gray' }> = {
-  granted: { label: '已授权', tone: 'success' },
-  none: { label: '可申请', tone: 'blue' },
-  pending: { label: '审批中', tone: 'warning' },
-  unknown: { label: '需确认', tone: 'gray' },
+const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger' | 'gray' | 'purple' | 'cyan'> = {
+  table: 'blue',
+  view: 'blue',
+  report: 'success',
+  metric: 'purple',
+  api: 'cyan',
+  label: 'gray',
 };
 
 const treeNodes = ['交易域', '用户域', '供应链'];
-const initialFavoriteIds = new Set(discoveryRecords.filter((record) => record.favorite).map((record) => record.id));
-
-function getTitle(record: DiscoveryRecord) {
-  return record.displayName ?? record.name;
-}
 
 function matchesKeyword(record: DiscoveryRecord, keyword: string) {
   const normalized = keyword.trim().toLowerCase();
@@ -196,69 +191,35 @@ function getTreeFilterLabel(treeFilter: TreeFilter) {
   return treeFilter;
 }
 
-function formatUsage(value = 0) {
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
-}
-
-function DiscoveryCard({
-  record,
-  isFavorite,
-  onToggleFavorite,
-}: {
-  record: DiscoveryRecord;
-  isFavorite: boolean;
-  onToggleFavorite: (resourceId: string) => void;
-}) {
-  const permission = permissionLabels[record.permissionStatus ?? 'unknown'];
-  const title = getTitle(record);
-  const queryCount = Math.floor((record.usageCount ?? 0) * 0.35);
+function DiscoveryCard({ record }: { record: DiscoveryRecord }) {
+  const dbName = record.databaseName;
+  const showDbPrefix = dbName && (record.type === 'table' || record.type === 'view');
 
   return (
     <article className="resource-discovery__asset-card">
       <div className="resource-discovery__asset-row resource-discovery__asset-row--top">
-        <div className="resource-discovery__asset-title">
-          <span className="resource-discovery__asset-icon" aria-hidden="true">
-            {typeIcons[record.type]}
-          </span>
-          <div>
-            <div className="resource-discovery__asset-name-line">
-              <h2>{title}</h2>
-              <button type="button" className="resource-discovery__copy-button" aria-label={`复制 ${record.name}`}>
-                📋
-              </button>
-            </div>
-            <div className="resource-discovery__technical-name">{record.name}</div>
-          </div>
-        </div>
-
+        <span className="resource-discovery__asset-icon" aria-hidden="true">
+          {typeIcons[record.type]}
+        </span>
+        <span
+          className="resource-discovery__tech-name"
+          role="link"
+          tabIndex={0}
+          onClick={() => { window.location.hash = `detail?domain=${record.discoveryKind}&id=${record.id}`; }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { window.location.hash = `detail?domain=${record.discoveryKind}&id=${record.id}`; } }}
+        >
+          {showDbPrefix && <span className="resource-discovery__db-prefix">{dbName}.</span>}
+          {record.name}
+        </span>
+        <button type="button" className="resource-discovery__copy-button" aria-label={`复制 ${record.name}`}>
+          📋
+        </button>
         <div className="resource-discovery__asset-tags">
-          <Tag tone={record.type === 'metric' ? 'purple' : 'blue'}>{typeLabels[record.type]}</Tag>
-          <Tag tone={record.discoveryKind === 'asset' ? 'blue' : 'cyan'}>{record.discoveryKind === 'asset' ? '资产' : '资源'}</Tag>
-          <Tag tone={record.discoveryStatus === 'published' ? 'success' : record.discoveryStatus === 'maintain' ? 'warning' : 'gray'}>
-            {record.discoveryStatus === 'published' ? '已上架' : record.discoveryStatus === 'maintain' ? '待维护' : '不上架'}
-          </Tag>
+          <Tag tone={typeTagTone[record.type]}>{typeLabels[record.type]}</Tag>
+          <Tag tone="success">正常</Tag>
           {(record.tags ?? []).slice(0, 2).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
-        </div>
-
-        <div className="resource-discovery__asset-actions">
-          <button
-            type="button"
-            className={`resource-discovery__favorite-button ${isFavorite ? 'is-favorite' : ''}`}
-            aria-pressed={isFavorite}
-            aria-label={`${isFavorite ? '取消收藏' : '收藏'} ${title}`}
-            onClick={() => onToggleFavorite(record.id)}
-          >
-            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
-            {isFavorite ? '取消收藏' : '收藏'}
-          </button>
-          <button type="button" className="resource-discovery__asset-action">
-            查看详情
-          </button>
-          <button type="button" className="resource-discovery__asset-action resource-discovery__asset-action--primary">
-            {record.permissionStatus === 'granted' ? '直接使用' : '加入申请单'}
-          </button>
         </div>
       </div>
 
@@ -271,10 +232,6 @@ function DiscoveryCard({
           <strong>目录</strong>
           {record.catalogPath ?? '未归属'}
         </span>
-        <div>
-          <span>🔍 {queryCount.toLocaleString('zh-CN')}</span>
-          <span>👁 {formatUsage(record.usageCount)}</span>
-        </div>
       </div>
 
       <div className="resource-discovery__asset-row resource-discovery__asset-row--description">
@@ -289,15 +246,7 @@ function DiscoveryCard({
         </span>
         <span>
           <strong>业务负责人</strong>
-          {record.owner ?? '-'}
-        </span>
-        <span>
-          <strong>权限</strong>
-          <Tag tone={permission.tone}>{permission.label}</Tag>
-        </span>
-        <span className="resource-discovery__asset-times">
-          <span>创建时间 {record.updatedAt ?? '-'}</span>
-          <span>更新时间 {record.updatedAt ?? '-'}</span>
+          {record.businessOwner ?? record.owner ?? '-'}
         </span>
       </div>
     </article>
@@ -311,7 +260,6 @@ export function ResourceDiscoveryPage() {
   const [status, setStatus] = useState<'all' | DiscoveryStatus>('all');
   const [activeType, setActiveType] = useState<TypeFilter>('all');
   const [myResourcesOnly, setMyResourcesOnly] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState(() => initialFavoriteIds);
 
   const records = useMemo(() => {
     return discoveryRecords
@@ -323,18 +271,6 @@ export function ResourceDiscoveryPage() {
       .filter((record) => matchesKeyword(record, keyword))
       .sort((a, b) => (b.usageCount ?? 0) - (a.usageCount ?? 0));
   }, [activeType, keyword, myResourcesOnly, scope, status, treeFilter]);
-
-  const toggleFavorite = (resourceId: string) => {
-    setFavoriteIds((currentIds) => {
-      const nextIds = new Set(currentIds);
-      if (nextIds.has(resourceId)) {
-        nextIds.delete(resourceId);
-      } else {
-        nextIds.add(resourceId);
-      }
-      return nextIds;
-    });
-  };
 
   return (
     <section className="resource-discovery">
@@ -467,11 +403,9 @@ export function ResourceDiscoveryPage() {
             <div className="resource-discovery__asset-card-list">
               {records.length > 0 ? (
                 records.map((record) => (
-                  <DiscoveryCard
+                    <DiscoveryCard
                     key={`${record.discoveryKind}-${record.id}`}
                     record={record}
-                    isFavorite={favoriteIds.has(record.id)}
-                    onToggleFavorite={toggleFavorite}
                   />
                 ))
               ) : (
