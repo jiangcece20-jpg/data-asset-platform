@@ -33,6 +33,7 @@ const resourceTypeLabels: Record<ResourceType, string> = {
   label: '标签',
   api: 'API',
   report: '报表',
+  dashboard: '看板',
 };
 
 /* ── Tab matrix per resource type (§5 PRD) ──────────────── */
@@ -79,6 +80,12 @@ const tabMatrix: Record<ResourceType, TabItem[]> = {
     { key: 'manage', label: '使用说明' },
     { key: 'logs', label: '操作记录' },
   ],
+  dashboard: [
+    { key: 'definition', label: '看板定义' },
+    { key: 'lineage', label: '血缘关系' },
+    { key: 'manage', label: '使用说明' },
+    { key: 'logs', label: '操作记录' },
+  ],
 };
 
 /* ── Permission button state (§8.1 PRD) ──────────────────── */
@@ -101,6 +108,7 @@ const permDisabledReasons: Record<ResourceType, string> = {
   api: '',
   table: '请去"血缘关系"Tab查看对应数仓表后申请',
   view: '请去"血缘关系"Tab查看对应数仓表后申请',
+  dashboard: '',
 };
 
 /* ── URL param parsing ─────────────────────────────────────── */

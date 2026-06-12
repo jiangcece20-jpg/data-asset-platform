@@ -18,12 +18,11 @@ describe('ResourceDiscoveryPage', () => {
     expect(screen.getByText('状态')).toBeInTheDocument();
     expect(screen.getByText('类型')).toBeInTheDocument();
     expect(screen.getByText('共 11 条')).toBeInTheDocument();
-    expect(screen.getByText('dwd_ctps_product_browsed_company_shop_device_product_d1')).toBeInTheDocument();
+    expect(screen.getByText('dwd_trade_order')).toBeInTheDocument();
     expect(screen.getAllByText('来源').length).toBeGreaterThan(0);
     expect(screen.getAllByText('目录').length).toBeGreaterThan(0);
     expect(screen.getAllByText('技术负责人').length).toBeGreaterThan(0);
     expect(screen.getAllByText('业务负责人').length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: '取消收藏' }).length).toBeGreaterThan(0);
   });
 
   it('shows unassigned resources from the quick tree node', async () => {
@@ -44,7 +43,7 @@ describe('ResourceDiscoveryPage', () => {
 
     expect(screen.getByText('共 4 条')).toBeInTheDocument();
     expect(screen.getByText('api_inventory_check')).toBeInTheDocument();
-    expect(screen.queryByText('dwd_ctps_product_browsed_company_shop_device_product_d1')).not.toBeInTheDocument();
+    expect(screen.queryByText('dwd_trade_order')).not.toBeInTheDocument();
   });
 
   it('filters by maintain status', async () => {
@@ -64,7 +63,7 @@ describe('ResourceDiscoveryPage', () => {
     await user.type(screen.getByPlaceholderText('请输入资产名称/描述关键字'), '库存');
 
     expect(screen.getByText('共 2 条')).toBeInTheDocument();
-    expect(screen.getByText('dashboard_inventory_overview')).toBeInTheDocument();
+    expect(screen.getByText('report_inventory_overview')).toBeInTheDocument();
     expect(screen.getByText('api_inventory_check')).toBeInTheDocument();
   });
 

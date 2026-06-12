@@ -123,6 +123,7 @@ const typeLabels: Record<ResourceType, string> = {
   api: 'API',
   label: '标签',
   view: '视图',
+  dashboard: '看板',
 };
 
 const typeIcons: Record<ResourceType, string> = {
@@ -132,6 +133,7 @@ const typeIcons: Record<ResourceType, string> = {
   api: '🔌',
   label: '🏷️',
   view: '👁️',
+  dashboard: '📊',
 };
 
 const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger' | 'gray' | 'purple' | 'cyan'> = {
@@ -141,6 +143,7 @@ const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger
   metric: 'purple',
   api: 'cyan',
   label: 'gray',
+  dashboard: 'success',
 };
 
 const treeNodes = ['交易域', '用户域', '供应链'];

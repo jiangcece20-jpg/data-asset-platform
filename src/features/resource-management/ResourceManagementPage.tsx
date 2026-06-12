@@ -625,6 +625,7 @@ const typeLabels: Record<ResourceType, string> = {
   api: 'API',
   label: '标签',
   view: '视图',
+  dashboard: '看板',
 };
 
 const platformLabels: Record<string, string> = {

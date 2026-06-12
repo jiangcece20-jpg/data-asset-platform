@@ -57,15 +57,17 @@ const typeLabels: Record<ResourceType, string> = {
   api: 'API',
   label: '标签',
   view: '视图',
+  dashboard: '看板',
 };
 
 const typeIcons: Record<ResourceType, string> = {
   table: '▦',
   metric: '◇',
   report: '▣',
-  api: '⌁',
+  api: '⎁',
   label: '🏷️',
   view: '◫',
+  dashboard: '📊',
 };
 
 const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger' | 'gray' | 'purple' | 'cyan'> = {
@@ -75,6 +77,7 @@ const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'danger
   metric: 'purple',
   api: 'cyan',
   label: 'gray',
+  dashboard: 'success',
 };
 
 function flattenCatalog(nodes: CatalogNode[], depth = 0): Array<CatalogNode & { depth: number }> {

@@ -1,25 +1,6 @@
-export type ResourceType = 'table' | 'metric' | 'report' | 'api' | 'label' | 'view';
+export type ResourceType = 'table' | 'metric' | 'report' | 'api' | 'label' | 'view' | 'dashboard';
 
-export type SourceSystem = 'MaxCompute' | 'Hive' | 'SelectDB' | 'MySQL' | 'Oracle' | '万联灵析' | 'API网关' | 'Kafka' | 'OSS' | '指标平台' | '画像标签系统' | '内部微服务';
-
-export const sourceSystemLabels: Record<SourceSystem, string> = {
-  MaxCompute: 'MaxCompute',
-  Hive: 'Hive',
-  SelectDB: 'SelectDB',
-  MySQL: 'MySQL',
-  Oracle: 'Oracle',
-  万联灵析: '万联灵析',
-  API网关: 'API网关',
-  Kafka: 'Kafka',
-  OSS: 'OSS',
-  指标平台: '指标平台',
-  画像标签系统: '画像标签系统',
-  内部微服务: '内部微服务',
-};
-
-export type SourceType = 'warehouse_engine' | 'analytic_db' | 'business_db' | 'report_system' | 'api_service' | 'message_stream' | 'file_storage' | 'metric_platform';
-
-export type SourceSystem = 'MaxCompute' | 'Hive' | 'SelectDB' | 'MySQL' | 'Oracle' | '万联灵析' | 'API网关' | 'Kafka' | 'OSS' | '指标平台' | '画像标签系统' | '内部微服务';
+export type SourceSystem = 'MaxCompute' | 'Hive' | 'SelectDB' | 'MySQL' | 'Oracle' | '万联灵析' | 'API网关' | 'Kafka' | 'OSS' | '指标平台' | '画像标签系统' | '内部微服务' | 'BI 平台' | 'Kafka + Flink' | '标签平台' | '数据服务网关';
 
 export const sourceSystemLabels: Record<SourceSystem, string> = {
   MaxCompute: 'MaxCompute',
@@ -34,9 +15,13 @@ export const sourceSystemLabels: Record<SourceSystem, string> = {
   指标平台: '指标平台',
   画像标签系统: '画像标签系统',
   内部微服务: '内部微服务',
+  'BI 平台': 'BI 平台',
+  'Kafka + Flink': 'Kafka + Flink',
+  '标签平台': '标签平台',
+  '数据服务网关': '数据服务网关',
 };
 
-export type SourceType = 'warehouse_engine' | 'analytic_db' | 'business_db' | 'report_system' | 'api_service' | 'message_stream' | 'file_storage' | 'metric_platform';
+export type SourceType = 'warehouse_engine' | 'analytic_db' | 'business_db' | 'report_system' | 'api_service' | 'message_stream' | 'file_storage' | 'metric_platform' | 'metric_center' | 'stream' | 'tag_center' | 'api_gateway';
 
 export type ResourceSummary = {
   id: string;

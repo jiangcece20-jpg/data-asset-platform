@@ -20,7 +20,7 @@ describe('DetailPage', () => {
 
     expect(document.querySelector('.detail-header__tech-name')?.textContent)
       .toBe('dwd_trade_order');
-    expect(document.querySelector('.detail-header__db-name')?.textContent).toContain('dwd.');
+    expect(document.querySelector('.detail-header__db-name')?.textContent).toContain('wlyd_mc_beijing.');
     expect(document.querySelector('.detail-header__display-name')?.textContent).toBe('订单明细表');
   });
 
