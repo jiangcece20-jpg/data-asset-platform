@@ -1,11 +1,13 @@
 export type AppRouteKey =
   | 'search'
   | 'catalog'
+  | 'detail'
   | 'discovery'
   | 'management'
   | 'workbench'
-  | 'components'
-  | 'permissions';
+  | 'permissions'
+  | 'lineage'
+  | 'my';
 
 export type AppRoute = {
   key: AppRouteKey;
@@ -18,6 +20,7 @@ export const appRoutes: AppRoute[] = [
   { key: 'discovery', label: '资源发现' },
   { key: 'management', label: '资源管理' },
   { key: 'workbench', label: '即席查询' },
-  { key: 'components', label: '组件库' },
-  { key: 'permissions', label: '权限管理' },
+  { key: 'lineage', label: '血缘追溯' },
+  { key: 'permissions', label: '权限中心' },
+  { key: 'my', label: '我的' },
 ];

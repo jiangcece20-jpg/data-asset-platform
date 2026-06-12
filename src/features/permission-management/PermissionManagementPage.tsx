@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
+import { ConditionFieldCheckbox } from '../../components/forms/ConditionFieldCheckbox';
 import './permission-management.css';
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
@@ -8,7 +9,7 @@ type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
 type TicketCategory = 'all' | 'perm' | 'gov';
 type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正';
 type PendingStatusTab = 'all' | 'pending' | 'approved' | 'rejected' | 'expired';
-type ManagementTab = 'work-order-types' | 'flows' | 'routes' | 'approver-rules' | 'sync' | 'templates' | 'roles';
+type ManagementTab = 'flows' | 'routes' | 'approver-rules' | 'sync';
 type RecordCategory = 'all' | '权限' | '治理';
 type ModalState = (
   | { type: 'none' }
@@ -63,6 +64,7 @@ type PendingApproval = {
 };
 
 type TplNode = { kind: 'superior' | 'owner' | 'role' | 'person'; role?: string; person?: string };
+type ConditionField = 'objectTypes' | 'securityLevels';
 type WorkOrderType = {
   name: string;
   code: string;
@@ -74,6 +76,8 @@ type WorkOrderType = {
   status: '启用' | '停用';
   updatedAt: string;
   used: boolean;
+  applicableConditions: ConditionField[];
+  bindingFlowCode: string;
 };
 type FeishuApprovalFlow = {
   name: string;
@@ -107,6 +111,13 @@ type ApprovalRouteRule = {
   updatedAt: string;
   used: boolean;
 };
+type FormFillingRule = {
+  field: string;
+  label: string;
+  mappingType: 'direct' | 'rule';
+  ruleMapping?: Record<string, string>;
+  sourceField?: string;
+};
 type ApproverRule = {
   name: string;
   resolveType: string;
@@ -116,8 +127,9 @@ type ApproverRule = {
   fallbackTarget: string;
   approvalMode: '单人审批' | '或签' | '会签';
   openIdSource: string;
+  formFillingRules: FormFillingRule[];
   status: '启用' | '停用';
-  checkStatus: '已校验' | '待校验' | '异常';
+  checkStatus: '已校验' | '待校验' | '校验中' | '异常';
   updatedAt: string;
   used: boolean;
 };
@@ -154,11 +166,18 @@ type SyncHealthItem = {
 };
 
 const navItems: Array<{ key: PermissionSection; label: string; badge?: number; group?: string }> = [
-  { key: 'tickets', label: '工单查询' },
+  { key: 'tickets', label: '我提交的申请' },
   { key: 'pending', label: '待我审批', badge: 3 },
   { key: 'approval-management', label: '审批管理', group: '管理' },
   { key: 'records', label: '审批记录', group: '管理' },
 ];
+
+function getPermissionSectionFromHash(): PermissionSection {
+  const [, query = ''] = window.location.hash.replace(/^#/, '').split('?');
+  const section = new URLSearchParams(query).get('section');
+  if (section === 'submitted') return 'tickets';
+  return navItems.some(item => item.key === section) ? section as PermissionSection : 'tickets';
+}
 
 const tickets: Ticket[] = [
   { id: 'PA-2026033100001', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-001', instanceCode: 'FS-PERM-0001', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0001', syncText: '事件同步正常', syncMode: 'event', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetType: '数据表', applyTime: '2026-03-31 14:30', status: 'pending', applicant: '张三', reason: '需要查询金融业务线的交易数据用于月度分析报告' },
@@ -203,12 +222,12 @@ const approvalRoles = [
 ];
 
 const workOrderTypes: WorkOrderType[] = [
-  { name: '上架申请', code: 'WORK_ORDER_PUBLISH', category: '资源治理', description: '待维护资源申请进入正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
-  { name: '下架申请', code: 'WORK_ORDER_UNPUBLISH', category: '资源治理', description: '已上架资源申请退出正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
-  { name: '目录修改', code: 'WORK_ORDER_CATALOG_CHANGE', category: '资源治理', description: '资源或资产对象申请修改目录归属', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
-  { name: '权限申请', code: 'WORK_ORDER_PERMISSION', category: '权限', description: '用户申请数据访问权限', defaultRoute: '权限申请：S1-S4 常规授权', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
-  { name: '负责人交接', code: 'WORK_ORDER_OWNER_TRANSFER', category: '负责人', description: '当前负责人发起技术或业务负责人交接', defaultRoute: '负责人交接：接收人确认', allowWithdraw: true, allowReapply: false, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
-  { name: '血缘修正', code: 'WORK_ORDER_LINEAGE_FIX', category: '血缘', description: '提交血缘新增、删除或字段映射修正', defaultRoute: '血缘修正：治理审批', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true },
+  { name: '上架申请', code: 'WORK_ORDER_PUBLISH', category: '资源治理', description: '待维护资源申请进入正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '下架申请', code: 'WORK_ORDER_UNPUBLISH', category: '资源治理', description: '已上架资源申请退出正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '目录修改', code: 'WORK_ORDER_CATALOG_CHANGE', category: '资源治理', description: '资源或资产对象申请修改目录归属', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '权限申请', code: 'WORK_ORDER_PERMISSION', category: '权限', description: '用户申请数据访问权限', defaultRoute: '权限申请：S1-S4 常规授权', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'securityLevels'], bindingFlowCode: 'APPROVAL_PERMISSION' },
+  { name: '负责人交接', code: 'WORK_ORDER_OWNER_TRANSFER', category: '负责人', description: '当前负责人发起技术或业务负责人交接', defaultRoute: '负责人交接：接收人确认', allowWithdraw: true, allowReapply: false, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: [], bindingFlowCode: 'APPROVAL_OWNER_TRANSFER' },
+  { name: '血缘修正', code: 'WORK_ORDER_LINEAGE_FIX', category: '血缘', description: '提交血缘新增、删除或字段映射修正', defaultRoute: '血缘修正：治理审批', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: [], bindingFlowCode: 'APPROVAL_LINEAGE_FIX' },
 ];
 
 const feishuApprovalDefinitions: FeishuApprovalFlow[] = [
@@ -238,22 +257,63 @@ const feishuApprovalNodes: Record<string, FeishuApprovalNode[]> = {
 };
 
 const approvalRouteRules: ApprovalRouteRule[] = [
-  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '工单类型 in 上架申请/下架申请/目录修改', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_RESOURCE_GOV', nodeScheme: '资源治理-负责人审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', nodeScheme: '权限申请-S5 多级审批', split: '按资源负责人分组', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '高敏对象授权；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_PERMISSION', nodeScheme: '权限申请-S5 多级审批', split: '按审批人分组', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '工单类型 = 负责人交接', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_OWNER_TRANSFER', nodeScheme: '负责人交接-接收人确认', split: '按接收人分组', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '工单类型 = 血缘修正', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: 'APPROVAL_LINEAGE_FIX', nodeScheme: '血缘修正-治理审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '对象类型 in 表/视图/API；兜底规则', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '资源治理审批', nodeScheme: '资源治理-负责人审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按资源负责人分组', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按审批人分组', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '负责人交接审批', nodeScheme: '负责人交接-接收人确认', split: '按接收人分组', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '血缘修正审批', nodeScheme: '血缘修正-治理审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
 ];
 
 const approverResolutionRules: ApproverRule[] = [
-  { name: '资源技术负责人', resolveType: '资源技术负责人', source: '从资产 technicalOwner 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '资源业务负责人', resolveType: '资源业务负责人', source: '从资产 businessOwner 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '治理负责人', resolveType: '指定角色', source: '从平台角色“数据管理员”解析', fallbackEnabled: false, fallbackType: '', fallbackTarget: '', approvalMode: '或签', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '申请人直属上级', resolveType: '申请人直属上级', source: '从员工接口 manager 字段解析', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '固定领导', resolveType: '固定人员', source: '固定人员 open_id：ou_fixed_leader', fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '申请目标人', resolveType: '申请目标人', source: '从负责人交接的新负责人字段解析', fallbackEnabled: false, fallbackType: '', fallbackTarget: '', approvalMode: '单人审批', openIdSource: '员工接口', status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
-  { name: '金融业务线审批人', resolveType: '业务域负责人', source: '按资产业务域解析金融业务线审批角色', fallbackEnabled: true, fallbackType: '解析规则', fallbackTarget: '资源业务负责人', approvalMode: '或签', openIdSource: '员工接口', status: '启用', checkStatus: '待校验', updatedAt: '2026-06-05 09:50', used: false },
+  { name: '资源技术负责人', resolveType: '资源技术负责人', source: '从资产 technicalOwner 字段解析',
+    fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员',
+    approvalMode: '单人审批', openIdSource: '员工接口',
+    formFillingRules: [
+      { field: 'target_directory', label: '目标目录', mappingType: 'direct', sourceField: 'targetCatalog' },
+    ],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '资源业务负责人', resolveType: '资源业务负责人', source: '从资产 businessOwner 字段解析',
+    fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员',
+    approvalMode: '单人审批', openIdSource: '员工接口',
+    formFillingRules: [
+      { field: 'cost_center', label: '成本中心', mappingType: 'direct', sourceField: 'costCenter' },
+    ],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '治理负责人', resolveType: '指定角色', source: '从平台角色"数据管理员"解析',
+    fallbackEnabled: false, fallbackType: '', fallbackTarget: '',
+    approvalMode: '或签', openIdSource: '员工接口',
+    formFillingRules: [
+      { field: 'urgent_level', label: '紧急程度', mappingType: 'rule', ruleMapping: { 'S5': '高', 'S3': '中', 'S1': '低' } },
+    ],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '申请人直属上级', resolveType: '申请人直属上级', source: '从员工接口 manager 字段解析',
+    fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员',
+    approvalMode: '单人审批', openIdSource: '员工接口',
+    formFillingRules: [],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '固定领导', resolveType: '固定人员', source: '固定人员 open_id：ou_fixed_leader',
+    fallbackEnabled: true, fallbackType: '指定角色', fallbackTarget: '数据管理员',
+    approvalMode: '单人审批', openIdSource: '员工接口',
+    formFillingRules: [],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '申请目标人', resolveType: '申请目标人', source: '从负责人交接的新负责人字段解析',
+    fallbackEnabled: false, fallbackType: '', fallbackTarget: '',
+    approvalMode: '单人审批', openIdSource: '员工接口',
+    formFillingRules: [],
+    status: '启用', checkStatus: '已校验', updatedAt: '2026-06-05 09:50', used: true },
+  { name: '金融业务线审批人', resolveType: '业务域负责人', source: '按资产业务域解析金融业务线审批角色',
+    fallbackEnabled: true, fallbackType: '解析规则', fallbackTarget: '资源业务负责人',
+    approvalMode: '或签', openIdSource: '员工接口',
+    formFillingRules: [
+      { field: 'cost_center', label: '成本中心', mappingType: 'direct', sourceField: 'costCenter' },
+      { field: 'urgent_level', label: '紧急程度', mappingType: 'rule', ruleMapping: { 'S5': '高', 'S3': '中', 'S1': '低' } },
+    ],
+    status: '启用', checkStatus: '待校验', updatedAt: '2026-06-05 09:50', used: false },
 ];
+
+function flowNameOf(approvalCode: string) {
+  return feishuApprovalDefinitions.find(f => f.approvalCode === approvalCode)?.name ?? approvalCode;
+}
 
 const nodeApprovalSchemes: NodeApprovalScheme[] = [
   {
@@ -303,6 +363,41 @@ const nodeApprovalSchemes: NodeApprovalScheme[] = [
     status: '启用',
     updatedAt: '2026-06-05 10:40',
     used: true,
+  },
+  {
+    name: '权限申请-会签模式',
+    flow: 'APPROVAL_PERMISSION',
+    nodes: [
+      { nodeId: 'applicant_manager', nodeName: '申请人上级审批', approverRule: '申请人直属上级', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+      { nodeId: 'resource_owner', nodeName: '资源负责人审批', approverRule: '资源技术负责人', fallbackRule: '数据管理员', approvalMode: '会签' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '停用',
+    updatedAt: '2026-06-05 10:40',
+    used: false,
+  },
+  {
+    name: '资源治理-仅负责人审批',
+    flow: 'APPROVAL_RESOURCE_GOV',
+    nodes: [
+      { nodeId: 'resource_owner', nodeName: '资源负责人审批', approverRule: '资源业务负责人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '停用',
+    updatedAt: '2026-06-05 10:40',
+    used: false,
+  },
+  {
+    name: '负责人交接-管理员审批',
+    flow: 'APPROVAL_OWNER_TRANSFER',
+    nodes: [
+      { nodeId: 'admin', nodeName: '管理员确认', approverRule: '数据管理员', fallbackRule: '', approvalMode: '单人审批' },
+      { nodeId: 'target_owner', nodeName: '接收人确认', approverRule: '申请目标人', fallbackRule: '数据管理员', approvalMode: '单人审批' },
+    ],
+    schemeFallbackRule: '数据管理员',
+    status: '停用',
+    updatedAt: '2026-06-05 10:40',
+    used: false,
   },
 ];
 
@@ -384,7 +479,6 @@ function TimelineItem({ label, time, status }: { label: string; time: string; st
 
 function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
   const [withdrawn, setWithdrawn] = useState(false);
-  const [reapplied, setReapplied] = useState(false);
   if (withdrawn) {
     return (
       <div className="permission-management__sub-order status-cancelled">
@@ -414,10 +508,9 @@ function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
           </div>
         ) : null}
         {order.status === 'pending' ? <Button size="sm" onClick={() => setWithdrawn(true)}>撤回</Button> : null}
-        {order.status === 'rejected' && !reapplied ? (
-          <Button variant="primary" size="sm" onClick={() => setReapplied(true)}>{reapplied ? '已加入申请单' : '重新申请'}</Button>
+        {order.status === 'rejected' ? (
+          <Button variant="primary" size="sm" onClick={() => { window.location.hash = 'my?section=cart'; }}>重新申请</Button>
         ) : null}
-        {reapplied ? <span className="permission-management__reapplied">已加入申请单</span> : null}
       </div>
     </div>
   );
@@ -538,7 +631,7 @@ function TicketQueryPanel() {
 
   return (
     <section className="permission-management__panel">
-      <h2>工单查询</h2>
+      <h2>我提交的申请</h2>
       <div className="permission-management__tabs" role="tablist" aria-label="工单状态">
         {([['all', '全部'], ['pending', '审批中'], ['approved', '已通过'], ['rejected', '已拒绝'], ['withdrawn', '已撤回']] as const).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={status === key} className={status === key ? 'active' : ''} onClick={() => setStatus(key)}>{label}</button>
@@ -588,7 +681,17 @@ function TicketQueryPanel() {
                     <button type="button" onClick={(e) => { e.stopPropagation(); setDetailId(ticket.id); }}>查看详情</button>
                     {ticket.feishuUrl ? <a href={ticket.feishuUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>飞书审批单</a> : null}
                     {ticket.status === 'pending' ? <button type="button" className="danger" onClick={(e) => { e.stopPropagation(); }}>撤回</button> : null}
-                    {ticket.status === 'rejected' ? <button type="button" onClick={(e) => { e.stopPropagation(); }}>重新申请</button> : null}
+                    {ticket.status === 'rejected' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.hash = 'my?section=cart';
+                        }}
+                      >
+                        重新申请
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -805,6 +908,8 @@ const emptyWorkOrderForm: WorkOrderType = {
   status: '启用',
   updatedAt: '',
   used: false,
+  applicableConditions: [],
+  bindingFlowCode: '',
 };
 
 const emptyFlowForm: FeishuApprovalFlow = {
@@ -850,6 +955,7 @@ const emptyApproverForm: ApproverRule = {
   fallbackTarget: '',
   approvalMode: '单人审批',
   openIdSource: '员工接口',
+  formFillingRules: [],
   status: '启用',
   checkStatus: '待校验',
   updatedAt: '',
@@ -874,7 +980,6 @@ function selectedOptions(select: HTMLSelectElement) {
 
 function buildRouteConditionSummary(rule: ApprovalRouteRule) {
   const parts = [
-    rule.workOrderType ? `工单类型 = ${rule.workOrderType}` : '',
     rule.objectTypes.length ? `对象类型 in ${rule.objectTypes.join('/')}` : '',
     rule.securityLevels.length ? `安全等级 in ${rule.securityLevels.join('/')}` : '',
     rule.businessDomain.trim() ? `业务域 = ${rule.businessDomain.trim()}` : '',
@@ -884,7 +989,7 @@ function buildRouteConditionSummary(rule: ApprovalRouteRule) {
     rule.ownerDepartment.trim() ? `负责人部门 = ${rule.ownerDepartment.trim()}` : '',
     rule.isFallback ? '兜底规则' : '',
   ].filter(Boolean);
-  return parts.length ? parts.join('；') : '全部条件兜底';
+  return parts.length ? parts.join('；') : '—';
 }
 
 function fieldStatusTone(status: string) {
@@ -910,33 +1015,54 @@ function severityTone(severity: SyncHealthItem['severity']) {
 }
 
 function ApprovalRoutingManagementPanel() {
-  const [tab, setTab] = useState<ManagementTab>('work-order-types');
-  const [approverSubTab, setApproverSubTab] = useState<'resolution' | 'node-schemes'>('resolution');
-  const [workOrders, setWorkOrders] = useState<WorkOrderType[]>(workOrderTypes);
+  const [tab, setTab] = useState<ManagementTab>('flows');
   const [flows, setFlows] = useState<FeishuApprovalFlow[]>(feishuApprovalDefinitions);
   const [routeRules, setRouteRules] = useState<ApprovalRouteRule[]>(approvalRouteRules);
   const [approverRules, setApproverRules] = useState<ApproverRule[]>(approverResolutionRules);
   const [nodeSchemes, setNodeSchemes] = useState<NodeApprovalScheme[]>(nodeApprovalSchemes);
-  const [workOrderForm, setWorkOrderForm] = useState<WorkOrderType>(emptyWorkOrderForm);
   const [flowForm, setFlowForm] = useState<FeishuApprovalFlow>(emptyFlowForm);
   const [routeForm, setRouteForm] = useState<ApprovalRouteRule>(emptyRouteForm);
   const [approverForm, setApproverForm] = useState<ApproverRule>(emptyApproverForm);
   const [nodeSchemeForm, setNodeSchemeForm] = useState<NodeApprovalScheme>(emptyNodeSchemeForm);
-  const [workOrderModal, setWorkOrderModal] = useState<{ mode: 'create' | 'edit'; code?: string } | null>(null);
   const [flowModal, setFlowModal] = useState<{ mode: 'create' | 'edit'; approvalCode?: string } | null>(null);
   const [routeDrawer, setRouteDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
   const [approverDrawer, setApproverDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
   const [nodeSchemeDrawer, setNodeSchemeDrawer] = useState<{ mode: 'create' | 'edit'; name?: string } | null>(null);
   const [actionMessage, setActionMessage] = useState('');
+  const [loadingCodes, setLoadingCodes] = useState<Set<string>>(new Set());
+
+  const withLoading = async (code: string, fn: () => Promise<void>) => {
+    setLoadingCodes(prev => new Set([...prev, code]));
+    try {
+      await fn();
+    } finally {
+      setLoadingCodes(prev => { const s = new Set(prev); s.delete(code); return s; });
+    }
+  };
+
+  const handleSyncFormFields = (code: string) => withLoading(code, async () => {
+    await new Promise(r => setTimeout(r, 800));
+    setFlows(prev => prev.map(row => row.approvalCode === code ? { ...row, formMappingStatus: '已校验' } : row));
+    setActionMessage(`飞书流程 ${code} 表单控件同步完成`);
+    setTimeout(() => setActionMessage(''), 3000);
+  });
+
+  const handleSyncNodes = (code: string) => withLoading(code, async () => {
+    await new Promise(r => setTimeout(r, 800));
+    setFlows(prev => prev.map(row => row.approvalCode === code ? { ...row, nodeSyncStatus: '已同步' } : row));
+    setActionMessage(`飞书流程 ${code} 流程节点同步完成`);
+    setTimeout(() => setActionMessage(''), 3000);
+  });
 
   const duplicateFlowCode = Boolean(flowForm.approvalCode.trim()) && flows.some(item => (
     item.approvalCode === flowForm.approvalCode.trim() &&
     item.approvalCode !== flowModal?.approvalCode
   ));
-  const canSaveWorkOrder = Boolean(workOrderForm.name.trim() && workOrderForm.code.trim());
   const canSaveFlow = Boolean(flowForm.name.trim() && flowForm.approvalCode.trim() && !duplicateFlowCode);
-  const availableNodeSchemes = nodeSchemes.filter(scheme => scheme.flow === routeForm.flow && scheme.status === '启用');
-  const canSaveRoute = Boolean(routeForm.name.trim() && routeForm.workOrderType && routeForm.flow && routeForm.nodeScheme && routeForm.split && routeForm.priority);
+  const currentWorkOrderType = workOrderTypes.find(w => w.name === routeForm.workOrderType);
+  const derivedFlowCode = currentWorkOrderType?.bindingFlowCode ?? '';
+  const availableNodeSchemes = nodeSchemes.filter(scheme => scheme.flow === derivedFlowCode && scheme.status === '启用');
+  const canSaveRoute = Boolean(routeForm.name.trim() && routeForm.workOrderType && currentWorkOrderType && routeForm.nodeScheme && routeForm.split && routeForm.priority);
   const canSaveApprover = Boolean(approverForm.name.trim() && (!approverForm.fallbackEnabled || approverForm.fallbackTarget.trim()));
   const canSaveNodeScheme = Boolean(
     nodeSchemeForm.name.trim() &&
@@ -945,11 +1071,6 @@ function ApprovalRoutingManagementPanel() {
     nodeSchemeForm.nodes.length > 0 &&
     nodeSchemeForm.nodes.every(node => node.nodeId && node.approverRule),
   );
-
-  const closeWorkOrderModal = () => {
-    setWorkOrderModal(null);
-    setWorkOrderForm(emptyWorkOrderForm);
-  };
 
   const closeFlowModal = () => {
     setFlowModal(null);
@@ -971,14 +1092,7 @@ function ApprovalRoutingManagementPanel() {
     setNodeSchemeForm(emptyNodeSchemeForm);
   };
 
-  const saveWorkOrder = () => {
-    if (!canSaveWorkOrder) return;
-    const next = { ...workOrderForm, name: workOrderForm.name.trim(), code: workOrderForm.code.trim(), updatedAt: currentMockTime };
-    setWorkOrders(prev => workOrderModal?.mode === 'edit'
-      ? prev.map(item => item.code === workOrderModal.code ? next : item)
-      : [next, ...prev]);
-    closeWorkOrderModal();
-  };
+
 
   const saveFlow = () => {
     if (!canSaveFlow) return;
@@ -986,16 +1100,17 @@ function ApprovalRoutingManagementPanel() {
     setFlows(prev => flowModal?.mode === 'edit'
       ? prev.map(item => item.approvalCode === flowModal.approvalCode ? next : item)
       : [next, ...prev]);
-    setActionMessage('已完成飞书流程模拟校验');
+    setActionMessage(`飞书流程「${flowForm.name}」保存成功，模拟校验完成`);
     closeFlowModal();
   };
 
   const saveRoute = () => {
-    if (!canSaveRoute) return;
+    if (!canSaveRoute || !currentWorkOrderType) return;
     const next = {
       ...routeForm,
       name: routeForm.name.trim(),
-      conditionSummary: buildRouteConditionSummary(routeForm),
+      flow: flowNameOf(currentWorkOrderType.bindingFlowCode),
+      conditionSummary: buildRouteConditionSummary({ ...routeForm, flow: flowNameOf(currentWorkOrderType.bindingFlowCode) }),
       updatedAt: currentMockTime,
     };
     setRouteRules(prev => routeDrawer?.mode === 'edit'
@@ -1043,50 +1158,13 @@ function ApprovalRoutingManagementPanel() {
     <section className="permission-management__panel">
       <h2>审批管理</h2>
       <div className="permission-management__tabs" role="tablist" aria-label="审批管理">
-        <button type="button" role="tab" aria-selected={tab === 'work-order-types'} className={tab === 'work-order-types' ? 'active' : ''} onClick={() => setTab('work-order-types')}>工单类型</button>
         <button type="button" role="tab" aria-selected={tab === 'flows'} className={tab === 'flows' ? 'active' : ''} onClick={() => setTab('flows')}>飞书流程库</button>
         <button type="button" role="tab" aria-selected={tab === 'routes'} className={tab === 'routes' ? 'active' : ''} onClick={() => setTab('routes')}>审批路由</button>
-        <button type="button" role="tab" aria-selected={tab === 'approver-rules'} className={tab === 'approver-rules' ? 'active' : ''} onClick={() => setTab('approver-rules')}>审批人规则</button>
+        <button type="button" role="tab" aria-selected={tab === 'approver-rules'} className={tab === 'approver-rules' ? 'active' : ''} onClick={() => setTab('approver-rules')}>审批规则</button>
         <button type="button" role="tab" aria-selected={tab === 'sync'} className={tab === 'sync' ? 'active' : ''} onClick={() => setTab('sync')}>同步监控</button>
       </div>
 
       {actionMessage ? <div className="permission-management__notice">{actionMessage}</div> : null}
-
-      {tab === 'work-order-types' ? (
-        <>
-          <div className="permission-management__panel-actions">
-            <div>
-              <strong>业务审批工单注册表</strong>
-              <p className="permission-management__hint">平台先识别业务工单，再通过审批路由选择飞书流程。刷新后新增数据不会持久化。</p>
-            </div>
-            <Button variant="primary" size="sm" onClick={() => { setWorkOrderForm(emptyWorkOrderForm); setWorkOrderModal({ mode: 'create' }); }}>+ 新建工单类型</Button>
-          </div>
-          <TableShell>
-            <table>
-              <thead><tr><th>工单类型</th><th>编码</th><th>分类</th><th>默认兜底路由</th><th>策略</th><th>状态</th><th>操作</th></tr></thead>
-              <tbody>
-                {workOrders.map(item => (
-                  <tr key={item.code}>
-                    <td><strong>{item.name}</strong><span>{item.description}</span></td>
-                    <td><Tag tone="blue">{item.code}</Tag></td>
-                    <td>{item.category}</td>
-                    <td>{item.defaultRoute || '未配置'}</td>
-                    <td>{item.allowWithdraw ? '允许撤回' : '禁止撤回'} / {item.allowReapply ? '允许重提' : '禁止重提'}</td>
-                    <td><Tag tone={statusTone(item.status)}>{item.status}</Tag></td>
-                    <td>
-                      <div className="permission-management__row-actions">
-                        <button type="button" onClick={() => { setWorkOrderForm(item); setWorkOrderModal({ mode: 'edit', code: item.code }); }}>编辑</button>
-                        <button type="button" onClick={() => setWorkOrders(prev => prev.map(row => row.code === item.code ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{item.status === '启用' ? '停用' : '启用'}</button>
-                        <button type="button" className="muted" onClick={() => setActionMessage(item.used ? '该工单类型已被路由或历史工单引用，不能删除' : '已删除未引用工单类型')}>删除</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableShell>
-        </>
-      ) : null}
 
       {tab === 'flows' ? (
         <>
@@ -1101,7 +1179,7 @@ function ApprovalRoutingManagementPanel() {
             <table>
               <thead><tr><th>飞书流程</th><th>approval_code</th><th>表单控件映射</th><th>流程节点同步</th><th>飞书状态</th><th>事件订阅</th><th>平台状态</th><th>操作</th></tr></thead>
               <tbody>
-                {flows.map((item, index) => (
+                {flows.map((item) => (
                   <tr key={item.approvalCode}>
                     <td><strong>{item.name}</strong><span>{item.description}</span></td>
                     <td><Tag tone="blue">{item.approvalCode}</Tag></td>
@@ -1112,11 +1190,11 @@ function ApprovalRoutingManagementPanel() {
                     <td><Tag tone={statusTone(item.status)}>{item.status}</Tag></td>
                     <td>
                       <div className="permission-management__row-actions">
-                        <button type="button" onClick={() => { setFlowForm(item); setFlowModal({ mode: 'edit', approvalCode: item.approvalCode }); }}>编辑</button>
-                        <button type="button" aria-label={index === 0 ? undefined : `${item.approvalCode} 同步表单控件`} onClick={() => setFlows(prev => prev.map(row => row.approvalCode === item.approvalCode ? { ...row, formMappingStatus: '已校验' } : row))}>同步表单控件</button>
-                        <button type="button" aria-label={index === 0 ? undefined : `${item.approvalCode} 同步流程节点`} onClick={() => setFlows(prev => prev.map(row => row.approvalCode === item.approvalCode ? { ...row, nodeSyncStatus: '已同步' } : row))}>同步流程节点</button>
-                        <button type="button" aria-label={index === 0 ? undefined : `${item.approvalCode} 手动维护节点`} onClick={() => setActionMessage('已进入手动维护节点模式，请确保 custom_node_id 与飞书后台一致')}>手动维护节点</button>
-                        <button type="button" onClick={() => setFlows(prev => prev.map(row => row.approvalCode === item.approvalCode ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{item.status === '启用' ? '停用' : '启用'}</button>
+                        <button type="button" aria-label={`${item.approvalCode} 编辑`} onClick={() => { setFlowForm(item); setFlowModal({ mode: 'edit', approvalCode: item.approvalCode }); }}>编辑</button>
+                        <button type="button" aria-label={`${item.approvalCode} 同步表单控件`} disabled={loadingCodes.has(`form:${item.approvalCode}`)} onClick={() => handleSyncFormFields(item.approvalCode)}>{loadingCodes.has(`form:${item.approvalCode}`) ? '同步中…' : '同步表单控件'}</button>
+                        <button type="button" aria-label={`${item.approvalCode} 同步流程节点`} disabled={loadingCodes.has(`node:${item.approvalCode}`)} onClick={() => handleSyncNodes(item.approvalCode)}>{loadingCodes.has(`node:${item.approvalCode}`) ? '同步中…' : '同步流程节点'}</button>
+                        <button type="button" aria-label={`${item.approvalCode} 手动维护节点`} onClick={() => { setActionMessage('已进入手动维护节点模式，请确保 custom_node_id 与飞书后台一致'); setTimeout(() => setActionMessage(''), 3000); }}>手动维护节点</button>
+                        <button type="button" aria-label={`${item.approvalCode} ${item.status === '启用' ? '停用' : '启用'}`} onClick={() => { setFlows(prev => prev.map(row => row.approvalCode === item.approvalCode ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row)); setActionMessage(`飞书流程 ${item.name} 已${item.status === '启用' ? '停用' : '启用'}`); setTimeout(() => setActionMessage(''), 3000); }}>{item.status === '启用' ? '停用' : '启用'}</button>
                       </div>
                     </td>
                   </tr>
@@ -1150,7 +1228,9 @@ function ApprovalRoutingManagementPanel() {
                     <td>
                       <div className="permission-management__row-actions">
                         <button type="button" onClick={() => { setRouteForm(rule); setRouteDrawer({ mode: 'edit', name: rule.name }); }}>编辑</button>
-                        <button type="button" onClick={() => setRouteRules(prev => prev.map(row => row.name === rule.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{rule.status === '启用' ? '停用' : '启用'}</button>
+                        <button type="button" onClick={() => { setRouteForm({ ...rule, name: `${rule.name}（复制）` }); setRouteDrawer({ mode: 'create' }); }}>复制</button>
+                        <button type="button" onClick={() => { setRouteRules(prev => prev.filter(r => r.name !== rule.name)); setActionMessage(`路由规则「${rule.name}」已删除`); setTimeout(() => setActionMessage(''), 3000); }}>删除</button>
+                        <button type="button" onClick={() => { setRouteRules(prev => prev.map(row => row.name === rule.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row)); setActionMessage(`路由规则「${rule.name}」已${rule.status === '启用' ? '停用' : '启用'}`); setTimeout(() => setActionMessage(''), 3000); }}>{rule.status === '启用' ? '停用' : '启用'}</button>
                       </div>
                     </td>
                   </tr>
@@ -1163,90 +1243,110 @@ function ApprovalRoutingManagementPanel() {
 
       {tab === 'approver-rules' ? (
         <>
-          <div className="permission-management__sub-tabs" role="tablist" aria-label="审批人规则类型">
-            <button type="button" role="tab" aria-selected={approverSubTab === 'resolution'} className={approverSubTab === 'resolution' ? 'active' : ''} onClick={() => setApproverSubTab('resolution')}>解析规则</button>
-            <button type="button" role="tab" aria-selected={approverSubTab === 'node-schemes'} className={approverSubTab === 'node-schemes' ? 'active' : ''} onClick={() => setApproverSubTab('node-schemes')}>节点审批方案</button>
+          <div className="permission-management__panel-actions">
+            <div>
+              <p className="permission-management__hint">审批人规则定义审批人解析逻辑和表单填充规则；节点审批方案为每个飞书流程的节点绑定审批人规则（多节点时）。</p>
+            </div>
+            <Button variant="primary" size="sm" onClick={() => { setApproverForm(emptyApproverForm); setApproverDrawer({ mode: 'create' }); }}>+ 新建审批规则</Button>
           </div>
-          {approverSubTab === 'resolution' ? (
-            <>
-              <div className="permission-management__panel-actions">
-                <p className="permission-management__hint">审批人解析只维护规则，员工 open_id 由员工接口提供；解析失败时按兜底策略处理。</p>
-                <Button variant="primary" size="sm" onClick={() => { setApproverForm(emptyApproverForm); setApproverDrawer({ mode: 'create' }); }}>+ 新建审批人规则</Button>
-              </div>
-              <TableShell>
-                <table>
-                  <thead><tr><th>规则名称</th><th>解析方式</th><th>解析来源</th><th>审批方式</th><th>open_id 来源</th><th>兜底策略</th><th>校验</th><th>状态</th><th>操作</th></tr></thead>
-                  <tbody>
-                    {approverRules.map(rule => (
-                      <tr key={rule.name}>
-                        <td><strong>{rule.name}</strong></td>
-                        <td>{rule.resolveType === rule.name ? '资产负责人字段' : rule.resolveType}</td>
-                        <td>{rule.source}</td>
-                        <td>{rule.approvalMode}</td>
-                        <td><Tag tone="blue">{rule.openIdSource}</Tag></td>
-                        <td>{rule.fallbackEnabled ? <><span>{rule.fallbackType}</span><span>{rule.fallbackTarget}</span></> : '不启用'}</td>
-                        <td><Tag tone={fieldStatusTone(rule.checkStatus)}>{rule.checkStatus}</Tag></td>
-                        <td><Tag tone={statusTone(rule.status)}>{rule.status}</Tag></td>
-                        <td>
-                          <div className="permission-management__row-actions">
-                            <button type="button" onClick={() => { setApproverForm(rule); setApproverDrawer({ mode: 'edit', name: rule.name }); }}>编辑</button>
-                            <button type="button" onClick={() => setApproverRules(prev => prev.map(row => row.name === rule.name ? { ...row, checkStatus: '已校验' } : row))}>校验</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableShell>
-            </>
-          ) : null}
-          {approverSubTab === 'node-schemes' ? (
-            <>
-              <div className="permission-management__panel-actions">
-                <p className="permission-management__hint">节点审批方案绑定一个飞书流程，并为该流程的每个 custom_node_id 配置审批人解析规则。</p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setNodeSchemeForm(emptyNodeSchemeForm);
-                    setNodeSchemeDrawer({ mode: 'create' });
-                  }}
-                >
-                  + 新建节点审批方案
-                </Button>
-              </div>
-              <TableShell>
-                <table>
-                  <thead><tr><th>方案名称</th><th>绑定飞书流程</th><th>节点绑定</th><th>方案兜底</th><th>状态</th><th>操作</th></tr></thead>
-                  <tbody>
-                    {nodeSchemes.map(scheme => (
-                      <tr key={scheme.name}>
-                        <td><strong>{scheme.name}</strong></td>
-                        <td><Tag tone="blue">{scheme.flow}</Tag></td>
-                        <td>
-                          <div className="permission-management__node-list">
-                            {scheme.nodes.map(node => (
-                              <span key={node.nodeId} title={feishuApprovalNodes[scheme.flow]?.find(item => item.nodeId === node.nodeId)?.name || node.nodeName}>
-                                {node.nodeId} → {node.approverRule}
+
+          {/* 审批规则表格 */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>审批人解析规则</div>
+            <TableShell>
+              <table>
+                <thead>
+                  <tr>
+                    <th>规则名称</th>
+                    <th>审批人解析</th>
+                    <th>解析来源</th>
+                    <th>审批方式</th>
+                    <th>兜底策略</th>
+                    <th>表单填充</th>
+                    <th>校验</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {approverRules.map(rule => (
+                    <tr key={rule.name}>
+                      <td><strong>{rule.name}</strong></td>
+                      <td>{rule.resolveType}</td>
+                      <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>{rule.source}</td>
+                      <td>{rule.approvalMode}</td>
+                      <td>{rule.fallbackEnabled ? <><Tag tone="warning">{rule.fallbackType}</Tag> {rule.fallbackTarget}</> : <span style={{ color: 'var(--text-tertiary)' }}>无</span>}</td>
+                      <td>
+                        {rule.formFillingRules.length > 0 ? (
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {rule.formFillingRules.map((fr, i) => (
+                              <span key={i} className="tag" data-tone={fr.mappingType === 'rule' ? 'warning' : 'blue'} title={fr.mappingType === 'rule' && fr.ruleMapping ? Object.entries(fr.ruleMapping).map(([k, v]) => `${k}→${v}`).join(', ') : fr.sourceField || ''}>
+                                {fr.label}
                               </span>
                             ))}
                           </div>
-                        </td>
-                        <td>{scheme.schemeFallbackRule}</td>
-                        <td><Tag tone={statusTone(scheme.status)}>{scheme.status}</Tag></td>
-                        <td>
-                          <div className="permission-management__row-actions">
-                            <button type="button" onClick={() => { setNodeSchemeForm(scheme); setNodeSchemeDrawer({ mode: 'edit', name: scheme.name }); }}>编辑</button>
-                            <button type="button" onClick={() => setNodeSchemes(prev => prev.map(row => row.name === scheme.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row))}>{scheme.status === '启用' ? '停用' : '启用'}</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableShell>
-            </>
-          ) : null}
+                        ) : (
+                          <span style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-xs)' }}>直接映射</span>
+                        )}
+                      </td>
+                      <td><Tag tone={fieldStatusTone(rule.checkStatus)}>{rule.checkStatus}</Tag></td>
+                      <td><Tag tone={statusTone(rule.status)}>{rule.status}</Tag></td>
+                      <td>
+                        <div className="permission-management__row-actions">
+                          <button type="button" onClick={() => { setApproverForm(rule); setApproverDrawer({ mode: 'edit', name: rule.name }); }}>编辑</button>
+                          <button type="button" onClick={async () => { setApproverRules(prev => prev.map(row => row.name === rule.name ? { ...row, checkStatus: '校验中' } : row)); await new Promise(r => setTimeout(r, 800)); setApproverRules(prev => prev.map(row => row.name === rule.name ? { ...row, checkStatus: '已校验' } : row)); setActionMessage(`审批规则「${rule.name}」校验通过`); setTimeout(() => setActionMessage(''), 3000); }}>校验</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableShell>
+          </div>
+
+          {/* 节点审批方案表格 */}
+          <div>
+            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>节点审批方案（多节点流程时使用）</div>
+            <TableShell>
+              <table>
+                <thead>
+                  <tr>
+                    <th>方案名称</th>
+                    <th>绑定飞书流程</th>
+                    <th>节点绑定</th>
+                    <th>方案兜底</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nodeSchemes.map(scheme => (
+                    <tr key={scheme.name}>
+                      <td><strong>{scheme.name}</strong></td>
+                      <td><Tag tone="blue">{scheme.flow}</Tag></td>
+                      <td>
+                        <div className="permission-management__node-list">
+                          {scheme.nodes.map(node => (
+                            <span key={node.nodeId} title={feishuApprovalNodes[scheme.flow]?.find(item => item.nodeId === node.nodeId)?.name || node.nodeName}>
+                              {node.nodeId} → {node.approverRule}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>{scheme.schemeFallbackRule}</td>
+                      <td><Tag tone={statusTone(scheme.status)}>{scheme.status}</Tag></td>
+                      <td>
+                        <div className="permission-management__row-actions">
+                          <button type="button" onClick={() => { setNodeSchemeForm(scheme); setNodeSchemeDrawer({ mode: 'edit', name: scheme.name }); }}>编辑</button>
+                          <button type="button" onClick={() => { setNodeSchemes(prev => prev.map(row => row.name === scheme.name ? { ...row, status: row.status === '启用' ? '停用' : '启用' } : row)); setActionMessage(`节点方案「${scheme.name}」已${scheme.status === '启用' ? '停用' : '启用'}`); setTimeout(() => setActionMessage(''), 3000); }}>{scheme.status === '启用' ? '停用' : '启用'}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableShell>
+          </div>
         </>
       ) : null}
 
@@ -1259,9 +1359,9 @@ function ApprovalRoutingManagementPanel() {
             <div className="permission-management__card"><strong>飞书流程异常</strong><span>1 个字段映射待校验</span></div>
           </div>
           <div className="permission-management__panel-actions">
-            <Button size="sm" onClick={() => setActionMessage('已触发批量补偿同步')}>批量补偿同步</Button>
-            <Button size="sm" onClick={() => setActionMessage('已重新校验飞书流程配置')}>重新校验飞书流程</Button>
-            <Button size="sm" onClick={() => setActionMessage('已打开最近 24 小时回调日志')}>查看回调日志</Button>
+            <Button size="sm" onClick={async () => { setActionMessage('正在触发批量补偿同步…'); await new Promise(r => setTimeout(r, 1200)); setActionMessage('批量补偿同步完成，共补偿 12 个审批中实例'); setTimeout(() => setActionMessage(''), 4000); }}>批量补偿同步</Button>
+            <Button size="sm" onClick={async () => { setActionMessage('正在校验飞书流程配置…'); await new Promise(r => setTimeout(r, 1000)); setActionMessage('重新校验完成：1 个字段映射待处理'); setTimeout(() => setActionMessage(''), 4000); }}>重新校验飞书流程</Button>
+            <Button size="sm" onClick={() => { setActionMessage('已打开最近 24 小时回调日志（模拟）'); setTimeout(() => setActionMessage(''), 3000); }}>查看回调日志</Button>
           </div>
           <TableShell>
             <table>
@@ -1284,32 +1384,7 @@ function ApprovalRoutingManagementPanel() {
         </>
       ) : null}
 
-      {workOrderModal ? (
-        <div className="permission-management__modal-overlay" onClick={closeWorkOrderModal}>
-          <div className="permission-management__modal" onClick={event => event.stopPropagation()}>
-            <div className="permission-management__modal-header">
-              <h3>{workOrderModal.mode === 'edit' ? '编辑工单类型' : '新建工单类型'}</h3>
-              <button type="button" className="permission-management__modal-close" onClick={closeWorkOrderModal}>×</button>
-            </div>
-            <div className="permission-management__modal-body">
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="work-order-name">工单类型名称</label><input id="work-order-name" className="permission-management__form-input" value={workOrderForm.name} onChange={e => setWorkOrderForm(prev => ({ ...prev, name: e.target.value }))} /></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="work-order-code">工单类型编码</label><input id="work-order-code" className="permission-management__form-input" value={workOrderForm.code} onChange={e => setWorkOrderForm(prev => ({ ...prev, code: e.target.value }))} /></div>
-              </div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="work-order-category">业务分类</label><select id="work-order-category" className="permission-management__form-select" value={workOrderForm.category} onChange={e => setWorkOrderForm(prev => ({ ...prev, category: e.target.value }))}><option>资源治理</option><option>权限</option><option>治理</option><option>负责人</option><option>血缘</option><option>自定义</option></select></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="work-order-route">默认兜底路由</label><select id="work-order-route" className="permission-management__form-select" value={workOrderForm.defaultRoute} onChange={e => setWorkOrderForm(prev => ({ ...prev, defaultRoute: e.target.value }))}><option value="">未配置</option>{routeRules.map(rule => <option key={rule.name} value={rule.name}>{rule.name}</option>)}</select></div>
-              </div>
-              <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="work-order-desc">适用场景说明</label><textarea id="work-order-desc" className="permission-management__form-textarea" value={workOrderForm.description} onChange={e => setWorkOrderForm(prev => ({ ...prev, description: e.target.value }))} /></div>
-              <label className="permission-management__checkbox-line"><input type="checkbox" checked={workOrderForm.allowWithdraw} onChange={e => setWorkOrderForm(prev => ({ ...prev, allowWithdraw: e.target.checked }))} />允许撤回</label>
-              <label className="permission-management__checkbox-line"><input type="checkbox" checked={workOrderForm.allowReapply} onChange={e => setWorkOrderForm(prev => ({ ...prev, allowReapply: e.target.checked }))} />允许重新申请</label>
-            </div>
-            <div className="permission-management__modal-footer"><Button onClick={closeWorkOrderModal}>取消</Button><Button variant="primary" disabled={!canSaveWorkOrder} onClick={saveWorkOrder}>保存</Button></div>
-          </div>
-        </div>
-      ) : null}
-
-      {flowModal ? (
+            {flowModal ? (
         <div className="permission-management__modal-overlay" onClick={closeFlowModal}>
           <div className="permission-management__modal" onClick={event => event.stopPropagation()}>
             <div className="permission-management__modal-header">
@@ -1339,32 +1414,66 @@ function ApprovalRoutingManagementPanel() {
             <div className="permission-management__drawer-body">
               <div className="permission-management__form-section-title">基础信息</div>
               <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-name">规则名称</label><input id="route-name" className="permission-management__form-input" value={routeForm.name} onChange={e => setRouteForm(prev => ({ ...prev, name: e.target.value }))} /></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-work-order">工单类型</label><select id="route-work-order" className="permission-management__form-select" value={routeForm.workOrderType} onChange={e => setRouteForm(prev => ({ ...prev, workOrderType: e.target.value }))}><option value="">请选择</option>{workOrders.map(item => <option key={item.code} value={item.name}>{item.name}</option>)}</select></div>
+                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-name">规则名称 <span style={{ color: 'var(--danger)' }}>*</span></label><input id="route-name" className="permission-management__form-input" value={routeForm.name} onChange={e => setRouteForm(prev => ({ ...prev, name: e.target.value }))} /></div>
+                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-work-order">工单类型 <span style={{ color: 'var(--danger)' }}>*</span></label><select id="route-work-order" className="permission-management__form-select" value={routeForm.workOrderType} onChange={e => { const selected = e.target.value; const wot = workOrderTypes.find(w => w.name === selected); setRouteForm(prev => ({ ...prev, workOrderType: selected, nodeScheme: wot ? '' : prev.nodeScheme })); }}><option value="">请选择</option>{workOrderTypes.map(item => <option key={item.code} value={item.name}>{item.name}</option>)}</select></div>
               </div>
               <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-priority">优先级</label><input id="route-priority" type="number" className="permission-management__form-input" value={routeForm.priority} onChange={e => setRouteForm(prev => ({ ...prev, priority: Number(e.target.value) }))} /></div>
-                <div className="permission-management__form-group"><label className="permission-management__checkbox-line"><input type="checkbox" checked={routeForm.isFallback} onChange={e => setRouteForm(prev => ({ ...prev, isFallback: e.target.checked }))} />是否兜底</label></div>
+                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-priority">优先级 <span style={{ color: 'var(--danger)' }}>*</span></label><input id="route-priority" type="number" className="permission-management__form-input" value={routeForm.priority} onChange={e => setRouteForm(prev => ({ ...prev, priority: Number(e.target.value) }))} /></div>
+                <div className="permission-management__form-group" style={{ display: 'flex', alignItems: 'center', paddingTop: 24 }}><label className="permission-management__checkbox-line"><input type="checkbox" checked={routeForm.isFallback} onChange={e => setRouteForm(prev => ({ ...prev, isFallback: e.target.checked }))} />是否兜底</label></div>
               </div>
-              <div className="permission-management__form-section-title">命中条件</div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-object-type">对象类型</label><select id="route-object-type" multiple className="permission-management__form-select" value={routeForm.objectTypes} onChange={e => { const values = selectedOptions(e.currentTarget); setRouteForm(prev => ({ ...prev, objectTypes: values })); }}><option>表</option><option>视图</option><option>报表</option><option>API</option><option>指标</option></select></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-security">安全等级</label><select id="route-security" multiple className="permission-management__form-select" value={routeForm.securityLevels} onChange={e => { const values = selectedOptions(e.currentTarget); setRouteForm(prev => ({ ...prev, securityLevels: values })); }}><option>S1</option><option>S2</option><option>S3</option><option>S4</option><option>S5</option></select></div>
-              </div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-domain">业务域</label><input id="route-domain" className="permission-management__form-input" value={routeForm.businessDomain} onChange={e => setRouteForm(prev => ({ ...prev, businessDomain: e.target.value }))} /></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-catalog">目录</label><input id="route-catalog" className="permission-management__form-input" value={routeForm.catalog} onChange={e => setRouteForm(prev => ({ ...prev, catalog: e.target.value }))} /></div>
-              </div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-source">来源系统</label><input id="route-source" className="permission-management__form-input" value={routeForm.sourceSystem} onChange={e => setRouteForm(prev => ({ ...prev, sourceSystem: e.target.value }))} /></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-owner-dept">负责人部门</label><input id="route-owner-dept" className="permission-management__form-input" value={routeForm.ownerDepartment} onChange={e => setRouteForm(prev => ({ ...prev, ownerDepartment: e.target.value }))} /></div>
-              </div>
-              <div className="permission-management__form-section-title">路由结果</div>
-              <div className="permission-management__form-row-2col">
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-flow">飞书流程</label><select id="route-flow" className="permission-management__form-select" value={routeForm.flow} onChange={e => setRouteForm(prev => ({ ...prev, flow: e.target.value, nodeScheme: '' }))}><option value="">请选择</option>{flows.map(flow => <option key={flow.approvalCode} value={flow.approvalCode}>{flow.approvalCode}</option>)}</select></div>
-                <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-node-scheme">节点审批方案</label><select id="route-node-scheme" className="permission-management__form-select" value={routeForm.nodeScheme} disabled={!routeForm.flow} onChange={e => setRouteForm(prev => ({ ...prev, nodeScheme: e.target.value }))}><option value="">请选择</option>{availableNodeSchemes.map(scheme => <option key={scheme.name} value={scheme.name}>{scheme.name}</option>)}</select></div>
-              </div>
-              <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-split">拆分方式</label><select id="route-split" className="permission-management__form-select" value={routeForm.split} onChange={e => setRouteForm(prev => ({ ...prev, split: e.target.value }))}><option value="">请选择</option><option>不拆分</option><option>按审批人分组</option><option>按接收人分组</option><option>按治理负责人分组</option></select></div>
+
+              {currentWorkOrderType ? (
+                <>
+                  <div className="permission-management__form-section-title">路由结果</div>
+                  <div className="permission-management__form-row-2col">
+                    <div className="permission-management__form-group">
+                      <label className="permission-management__form-label">飞书流程</label>
+                      <div className="permission-management__flow-auto-tag">
+                        <Tag tone="blue">{flowNameOf(currentWorkOrderType.bindingFlowCode)}</Tag>
+                        <span className="permission-management__flow-auto-hint">自动带出，不可编辑</span>
+                      </div>
+                    </div>
+                    <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-node-scheme">节点审批方案 <span style={{ color: 'var(--danger)' }}>*</span></label><select id="route-node-scheme" className="permission-management__form-select" value={routeForm.nodeScheme} disabled={availableNodeSchemes.length === 0} onChange={e => setRouteForm(prev => ({ ...prev, nodeScheme: e.target.value }))}><option value="">请选择</option>{availableNodeSchemes.map(scheme => <option key={scheme.name} value={scheme.name}>{scheme.name}</option>)}</select></div>
+                  </div>
+                  <div className="permission-management__form-group"><label className="permission-management__form-label" htmlFor="route-split">拆分方式 <span style={{ color: 'var(--danger)' }}>*</span></label><select id="route-split" className="permission-management__form-select" value={routeForm.split} onChange={e => setRouteForm(prev => ({ ...prev, split: e.target.value }))}><option value="">请选择</option><option>不拆分</option><option>按审批人分组</option><option>按接收人分组</option><option>按治理负责人分组</option></select></div>
+
+                  {currentWorkOrderType.applicableConditions.length > 0 ? (
+                    <>
+                      <div className="permission-management__form-section-title">命中条件</div>
+                      {currentWorkOrderType.applicableConditions.includes('objectTypes') && (
+                        <ConditionFieldCheckbox
+                          label="对象类型"
+                          options={[
+                            { value: '表', label: '表' },
+                            { value: '视图', label: '视图' },
+                            { value: 'API', label: 'API' },
+                            { value: '指标', label: '指标' },
+                            { value: '报表', label: '报表' },
+                          ]}
+                          value={routeForm.objectTypes}
+                          onChange={vals => setRouteForm(prev => ({ ...prev, objectTypes: vals }))}
+                        />
+                      )}
+                      {currentWorkOrderType.applicableConditions.includes('securityLevels') && (
+                        <ConditionFieldCheckbox
+                          label="安全等级"
+                          options={[
+                            { value: 'S1', label: 'S1' },
+                            { value: 'S2', label: 'S2' },
+                            { value: 'S3', label: 'S3' },
+                            { value: 'S4', label: 'S4' },
+                            { value: 'S5', label: 'S5' },
+                          ]}
+                          value={routeForm.securityLevels}
+                          onChange={vals => setRouteForm(prev => ({ ...prev, securityLevels: vals }))}
+                        />
+                      )}
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                <p className="permission-management__hint" style={{ marginTop: 16 }}>请先选择工单类型，路由结果将自动带出。</p>
+              )}
             </div>
             <div className="permission-management__drawer-footer"><Button onClick={closeRouteDrawer}>取消</Button><Button variant="primary" disabled={!canSaveRoute} onClick={saveRoute}>保存</Button></div>
           </aside>
@@ -2017,7 +2126,16 @@ function TableShell({ children }: { children: React.ReactNode }) {
 }
 
 export function PermissionManagementPage() {
-  const [activeSection, setActiveSection] = useState<PermissionSection>('tickets');
+  const [activeSection, setActiveSection] = useState<PermissionSection>(() => getPermissionSectionFromHash());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const nextSection = getPermissionSectionFromHash();
+      if (nextSection !== activeSection) setActiveSection(nextSection);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [activeSection]);
 
   return (
     <section className="permission-management">
@@ -2039,7 +2157,7 @@ export function PermissionManagementPage() {
         <header className="permission-management__header">
           <div>
             <h1>审批中心</h1>
-            <p>全量工单的查询与审批处理入口，支持工单查询与待我审批。</p>
+            <p>按工单视角查看我提交的申请，并处理待我审批。</p>
           </div>
         </header>
         {activeSection === 'tickets' ? <TicketQueryPanel /> : null}

@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Tag } from '../../components/base/Tag';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
+import { sourceSystemLabels } from '../../types/resources';
 import './resource-discovery.css';
 
 type DiscoveryKind = 'asset' | 'resource';
@@ -27,9 +28,13 @@ const rawResources: DiscoveryRecord[] = [
     displayName: '行业资讯原始表',
     description: '采集的行业资讯原始明细数据，待补充元数据后可提交上架。',
     sourceSystem: 'MaxCompute',
+    sourceType: 'warehouse_engine',
+    sourceInstance: 'mc_raw_news',
+    sourcePath: 'ods.news.wlyd_industry_news_info_di',
     owner: '李四',
     permissionStatus: 'none',
     tags: ['行业资讯', 'ODS', '新闻'],
+    databaseName: 'wlyd_mc_beijing',
     updatedAt: '2026-05-13',
     usageCount: 318,
     qualityScore: 72,
@@ -44,9 +49,13 @@ const rawResources: DiscoveryRecord[] = [
     displayName: '点击流原始流',
     description: '实时用户点击原始流，支持埋点排查与实时行为分析。',
     sourceSystem: 'Kafka',
+    sourceType: 'message_stream',
+    sourceInstance: 'kafka_user_prod',
+    sourcePath: 'topic/kafka_user_click_raw',
     owner: '张三',
     permissionStatus: 'pending',
     tags: ['用户行为', '点击流', '实时'],
+    databaseName: 'wlyd_mc_shanghai',
     updatedAt: '2026-05-15',
     usageCount: 527,
     qualityScore: 76,
@@ -61,6 +70,9 @@ const rawResources: DiscoveryRecord[] = [
     displayName: '经营周报',
     description: '经营周报看板，聚合展示核心业务指标变化趋势，当前暂不上架。',
     sourceSystem: '万联灵析',
+    sourceType: 'report_system',
+    sourceInstance: 'bi_ops_workspace',
+    sourcePath: '经营分析/周报/rpt_weekly_summary',
     owner: '赵六',
     permissionStatus: 'none',
     tags: ['周报', '经营分析'],
@@ -78,6 +90,9 @@ const rawResources: DiscoveryRecord[] = [
     displayName: '库存校验接口',
     description: '面向供应链协同场景提供库存查询能力，等待补齐 SLA 与调用说明。',
     sourceSystem: '内部微服务',
+    sourceType: 'api_service',
+    sourceInstance: 'inventory-service-prod',
+    sourcePath: '/inventory/check',
     owner: '王五',
     permissionStatus: 'granted',
     tags: ['库存', '接口', '供应链'],
@@ -126,29 +141,130 @@ const typeLabels: Record<ResourceType, string> = {
   view: '视图',
 };
 
-const typeIcons: Record<ResourceType, string> = {
-  table: '🗃️',
-  metric: '📈',
-  report: '📊',
-  dashboard: '📊',
-  api: '🔌',
-  label: '🏷️',
-  view: '👁️',
+const typeTagTone: Record<ResourceType, 'blue' | 'success' | 'warning' | 'gray' | 'purple'> = {
+  table: 'blue',
+  metric: 'purple',
+  report: 'success',
+  dashboard: 'success',
+  api: 'warning',
+  label: 'gray',
+  view: 'blue',
 };
 
-const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>, { label: string; tone: 'blue' | 'success' | 'warning' | 'gray' }> = {
-  granted: { label: '已授权', tone: 'success' },
-  none: { label: '可申请', tone: 'blue' },
-  pending: { label: '审批中', tone: 'warning' },
-  unknown: { label: '需确认', tone: 'gray' },
+const discoveryStatusTagTone: Record<DiscoveryStatus, 'success' | 'warning' | 'gray'> = {
+  published: 'success',
+  maintain: 'warning',
+  'no-list': 'gray',
 };
+
+const discoveryStatusLabels: Record<DiscoveryStatus, string> = {
+  published: '已上架',
+  maintain: '待维护',
+  'no-list': '不上架',
+};
+
+/* ─── SVG Icons ─────────────────────────────── */
+
+function TableIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="1.5" y1="5.5" x2="14.5" y2="5.5" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="6" y1="5.5" x2="6" y2="14.5" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function ReportIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="1.5" width="12" height="13" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="5" y1="11" x2="8" y2="11" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function MetricIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8 4.5V8L10.5 10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ApiIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 8h3l2-5 2 10 2-5h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LabelIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 3h5l5.5 5.5L8.5 13 3 7.5V3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="5.5" cy="5.5" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="5.5" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="9" y="1.5" width="5.5" height="3.5" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="9" y="7" width="5.5" height="7.5" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="1.5" y="9.5" width="5.5" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+function ViewIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="1.5" y1="5.5" x2="14.5" y2="5.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="4.5" cy="3.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+const typeIcons: Record<ResourceType, () => ReactNode> = {
+  table: TableIcon,
+  report: ReportIcon,
+  metric: MetricIcon,
+  api: ApiIcon,
+  label: LabelIcon,
+  dashboard: DashboardIcon,
+  view: ViewIcon,
+};
+
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="8.5" y1="8.5" x2="12.5" y2="12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
+/* ─── Helpers ──────────────────────────────── */
 
 const treeNodes = ['交易域', '用户域', '供应链'];
 const initialFavoriteIds = new Set(discoveryRecords.filter((record) => record.favorite).map((record) => record.id));
-
-function getTitle(record: DiscoveryRecord) {
-  return record.displayName ?? record.name;
-}
 
 function matchesKeyword(record: DiscoveryRecord, keyword: string) {
   const normalized = keyword.trim().toLowerCase();
@@ -196,9 +312,7 @@ function getTreeFilterLabel(treeFilter: TreeFilter) {
   return treeFilter;
 }
 
-function formatUsage(value = 0) {
-  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
-}
+/* ─── Discovery Card (4-Row Layout) ─────────── */
 
 function DiscoveryCard({
   record,
@@ -209,100 +323,116 @@ function DiscoveryCard({
   isFavorite: boolean;
   onToggleFavorite: (resourceId: string) => void;
 }) {
-  const permission = permissionLabels[record.permissionStatus ?? 'unknown'];
-  const title = getTitle(record);
-  const queryCount = Math.floor((record.usageCount ?? 0) * 0.35);
+  const permissionStatus = record.permissionStatus ?? 'unknown';
+  const IconComponent = typeIcons[record.type] ?? TableIcon;
+  const dbPrefix = (record.type === 'table' || record.type === 'view') ? record.databaseName : undefined;
+
+  const navigateToDetail = () => {
+    window.location.hash = `#detail?domain=asset&id=${encodeURIComponent(record.id)}`;
+  };
+
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigateToDetail();
+  };
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard?.writeText(record.name);
+  };
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleFavorite(record.id);
+  };
+
+  const handleApplyPermission = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Navigate to cart with this asset pre-selected
+    window.location.hash = `my?section=cart&apply=${encodeURIComponent(record.id)}`;
+  };
+
+  const permissionTone = permissionStatus === 'granted' ? 'granted'
+    : permissionStatus === 'pending' ? 'pending'
+    : permissionStatus === 'none' ? 'apply'
+    : 'disabled';
+  const permissionText = permissionStatus === 'granted' ? '已有权限'
+    : permissionStatus === 'pending' ? '申请中'
+    : '申请权限';
 
   return (
-    <article className="resource-discovery__asset-card">
-      <div className="resource-discovery__asset-row resource-discovery__asset-row--top">
-        <div className="resource-discovery__asset-title">
-          <span className="resource-discovery__asset-icon" aria-hidden="true">
-            {typeIcons[record.type]}
-          </span>
-          <div>
-            <div className="resource-discovery__asset-name-line">
-              <h2>{title}</h2>
-              <button type="button" className="resource-discovery__copy-button" aria-label={`复制 ${record.name}`}>
-                📋
-              </button>
-            </div>
-            <div className="resource-discovery__technical-name">{record.name}</div>
-          </div>
-        </div>
-
-        <div className="resource-discovery__asset-tags">
-          <Tag tone={record.type === 'metric' ? 'purple' : 'blue'}>{typeLabels[record.type]}</Tag>
+    <article className="resource-discovery__asset-card" onClick={navigateToDetail}>
+      {/* Row 1: icon + name + copy + tags */}
+      <div className="resource-discovery__card-row1">
+        <span className="resource-discovery__asset-icon"><IconComponent /></span>
+        <a className="resource-discovery__asset-name" href={`#detail?domain=asset&id=${encodeURIComponent(record.id)}`} onClick={handleNameClick}>
+          {dbPrefix && <span className="resource-discovery__name-prefix">{dbPrefix}.</span>}
+          {record.name}
+        </a>
+        <button type="button" className="resource-discovery__copy-btn" onClick={handleCopy} title="复制表名" aria-label={`复制 ${record.name}`}>
+          📋
+        </button>
+        <span className="resource-discovery__card-tags">
+          <Tag tone={typeTagTone[record.type]}>{typeLabels[record.type]}</Tag>
           <Tag tone={record.discoveryKind === 'asset' ? 'blue' : 'cyan'}>{record.discoveryKind === 'asset' ? '资产' : '资源'}</Tag>
-          <Tag tone={record.discoveryStatus === 'published' ? 'success' : record.discoveryStatus === 'maintain' ? 'warning' : 'gray'}>
-            {record.discoveryStatus === 'published' ? '已上架' : record.discoveryStatus === 'maintain' ? '待维护' : '不上架'}
-          </Tag>
-          {(record.tags ?? []).slice(0, 2).map((tag) => (
+          <Tag tone={discoveryStatusTagTone[record.discoveryStatus]}>{discoveryStatusLabels[record.discoveryStatus]}</Tag>
+          {(record.tags ?? []).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
-        </div>
-
-        <div className="resource-discovery__asset-actions">
-          <button
-            type="button"
-            className={`resource-discovery__favorite-button ${isFavorite ? 'is-favorite' : ''}`}
-            aria-pressed={isFavorite}
-            aria-label={`${isFavorite ? '取消收藏' : '收藏'} ${title}`}
-            onClick={() => onToggleFavorite(record.id)}
-          >
-            <span aria-hidden="true">{isFavorite ? '★' : '☆'}</span>
-            {isFavorite ? '取消收藏' : '收藏'}
-          </button>
-          <button type="button" className="resource-discovery__asset-action">
-            查看详情
-          </button>
-          <button type="button" className="resource-discovery__asset-action resource-discovery__asset-action--primary">
-            {record.permissionStatus === 'granted' ? '直接使用' : '加入申请单'}
-          </button>
-        </div>
+        </span>
       </div>
 
-      <div className="resource-discovery__asset-row resource-discovery__asset-row--meta">
-        <span>
-          <strong>来源</strong>
-          {record.sourceSystem ?? '-'}
-        </span>
-        <span>
-          <strong>目录</strong>
-          {record.catalogPath ?? '未归属'}
-        </span>
-        <div>
-          <span>🔍 {queryCount.toLocaleString('zh-CN')}</span>
-          <span>👁 {formatUsage(record.usageCount)}</span>
+      {/* Permission status - absolute top-right */}
+      <button
+        type="button"
+        className={`resource-discovery__permission resource-discovery__permission--${permissionTone} ${permissionStatus === 'none' ? 'is-clickable' : ''}`}
+        onClick={permissionStatus === 'none' ? handleApplyPermission : undefined}
+        title={permissionStatus === 'none' ? '点击申请权限' : permissionText}
+        aria-label={permissionStatus === 'none' ? `申请 ${record.name} 的权限` : permissionText}
+      >
+        {permissionStatus === 'granted' ? '★ ' : ''}{permissionText}
+      </button>
+
+      {/* Favorite button - absolute top-right corner */}
+      <button
+        type="button"
+        className={`resource-discovery__fav ${isFavorite ? 'is-fav' : ''}`}
+        onClick={handleFavorite}
+        aria-label={isFavorite ? '取消收藏' : '收藏'}
+        aria-pressed={isFavorite}
+      >
+        {isFavorite ? '★' : '☆'}
+      </button>
+
+      {/* Row 2: source + catalog + stats */}
+      <div className="resource-discovery__card-row2">
+        <span className="resource-discovery__meta-item"><span className="resource-discovery__label">来源</span>{record.sourceSystem ? sourceSystemLabels[record.sourceSystem] : '-'}</span>
+        <span className="resource-discovery__meta-item"><span className="resource-discovery__label">目录</span>{record.catalogPath ?? '-'}</span>
+        <div className="resource-discovery__stats">
+          <span className="resource-discovery__stat"><SearchIcon />{(record.usageCount ?? 0).toLocaleString('zh-CN')}</span>
+          <span className="resource-discovery__stat"><EyeIcon />{(record.viewCount ?? 0).toLocaleString('zh-CN')}</span>
         </div>
       </div>
 
-      <div className="resource-discovery__asset-row resource-discovery__asset-row--description">
-        <strong>描述</strong>
-        <span>{record.description}</span>
-      </div>
+      {/* Row 3: description */}
+      {record.description && (
+        <div className="resource-discovery__card-row3"><span className="resource-discovery__label">描述</span>{record.description}</div>
+      )}
 
-      <div className="resource-discovery__asset-row resource-discovery__asset-row--owners">
-        <span>
-          <strong>技术负责人</strong>
-          {record.owner ?? '-'}
-        </span>
-        <span>
-          <strong>业务负责人</strong>
-          {record.owner ?? '-'}
-        </span>
-        <span>
-          <strong>权限</strong>
-          <Tag tone={permission.tone}>{permission.label}</Tag>
-        </span>
-        <span className="resource-discovery__asset-times">
-          <span>创建时间 {record.updatedAt ?? '-'}</span>
-          <span>更新时间 {record.updatedAt ?? '-'}</span>
+      {/* Row 4: owners + times */}
+      <div className="resource-discovery__card-row4">
+        <span className="resource-discovery__owner"><span className="resource-discovery__label">技术负责人</span> <strong>{record.owner ?? '-'}</strong></span>
+        <span className="resource-discovery__owner"><span className="resource-discovery__label">业务负责人</span> <strong>{record.businessOwner ?? record.owner ?? '-'}</strong></span>
+        <span className="resource-discovery__card-row4-right">
+          <span className="resource-discovery__time">创建时间 {record.createdAt ?? '-'}</span>
+          <span className="resource-discovery__time">更新时间 {record.updatedAt ?? '-'}</span>
         </span>
       </div>
     </article>
   );
 }
+
+/* ─── Main Component ───────────────────────── */
 
 export function ResourceDiscoveryPage() {
   const [treeFilter, setTreeFilter] = useState<TreeFilter>('all');

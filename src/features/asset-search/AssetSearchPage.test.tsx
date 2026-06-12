@@ -1,42 +1,93 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AssetSearchPage } from './AssetSearchPage';
 
+const mockHashSetter = vi.fn();
+const originalLocation = window.location;
+
+beforeAll(() => {
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...originalLocation,
+      set hash(val: string) { mockHashSetter(val); },
+      get hash() { return ''; },
+    },
+    writable: true,
+    configurable: true,
+  });
+});
+
 describe('AssetSearchPage', () => {
-  it('renders the discovery state before searching', () => {
+  beforeEach(() => {
+    mockHashSetter.mockClear();
+  });
+
+  it('renders the discovery state with search box and hot keywords', () => {
     render(<AssetSearchPage />);
 
     expect(screen.getByRole('heading', { name: '数据资产检索' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索资产名称、描述、负责人、标签…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '搜索' })).toBeInTheDocument();
+    expect(screen.getByText('热门搜索:')).toBeInTheDocument();
     expect(screen.getByText('最近浏览')).toBeInTheDocument();
     expect(screen.getByText('我的收藏')).toBeInTheDocument();
     expect(screen.getByText('热门浏览')).toBeInTheDocument();
     expect(screen.getByText('热门专题')).toBeInTheDocument();
     expect(screen.getByText('平台概览')).toBeInTheDocument();
     expect(screen.getByText('AI 助手')).toBeInTheDocument();
-    expect(screen.getByText('热门搜索:')).toBeInTheDocument();
-    expect(screen.getAllByText('订单明细表').length).toBeGreaterThan(0);
   });
 
-  it('shows matched asset results after searching', async () => {
+  it('shows suggestion panel when typing a keyword', async () => {
     const user = userEvent.setup();
     render(<AssetSearchPage />);
 
-    await user.type(screen.getByPlaceholderText('请输入搜索内容'), 'GMV');
-    await user.click(screen.getByRole('button', { name: '搜索' }));
+    await user.type(screen.getByPlaceholderText('搜索资产名称、描述、负责人、标签…'), '订单');
 
-    expect(screen.getByText('找到 2 个相关资产')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'GMV 日报' })).toBeInTheDocument();
-    expect(screen.getByText('GMV 核心指标')).toBeInTheDocument();
+    expect(screen.getByText(/已命中 \d+ 条候选/)).toBeInTheDocument();
+    expect(screen.getByText('↑ ↓ 切换选中')).toBeInTheDocument();
+    expect(screen.getByText('Esc 收起下拉')).toBeInTheDocument();
   });
 
-  it('shows an empty state when no assets match', async () => {
+  it('navigates to catalog page when clicking search button', async () => {
     const user = userEvent.setup();
     render(<AssetSearchPage />);
 
-    await user.type(screen.getByPlaceholderText('请输入搜索内容'), '不存在的资产');
+    await user.type(screen.getByPlaceholderText('搜索资产名称、描述、负责人、标签…'), 'GMV');
     await user.click(screen.getByRole('button', { name: '搜索' }));
 
-    expect(screen.getByText('未找到匹配的数据资产')).toBeInTheDocument();
-    expect(screen.getByText('可以换一个关键词，或提交资源治理需求。')).toBeInTheDocument();
+    expect(mockHashSetter).toHaveBeenCalledWith('#catalog?q=GMV');
+  });
+
+  it('navigates to catalog page when clicking hot keyword', async () => {
+    const user = userEvent.setup();
+    render(<AssetSearchPage />);
+
+    const hints = screen.getByLabelText('热门搜索');
+    const hotButton = within(hints).getByText('订单明细表');
+    await user.click(hotButton);
+
+    expect(mockHashSetter).toHaveBeenCalledWith('#catalog?q=%E8%AE%A2%E5%8D%95%E6%98%8E%E7%BB%86%E8%A1%A8');
+  });
+
+  it('hides suggestion panel on Escape key', async () => {
+    const user = userEvent.setup();
+    render(<AssetSearchPage />);
+
+    const input = screen.getByPlaceholderText('搜索资产名称、描述、负责人、标签…');
+    await user.type(input, '订单');
+
+    expect(screen.getByText(/已命中 \d+ 条候选/)).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByText(/已命中 \d+ 条候选/)).not.toBeInTheDocument();
+  });
+
+  it('always shows discovery panel (no in-page search results)', () => {
+    render(<AssetSearchPage />);
+
+    expect(screen.getByText('最近浏览')).toBeInTheDocument();
+    expect(screen.queryByText(/找到 \d+ 个相关资产/)).not.toBeInTheDocument();
+    expect(screen.queryByText('返回发现')).not.toBeInTheDocument();
   });
 });

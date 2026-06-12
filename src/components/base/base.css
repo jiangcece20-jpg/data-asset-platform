@@ -139,3 +139,51 @@
     transform: rotate(360deg);
   }
 }
+
+/* ─── Resizable ───────────────────────────────────── */
+
+.ui-resizable {
+  display: flex;
+  overflow: hidden;
+}
+
+.ui-resizable--horizontal {
+  flex-direction: row;
+}
+
+.ui-resizable--vertical {
+  flex-direction: column;
+}
+
+.ui-resizable__pane--primary {
+  overflow: auto;
+  flex-shrink: 0;
+}
+
+.ui-resizable__pane--secondary {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ui-resizable__handle {
+  flex-shrink: 0;
+  background: var(--border-color-light);
+  transition: background var(--transition-fast);
+}
+
+.ui-resizable__handle:hover,
+.ui-resizable__handle:active {
+  background: var(--primary);
+}
+
+.ui-resizable__handle--horizontal {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.ui-resizable__handle--vertical {
+  height: 4px;
+  cursor: row-resize;
+}

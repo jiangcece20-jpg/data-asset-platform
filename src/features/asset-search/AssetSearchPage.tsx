@@ -1,13 +1,17 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
-import { EmptyState } from '../../components/feedback/EmptyState';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
+import { sourceSystemLabels } from '../../types/resources';
 import './asset-search.css';
 
-type TypeFilter = 'all' | ResourceType;
+/* ── Constants ──────────────────────────────────────────── */
+
 type DiscoveryTab = 'recent' | 'favorite' | 'trending' | 'hot';
+
+const MAX_SUGGESTIONS = 8;
+const MAX_HIT_EXPLANATIONS = 3;
 
 const hotKeywords = ['用户行为日志', '订单明细表', 'GMV指标', '用户画像', '商品库存'];
 const discoveryTabs: Array<{ key: DiscoveryTab; label: string }> = [
@@ -16,41 +20,15 @@ const discoveryTabs: Array<{ key: DiscoveryTab; label: string }> = [
   { key: 'trending', label: '热门浏览' },
   { key: 'hot', label: '热门专题' },
 ];
-const typeFilters: Array<{ key: TypeFilter; label: string }> = [
-  { key: 'all', label: '全部' },
-  { key: 'table', label: '表' },
-  { key: 'view', label: '视图' },
-  { key: 'api', label: 'API' },
-  { key: 'report', label: '报表' },
-  { key: 'metric', label: '指标' },
-  { key: 'label', label: '标签' },
-];
 
 const typeLabels: Record<ResourceType, string> = {
-  table: '表',
-  metric: '指标',
-  report: '报表',
-  dashboard: '看板',
-  api: 'API',
-  label: '标签',
-  view: '视图',
+  table: '表', metric: '指标', report: '报表',
+  dashboard: '看板', api: 'API', label: '标签', view: '视图',
 };
 
 const typeIcons: Record<ResourceType, string> = {
-  table: '🗃️',
-  metric: '📈',
-  report: '📊',
-  dashboard: '📊',
-  api: '🔌',
-  label: '🏷️',
-  view: '👁️',
-};
-
-const permissionLabels: Record<NonNullable<ResourceSummary['permissionStatus']>, { label: string; tone: 'blue' | 'success' | 'warning' | 'gray' }> = {
-  granted: { label: '已授权', tone: 'success' },
-  none: { label: '可申请', tone: 'blue' },
-  pending: { label: '审批中', tone: 'warning' },
-  unknown: { label: '需确认', tone: 'gray' },
+  table: '🗃️', metric: '📈', report: '📊',
+  dashboard: '📊', api: '🔌', label: '🏷️', view: '👁️',
 };
 
 const topicCards = [
@@ -62,26 +40,235 @@ const topicCards = [
   { icon: '🔌', title: 'API 接口', description: '对外服务接口、内部微服务', count: '11 个资产' },
 ];
 
-function getResourceTitle(resource: ResourceSummary) {
-  return resource.displayName ?? resource.name;
+/* ── Weighted search (§7.1) ────────────────────────────── */
+
+type FieldWeight = { field: string; value: string | undefined; weight: number; label: string };
+
+function getFieldWeights(r: ResourceSummary): FieldWeight[] {
+  return [
+    { field: 'name', value: r.name, weight: 10, label: '技术名' },
+    { field: 'displayName', value: r.displayName, weight: 8, label: '中文名' },
+    { field: 'tags', value: r.tags?.join(' '), weight: 5, label: '标签' },
+    { field: 'owner', value: r.owner, weight: 5, label: '负责人' },
+    { field: 'businessOwner', value: r.businessOwner, weight: 5, label: '业务负责人' },
+    { field: 'sourceSystem', value: r.sourceSystem ? sourceSystemLabels[r.sourceSystem] : undefined, weight: 3, label: '来源' },
+    { field: 'description', value: r.description, weight: 2, label: '描述' },
+    { field: 'domain', value: r.domain, weight: 2, label: '域' },
+    { field: 'catalogPath', value: r.catalogPath, weight: 1, label: '目录' },
+  ];
 }
 
-function matchesResource(resource: ResourceSummary, query: string) {
-  const normalized = query.trim().toLowerCase();
+function tokenize(query: string): string[] {
+  return query.trim().split(/[\s,，]+/).filter(Boolean);
+}
 
-  if (!normalized) {
-    return true;
+type HitExplanation = { label: string; snippet: string };
+
+function computeRelevance(r: ResourceSummary, tokens: string[]): {
+  score: number;
+  explanations: HitExplanation[];
+} {
+  if (tokens.length === 0) return { score: 0, explanations: [] };
+
+  const fields = getFieldWeights(r);
+  let totalScore = 0;
+  const explanations: HitExplanation[] = [];
+  const nameOrDisplayHit = new Set<string>();
+
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    for (const fw of fields) {
+      if (!fw.value) continue;
+      const lowerVal = fw.value.toLowerCase();
+      if (lowerVal.includes(lower)) {
+        const boosted = fw.field === 'name' || fw.field === 'displayName'
+          ? fw.weight * 1.5
+          : fw.weight;
+        totalScore += boosted;
+        if (fw.field === 'name' || fw.field === 'displayName') {
+          nameOrDisplayHit.add(token);
+        }
+        if (fw.field !== 'name' && fw.field !== 'displayName') {
+          const idx = lowerVal.indexOf(lower);
+          const start = Math.max(0, idx - 6);
+          const end = Math.min(lowerVal.length, idx + token.length + 6);
+          const snippet = (start > 0 ? '…' : '') + fw.value.slice(start, end) + (end < lowerVal.length ? '…' : '');
+          if (explanations.length < MAX_HIT_EXPLANATIONS) {
+            explanations.push({ label: fw.label, snippet });
+          }
+        }
+      }
+    }
   }
 
-  return [
-    resource.name,
-    resource.displayName,
-    resource.description,
-    resource.sourceSystem,
-    resource.domain,
-    resource.catalogPath,
-    ...(resource.tags ?? []),
-  ].some((field) => field?.toLowerCase().includes(normalized));
+  const allHitNameOrDisplay = tokens.every((t) => nameOrDisplayHit.has(t));
+  if (allHitNameOrDisplay) {
+    return { score: totalScore, explanations: [] };
+  }
+
+  return { score: totalScore, explanations: explanations.slice(0, MAX_HIT_EXPLANATIONS) };
+}
+
+/* ── Highlight helper ───────────────────────────────────── */
+
+function HighlightText({ text, tokens }: { text: string; tokens: string[] }) {
+  if (!tokens.length) return <>{text}</>;
+
+  const lower = text.toLowerCase();
+  const marks: Array<{ start: number; end: number }> = [];
+  for (const token of tokens) {
+    const tl = token.toLowerCase();
+    let pos = 0;
+    while (pos < lower.length) {
+      const idx = lower.indexOf(tl, pos);
+      if (idx < 0) break;
+      marks.push({ start: idx, end: idx + tl.length });
+      pos = idx + 1;
+    }
+  }
+  marks.sort((a, b) => a.start - b.start);
+
+  const merged: Array<{ start: number; end: number }> = [];
+  for (const m of marks) {
+    if (merged.length && merged[merged.length - 1].end >= m.start) {
+      merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, m.end);
+    } else {
+      merged.push({ ...m });
+    }
+  }
+
+  const parts: ReactNode[] = [];
+  let last = 0;
+  for (const m of merged) {
+    if (m.start > last) parts.push(text.slice(last, m.start));
+    parts.push(<mark key={m.start} className="asset-search__hl">{text.slice(m.start, m.end)}</mark>);
+    last = m.end;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
+/* ── SVG icons for suggestion panel ─────────────────────── */
+
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function OwnerIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="5" r="3.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M1.5 15c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* ── Sub-components ─────────────────────────────────────── */
+
+function DiscoveryRow({ resource, stat, onNavigate }: { resource: ResourceSummary; stat: string; onNavigate: (keyword: string) => void }) {
+  const parts = splitQualifiedName(resource.name);
+
+  return (
+    <button type="button" className="asset-search__discovery-row" onClick={() => onNavigate(getResourceTitle(resource))}>
+      <span className="asset-search__dc-icon">{typeIcons[resource.type]}</span>
+      <span className="asset-search__dc-body">
+        <span className="asset-search__dc-name">
+          {parts.database ? <span className="asset-search__dc-name-db">{parts.database}.</span> : null}
+          <span className="asset-search__dc-name-main">{parts.objectName}</span>
+        </span>
+        <span className="asset-search__dc-sub">
+          <span>{getResourceTitle(resource)}</span>
+          <span className="asset-search__origin-chip">{resource.sourceSystem ? sourceSystemLabels[resource.sourceSystem] : '-'}</span>
+        </span>
+      </span>
+      <span className="asset-search__dc-right">
+        <Tag tone={resource.type === 'metric' ? 'purple' : 'gray'}>{typeLabels[resource.type]}</Tag>
+        <span>{stat}</span>
+      </span>
+    </button>
+  );
+}
+
+function SuggestionItem({
+  resource,
+  tokens,
+  isActive,
+  onMouseEnter,
+  onClick,
+}: {
+  resource: ResourceSummary;
+  tokens: string[];
+  isActive: boolean;
+  onMouseEnter: () => void;
+  onClick: () => void;
+}) {
+  const relevance = useMemo(() => computeRelevance(resource, tokens), [resource, tokens]);
+  const domainLabel = '资产';
+
+  return (
+    <button
+      type="button"
+      className={`asset-search__suggest-item${isActive ? ' is-active' : ''}`}
+      onMouseEnter={onMouseEnter}
+      onClick={onClick}
+    >
+      <span className="asset-search__sg-icon">{typeIcons[resource.type]}</span>
+      <span className="asset-search__sg-body">
+        <span className="asset-search__sg-name-row">
+          <strong className="asset-search__sg-name">
+            <HighlightText text={resource.name} tokens={tokens} />
+          </strong>
+          <Tag tone="blue">{domainLabel}</Tag>
+          <Tag tone={resource.type === 'metric' ? 'purple' : 'gray'}>{typeLabels[resource.type]}</Tag>
+        </span>
+        <span className="asset-search__sg-subtitle">
+          {resource.displayName && <HighlightText text={resource.displayName} tokens={tokens} />}
+          {resource.sourceSystem && (
+            <>
+              <span className="asset-search__sg-sep">·</span>
+              {sourceSystemLabels[resource.sourceSystem]}
+            </>
+          )}
+        </span>
+        {relevance.explanations.length > 0 && (
+          <span className="asset-search__sg-hits">
+            {relevance.explanations.map((e, i) => (
+              <span key={i} className="asset-search__sg-hit">
+                <em>{e.label}</em>
+                <HighlightText text={e.snippet} tokens={tokens} />
+              </span>
+            ))}
+          </span>
+        )}
+        <span className="asset-search__sg-owner">
+          <OwnerIcon />
+          {resource.owner}
+        </span>
+      </span>
+      <span className="asset-search__sg-action">
+        <ArrowRightIcon />
+      </span>
+    </button>
+  );
+}
+
+/* ── Helpers ────────────────────────────────────────────── */
+
+function getResourceTitle(resource: ResourceSummary) {
+  return resource.displayName ?? resource.name;
 }
 
 function formatUsage(value = 0) {
@@ -94,125 +281,102 @@ function sortByHeat(resources: ResourceSummary[]) {
 
 function splitQualifiedName(name: string) {
   const lastDotIndex = name.lastIndexOf('.');
-
-  if (lastDotIndex < 0) {
-    return { database: '', objectName: name };
-  }
-
-  return {
-    database: name.slice(0, lastDotIndex),
-    objectName: name.slice(lastDotIndex + 1),
-  };
+  if (lastDotIndex < 0) return { database: '', objectName: name };
+  return { database: name.slice(0, lastDotIndex), objectName: name.slice(lastDotIndex + 1) };
 }
 
-function DiscoveryRow({ resource, stat, onOpen }: { resource: ResourceSummary; stat: string; onOpen: (value: string) => void }) {
-  const parts = splitQualifiedName(resource.name);
-
-  return (
-    <button type="button" className="asset-search__discovery-row" onClick={() => onOpen(getResourceTitle(resource))}>
-      <span className="asset-search__dc-icon">{typeIcons[resource.type]}</span>
-      <span className="asset-search__dc-body">
-        <span className="asset-search__dc-name">
-          {parts.database ? <span className="asset-search__dc-name-db">{parts.database}.</span> : null}
-          <span className="asset-search__dc-name-main">{parts.objectName}</span>
-        </span>
-        <span className="asset-search__dc-sub">
-          <span>{getResourceTitle(resource)}</span>
-          <span className="asset-search__origin-chip">{resource.sourceSystem}</span>
-        </span>
-      </span>
-      <span className="asset-search__dc-right">
-        <Tag tone={resource.type === 'metric' ? 'purple' : 'gray'}>{typeLabels[resource.type]}</Tag>
-        <span>{stat}</span>
-      </span>
-    </button>
-  );
+function navigateToCatalog(keyword: string) {
+  const q = encodeURIComponent(keyword.trim());
+  window.location.hash = `#catalog?q=${q}`;
 }
 
-function ResultCard({ resource }: { resource: ResourceSummary }) {
-  const permission = permissionLabels[resource.permissionStatus ?? 'unknown'];
-  const queryCount = Math.floor((resource.usageCount ?? 0) * 0.35);
-
-  return (
-    <article className="asset-search__asset-card">
-      <div className="asset-search__asset-row1">
-        <span>{typeIcons[resource.type]}</span>
-        <h2>{getResourceTitle(resource)}</h2>
-        <span className="asset-search__copy" title="复制表名">
-          📋
-        </span>
-        <Tag tone={resource.type === 'metric' ? 'purple' : 'blue'}>{typeLabels[resource.type]}</Tag>
-        <Tag tone={permission.tone}>{permission.label}</Tag>
-        {(resource.tags ?? []).slice(0, 2).map((tag) => (
-          <Tag key={tag}>{tag}</Tag>
-        ))}
-      </div>
-      <button className="asset-search__apply" type="button">
-        {resource.permissionStatus === 'granted' ? '查看详情' : '申请权限'}
-      </button>
-      <div className="asset-search__asset-row2">
-        <span>
-          <span>来源</span> {resource.sourceSystem}
-        </span>
-        <span>
-          <span>目录</span> {resource.catalogPath ?? resource.domain}
-        </span>
-        <div>
-          <span>🔍 {queryCount.toLocaleString()}</span>
-          <span>👁 {formatUsage(resource.usageCount)}</span>
-        </div>
-      </div>
-      <div className="asset-search__asset-row3">
-        <span>描述</span> {resource.description}
-      </div>
-      <div className="asset-search__asset-row4">
-        <span>
-          <span>技术负责人</span> <strong>{resource.owner}</strong>
-        </span>
-        <span>
-          <span>业务负责人</span> <strong>{resource.owner}</strong>
-        </span>
-        <span className="asset-search__asset-times">
-          <span>创建时间 {resource.updatedAt}</span>
-          <span>更新时间 {resource.updatedAt}</span>
-        </span>
-      </div>
-    </article>
-  );
+function navigateToDetail(resource: ResourceSummary) {
+  window.location.hash = `#detail?domain=asset&id=${encodeURIComponent(resource.id)}`;
 }
+
+/* ── Main component ─────────────────────────────────────── */
 
 export function AssetSearchPage() {
   const [keyword, setKeyword] = useState('');
-  const [submittedKeyword, setSubmittedKeyword] = useState('');
-  const [activeType, setActiveType] = useState<TypeFilter>('all');
-  const [activeDiscoveryTab, setActiveDiscoveryTab] = useState<DiscoveryTab>('recent');
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [activeDiscoveryTab, setActiveDiscoveryTab] = useState<DiscoveryTab>('recent');
 
   const sortedResources = useMemo(() => sortByHeat(mockResources), []);
-  const suggestions = useMemo(() => sortedResources.filter((resource) => matchesResource(resource, keyword)).slice(0, 5), [keyword, sortedResources]);
-  const results = useMemo(() => {
-    return sortedResources.filter((resource) => {
-      const typeMatched = activeType === 'all' || resource.type === activeType;
-      return typeMatched && matchesResource(resource, submittedKeyword);
-    });
-  }, [activeType, sortedResources, submittedKeyword]);
-  const hasSearched = submittedKeyword.trim().length > 0;
+  const tokens = useMemo(() => tokenize(keyword), [keyword]);
 
-  const submitSearch = (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
-    setSubmittedKeyword(keyword.trim());
-    setSuggestOpen(false);
-  };
+  const suggestions = useMemo(() => {
+    if (tokens.length === 0) return [];
+    return [...sortedResources]
+      .map((r) => ({ resource: r, relevance: computeRelevance(r, tokens) }))
+      .filter((item) => item.relevance.score > 0)
+      .sort((a, b) => b.relevance.score - a.relevance.score)
+      .slice(0, MAX_SUGGESTIONS)
+      .map((item) => item.resource);
+  }, [tokens, sortedResources]);
 
-  const quickSearch = (value: string) => {
+  // Reset active index when suggestions change
+  useEffect(() => {
+    setActiveIdx(-1);
+  }, [suggestions.length]);
+
+  const handleKeywordChange = useCallback((value: string) => {
     setKeyword(value);
-    setSubmittedKeyword(value);
-    setActiveType('all');
+    setSuggestOpen(value.trim().length > 0);
+    setActiveIdx(-1);
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    if (keyword.trim()) setSuggestOpen(true);
+  }, [keyword]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      setSuggestOpen(false);
+      return;
+    }
+    if (!suggestOpen || suggestions.length === 0) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (keyword.trim()) navigateToCatalog(keyword);
+      }
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIdx((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIdx((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (activeIdx >= 0 && activeIdx < suggestions.length) {
+        navigateToDetail(suggestions[activeIdx]);
+        setSuggestOpen(false);
+      } else if (keyword.trim()) {
+        navigateToCatalog(keyword);
+        setSuggestOpen(false);
+      }
+    }
+  }, [suggestOpen, suggestions, activeIdx, keyword]);
+
+  const handleSubmit = useCallback((event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     setSuggestOpen(false);
-  };
+    if (keyword.trim()) navigateToCatalog(keyword);
+  }, [keyword]);
+
+  const handleHotKeyword = useCallback((kw: string) => {
+    navigateToCatalog(kw);
+  }, []);
+
+  const handleSuggestionClick = useCallback((resource: ResourceSummary) => {
+    navigateToDetail(resource);
+    setSuggestOpen(false);
+  }, []);
 
   const recentResources = sortedResources.slice(0, 5);
-  const favoriteResources = sortedResources.filter((resource) => resource.permissionStatus === 'granted').slice(0, 5);
+  const favoriteResources = sortedResources.filter((r) => r.permissionStatus === 'granted').slice(0, 5);
   const trendingResources = sortedResources.slice(0, 6);
 
   const discoveryList =
@@ -223,51 +387,41 @@ export function AssetSearchPage() {
       <div className="asset-search__hero">
         <h1>数据资产检索</h1>
         <p>找资产 · 找不到时找资源 · 将资源治理成资产</p>
-        <form className="asset-search__search-box" role="search" onSubmit={submitSearch}>
+        <form className="asset-search__search-box" role="search" onSubmit={handleSubmit}>
           <span className="asset-search__search-icon" aria-hidden="true">
-            ⌕
+            <SearchIcon />
           </span>
           <input
             value={keyword}
-            onChange={(event) => {
-              setKeyword(event.target.value);
-              setSuggestOpen(true);
-            }}
-            onFocus={() => {
-              if (keyword.trim()) setSuggestOpen(true);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setSuggestOpen(false);
-              }
-            }}
-            placeholder="请输入搜索内容"
-            aria-label="请输入搜索内容"
+            onChange={(e) => handleKeywordChange(e.target.value)}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
+            placeholder="搜索资产名称、描述、负责人、标签…"
+            aria-label="搜索资产名称、描述、负责人、标签"
             autoComplete="off"
           />
           <Button variant="primary" className="asset-search__submit" type="submit">
             搜索
           </Button>
-          {suggestOpen ? (
+          {suggestOpen && (
             <div className="asset-search__suggest-panel">
               <div className="asset-search__suggest-head">
                 <div>
-                  <strong>⚡ 快速命中建议</strong>
-                  <span>{suggestions.length ? '支持中文名、英文名和别名匹配，选中后可直接进入详情' : '暂无快捷命中结果，可继续输入或按 Enter 执行全文搜索'}</span>
+                  <strong>已命中 {suggestions.length} 条候选</strong>
+                  <span>{suggestions.length > 0 ? '方向键选择，Enter 进入详情；无选中项时 Enter 跳转资产目录' : '暂无快捷命中结果，按 Enter 跳转资产目录执行全文搜索'}</span>
                 </div>
-                <span>已命中 {suggestions.length} 条候选</span>
               </div>
               <div className="asset-search__suggest-list">
                 {suggestions.length > 0 ? (
-                  suggestions.map((resource) => (
-                    <button key={resource.id} type="button" className="asset-search__suggest-item" onMouseDown={() => quickSearch(getResourceTitle(resource))}>
-                      <span className="asset-search__suggest-icon">{typeIcons[resource.type]}</span>
-                      <span>
-                        <strong>{getResourceTitle(resource)}</strong>
-                        <small>{resource.name}</small>
-                      </span>
-                      <span>点击进入 →</span>
-                    </button>
+                  suggestions.map((resource, idx) => (
+                    <SuggestionItem
+                      key={resource.id}
+                      resource={resource}
+                      tokens={tokens}
+                      isActive={idx === activeIdx}
+                      onMouseEnter={() => setActiveIdx(idx)}
+                      onClick={() => handleSuggestionClick(resource)}
+                    />
                   ))
                 ) : (
                   <div className="asset-search__suggest-empty">没有找到与当前输入直接匹配的快捷结果</div>
@@ -275,17 +429,17 @@ export function AssetSearchPage() {
               </div>
               <div className="asset-search__suggest-foot">
                 <span>↑ ↓ 切换选中</span>
-                <span>Enter 查看详情</span>
+                <span>Enter 进入详情 / 跳转目录</span>
                 <span>Esc 收起下拉</span>
               </div>
             </div>
-          ) : null}
+          )}
         </form>
         <div className="asset-search__hints" aria-label="热门搜索">
           <span>热门搜索:</span>
-          {hotKeywords.map((keywordItem) => (
-            <button key={keywordItem} type="button" onClick={() => quickSearch(keywordItem)}>
-              {keywordItem}
+          {hotKeywords.map((kw) => (
+            <button key={kw} type="button" onClick={() => handleHotKeyword(kw)}>
+              {kw}
             </button>
           ))}
         </div>
@@ -293,64 +447,42 @@ export function AssetSearchPage() {
 
       <div className="asset-search__body">
         <div className="asset-search__center">
-          {hasSearched ? (
-            <div className="asset-search__results-panel">
-              <div className="asset-search__filter-bar">
-                <strong>找到 {results.length} 个相关资产</strong>
-                <div role="tablist" aria-label="资源类型">
-                  {typeFilters.map((filter) => (
-                    <button key={filter.key} type="button" className={filter.key === activeType ? 'is-active' : ''} onClick={() => setActiveType(filter.key)}>
-                      {filter.label}
+          <div className="asset-search__discovery-panel">
+            <div className="asset-search__discovery-tabs">
+              {discoveryTabs.map((tab) => (
+                <button key={tab.key} type="button" className={activeDiscoveryTab === tab.key ? 'active' : ''} onClick={() => setActiveDiscoveryTab(tab.key)}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="asset-search__discovery-content">
+              {activeDiscoveryTab === 'hot' ? (
+                <div className="asset-search__topic-grid">
+                  {topicCards.map((topic) => (
+                    <button key={topic.title} type="button" className="asset-search__topic-card" onClick={() => handleHotKeyword(topic.title)}>
+                      <span>{topic.icon}</span>
+                      <span>
+                        <strong>{topic.title}</strong>
+                        <small>{topic.description}</small>
+                        <em>{topic.count}</em>
+                      </span>
                     </button>
                   ))}
                 </div>
-                <Button size="sm" onClick={() => quickSearch('')}>
-                  返回发现
-                </Button>
-              </div>
-              {results.length > 0 ? (
-                <div className="asset-search__asset-card-list">
-                  {results.map((resource) => (
-                    <ResultCard key={resource.id} resource={resource} />
+              ) : (
+                <div className="asset-search__discovery-cards">
+                  {discoveryList.map((resource, index) => (
+                    <DiscoveryRow
+                      key={resource.id}
+                      resource={resource}
+                      stat={activeDiscoveryTab === 'trending' ? `热度 ${formatUsage(resource.usageCount)}` : index === 0 ? '刚刚浏览' : `${index + 1} 天前`}
+                      onNavigate={handleHotKeyword}
+                    />
                   ))}
                 </div>
-              ) : (
-                <EmptyState title="未找到匹配的数据资产" description="可以换一个关键词，或提交资源治理需求。" />
               )}
             </div>
-          ) : (
-            <div className="asset-search__discovery-panel">
-              <div className="asset-search__discovery-tabs">
-                {discoveryTabs.map((tab) => (
-                  <button key={tab.key} type="button" className={activeDiscoveryTab === tab.key ? 'active' : ''} onClick={() => setActiveDiscoveryTab(tab.key)}>
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              <div className="asset-search__discovery-content">
-                {activeDiscoveryTab === 'hot' ? (
-                  <div className="asset-search__topic-grid">
-                    {topicCards.map((topic) => (
-                      <button key={topic.title} type="button" className="asset-search__topic-card" onClick={() => quickSearch(topic.title)}>
-                        <span>{topic.icon}</span>
-                        <span>
-                          <strong>{topic.title}</strong>
-                          <small>{topic.description}</small>
-                          <em>{topic.count}</em>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="asset-search__discovery-cards">
-                    {discoveryList.map((resource, index) => (
-                      <DiscoveryRow key={resource.id} resource={resource} stat={activeDiscoveryTab === 'trending' ? `热度 ${formatUsage(resource.usageCount)}` : index === 0 ? '刚刚浏览' : `${index + 1} 天前`} onOpen={quickSearch} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         <aside className="asset-search__right">
@@ -377,15 +509,15 @@ export function AssetSearchPage() {
           </section>
           <section className="asset-search__side-card">
             <h2>专题推荐</h2>
-            <button type="button" className="asset-search__topic-link topic-blue" onClick={() => quickSearch('交易域核心资产')}>
+            <button type="button" className="asset-search__topic-link topic-blue" onClick={() => handleHotKeyword('交易域核心资产')}>
               <strong>交易域核心资产</strong>
               <span>订单、支付、退款全链路 · 42个资产</span>
             </button>
-            <button type="button" className="asset-search__topic-link topic-purple" onClick={() => quickSearch('用户域分析资产')}>
+            <button type="button" className="asset-search__topic-link topic-purple" onClick={() => handleHotKeyword('用户域分析资产')}>
               <strong>用户域分析资产</strong>
               <span>行为、画像、留存分析 · 28个资产</span>
             </button>
-            <button type="button" className="asset-search__topic-link topic-green" onClick={() => quickSearch('供应链数据资产')}>
+            <button type="button" className="asset-search__topic-link topic-green" onClick={() => handleHotKeyword('供应链数据资产')}>
               <strong>供应链数据资产</strong>
               <span>库存、物流、采购 · 35个资产</span>
             </button>

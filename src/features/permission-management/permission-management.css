@@ -253,6 +253,10 @@
   vertical-align: middle;
 }
 
+.permission-management__table-wrap tr {
+  position: relative;
+}
+
 .permission-management__table-wrap tr:last-child td {
   border-bottom: none;
 }
@@ -288,6 +292,8 @@
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
 
 .permission-management__row-actions button,
@@ -1081,6 +1087,69 @@
   margin-left: 4px;
 }
 
+/* ─── Form Control Mapping ───────────────────────────── */
+
+.permission-management__config-link {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  line-height: 18px;
+  transition: all var(--transition-fast);
+}
+
+.permission-management__config-link:hover {
+  background: var(--primary-bg);
+}
+
+.permission-management__unmapped-row td {
+  background: #fff8f8;
+}
+
+/* ─── Platform Fields ─────────────────────────────────── */
+
+.permission-management__platform-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.permission-management__platform-field-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+}
+
+.permission-management__mapping-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .permission-management__member-remove:hover {
   opacity: 1;
+}
+
+.permission-management__flow-auto-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
+}
+
+.permission-management__flow-auto-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }

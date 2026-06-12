@@ -1,0 +1,43 @@
+.condition-field-checkbox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.condition-field-checkbox__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.condition-field-checkbox__label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.condition-field-checkbox__shortcuts {
+  display: flex;
+  gap: 8px;
+}
+
+.condition-field-checkbox__shortcut {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--font-size-xs);
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.condition-field-checkbox__shortcut:hover {
+  opacity: 0.75;
+}
+
+.condition-field-checkbox__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}

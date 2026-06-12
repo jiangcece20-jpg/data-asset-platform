@@ -7,11 +7,16 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "pages:dev": "npm run build && wrangler pages dev dist",
+    "pages:deploy": "npm run build && wrangler pages deploy dist --project-name data-asset-platform",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.5.0",
@@ -24,6 +29,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^26.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "wrangler": "^4.99.0"
   }
 }

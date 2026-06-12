@@ -18,12 +18,12 @@ describe('ResourceDiscoveryPage', () => {
     expect(screen.getByText('状态')).toBeInTheDocument();
     expect(screen.getByText('类型')).toBeInTheDocument();
     expect(screen.getByText('共 11 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '订单明细表' })).toBeInTheDocument();
+    expect(screen.getByText('dwd_ctps_product_browsed_company_shop_device_product_d1')).toBeInTheDocument();
     expect(screen.getAllByText('来源').length).toBeGreaterThan(0);
     expect(screen.getAllByText('目录').length).toBeGreaterThan(0);
     expect(screen.getAllByText('技术负责人').length).toBeGreaterThan(0);
     expect(screen.getAllByText('业务负责人').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: '取消收藏 订单明细表' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '取消收藏' }).length).toBeGreaterThan(0);
   });
 
   it('shows unassigned resources from the quick tree node', async () => {
@@ -33,7 +33,7 @@ describe('ResourceDiscoveryPage', () => {
     await user.click(screen.getByRole('button', { name: /未归属/ }));
 
     expect(screen.getByText('共 3 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '行业资讯原始表' })).toBeInTheDocument();
+    expect(screen.getByText('wlyd_industry_news_info_di')).toBeInTheDocument();
   });
 
   it('filters to raw resources only', async () => {
@@ -43,8 +43,8 @@ describe('ResourceDiscoveryPage', () => {
     await user.click(screen.getByRole('button', { name: '仅资源' }));
 
     expect(screen.getByText('共 4 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '库存校验接口' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '订单明细表' })).not.toBeInTheDocument();
+    expect(screen.getByText('api_inventory_check')).toBeInTheDocument();
+    expect(screen.queryByText('dwd_ctps_product_browsed_company_shop_device_product_d1')).not.toBeInTheDocument();
   });
 
   it('filters by maintain status', async () => {
@@ -54,7 +54,7 @@ describe('ResourceDiscoveryPage', () => {
     await user.click(screen.getByRole('button', { name: '待维护' }));
 
     expect(screen.getByText('共 3 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '点击流原始流' })).toBeInTheDocument();
+    expect(screen.getByText('kafka_user_click_raw')).toBeInTheDocument();
   });
 
   it('searches across asset and resource records', async () => {
@@ -64,8 +64,8 @@ describe('ResourceDiscoveryPage', () => {
     await user.type(screen.getByPlaceholderText('请输入资产名称/描述关键字'), '库存');
 
     expect(screen.getByText('共 2 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '商品库存看板' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '库存校验接口' })).toBeInTheDocument();
+    expect(screen.getByText('dashboard_inventory_overview')).toBeInTheDocument();
+    expect(screen.getByText('api_inventory_check')).toBeInTheDocument();
   });
 
   it('filters by resource type tab', async () => {
@@ -76,6 +76,6 @@ describe('ResourceDiscoveryPage', () => {
     await user.click(within(tabs).getByRole('tab', { name: 'API' }));
 
     expect(screen.getByText('共 2 条')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '客户价值评分 API' })).toBeInTheDocument();
+    expect(screen.getByText('api_customer_value_score')).toBeInTheDocument();
   });
 });

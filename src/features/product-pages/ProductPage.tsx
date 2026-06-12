@@ -1,9 +1,6 @@
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
-import { DataTable } from '../../components/data-display/DataTable';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import type { AppRouteKey } from '../../app/routes';
-import { galleryResources, resourceColumns } from '../component-gallery/galleryData';
 import './product-page.css';
 
 type ProductPageConfig = {
@@ -12,11 +9,10 @@ type ProductPageConfig = {
   eyebrow: string;
   primaryAction: string;
   secondaryAction: string;
-  sections: Array<{ title: string; description: string; tone: 'blue' | 'success' | 'warning' | 'purple' | 'cyan' }>;
-  tableTitle?: string;
+  sections: { title: string; description: string; tone: 'blue' | 'success' | 'warning' | 'purple' | 'cyan' }[];
 };
 
-const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig> = {
+const pageConfigs = {
   search: {
     title: '资产检索',
     subtitle: '面向用户的统一资产搜索入口，承接表、指标、报表、API 等资源检索。',
@@ -28,7 +24,6 @@ const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig>
       { title: '建议下拉', description: '后续接入 ResourceSearchBox，复用主平台搜索建议。', tone: 'cyan' },
       { title: '详情跳转', description: '检索结果统一进入 ResourceDetailHeader 和详情模块。', tone: 'success' },
     ],
-    tableTitle: '搜索结果骨架',
   },
   catalog: {
     title: '资产目录',
@@ -53,7 +48,6 @@ const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig>
       { title: '热门资源', description: '保留浏览量、使用热度、收藏等信号展示。', tone: 'warning' },
       { title: '来源标签', description: '统一表、指标、报表、API 的 Tag 显示规范。', tone: 'cyan' },
     ],
-    tableTitle: '推荐资源骨架',
   },
   management: {
     title: '资源管理',
@@ -66,7 +60,6 @@ const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig>
       { title: '维护表单', description: '复用 FormControl、Modal、Drawer 承载编辑流程。', tone: 'purple' },
       { title: '治理审批', description: '与权限管理中的流程状态组件保持一致。', tone: 'warning' },
     ],
-    tableTitle: '管理列表骨架',
   },
   workbench: {
     title: '即席查询',
@@ -79,7 +72,6 @@ const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig>
       { title: '表字段面板', description: '仅展示已授权表，后续接入权限服务。', tone: 'success' },
       { title: '结果展示', description: '复用 QueryResultView 统一表格和图表输出。', tone: 'cyan' },
     ],
-    tableTitle: '可查询表骨架',
   },
   permissions: {
     title: '权限管理',
@@ -92,13 +84,14 @@ const pageConfigs: Record<Exclude<AppRouteKey, 'components'>, ProductPageConfig>
       { title: '我的申请', description: '按状态查看待审、已通过、已拒绝和已撤回工单。', tone: 'blue' },
       { title: '我有权限的', description: '与资产检索和 SQL 工作台共享权限状态枚举。', tone: 'success' },
     ],
-    tableTitle: '权限资源骨架',
   },
-};
+} as const;
 
-type ProductPageProps = {
-  route: Exclude<AppRouteKey, 'components'>;
-};
+type PageKey = keyof typeof pageConfigs;
+
+interface ProductPageProps {
+  route: PageKey;
+}
 
 export function ProductPage({ route }: ProductPageProps) {
   const page = pageConfigs[route];
@@ -129,16 +122,9 @@ export function ProductPage({ route }: ProductPageProps) {
         ))}
       </div>
 
-      {page.tableTitle ? (
-        <section className="product-page__panel">
-          <h2>{page.tableTitle}</h2>
-          <DataTable columns={resourceColumns} rows={galleryResources} />
-        </section>
-      ) : (
-        <section className="product-page__panel">
-          <EmptyState title="页面骨架已就位" description="下一步迁移对应 HTML 原型的真实业务交互。" />
-        </section>
-      )}
+      <section className="product-page__panel">
+        <EmptyState title="页面骨架已就位" description="下一步迁移对应 HTML 原型的真实业务交互。" />
+      </section>
     </section>
   );
 }
