@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../../../components/base/Button';
 import { Tag } from '../../../components/base/Tag';
+import { ticketTypes as approvalTicketTypes } from '../approvalData';
 import type { ApprovalBatch, ApprovalInstance } from '../approvalData';
 
 type ActionDialog = { task: { id: string; applicant: string; applicantDept: string; nodeName: string; waitingHours: number; assets: string[]; securityLevel: string; permissionType: string; reason: string; subOrderNo: string; instanceCode: string; createdAt: string; directory: string; matchedFlow: string; matchedRoute: string; sourceType: string; sourceSystem: string; ticketType: string }; type: 'approve' | 'reject' } | null;
@@ -43,8 +44,6 @@ const sourceTypeOptions = [
 function sourceTypeLabel(value: string) {
   return sourceTypeOptions.find(item => item.value === value)?.label ?? value;
 }
-
-const ticketTypes = ['权限申请', '上架审批', '下架审批', '目录修改', '负责人交接', '血缘修正'];
 
 export function Stat({ label, value }: { label: string; value: number }) {
   return <div className="approval-v6__stat"><strong>{value}</strong><span>{label}</span></div>;
@@ -115,7 +114,7 @@ export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
         </select>
         <select value={type} onChange={event => setType(event.target.value)}>
           <option value="all">全部类型</option>
-          {ticketTypes.map(item => <option key={item}>{item}</option>)}
+          {approvalTicketTypes.map(item => <option key={item}>{item}</option>)}
         </select>
       </div>
 

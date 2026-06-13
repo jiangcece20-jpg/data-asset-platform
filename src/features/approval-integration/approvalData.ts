@@ -313,7 +313,7 @@ function createApprovalInstance(scenario: ApprovalScenario): ApprovalInstance {
   };
 }
 
-function createApprovalBatch(ticketType: string, scenarios: ApprovalScenario[]): ApprovalBatch {
+function createApprovalBatch(ticketType: string, scenarios: ApprovalScenario[], batchKey = ticketType): ApprovalBatch {
   if (!scenarios.length) {
     throw new Error(`No approval scenarios configured for ${ticketType}`);
   }
@@ -330,8 +330,8 @@ function createApprovalBatch(ticketType: string, scenarios: ApprovalScenario[]):
         : 'not_effective';
 
   return {
-    id: `batch-${ticketType}`,
-    batchId: `BATCH-${primary.createdAt.slice(0, 10).replace(/-/g, '')}-${ticketType}`,
+    id: `batch-${batchKey}`,
+    batchId: `BATCH-${primary.createdAt.slice(0, 10).replace(/-/g, '')}-${batchKey}`,
     ticketType,
     totalAssets: instances.reduce((sum, instance) => sum + instance.assets.length, 0),
     instanceCount: instances.length,
@@ -496,140 +496,58 @@ export const initialRoles: ApprovalRole[] = [
   { id: 'role-003', roleCode: 'data_governance', roleName: '数据治理委员会', enabled: false, members: [] },
 ];
 
-export const initialBatches: ApprovalBatch[] = [
-  {
-    id: 'batch-001',
-    batchId: 'BATCH-20260609-001',
-    ticketType: '权限申请',
-    totalAssets: 5,
-    instanceCount: 2,
-    createdAt: '2026-06-09 14:26:00',
-    status: 'approving',
-    effectStatus: 'not_effective',
-    instances: [
-      {
-        id: 'inst-001',
-        subOrderNo: 'SUB-20260609-001-01',
-        instanceCode: 'PER-INS-00931',
-        feishuUrl: 'https://example.feishu.cn/approval/PER-INS-00931',
-        status: 'approving',
-        effectStatus: 'not_effective',
-        assets: ['dwd_trade_order', 'dwd_trade_payment'],
-        securityLevel: 'S4',
-        permissionType: '只读',
-        expireDate: '2026-09-09',
-        directory: '交易域/订单',
-        sourceType: 'warehouse_engine',
-        sourceSystem: 'MaxCompute',
-        matchedFlow: '权限申请_高安全等级版',
-        matchedRoute: '高安全等级专项审批',
-        reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。',
-        approvers: [
-          { nodeId: 'manager_node', nodeName: '直属上级审批', mode: 'single', approvers: [{ name: '王经理', openId: 'ou_manager_001' }] },
-          { nodeId: 'cto_node', nodeName: 'CTO 审批', mode: 'single', approvers: [{ name: '郑技术', openId: 'ou_cto_001' }] },
-        ],
-        timeline: [
-          { action: '提交申请', operator: '刘数据', time: '2026-06-09 14:26:00', status: 'system' },
-          { action: '直属上级审批通过', operator: '王经理', time: '2026-06-09 15:04:00', status: 'approved', comment: '用途明确' },
-          { action: '等待 CTO 审批', operator: '郑技术', time: '2026-06-09 15:04:00', status: 'pending' },
-        ],
-      },
-      {
-        id: 'inst-002',
-        subOrderNo: 'SUB-20260609-001-02',
-        instanceCode: 'PER-INS-00932',
-        feishuUrl: 'https://example.feishu.cn/approval/PER-INS-00932',
-        status: 'approving',
-        effectStatus: 'not_effective',
-        assets: ['dim_user_profile', 'ads_user_tag'],
-        securityLevel: 'S3',
-        permissionType: '只读',
-        expireDate: '2026-09-09',
-        directory: '用户域/画像',
-        sourceType: 'warehouse_engine',
-        sourceSystem: 'Hive',
-        matchedFlow: '权限申请_统一版',
-        matchedRoute: '标准权限申请（兜底）',
-        reason: '用于用户分群分析。',
-        approvers: [{ nodeId: 'owner_node', nodeName: '资源负责人审批', mode: 'countersign', approvers: [{ name: '李负责人', openId: 'ou_owner_001' }, { name: '赵负责人', openId: 'ou_owner_002' }] }],
-        timeline: [{ action: '提交申请', operator: '刘数据', time: '2026-06-09 14:26:00', status: 'system' }, { action: '等待资源负责人审批', operator: '李负责人、赵负责人', time: '2026-06-09 14:27:00', status: 'pending' }],
-      },
-    ],
-  },
-  {
-    id: 'batch-002',
-    batchId: 'BATCH-20260608-002',
-    ticketType: '目录修改',
-    totalAssets: 3,
-    instanceCount: 1,
-    createdAt: '2026-06-08 13:12:00',
-    status: 'approved',
-    effectStatus: 'effective',
-    instances: [{
-      id: 'inst-003',
-      subOrderNo: 'SUB-20260608-002-01',
-      instanceCode: 'DIR-INS-00312',
-      feishuUrl: 'https://example.feishu.cn/approval/DIR-INS-00312',
-      status: 'approved',
-      effectStatus: 'effective',
-      assets: ['dwd_trade_payment', 'dwd_refund_detail', 'ads_pay_monitor'],
-      securityLevel: 'S3',
-      permissionType: '目录修改',
-      expireDate: '永久',
-      directory: '交易域/支付/支付流水',
-      sourceType: 'warehouse_engine',
-      sourceSystem: 'MaxCompute',
-      matchedFlow: '目录修改审批_业务域版',
-      matchedRoute: '交易域目录调整审批',
-      reason: '支付类资产原归属订单目录，需迁移到支付流水目录方便业务检索。',
-      approvers: [{ nodeId: 'directory_owner_node', nodeName: '目录负责人审批', mode: 'single', approvers: [{ name: '赵目录', openId: 'ou_catalog_001' }] }],
-      timeline: [
-        { action: '提交目录修改', operator: '李治理', time: '2026-06-08 13:12:00', status: 'system' },
-        { action: '目录负责人审批通过', operator: '赵目录', time: '2026-06-08 14:02:00', status: 'approved', comment: '目标目录合理' },
-        { action: '目录切换生效', operator: '系统', time: '2026-06-08 14:03:00', status: 'system' },
-      ],
-    }],
-  },
-  {
-    id: 'batch-003',
-    batchId: 'BATCH-20260607-003',
-    ticketType: '上架审批',
-    totalAssets: 1,
-    instanceCount: 1,
-    createdAt: '2026-06-07 10:12:00',
-    status: 'approved',
-    effectStatus: 'effective',
-    instances: [{
-      id: 'inst-004',
-      subOrderNo: 'SUB-20260607-003-01',
-      instanceCode: 'PUB-INS-00108',
-      feishuUrl: 'https://example.feishu.cn/approval/PUB-INS-00108',
-      status: 'approved',
-      effectStatus: 'effective',
-      assets: ['rpt_finance_monthly'],
-      securityLevel: 'S2',
-      permissionType: '上架',
-      expireDate: '永久',
-      directory: '财务域/报表/月报',
-      sourceType: 'report_system',
-      sourceSystem: '万联灵析',
-      matchedFlow: '数据上架审批_v2',
-      matchedRoute: '报表来源上架复核',
-      reason: '财务月报指标口径已补齐，申请进入资产目录。',
-      approvers: [{ nodeId: 'owner_node', nodeName: '业务负责人审批', mode: 'single', approvers: [{ name: '王财务', openId: 'ou_finance_001' }] }],
-      timeline: [{ action: '提交上架申请', operator: '王五', time: '2026-06-07 10:12:00', status: 'system' }, { action: '业务负责人审批通过', operator: '王财务', time: '2026-06-07 11:30:00', status: 'approved' }],
-    }],
-  },
-  { id: 'batch-004', batchId: 'BATCH-20260605-007', ticketType: '权限申请', totalAssets: 1, instanceCount: 1, createdAt: '2026-06-05 11:30:00', status: 'rejected', effectStatus: 'not_effective', instances: [] },
+const approvalScenarios: ApprovalScenario[] = [
+  createApprovalScenario({ id: 'permission-approving', ticketType: '权限申请', status: 'approving', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'CTO 审批', waitingHours: 26, assets: ['dwd_trade_order', 'dwd_trade_payment'], securityLevel: 'S4', permissionType: '只读', expireDate: '2026-12-31', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260609-001-01', instanceCode: 'PER-INS-00931', createdAt: '2026-06-09 14:26:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'permission-approved', ticketType: '权限申请', status: 'approved', applicant: '陈运营', applicantDept: '运营增长部', nodeName: '资源负责人审批', waitingHours: 4, assets: ['ads_user_tag'], securityLevel: 'S3', permissionType: '只读', expireDate: '2026-09-30', directory: '用户域/画像/用户标签', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '用于活动用户标签圈选和投放复盘。', subOrderNo: 'SUB-20260610-004-01', instanceCode: 'PER-INS-00988', createdAt: '2026-06-10 09:40:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'permission-rejected', ticketType: '权限申请', status: 'rejected', applicant: '赵分析', applicantDept: '财务管理部', nodeName: '数据安全审批', waitingHours: 12, assets: ['rpt_revenue_detail'], securityLevel: 'S4', permissionType: '导出', expireDate: '2026-08-31', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '导出营收明细用于外部对账，需审批确认范围。', subOrderNo: 'SUB-20260608-011-01', instanceCode: 'PER-INS-00941', createdAt: '2026-06-08 10:12:00', effectStatus: 'not_effective', timelineComment: '导出范围过宽，需缩小字段范围后重新申请。' }),
+  createApprovalScenario({ id: 'permission-cancelled', ticketType: '权限申请', status: 'cancelled', applicant: '孙产品', applicantDept: '运营增长部', nodeName: '申请人', waitingHours: 1, assets: ['api_user_profile_query'], securityLevel: 'S2', permissionType: '读写', expireDate: '2026-07-31', directory: '用户域/API/画像服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '原计划联调用接口，后调整为离线取数。', subOrderNo: 'SUB-20260607-014-01', instanceCode: 'PER-INS-00952', createdAt: '2026-06-07 16:20:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'listing-approving', ticketType: '上架审批', status: 'approving', applicant: '何数仓', applicantDept: '技术部', nodeName: '数据治理审批', waitingHours: 6, assets: ['dwd_user_behavior_log'], securityLevel: 'S3', permissionType: '上架', expireDate: '长期', directory: '用户域/行为/行为日志', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '数据上架审批_v2', matchedRoute: '标准上架审批（兜底）', reason: '用户行为日志已完成字段说明和质量规则配置，申请上架供分析使用。', subOrderNo: 'SUB-20260610-008-01', instanceCode: 'PUB-INS-00031', createdAt: '2026-06-10 12:00:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'listing-approved', ticketType: '上架审批', status: 'approved', applicant: '林接口', applicantDept: '技术部', nodeName: '资源负责人审批', waitingHours: 3, assets: ['api_product_catalog'], securityLevel: 'S2', permissionType: '上架', expireDate: '长期', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '数据上架审批_v2', matchedRoute: '标准上架审批（兜底）', reason: '商品目录查询接口已完成压测和安全审查，申请上架给下游系统调用。', subOrderNo: 'SUB-20260609-012-01', instanceCode: 'PUB-INS-00029', createdAt: '2026-06-09 17:30:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'listing-rejected', ticketType: '上架审批', status: 'rejected', applicant: '周报表', applicantDept: '财务管理部', nodeName: '报表口径复核', waitingHours: 18, assets: ['rpt_margin_daily'], securityLevel: 'S3', permissionType: '上架', expireDate: '长期', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '数据上架审批_v2', matchedRoute: '报表来源上架复核', reason: '毛利日报申请上架到财务目录，供经营分析查看。', subOrderNo: 'SUB-20260608-013-01', instanceCode: 'PUB-INS-00028', createdAt: '2026-06-08 15:40:00', effectStatus: 'not_effective', timelineComment: '报表口径说明缺少退款处理逻辑，补充后再提交。' }),
+  createApprovalScenario({ id: 'listing-cancelled', ticketType: '上架审批', status: 'cancelled', applicant: '钱运营', applicantDept: '运营增长部', nodeName: '申请人', waitingHours: 2, assets: ['metric_campaign_roi'], securityLevel: 'S2', permissionType: '上架', expireDate: '长期', directory: '财务域/指标/核心', sourceType: 'metric_platform', sourceSystem: '指标平台', matchedFlow: '数据上架审批_v2', matchedRoute: '标准上架审批（兜底）', reason: '活动 ROI 指标口径仍在调整，撤回本次上架申请。', subOrderNo: 'SUB-20260607-015-01', instanceCode: 'PUB-INS-00027', createdAt: '2026-06-07 11:18:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'delist-approving', ticketType: '下架审批', status: 'approving', applicant: '王运维', applicantDept: '运维部', nodeName: 'CTO 审批', waitingHours: 48, assets: ['dwd_trade_order'], securityLevel: 'S4', permissionType: '下架', expireDate: '长期', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '下架审批_高安全等级版', matchedRoute: '高安全等级下架审批', reason: '该表已下线，需从正式目录移除并归档。', subOrderNo: 'SUB-20260610-007-01', instanceCode: 'UNL-INS-00056', createdAt: '2026-06-10 08:00:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'delist-approved', ticketType: '下架审批', status: 'approved', applicant: '马运营', applicantDept: '运营增长部', nodeName: '资源负责人审批', waitingHours: 9, assets: ['rpt_sales_temp'], securityLevel: 'S2', permissionType: '下架', expireDate: '长期', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '数据下架审批_v1', matchedRoute: '标准下架审批（兜底）', reason: '临时销售报表已被正式报表替代，申请下架避免误用。', subOrderNo: 'SUB-20260606-018-01', instanceCode: 'UNL-INS-00044', createdAt: '2026-06-06 09:30:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'delist-rejected', ticketType: '下架审批', status: 'rejected', applicant: '许指标', applicantDept: '数据治理部', nodeName: '数据治理审批', waitingHours: 20, assets: ['metric_dau_temp'], securityLevel: 'S3', permissionType: '下架', expireDate: '长期', directory: '用户域/指标/活跃', sourceType: 'metric_platform', sourceSystem: '指标平台', matchedFlow: '数据下架审批_v1', matchedRoute: '标准下架审批（兜底）', reason: '临时 DAU 指标已过期，申请下架。', subOrderNo: 'SUB-20260605-019-01', instanceCode: 'UNL-INS-00043', createdAt: '2026-06-05 13:40:00', effectStatus: 'not_effective', timelineComment: '仍有周报依赖该指标，需完成替换后再下架。' }),
+  createApprovalScenario({ id: 'delist-cancelled', ticketType: '下架审批', status: 'cancelled', applicant: '杜运维', applicantDept: '运维部', nodeName: '申请人', waitingHours: 2, assets: ['api_legacy_coupon'], securityLevel: 'S2', permissionType: '下架', expireDate: '长期', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '数据下架审批_v1', matchedRoute: '标准下架审批（兜底）', reason: '老优惠券接口仍需保留一个版本周期，撤回下架申请。', subOrderNo: 'SUB-20260604-020-01', instanceCode: 'UNL-INS-00042', createdAt: '2026-06-04 10:20:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'catalog-approving', ticketType: '目录修改', status: 'approving', applicant: '张开发', applicantDept: '技术部', nodeName: '目录负责人审批', waitingHours: 8, assets: ['dim_product_info'], securityLevel: 'S3', permissionType: '目录修改', expireDate: '长期', directory: '商品域/商品基础信息', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '目录修改审批_业务域版', matchedRoute: '跨域目录迁移', reason: '商品基础信息表从商品域迁移至公共维度域。', subOrderNo: 'SUB-20260610-006-01', instanceCode: 'CAT-INS-00089', createdAt: '2026-06-10 10:30:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'catalog-approved', ticketType: '目录修改', status: 'approved', applicant: '李治理', applicantDept: '数据治理部', nodeName: '交易域负责人审批', waitingHours: 5, assets: ['dwd_trade_order'], securityLevel: 'S3', permissionType: '目录修改', expireDate: '长期', directory: '财务域/交易/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '目录修改审批_业务域版', matchedRoute: '交易域目录调整审批', reason: '业务划分调整，将订单宽表迁移到财务交易目录。', subOrderNo: 'SUB-20260608-021-01', instanceCode: 'CAT-INS-00076', createdAt: '2026-06-08 13:12:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'catalog-rejected', ticketType: '目录修改', status: 'rejected', applicant: '宋接口', applicantDept: '技术部', nodeName: '目录负责人审批', waitingHours: 15, assets: ['api_payment_query'], securityLevel: 'S2', permissionType: '目录修改', expireDate: '长期', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '目录修改审批_业务域版', matchedRoute: '标准目录修改（兜底）', reason: '支付查询接口计划从支付域迁移到交易查询服务目录。', subOrderNo: 'SUB-20260607-022-01', instanceCode: 'CAT-INS-00075', createdAt: '2026-06-07 14:05:00', effectStatus: 'not_effective', timelineComment: '目标目录负责人不匹配，需先调整接口归属。' }),
+  createApprovalScenario({ id: 'catalog-cancelled', ticketType: '目录修改', status: 'cancelled', applicant: '高指标', applicantDept: '财务管理部', nodeName: '申请人', waitingHours: 1, assets: ['metric_revenue_net'], securityLevel: 'S3', permissionType: '目录修改', expireDate: '长期', directory: '财务域/指标/核心', sourceType: 'metric_platform', sourceSystem: '指标平台', matchedFlow: '目录修改审批_业务域版', matchedRoute: '标准目录修改（兜底）', reason: '净收入指标目录调整方案未定，撤回本次迁移申请。', subOrderNo: 'SUB-20260606-023-01', instanceCode: 'CAT-INS-00074', createdAt: '2026-06-06 16:45:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'directory-approving', ticketType: '目录编辑审批', status: 'approving', applicant: '冯治理', applicantDept: '数据治理部', nodeName: '目录委员会审批', waitingHours: 7, assets: ['交易域/营销活动'], securityLevel: 'S2', permissionType: '新增目录', expireDate: '长期', directory: '交易域/营销活动', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '目录编辑审批_统一版', matchedRoute: '新增目录审批', reason: '新增营销活动目录，用于承接活动交易明细、活动指标和投放报表。', subOrderNo: 'SUB-20260610-009-01', instanceCode: 'DIR-INS-00021', createdAt: '2026-06-10 13:10:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'directory-approved', ticketType: '目录编辑审批', status: 'approved', applicant: '唐治理', applicantDept: '数据治理部', nodeName: '目录委员会审批', waitingHours: 4, assets: ['用户域/画像/标签体系'], securityLevel: 'S2', permissionType: '改名目录', expireDate: '长期', directory: '用户域/画像/标签体系', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '目录编辑审批_统一版', matchedRoute: '目录结构调整审批', reason: '将用户标签目录改名为标签体系，匹配新的资产分类口径。', subOrderNo: 'SUB-20260609-024-01', instanceCode: 'DIR-INS-00020', createdAt: '2026-06-09 10:20:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'directory-rejected', ticketType: '目录编辑审批', status: 'rejected', applicant: '朱运营', applicantDept: '运营增长部', nodeName: '目录委员会审批', waitingHours: 16, assets: ['运营域/临时分析'], securityLevel: 'S1', permissionType: '新增目录', expireDate: '长期', directory: '运营域/临时分析', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '目录编辑审批_统一版', matchedRoute: '新增目录审批', reason: '申请新增临时分析目录承载运营活动临时报表。', subOrderNo: 'SUB-20260608-025-01', instanceCode: 'DIR-INS-00019', createdAt: '2026-06-08 18:00:00', effectStatus: 'not_effective', timelineComment: '目录命名过宽，建议归入已有活动分析目录。' }),
+  createApprovalScenario({ id: 'directory-cancelled', ticketType: '目录编辑审批', status: 'cancelled', applicant: '韩治理', applicantDept: '数据治理部', nodeName: '申请人', waitingHours: 1, assets: ['供应链/库存/临时'], securityLevel: 'S2', permissionType: '删除目录', expireDate: '长期', directory: '供应链/库存/临时', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '目录编辑审批_统一版', matchedRoute: '目录结构调整审批', reason: '临时库存目录仍有资源未迁移，撤回删除申请。', subOrderNo: 'SUB-20260607-026-01', instanceCode: 'DIR-INS-00018', createdAt: '2026-06-07 09:55:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'handover-approving', ticketType: '负责人交接', status: 'approving', applicant: '张工', applicantDept: '技术部', nodeName: '接收人确认', waitingHours: 5, assets: ['api_payment_query'], securityLevel: 'S2', permissionType: '负责人交接', expireDate: '长期', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '负责人交接审批_接收人确认', matchedRoute: '接收人确认（兜底）', reason: '原负责人张工转岗，支付查询接口交接给王工维护。', subOrderNo: 'SUB-20260610-010-01', instanceCode: 'OWN-INS-00061', createdAt: '2026-06-10 14:25:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'handover-approved', ticketType: '负责人交接', status: 'approved', applicant: '李经理', applicantDept: '供应链事业部', nodeName: '接收人确认', waitingHours: 3, assets: ['dim_merchant_info'], securityLevel: 'S3', permissionType: '负责人交接', expireDate: '长期', directory: '供应链/库存/库存明细', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '负责人交接审批_接收人确认', matchedRoute: '接收人确认（兜底）', reason: '商户信息维表负责人从李经理变更为赵经理。', subOrderNo: 'SUB-20260609-027-01', instanceCode: 'OWN-INS-00060', createdAt: '2026-06-09 11:35:00', effectStatus: 'effective' }),
+  createApprovalScenario({ id: 'handover-rejected', ticketType: '负责人交接', status: 'rejected', applicant: '沈分析', applicantDept: '财务管理部', nodeName: '接收人确认', waitingHours: 14, assets: ['rpt_finance_monthly'], securityLevel: 'S3', permissionType: '负责人交接', expireDate: '长期', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '负责人交接审批_接收人确认', matchedRoute: '接收人确认（兜底）', reason: '金融月度报表负责人计划从沈分析交接给陈财务。', subOrderNo: 'SUB-20260608-028-01', instanceCode: 'OWN-INS-00059', createdAt: '2026-06-08 09:05:00', effectStatus: 'not_effective', timelineComment: '接收人暂未完成报表口径交接，拒绝本次交接。' }),
+  createApprovalScenario({ id: 'handover-cancelled', ticketType: '负责人交接', status: 'cancelled', applicant: '陆产品', applicantDept: '运营增长部', nodeName: '申请人', waitingHours: 1, assets: ['metric_campaign_roi'], securityLevel: 'S2', permissionType: '负责人交接', expireDate: '长期', directory: '财务域/指标/核心', sourceType: 'metric_platform', sourceSystem: '指标平台', matchedFlow: '负责人交接审批_接收人确认', matchedRoute: '接收人确认（兜底）', reason: '活动 ROI 指标负责人暂不调整，撤回交接申请。', subOrderNo: 'SUB-20260607-029-01', instanceCode: 'OWN-INS-00058', createdAt: '2026-06-07 12:10:00', effectStatus: 'not_effective' }),
+
+  createApprovalScenario({ id: 'lineage-approving', ticketType: '血缘修正', status: 'approving', applicant: '李治理', applicantDept: '数据治理部', nodeName: '治理负责人审批', waitingHours: 2, assets: ['dwd_order_detail -> rpt_gmv_daily'], securityLevel: 'S2', permissionType: '血缘修正', expireDate: '长期', directory: '交易域/订单/订单明细', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '血缘修正审批_治理版', matchedRoute: '数仓血缘治理审批', reason: '补齐订单明细到 GMV 日报的字段级血缘映射。', subOrderNo: 'SUB-20260610-005-01', instanceCode: 'LIN-INS-00121', createdAt: '2026-06-10 11:10:00', effectStatus: 'not_effective', lineageApproval: { objectId: 'rpt_gmv_daily', objectName: 'rpt_gmv_daily', objectDisplay: 'GMV 日报', correctionMode: 'manual', effectMode: 'incremental', riskConfirmed: true, initStats: { add: 1, delete: 0, keep: 4 }, changes: [{ id: 'lineage-change-1', kind: 'field', action: 'add', direction: 'upstream', sourceId: 'dwd_order_detail', sourceName: 'dwd_order_detail', sourceField: 'pay_amount', targetId: 'rpt_gmv_daily', targetName: 'rpt_gmv_daily', targetField: 'gmv_amount', reason: '补齐 GMV 统计字段映射' }] } }),
+  createApprovalScenario({ id: 'lineage-approved', ticketType: '血缘修正', status: 'approved', applicant: '周治理', applicantDept: '数据治理部', nodeName: '治理负责人审批', waitingHours: 6, assets: ['ods_trade_src -> dwd_trade_order'], securityLevel: 'S3', permissionType: '血缘修正', expireDate: '长期', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '血缘修正审批_治理版', matchedRoute: '数仓血缘治理审批', reason: '数据仓库重构后，上游来源表从 ods_trade_src 修正为 ods_trade_v2。', subOrderNo: 'SUB-20260609-030-01', instanceCode: 'LIN-INS-00120', createdAt: '2026-06-09 15:00:00', effectStatus: 'effective', lineageApproval: { objectId: 'dwd_trade_order', objectName: 'dwd_trade_order', objectDisplay: '交易订单宽表', correctionMode: 'manual', effectMode: 'incremental', riskConfirmed: true, initStats: { add: 1, delete: 1, keep: 6 }, changes: [{ id: 'lineage-change-2', kind: 'relation', action: 'delete', direction: 'upstream', sourceId: 'ods_trade_src', sourceName: 'ods_trade_src', targetId: 'dwd_trade_order', targetName: 'dwd_trade_order', reason: '旧来源表已下线' }, { id: 'lineage-change-3', kind: 'relation', action: 'add', direction: 'upstream', sourceId: 'ods_trade_v2', sourceName: 'ods_trade_v2', targetId: 'dwd_trade_order', targetName: 'dwd_trade_order', reason: '新增真实来源表' }] } }),
+  createApprovalScenario({ id: 'lineage-rejected', ticketType: '血缘修正', status: 'rejected', applicant: '郑报表', applicantDept: '财务管理部', nodeName: '治理负责人审批', waitingHours: 11, assets: ['rpt_revenue_summary'], securityLevel: 'S3', permissionType: '血缘修正', expireDate: '长期', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '血缘修正审批_治理版', matchedRoute: '标准血缘修正（兜底）', reason: '报表底层表结构变更，需要更新营收汇总报表血缘链路。', subOrderNo: 'SUB-20260608-031-01', instanceCode: 'LIN-INS-00119', createdAt: '2026-06-08 13:00:00', effectStatus: 'not_effective', timelineComment: '缺少字段级映射说明，暂不通过。', lineageApproval: { objectId: 'rpt_revenue_summary', objectName: 'rpt_revenue_summary', objectDisplay: '营收汇总报表', correctionMode: 'manual', effectMode: 'incremental', riskConfirmed: true, initStats: { add: 1, delete: 0, keep: 3 }, changes: [{ id: 'lineage-change-4', kind: 'relation', action: 'add', direction: 'upstream', sourceId: 'dws_revenue_day', sourceName: 'dws_revenue_day', targetId: 'rpt_revenue_summary', targetName: 'rpt_revenue_summary', reason: '补充日报来源' }] } }),
+  createApprovalScenario({ id: 'lineage-cancelled', ticketType: '血缘修正', status: 'cancelled', applicant: '吴治理', applicantDept: '数据治理部', nodeName: '申请人', waitingHours: 1, assets: ['dim_product_info'], securityLevel: 'S2', permissionType: '初始化血缘', expireDate: '长期', directory: '商品域/商品基础信息', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '血缘修正审批_治理版', matchedRoute: '标准血缘修正（兜底）', reason: '初始化商品基础信息表血缘前发现来源清单不完整，撤回申请。', subOrderNo: 'SUB-20260607-032-01', instanceCode: 'LIN-INS-00118', createdAt: '2026-06-07 10:40:00', effectStatus: 'not_effective', lineageApproval: { objectId: 'dim_product_info', objectName: 'dim_product_info', objectDisplay: '商品基础信息表', correctionMode: 'initialize', effectMode: 'full_rebuild', riskConfirmed: true, initStats: { add: 0, delete: 0, keep: 0 }, changes: [] } }),
 ];
 
-export const initialPendingTasks: PendingTask[] = [
-  { id: 'task-001', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'CTO 审批', waitingHours: 26, assets: ['dwd_trade_order', 'dwd_trade_payment'], securityLevel: 'S4', permissionType: '只读', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260609-001-01', instanceCode: 'PER-INS-00931', createdAt: '2026-06-09 14:26:00', ticketType: '权限申请' },
-  { id: 'task-002', applicant: '陈运营', applicantDept: '运营增长部', nodeName: '资源负责人审批', waitingHours: 4, assets: ['ads_user_tag'], securityLevel: 'S3', permissionType: '只读', directory: '用户域/画像/用户标签', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '用于本周活动用户标签圈选。', subOrderNo: 'SUB-20260610-004-01', instanceCode: 'PER-INS-00988', createdAt: '2026-06-10 09:40:00', ticketType: '权限申请' },
-  { id: 'task-003', applicant: '李治理', applicantDept: '数据治理部', nodeName: '治理负责人审批', waitingHours: 2, assets: ['dwd_order_detail -> rpt_gmv_daily'], securityLevel: 'S2', permissionType: '血缘修正', directory: '交易域/订单/订单明细', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '血缘修正审批_治理版', matchedRoute: '数仓血缘治理审批', reason: '补齐订单明细到 GMV 日报的字段级血缘映射。', subOrderNo: 'SUB-20260610-005-01', instanceCode: 'LIN-INS-00121', createdAt: '2026-06-10 11:10:00', ticketType: '血缘修正' },
-  { id: 'task-004', applicant: '张开发', applicantDept: '技术部', nodeName: '目录负责人审批', waitingHours: 8, assets: ['dim_product_info'], securityLevel: 'S3', permissionType: '目录修改', directory: '商品域/商品基础信息', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '目录修改审批', matchedRoute: '跨域目录迁移', reason: '商品基础信息表从商品域迁移至公共维度域。', subOrderNo: 'SUB-20260610-006-01', instanceCode: 'CAT-INS-00089', createdAt: '2026-06-10 10:30:00', ticketType: '目录修改' },
-  { id: 'task-005', applicant: '王运维', applicantDept: '运维部', nodeName: 'CTO 审批', waitingHours: 48, assets: ['dwd_trade_order'], securityLevel: 'S4', permissionType: '下架', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '下架审批_高安全等级版', matchedRoute: '高安全等级下架审批', reason: '该表已下线，需从正式目录移除并归档。', subOrderNo: 'SUB-20260610-007-01', instanceCode: 'UNL-INS-00056', createdAt: '2026-06-10 08:00:00', ticketType: '下架审批' },
-];
+export const initialPendingTasks: PendingTask[] = approvalScenarios
+  .filter(scenario => scenario.status === 'approving')
+  .map(createPendingTask);
+
+const scenarioStatuses = ['approving', 'approved', 'rejected', 'cancelled'] as const;
+
+export const initialBatches: ApprovalBatch[] = ticketTypes.flatMap(ticketType =>
+  scenarioStatuses.map(status =>
+    createApprovalBatch(
+      ticketType,
+      approvalScenarios.filter(scenario => scenario.ticketType === ticketType && scenario.status === status),
+      `${ticketType}-${status}`,
+    ),
+  ),
+);
 
 export function statusLabel(status: ApprovalStatus) {
   return ({ pending_submit: '待提交', approving: '审批中', approved: '已通过', rejected: '已拒绝', cancelled: '已取消', sync_error: '同步异常' } as Record<ApprovalStatus, string>)[status];

@@ -37,6 +37,12 @@ describe('approval mock data coverage', () => {
     }
   });
 
+  it('projects submitted batches with every major status available for filters', () => {
+    for (const status of statuses) {
+      expect(initialBatches.some(batch => batch.status === status)).toBe(true);
+    }
+  });
+
   it('keeps pending tasks as active approval work only', () => {
     expect(initialPendingTasks.every(task => task.nodeName.length > 0)).toBe(true);
     expect(initialPendingTasks.every(task => task.waitingHours > 0)).toBe(true);
