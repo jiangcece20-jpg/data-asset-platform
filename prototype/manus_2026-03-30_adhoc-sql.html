@@ -7462,13 +7462,26 @@ function renderDetailLogPanel(tab) {
     `;
   }
 
-  return MOCK_DETAIL_LOGS.lineage.map(item => `
-    <div class="detail-log-card">
-      <div class="detail-log-card-title">${item.action}</div>
-      <div class="detail-log-card-meta">${item.operator} · ${item.time}</div>
-      <div class="detail-log-card-desc">${item.reason}</div>
-    </div>
-  `).join('');
+  return MOCK_DETAIL_LOGS.lineage.map(item => {
+    const statusMap = {
+      approving: ['#fff7e6', '#d46b08', '审批中'],
+      approved: ['#f6ffed', '#389e0d', '已通过'],
+      rejected: ['#fff1f0', '#cf1322', '已拒绝'],
+      withdrawn: ['#f5f5f5', '#595959', '已撤回']
+    };
+    const st = statusMap[item.approvalStatus] || null;
+    return `
+      <div class="detail-log-card">
+        <div class="detail-log-card-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>${item.action}</span>
+          ${st ? `<span style="background:${st[0]};color:${st[1]};padding:2px 8px;border-radius:4px;font-size:12px;">${st[2]}</span>` : ''}
+        </div>
+        <div class="detail-log-card-meta">${item.operator} · ${item.time}${item.approvalNo ? ` · 审批单号：${item.approvalNo}` : ''}</div>
+        ${item.summary ? `<div style="margin-top:8px;font-size:12px;color:var(--gray-700);">修正摘要：${item.summary}</div>` : ''}
+        <div class="detail-log-card-desc">${item.reason}${item.rejectReason ? `；拒绝原因：${item.rejectReason}` : ''}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderDetailLogsTab() {
@@ -14967,6 +14980,10 @@ function toggleDetailFavorite() {
 let leCurrentTab = 'table';
 let leSelectedIds = new Set();
 let leFieldSelectedIds = new Set();
+const LE_TABLE_NODE_TYPES = ['table', 'view', 'api'];
+const LE_ENTITY_NODE_TYPES = ['metric', 'label'];
+
+let MOCK_LINEAGE_APPROVALS = [];
 
 // Mock: table-level lineage relations for current detail resource
 let MOCK_LE_TABLE_RELATIONS = [
@@ -14993,10 +15010,163 @@ let MOCK_LE_FIELD_RELATIONS = [
   { id:'lf9', dir:'upstream', upResource:'ods_order_raw', upField:'raw_data', downResource:'dwd_order_detail', downField:'order_status', source:'auto', status:'excluded' },
 ];
 
+function leGetSubjectId() {
+  return currentDetailId || lnCenterNodeId || 'dwd_order_detail';
+}
+
+function leGetSubjectNode() {
+  const id = leGetSubjectId();
+  return LN_NODES_DB[id] || { id, name:id, display:id, type:'table', catalog:'交易域/订单/订单明细' };
+}
+
+function leIsTableNode(type) {
+  return LE_TABLE_NODE_TYPES.includes(type);
+}
+
+function leIsEntityNode(type) {
+  return LE_ENTITY_NODE_TYPES.includes(type);
+}
+
+function leTypeLabel(type) {
+  return ({table:'表', api:'API', report:'报表', metric:'指标', label:'标签', view:'视图'}[type] || type);
+}
+
+function leNowText() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function leGetActiveApproval() {
+  const subjectId = leGetSubjectId();
+  return MOCK_LINEAGE_APPROVALS.find(item => item.objectId === subjectId && item.status === 'approving');
+}
+
+function leApprovalStatusLabel(status) {
+  return ({approving:'审批中', approved:'已通过', rejected:'已拒绝', withdrawn:'已撤回'}[status] || status);
+}
+
+function leGetPendingRelations() {
+  return {
+    tables: MOCK_LE_TABLE_RELATIONS.filter(r => r.pendingStatus),
+    fields: MOCK_LE_FIELD_RELATIONS.filter(r => r.pendingStatus)
+  };
+}
+
+function leBuildPendingSummary() {
+  const pending = leGetPendingRelations();
+  const tableAdds = pending.tables.filter(r => r.pendingStatus === 'pending-add');
+  const tableDeletes = pending.tables.filter(r => r.pendingStatus === 'pending-delete');
+  const fieldAdds = pending.fields.filter(r => r.pendingStatus === 'pending-add');
+  const fieldDeletes = pending.fields.filter(r => r.pendingStatus === 'pending-delete');
+  return {
+    total: pending.tables.length + pending.fields.length,
+    addUpstream: tableAdds.filter(r => r.dir === 'upstream').length,
+    addDownstream: tableAdds.filter(r => r.dir === 'downstream').length,
+    deleteUpstream: tableDeletes.filter(r => r.dir === 'upstream').length,
+    deleteDownstream: tableDeletes.filter(r => r.dir === 'downstream').length,
+    fieldFix: fieldAdds.length + fieldDeletes.length
+  };
+}
+
+function leSummaryText(summary) {
+  return '新增上游 ' + summary.addUpstream + '、新增下游 ' + summary.addDownstream +
+    '、删除上游 ' + summary.deleteUpstream + '、删除下游 ' + summary.deleteDownstream +
+    '、字段映射修正 ' + summary.fieldFix;
+}
+
+function leBuildApprovalJudgment(summary) {
+  const hasDelete = summary.deleteUpstream > 0 || summary.deleteDownstream > 0;
+  const parts = [];
+  if (hasDelete) {
+    parts.push('包含删除生效关系，请重点核验影响');
+  } else {
+    parts.push('本次不删除当前生效关系');
+  }
+  if (summary.addUpstream > 0 || summary.addDownstream > 0) {
+    parts.push('新增关系审批通过后才会进入当前血缘图');
+  }
+  if (summary.fieldFix > 0) {
+    parts.push('字段映射需重点核验');
+  }
+  if (parts.length === 1) {
+    parts.push('审批通过前不会改变当前血缘图');
+  }
+  return parts.join('；') + '。';
+}
+
+function leChangeGroupHint(type, count) {
+  if (type === 'addUpstream') return count > 0 ? '补齐来源依赖' : '无新增来源';
+  if (type === 'addDownstream') return count > 0 ? '新增消费链路' : '无消费扩散';
+  if (type === 'delete') return count > 0 ? '需核验影响范围' : '不影响现有链路';
+  if (type === 'field') return count > 0 ? '需重点核验' : '无字段映射变更';
+  return '';
+}
+
+function leRenderChangeGroupCards(summary) {
+  const deleteTotal = summary.deleteUpstream + summary.deleteDownstream;
+  const cards = [
+    { title: '新增上游', value: summary.addUpstream, hint: leChangeGroupHint('addUpstream', summary.addUpstream), color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+    { title: '新增下游', value: summary.addDownstream, hint: leChangeGroupHint('addDownstream', summary.addDownstream), color: '#0f766e', bg: '#f0fdfa', border: '#99f6e4' },
+    { title: '删除关系', value: deleteTotal, hint: leChangeGroupHint('delete', deleteTotal), color: deleteTotal > 0 ? '#d46b08' : '#374151', bg: deleteTotal > 0 ? '#fff7e6' : '#ffffff', border: deleteTotal > 0 ? '#ffd591' : 'var(--gray-200)' },
+    { title: '字段映射', value: summary.fieldFix, hint: leChangeGroupHint('field', summary.fieldFix), color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' }
+  ];
+  return '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">' +
+    cards.map(card =>
+      '<div style="border:1px solid '+card.border+';background:'+card.bg+';border-radius:8px;padding:10px;">' +
+        '<div style="font-size:12px;color:'+card.color+';">'+card.title+'</div>' +
+        '<div style="font-size:22px;font-weight:800;color:'+card.color+';line-height:1.3;">'+card.value+'</div>' +
+        '<div style="font-size:12px;color:var(--gray-500);">'+card.hint+'</div>' +
+      '</div>'
+    ).join('') +
+  '</div>';
+}
+
+function leRenderApprovalBanner() {
+  const banner = document.getElementById('le-approval-banner');
+  if (!banner) return;
+  const active = leGetActiveApproval();
+  if (active) {
+    banner.style.display = '';
+    banner.innerHTML =
+      '<div style="padding:10px 12px;background:#fff7e6;border:1px solid #ffd591;border-radius:8px;color:#8c4a00;font-size:12px;line-height:1.7;">' +
+        '<div style="font-weight:600;">当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。</div>' +
+        '<div>审批单号：' + active.approvalNo + ' · ' + leSummaryText(active.summary) + '</div>' +
+        '<div style="margin-top:6px;display:flex;gap:8px;">' +
+          '<button class="btn btn-default btn-sm" onclick="viewLineageApprovalDetail()">查看审批详情</button>' +
+          '<button class="btn btn-default btn-sm" style="color:#ff4d4f;border-color:#ff4d4f;" onclick="withdrawLineageApproval()">撤回申请</button>' +
+        '</div>' +
+      '</div>';
+  } else {
+    banner.style.display = '';
+    banner.innerHTML =
+      '<div style="padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;color:#237804;font-size:12px;">' +
+        '本次修正提交审批后生效，审批通过前不会改变当前血缘图。' +
+      '</div>';
+  }
+}
+
+function leSetEditControls() {
+  const blocked = !!leGetActiveApproval();
+  ['le-add-btn', 'le-batch-delete-btn', 'le-init-btn', 'le-submit-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (id === 'le-batch-delete-btn' && !blocked) return;
+    btn.disabled = blocked || (id === 'le-submit-btn' && countLePendingChanges() === 0);
+    if (blocked) {
+      btn.style.opacity = '0.45';
+      btn.style.pointerEvents = 'none';
+    } else {
+      btn.style.opacity = '';
+      btn.style.pointerEvents = '';
+    }
+  });
+}
+
 function openLineageEditPanel() {
-  const node = LN_NODES_DB[currentDetailId] || { name: currentDetailId, display: '', type:'table' };
+  const node = leGetSubjectNode();
   const title = document.getElementById('lineage-edit-panel-title');
-  if (title) title.textContent = '血缘关系管理 — ' + (node.display || node.name || currentDetailId);
+  if (title) title.textContent = '血缘关系管理 — ' + (node.display || node.name || leGetSubjectId());
   leSelectedIds.clear();
   leFieldSelectedIds.clear();
   const isMetricOrLabel = node.type === 'metric' || node.type === 'label';
@@ -15004,6 +15174,8 @@ function openLineageEditPanel() {
   if (tabTable) tabTable.style.display = isMetricOrLabel ? 'none' : '';
   leCurrentTab = isMetricOrLabel ? 'field' : 'table';
   switchLineageEditPanelTab(leCurrentTab);
+  leRenderApprovalBanner();
+  updateLeSubmitBtn();
   openModal('modal-lineage-edit-panel');
 }
 
@@ -15046,7 +15218,7 @@ function renderLineageEditList() {
       if (kwL && !r.resource.toLowerCase().includes(kwL) && !(r.resDisplay||'').toLowerCase().includes(kwL)) return false;
       return true;
     });
-    const typeLabel = t => ({table:'表',api:'API',report:'报表',metric:'指标',label:'标签',view:'视图'}[t]||t);
+    const blocked = !!leGetActiveApproval();
     tbody.innerHTML = data.length === 0
       ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray-400);">暂无数据</td></tr>'
       : data.map(r => {
@@ -15068,7 +15240,9 @@ function renderLineageEditList() {
           statusTag = '<span style="color:#52c41a;font-size:11px;">有效</span>';
         }
         let actionBtn = '';
-        if (isPendingDelete) {
+        if (blocked) {
+          actionBtn = '<button class="btn btn-link btn-sm" disabled style="color:var(--gray-400);">审批中</button>';
+        } else if (isPendingDelete) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'table\')">撤销</button>';
         } else if (isPendingAdd) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leUndoAdd(\''+r.id+'\',\'table\')">撤销</button>';
@@ -15084,7 +15258,7 @@ function renderLineageEditList() {
           '<td><input type="checkbox" '+checked+' onchange="leToggleRow(\''+r.id+'\',this,\'table\')" /></td>' +
           '<td><span style="font-size:11px;color:'+(r.dir==='upstream'?'#722ed1':'var(--primary)')+';">'+(r.dir==='upstream'?'上游':'下游')+'</span></td>' +
           '<td style="font-weight:500;">'+r.resource+'<div style="font-size:11px;color:var(--gray-400);font-weight:400;text-decoration:none;">'+(r.resDisplay||'')+'</div></td>' +
-          '<td><span class="tag tag-gray" style="white-space:nowrap;">'+typeLabel(r.type)+'</span></td>' +
+          '<td><span class="tag tag-gray" style="white-space:nowrap;">'+leTypeLabel(r.type)+'</span></td>' +
           '<td>'+srcTag+'</td>' +
           '<td>'+statusTag+'</td>' +
           '<td>'+actionBtn+'</td>' +
@@ -15101,6 +15275,7 @@ function renderLineageEditList() {
       if (kwL && !r.upResource.toLowerCase().includes(kwL) && !r.downResource.toLowerCase().includes(kwL) && !r.upField.toLowerCase().includes(kwL) && !r.downField.toLowerCase().includes(kwL)) return false;
       return true;
     });
+    const blocked = !!leGetActiveApproval();
     tbody.innerHTML = data.length === 0
       ? '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray-400);">暂无数据</td></tr>'
       : data.map(r => {
@@ -15122,7 +15297,9 @@ function renderLineageEditList() {
           statusTag = '<span style="color:#52c41a;font-size:11px;">有效</span>';
         }
         let actionBtn = '';
-        if (isPendingDelete) {
+        if (blocked) {
+          actionBtn = '<button class="btn btn-link btn-sm" disabled style="color:var(--gray-400);">审批中</button>';
+        } else if (isPendingDelete) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#52c41a;" onclick="leRestore(\''+r.id+'\',\'field\')">撤销</button>';
         } else if (isPendingAdd) {
           actionBtn = '<button class="btn btn-link btn-sm" style="color:#ff4d4f;" onclick="leUndoAdd(\''+r.id+'\',\'field\')">撤销</button>';
@@ -15147,6 +15324,8 @@ function renderLineageEditList() {
       }).join('');
     leUpdateBatchBtn();
   }
+  leRenderApprovalBanner();
+  leSetEditControls();
 }
 
 function leToggleRow(id, cb, type) {
@@ -15171,13 +15350,22 @@ function leFieldToggleSelectAll(cb) {
 function leUpdateBatchBtn() {
   const btn = document.getElementById('le-batch-delete-btn');
   const n = leCurrentTab === 'table' ? leSelectedIds.size : leFieldSelectedIds.size;
-  if (btn) { btn.style.opacity = n > 0 ? '1' : '0.4'; btn.style.pointerEvents = n > 0 ? 'auto' : 'none'; }
+  if (btn) {
+    const blocked = !!leGetActiveApproval();
+    btn.disabled = blocked || n === 0;
+    btn.style.opacity = !blocked && n > 0 ? '1' : '0.4';
+    btn.style.pointerEvents = !blocked && n > 0 ? 'auto' : 'none';
+  }
 }
 
 // Exclude (auto -> excluded)
 // ===== 待删除/待新增 pending 状态管理 =====
 // 排除/删除 → 标记为待删除（不真删）
 function leExclude(id, type) {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   const arr = type === 'table' ? MOCK_LE_TABLE_RELATIONS : MOCK_LE_FIELD_RELATIONS;
   const item = arr.find(r => r.id === id);
   if (item) {
@@ -15192,6 +15380,10 @@ function leDelete(id, type) {
 }
 // 恢复（撤销待删除）
 function leRestore(id, type) {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   const arr = type === 'table' ? MOCK_LE_TABLE_RELATIONS : MOCK_LE_FIELD_RELATIONS;
   const item = arr.find(r => r.id === id);
   if (item) {
@@ -15206,6 +15398,10 @@ function leRestore(id, type) {
 }
 // 撤销待新增（直接移除）
 function leUndoAdd(id, type) {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   if (type === 'table') {
     const idx = MOCK_LE_TABLE_RELATIONS.findIndex(r => r.id === id);
     if (idx >= 0) MOCK_LE_TABLE_RELATIONS.splice(idx, 1);
@@ -15251,11 +15447,17 @@ function updateLeSubmitBtn() {
   const btn = document.getElementById('le-submit-btn');
   if (!btn) return;
   const n = countLePendingChanges();
-  btn.disabled = n === 0;
+  const blocked = !!leGetActiveApproval();
+  btn.disabled = blocked || n === 0;
   btn.textContent = n > 0 ? '提交修正（' + n + ' 项变更）' : '提交修正';
-  btn.className = n > 0 ? 'btn btn-primary' : 'btn btn-default';
+  btn.className = !blocked && n > 0 ? 'btn btn-primary' : 'btn btn-default';
+  leSetEditControls();
 }
 function leInitLineage() {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   if (!confirm('将触发系统重新采集当前资源的血缘关系。\\n\\n现有的手动添加关系将保留，自动采集关系将被刷新。\\n\\n确认执行？')) return;
   // Remove all auto + excluded, keep manual
   for (let i = MOCK_LE_TABLE_RELATIONS.length - 1; i >= 0; i--) {
@@ -15284,6 +15486,10 @@ function leInitLineage() {
 
 // Add lineage form
 function openLineageAddForm() {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   const typeSel = document.getElementById('le-add-type');
   const targetSel = document.getElementById('le-add-target');
   if (typeSel) typeSel.value = '';
@@ -15291,17 +15497,7 @@ function openLineageAddForm() {
   document.getElementById('le-add-field-area').style.display = 'none';
   document.getElementById('le-add-reason').value = '';
   document.querySelectorAll('input[name=le-add-dir]')[0].checked = true;
-  // 指标/标签：限制资源类型只能选表
-  const currentNode = LN_NODES_DB[currentDetailId];
-  if (currentNode && (currentNode.type === 'metric' || currentNode.type === 'label')) {
-    if (typeSel) {
-      typeSel.value = 'table';
-      typeSel.disabled = true;
-      leAddTypeChanged();
-    }
-  } else {
-    if (typeSel) typeSel.disabled = false;
-  }
+  if (typeSel) typeSel.disabled = false;
   openModal('modal-lineage-add');
 }
 
@@ -15316,7 +15512,8 @@ function leAddTypeChanged() {
   }
   sel.innerHTML = '<option value="">请选择资源…</option>';
   Object.values(LN_NODES_DB).forEach(n => {
-    if (n.id === currentDetailId) return;
+    if (n.id === leGetSubjectId()) return;
+    if (n.type === 'report') return;
     if (n.type !== typeVal) return;
     sel.innerHTML += '<option value="'+n.id+'">'+n.name+' ('+n.display+')</option>';
   });
@@ -15329,15 +15526,17 @@ function leAddTargetChanged() {
   const modeA = document.getElementById('le-add-field-mode-a');
   const modeB = document.getElementById('le-add-field-mode-b');
   if (!targetId) { fieldArea.style.display = 'none'; return; }
-  fieldArea.style.display = '';
   const targetNode = LN_NODES_DB[targetId];
-  const currentNode = LN_NODES_DB[currentDetailId];
-  const isMetricOrLabel = (currentNode && (currentNode.type === 'metric' || currentNode.type === 'label')) || (targetNode && (targetNode.type === 'metric' || targetNode.type === 'label'));
-  if (isMetricOrLabel) {
+  const currentNode = leGetSubjectNode();
+  const isTableToTable = currentNode && targetNode && leIsTableNode(currentNode.type) && leIsTableNode(targetNode.type);
+  const isEntityToTable = currentNode && targetNode &&
+    ((leIsEntityNode(currentNode.type) && leIsTableNode(targetNode.type)) || (leIsTableNode(currentNode.type) && leIsEntityNode(targetNode.type)));
+  if (isEntityToTable) {
+    fieldArea.style.display = '';
     modeA.style.display = 'none';
     modeB.style.display = '';
     // Show table fields as checkboxes
-    const tableNode = (currentNode && currentNode.type === 'table') ? currentNode : targetNode;
+    const tableNode = leIsTableNode(currentNode.type) ? currentNode : targetNode;
     const container = document.getElementById('le-add-field-checkboxes');
     if (container && tableNode && tableNode.fields) {
       container.innerHTML = tableNode.fields.map(f =>
@@ -15349,11 +15548,16 @@ function leAddTargetChanged() {
         '</label>'
       ).join('');
     }
-  } else {
+  } else if (isTableToTable) {
+    fieldArea.style.display = '';
     modeA.style.display = '';
     modeB.style.display = 'none';
     document.getElementById('le-add-field-rows').innerHTML = '';
     leAddFieldRow();
+  } else {
+    fieldArea.style.display = 'none';
+    modeA.style.display = 'none';
+    modeB.style.display = 'none';
   }
 }
 
@@ -15363,7 +15567,7 @@ function leAddFieldRow() {
   if (!container) return;
   const targetId = document.getElementById('le-add-target').value;
   const targetNode = LN_NODES_DB[targetId];
-  const currentNode = LN_NODES_DB[currentDetailId];
+  const currentNode = leGetSubjectNode();
   const dir = document.querySelector('input[name=le-add-dir]:checked').value;
   const upNode = dir === 'upstream' ? targetNode : currentNode;
   const downNode = dir === 'upstream' ? currentNode : targetNode;
@@ -15386,7 +15590,7 @@ function leAddFieldRow() {
 function leAutoMatchFields() {
   const targetId = document.getElementById('le-add-target').value;
   const targetNode = LN_NODES_DB[targetId];
-  const currentNode = LN_NODES_DB[currentDetailId];
+  const currentNode = leGetSubjectNode();
   const dir = document.querySelector('input[name=le-add-dir]:checked').value;
   const upNode = dir === 'upstream' ? targetNode : currentNode;
   const downNode = dir === 'upstream' ? currentNode : targetNode;
@@ -15412,42 +15616,69 @@ function leAutoMatchFields() {
   if (container.children.length === 0) showNotification('info', '无匹配', '未找到同名字段');
 }
 
-function leSubmitAdd() {
+function leEntityFieldLabel(node) {
+  if (!node) return '(字段)';
+  const first = node.fields && node.fields[0] ? node.fields[0].name : '';
+  return first || (leIsEntityNode(node.type) ? '(' + leTypeLabel(node.type) + ')' : '(字段)');
+}
+
+function leBuildAddChangeSet() {
   const targetId = document.getElementById('le-add-target').value;
-  if (!targetId) { showNotification('warning', '请选择目标资源', ''); return; }
+  if (!targetId) { showNotification('warning', '请选择目标资源', ''); return null; }
   const dir = document.querySelector('input[name=le-add-dir]:checked').value;
   const targetNode = LN_NODES_DB[targetId];
-  const tl = {table:'表',api:'API',report:'报表',metric:'指标',label:'标签',view:'视图'}[targetNode.type]||targetNode.type;
+  const currentNode = leGetSubjectNode();
+  if (!targetNode) { showNotification('warning', '目标资源不存在', '请重新选择目标资源'); return null; }
+  if (targetNode.type === 'report') {
+    showNotification('warning', '暂不支持报表', '报表暂不作为可新增血缘目标');
+    return null;
+  }
 
-  // Add table-level relation
-  const newId = 'lt_m' + Date.now();
-  MOCK_LE_TABLE_RELATIONS.push({
-    id: newId, dir: dir, resource: targetNode.name, resDisplay: targetNode.display,
-    type: targetNode.type, source: 'manual', status: 'active', pendingStatus: 'pending-add'
-  });
+  const isTableToTable = leIsTableNode(currentNode.type) && leIsTableNode(targetNode.type);
+  const isEntityToTable = (leIsEntityNode(currentNode.type) && leIsTableNode(targetNode.type)) ||
+    (leIsTableNode(currentNode.type) && leIsEntityNode(targetNode.type));
+  const isEntityToEntity = leIsEntityNode(currentNode.type) && leIsEntityNode(targetNode.type);
+  const upNode = dir === 'upstream' ? targetNode : currentNode;
+  const downNode = dir === 'upstream' ? currentNode : targetNode;
+  const reason = (document.getElementById('le-add-reason') || {}).value || '';
+  const changeSetId = 'le_cs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const tableChange = {
+    id: 'lt_m' + Date.now(),
+    changeSetId,
+    dir,
+    resource: targetNode.name,
+    resDisplay: targetNode.display,
+    type: targetNode.type,
+    source: 'manual',
+    status: 'active',
+    pendingStatus: 'pending-add',
+    reason
+  };
+  const fieldChanges = [];
 
-  // Add field-level relations
-  const currentNode = LN_NODES_DB[currentDetailId];
-  const isMetricOrLabel = (currentNode && (currentNode.type === 'metric' || currentNode.type === 'label')) || (targetNode && (targetNode.type === 'metric' || targetNode.type === 'label'));
-  if (isMetricOrLabel) {
-    // 指标/标签：必须勾选至少一个字段
+  if (isEntityToTable) {
     const checks = document.querySelectorAll('#le-add-field-checkboxes input[type=checkbox]:checked');
     if (checks.length === 0) {
       showNotification('warning', '请选择字段', '指标/标签血缘必须关联至少一个字段');
-      return;
+      return null;
     }
+    const tableNode = leIsTableNode(upNode.type) ? upNode : downNode;
     checks.forEach(cb => {
-      MOCK_LE_FIELD_RELATIONS.push({
+      fieldChanges.push({
         id: 'lf_m' + Date.now() + Math.random().toString(36).slice(2,5),
+        changeSetId,
         dir: dir,
-        upResource: dir === 'upstream' ? targetNode.name : currentNode.name,
-        upField: cb.value,
-        downResource: dir === 'upstream' ? currentNode.name : targetNode.name,
-        downField: '(指标)',
-        source: 'manual', status: 'active', pendingStatus: 'pending-add'
+        upResource: upNode.name,
+        upField: upNode.id === tableNode.id ? cb.value : leEntityFieldLabel(upNode),
+        downResource: downNode.name,
+        downField: downNode.id === tableNode.id ? cb.value : leEntityFieldLabel(downNode),
+        source: 'manual',
+        status: 'active',
+        pendingStatus: 'pending-add',
+        reason
       });
     });
-  } else {
+  } else if (isTableToTable) {
     // 表-表血缘：必须至少有一行上下游字段都已选择
     const rows = document.querySelectorAll('#le-add-field-rows > div');
     const validRows = Array.from(rows).filter(row => {
@@ -15456,48 +15687,252 @@ function leSubmitAdd() {
     });
     if (validRows.length === 0) {
       showNotification('warning', '请配置字段映射', '表级血缘必须至少配置一条字段映射关系');
-      return;
+      return null;
     }
     validRows.forEach(row => {
       const selects = row.querySelectorAll('select');
       const upF = selects[0].value;
       const downF = selects[1].value;
-      const upNode = dir === 'upstream' ? targetNode : currentNode;
-      const downNode = dir === 'upstream' ? currentNode : targetNode;
-      MOCK_LE_FIELD_RELATIONS.push({
+      fieldChanges.push({
         id: 'lf_m' + Date.now() + Math.random().toString(36).slice(2,5),
+        changeSetId,
         dir: dir,
         upResource: upNode.name, upField: upF,
         downResource: downNode.name, downField: downF,
-        source: 'manual', status: 'active', pendingStatus: 'pending-add'
+        source: 'manual',
+        status: 'active',
+        pendingStatus: 'pending-add',
+        reason
       });
     });
+  } else if (!isEntityToEntity) {
+    showNotification('warning', '暂不支持该关系', leTypeLabel(currentNode.type) + ' 与 ' + leTypeLabel(targetNode.type) + ' 暂不能直接建立血缘');
+    return null;
   }
 
+  return { tableChange, fieldChanges, targetNode };
+}
+
+function leSubmitAdd() {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
+  const changeSet = leBuildAddChangeSet();
+  if (!changeSet) return;
+  MOCK_LE_TABLE_RELATIONS.push(changeSet.tableChange);
+  changeSet.fieldChanges.forEach(item => MOCK_LE_FIELD_RELATIONS.push(item));
   closeModal('modal-lineage-add');
   renderLineageEditList();
   updateLeSubmitBtn();
-  showNotification('info', '已添加至待提交列表', dir + ' 血缘关系：' + targetNode.name + '（提交后生效）');
+  showNotification('info', '已添加至待提交列表', changeSet.tableChange.dir + ' 血缘关系：' + changeSet.targetNode.name + '（提交审批后生效）');
 }
 
 function submitLineageEdit() {
+  if (leGetActiveApproval()) {
+    showNotification('warning', '血缘修正审批中', '当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。');
+    return;
+  }
   const n = countLePendingChanges();
   if (n === 0) {
     showNotification('info', '无变更', '没有待提交的血缘修正');
     return;
   }
-  // 提交后：pending-delete 的真正删除/排除，pending-add 的确认生效
+  openLineageSubmitConfirm();
+}
+
+function openLineageSubmitConfirm() {
+  const summary = leBuildPendingSummary();
+  const subject = leGetSubjectNode();
+  const body = document.getElementById('le-submit-summary');
+  if (body) {
+    const changes = leCollectApprovalChanges();
+    body.innerHTML =
+      '<div style="padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;color:#237804;font-size:12px;line-height:1.7;margin-bottom:14px;">' +
+        '<div style="font-weight:700;margin-bottom:2px;">审批判断</div>' +
+        '<div>' + leBuildApprovalJudgment(summary) + '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-bottom:14px;">' +
+        '<div style="border:1px solid var(--gray-200);border-radius:8px;padding:12px;">' +
+          '<div style="font-size:12px;color:var(--gray-500);margin-bottom:6px;">主体对象</div>' +
+          '<div style="font-weight:700;font-size:15px;">' + (subject.display || subject.name) + '</div>' +
+          '<div style="font-size:12px;color:var(--gray-500);margin-top:4px;">' + (subject.name || '-') + ' · ' + (subject.catalog || '未归属') + ' · S3</div>' +
+        '</div>' +
+        '<div style="border:1px solid var(--gray-200);border-radius:8px;padding:12px;">' +
+          '<div style="font-size:12px;color:var(--gray-500);margin-bottom:6px;">审批链</div>' +
+          '<div style="font-size:12px;line-height:1.7;">直接上级 → S4/S5 安全管理员 → S4/S5 数据管理员 → CTO</div>' +
+          '<div style="font-size:12px;color:var(--gray-500);margin-top:4px;">审批流程：血缘修正_统一版</div>' +
+        '</div>' +
+      '</div>' +
+      leRenderChangeGroupCards(summary) +
+      '<div style="border:1px solid var(--gray-200);border-radius:8px;margin-bottom:14px;overflow:hidden;">' +
+        '<div style="padding:10px 12px;background:var(--gray-50);font-weight:700;">变更明细核验</div>' +
+        '<div style="max-height:220px;overflow:auto;">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+            '<thead><tr style="background:#fff;color:var(--gray-500);text-align:left;">' +
+              '<th style="padding:8px;border-top:1px solid var(--gray-200);">类型</th>' +
+              '<th style="padding:8px;border-top:1px solid var(--gray-200);">方向</th>' +
+              '<th style="padding:8px;border-top:1px solid var(--gray-200);">关系</th>' +
+              '<th style="padding:8px;border-top:1px solid var(--gray-200);">字段映射</th>' +
+              '<th style="padding:8px;border-top:1px solid var(--gray-200);">原因</th>' +
+            '</tr></thead>' +
+            '<tbody>' + leRenderApprovalChangeRows(changes) + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>' +
+      '<div style="border:1px solid var(--gray-200);border-radius:8px;padding:10px;font-size:12px;line-height:1.7;color:var(--gray-600);">' +
+        '<div style="font-weight:700;color:var(--gray-800);margin-bottom:4px;">提交后状态</div>' +
+        '<div>生成血缘修正审批单；草稿冻结；审批通过后应用 change set；审批拒绝或撤回不应用 change set；撤回后可重新提交。</div>' +
+      '</div>';
+  }
+  const reason = document.getElementById('le-submit-reason');
+  if (reason) reason.value = '';
+  openModal('modal-lineage-submit-confirm');
+}
+
+function leRenderApprovalChangeRows(changes) {
+  if (!changes.length) {
+    return '<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--gray-400);">暂无变更明细</td></tr>';
+  }
+  return changes.map(change => {
+    const typeColor = change.type === '新增' ? '#1d4ed8' : '#d46b08';
+    const directionText = change.direction === 'upstream' ? '上游' : '下游';
+    const reasonText = change.reason || '未填写';
+    return '<tr>' +
+      '<td style="padding:8px;border-top:1px solid var(--gray-200);font-weight:700;color:'+typeColor+';">'+change.type+'</td>' +
+      '<td style="padding:8px;border-top:1px solid var(--gray-200);">'+directionText+'</td>' +
+      '<td style="padding:8px;border-top:1px solid var(--gray-200);">'+change.sourceNode+' → '+change.targetNode+'</td>' +
+      '<td style="padding:8px;border-top:1px solid var(--gray-200);">'+change.fieldMapping+'</td>' +
+      '<td style="padding:8px;border-top:1px solid var(--gray-200);">'+reasonText+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function leCollectApprovalChanges() {
+  const pending = leGetPendingRelations();
+  return pending.tables.concat(pending.fields).map(item => ({
+    id: item.id,
+    type: item.pendingStatus === 'pending-add' ? '新增' : '删除',
+    direction: item.dir,
+    sourceNode: item.upResource || (item.dir === 'upstream' ? item.resource : leGetSubjectNode().name),
+    targetNode: item.downResource || (item.dir === 'upstream' ? leGetSubjectNode().name : item.resource),
+    fieldMapping: item.upField && item.downField ? item.upField + ' → ' + item.downField : '-',
+    source: item.source === 'auto' ? '自动采集' : '手动添加',
+    originStatus: item._origStatus || item.status,
+    reason: item.reason || ''
+  }));
+}
+
+function confirmLineageSubmit() {
+  const summary = leBuildPendingSummary();
+  if (summary.total === 0) {
+    closeModal('modal-lineage-submit-confirm');
+    showNotification('info', '无变更', '没有待提交的血缘修正');
+    return;
+  }
+  const subject = leGetSubjectNode();
+  const reasonInput = document.getElementById('le-submit-reason');
+  const reason = (reasonInput && reasonInput.value ? reasonInput.value.trim() : '');
+  if (!reason) {
+    showNotification('warning', '请填写修正总原因', '审批人需要了解本次血缘修正的整体背景和依据');
+    if (reasonInput) reasonInput.focus();
+    return;
+  }
+  const approvalNo = 'LX-' + Date.now().toString().slice(-10);
+  const approval = {
+    id: 'lineage_ap_' + Date.now(),
+    approvalNo,
+    objectId: leGetSubjectId(),
+    objectName: subject.name,
+    objectDisplay: subject.display || subject.name,
+    applicant: '李四',
+    submittedAt: leNowText(),
+    reason,
+    securityLevel: 'S3',
+    catalog: subject.catalog || '交易域/订单/订单明细',
+    summary,
+    changes: leCollectApprovalChanges(),
+    status: 'approving',
+    feishuDefinition: '血缘修正_统一版',
+    feishuInstanceId: 'fs_' + Date.now(),
+    currentNode: '直接上级审批',
+    progress: ['提交申请', '直接上级审批']
+  };
+  MOCK_LINEAGE_APPROVALS.unshift(approval);
+  MOCK_DETAIL_LOGS.lineage.unshift({
+    time: approval.submittedAt,
+    operator: approval.applicant,
+    action: '提交血缘修正审批',
+    reason,
+    approvalStatus: 'approving',
+    approvalNo,
+    summary: leSummaryText(summary)
+  });
+  closeModal('modal-lineage-submit-confirm');
+  closeModal('modal-lineage-edit-panel');
+  showNotification('success', '血缘修正审批已提交（' + summary.total + ' 项变更）', '审批通过前不会改变当前血缘图，可在「操作记录 - 血缘修正」中查看进度');
+}
+
+function viewLineageApprovalDetail() {
+  const active = leGetActiveApproval();
+  if (!active) {
+    showNotification('info', '暂无审批中申请', '');
+    return;
+  }
+  alert(
+    '审批单号：' + active.approvalNo + '\n' +
+    '审批状态：' + leApprovalStatusLabel(active.status) + '\n' +
+    '主体对象：' + active.objectDisplay + '\n' +
+    '变更摘要：' + leSummaryText(active.summary) + '\n' +
+    '飞书实例：' + active.feishuInstanceId + '\n' +
+    '当前节点：' + active.currentNode
+  );
+}
+
+function withdrawLineageApproval() {
+  const active = leGetActiveApproval();
+  if (!active) return;
+  if (!confirm('确认撤回当前血缘修正审批？撤回后本次 change set 不会生效，可以重新调整后提交。')) return;
+  active.status = 'withdrawn';
+  active.withdrawnAt = leNowText();
+  MOCK_DETAIL_LOGS.lineage.unshift({
+    time: active.withdrawnAt,
+    operator: active.applicant,
+    action: '撤回血缘修正审批',
+    reason: '审批单 ' + active.approvalNo + ' 已撤回，未应用本次 change set。',
+    approvalStatus: 'withdrawn',
+    approvalNo: active.approvalNo,
+    summary: leSummaryText(active.summary)
+  });
+  leRenderApprovalBanner();
+  renderLineageEditList();
+  updateLeSubmitBtn();
+  showNotification('info', '审批已撤回', '该对象已释放，可重新提交血缘修正');
+}
+
+function mockApproveLineageApproval() {
+  const active = leGetActiveApproval();
+  if (!active) return;
+  active.status = 'approved';
+  active.approvedAt = leNowText();
   MOCK_LE_TABLE_RELATIONS.forEach(r => {
-    if (r.pendingStatus === 'pending-delete') { r.status = 'excluded'; }
+    if (r.pendingStatus === 'pending-delete') r.status = 'excluded';
     delete r.pendingStatus; delete r._origStatus;
   });
   MOCK_LE_FIELD_RELATIONS.forEach(r => {
-    if (r.pendingStatus === 'pending-delete') { r.status = 'excluded'; }
+    if (r.pendingStatus === 'pending-delete') r.status = 'excluded';
     delete r.pendingStatus; delete r._origStatus;
   });
-  // 移除已排除的（模拟审批通过后清理）
-  closeModal('modal-lineage-edit-panel');
-  showNotification('success', '修正申请已提交（' + n + ' 项变更）', '审批通过后生效，可在「操作记录 - 血缘修正」中查看进度');
+  MOCK_DETAIL_LOGS.lineage.unshift({
+    time: active.approvedAt,
+    operator: '审批系统',
+    action: '血缘修正审批通过',
+    reason: '审批单 ' + active.approvalNo + ' 已通过，change set 已应用到当前血缘。',
+    approvalStatus: 'approved',
+    approvalNo: active.approvalNo,
+    summary: leSummaryText(active.summary)
+  });
+  renderLineageEditList();
 }
 
 
@@ -16450,6 +16885,7 @@ function switchDiscoveryTab(tab, el) {
       <span class="modal-close" onclick="closeModal('modal-lineage-edit-panel')">&times;</span>
     </div>
     <div style="padding:0 24px;flex-shrink:0;">
+      <div id="le-approval-banner" style="margin-bottom:12px;"></div>
       <!-- Tabs -->
       <div style="display:flex;gap:0;border-bottom:2px solid var(--gray-100);margin-bottom:12px;">
         <div class="lineage-edit-tab active" id="le-tab-table" onclick="switchLineageEditPanelTab('table')" style="padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--primary);margin-bottom:-2px;color:var(--primary);">表级血缘</div>
@@ -16514,11 +16950,11 @@ function switchDiscoveryTab(tab, el) {
     <!-- Footer -->
     <div class="modal-footer" style="flex-shrink:0;display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary btn-sm" onclick="openLineageAddForm()">+ 添加血缘关系</button>
+        <button class="btn btn-primary btn-sm" id="le-add-btn" onclick="openLineageAddForm()">+ 添加血缘关系</button>
         <button class="btn btn-default btn-sm" id="le-batch-delete-btn" style="opacity:0.4;pointer-events:none;" onclick="leBatchDelete()">批量删除</button>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-default btn-sm" style="color:#ff4d4f;border-color:#ff4d4f;" onclick="leInitLineage()">初始化血缘</button>
+        <button class="btn btn-default btn-sm" id="le-init-btn" style="color:#ff4d4f;border-color:#ff4d4f;" onclick="leInitLineage()">初始化血缘</button>
         <button class="btn btn-default" id="le-submit-btn" disabled onclick="submitLineageEdit()">提交修正</button>
       </div>
     </div>
@@ -16538,10 +16974,10 @@ function switchDiscoveryTab(tab, el) {
         <label class="form-label required">方向</label>
         <div style="display:flex;gap:8px;">
           <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="le-add-dir" value="upstream" checked /> 添加上游
+            <input type="radio" name="le-add-dir" value="upstream" checked onchange="leAddTargetChanged()" /> 添加上游
           </label>
           <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;">
-            <input type="radio" name="le-add-dir" value="downstream" /> 添加下游
+            <input type="radio" name="le-add-dir" value="downstream" onchange="leAddTargetChanged()" /> 添加下游
           </label>
         </div>
       </div>
@@ -16552,7 +16988,6 @@ function switchDiscoveryTab(tab, el) {
           <option value="table">表</option>
           <option value="view">视图</option>
           <option value="api">API</option>
-          <option value="report">报表</option>
           <option value="metric">指标</option>
           <option value="label">标签</option>
         </select>
@@ -16566,7 +17001,7 @@ function switchDiscoveryTab(tab, el) {
       <!-- Step 2: field mapping (shown after target selected) -->
       <div id="le-add-field-area" style="display:none;">
         <div class="form-item">
-          <label class="form-label">字段映射（可选）</label>
+          <label class="form-label required">字段映射</label>
           <div id="le-add-field-mode-a" style="display:none;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
               <span style="font-size:12px;color:var(--gray-500);">逐行添加字段映射</span>
@@ -16589,6 +17024,30 @@ function switchDiscoveryTab(tab, el) {
     <div class="modal-footer" style="flex-shrink:0;">
       <button class="btn btn-default" onclick="closeModal('modal-lineage-add')">取消</button>
       <button class="btn btn-primary" onclick="leSubmitAdd()">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lineage Submit Confirm -->
+<div class="modal-overlay" id="modal-lineage-submit-confirm" style="z-index:10002;">
+  <div class="modal" style="width:620px;max-height:80vh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title">提交血缘修正审批</div>
+      <span class="modal-close" onclick="closeModal('modal-lineage-submit-confirm')">&times;</span>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
+      <div style="padding:10px 12px;background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;color:#237804;font-size:12px;margin-bottom:14px;">
+        本次修正将生成“血缘修正”审批单。审批通过前不会改变当前血缘图，拒绝或撤回均不应用 change set。
+      </div>
+      <div id="le-submit-summary" style="border:1px solid var(--gray-200);border-radius:8px;padding:12px;margin-bottom:14px;"></div>
+      <div class="form-item">
+        <label class="form-label required">修正总原因</label>
+        <textarea class="form-textarea" id="le-submit-reason" placeholder="请说明本次血缘修正的整体原因…" style="height:72px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0;">
+      <button class="btn btn-default" onclick="closeModal('modal-lineage-submit-confirm')">取消</button>
+      <button class="btn btn-primary" onclick="confirmLineageSubmit()">确认提交审批</button>
     </div>
   </div>
 </div>
