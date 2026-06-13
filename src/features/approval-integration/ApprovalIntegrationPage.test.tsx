@@ -208,6 +208,35 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(within(drawer).queryByRole('table', { name: '申请资产明细表' })).not.toBeInTheDocument();
   });
 
+  it('opens every pending approval type with a specialized judgment detail', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: /待我审批/ }));
+
+    const pendingDetailCases = [
+      ['SUB-20260609-001-01', '权限申请判断'],
+      ['SUB-20260610-008-01', '上架审批判断'],
+      ['SUB-20260610-007-01', '下架审批判断'],
+      ['SUB-20260610-006-01', '资源目录修改判断'],
+      ['SUB-20260610-009-01', '目录编辑审批判断'],
+      ['SUB-20260610-010-01', '负责人交接判断'],
+      ['SUB-20260610-005-01', '血缘变更详情'],
+    ] as const;
+
+    for (const [subOrderNo, detailHeading] of pendingDetailCases) {
+      await user.click(screen.getByRole('button', { name: `查看 ${subOrderNo}` }));
+
+      const drawer = screen.getByLabelText('待审批详情');
+      expect(within(drawer).getByRole('heading', { name: detailHeading })).toBeInTheDocument();
+      expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent(subOrderNo);
+      expect(within(drawer).queryByRole('table', { name: '申请信息表' })).not.toBeInTheDocument();
+      expect(within(drawer).queryByRole('table', { name: '申请资产明细表' })).not.toBeInTheDocument();
+
+      await user.click(within(drawer).getByRole('button', { name: '×' }));
+    }
+  });
+
   it('requires rejection comments and removes rejected pending tasks from the compact list', async () => {
     const user = userEvent.setup();
     render(<ApprovalIntegrationPage />);
