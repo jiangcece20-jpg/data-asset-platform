@@ -142,7 +142,205 @@ export type PendingTask = {
   instanceCode: string;
   createdAt: string;
   ticketType?: string;
+  lineageApproval?: {
+    objectId?: string;
+    objectName?: string;
+    objectDisplay?: string;
+    correctionMode?: 'manual' | 'initialize';
+    effectMode?: 'incremental' | 'full_rebuild';
+    riskConfirmed?: boolean;
+    initStats?: { add: number; delete: number; keep: number };
+    changes: Array<{
+      id: string;
+      kind: 'relation' | 'field';
+      action: 'add' | 'delete';
+      direction: 'upstream' | 'downstream';
+      sourceId: string;
+      sourceName: string;
+      targetId: string;
+      targetName: string;
+      sourceField?: string;
+      targetField?: string;
+      reason?: string;
+    }>;
+  };
 };
+
+type ScenarioStatus = 'approving' | 'approved' | 'rejected' | 'cancelled';
+
+type ApprovalScenario = {
+  id: string;
+  ticketType: string;
+  status: ScenarioStatus;
+  applicant: string;
+  applicantDept: string;
+  nodeName: string;
+  waitingHours: number;
+  assets: string[];
+  securityLevel: SecurityLevel;
+  permissionType: string;
+  expireDate: string;
+  directory: string;
+  sourceType: SourceType;
+  sourceSystem: SourceSystem;
+  matchedFlow: string;
+  matchedRoute: string;
+  reason: string;
+  subOrderNo: string;
+  instanceCode: string;
+  createdAt: string;
+  effectStatus: EffectStatus;
+  timelineComment?: string;
+  lineageApproval?: PendingTask['lineageApproval'];
+};
+
+function createApprovalScenario(overrides: ApprovalScenario): ApprovalScenario {
+  return overrides;
+}
+
+function createPendingTask(scenario: ApprovalScenario): PendingTask {
+  return {
+    id: `task-${scenario.id}`,
+    applicant: scenario.applicant,
+    applicantDept: scenario.applicantDept,
+    nodeName: scenario.nodeName,
+    waitingHours: scenario.waitingHours,
+    assets: scenario.assets,
+    securityLevel: scenario.securityLevel,
+    permissionType: scenario.permissionType,
+    directory: scenario.directory,
+    sourceType: scenario.sourceType,
+    sourceSystem: scenario.sourceSystem,
+    matchedFlow: scenario.matchedFlow,
+    matchedRoute: scenario.matchedRoute,
+    reason: scenario.reason,
+    subOrderNo: scenario.subOrderNo,
+    instanceCode: scenario.instanceCode,
+    createdAt: scenario.createdAt,
+    ticketType: scenario.ticketType,
+    lineageApproval: scenario.lineageApproval,
+  };
+}
+
+function createTimeline(scenario: ApprovalScenario): ApprovalInstance['timeline'] {
+  const submitted = {
+    action: `提交${scenario.ticketType}`,
+    operator: scenario.applicant,
+    time: scenario.createdAt,
+    status: 'system' as const,
+    comment: scenario.reason,
+  };
+
+  if (scenario.status === 'approving') {
+    return [
+      submitted,
+      {
+        action: scenario.nodeName,
+        operator: scenario.nodeName,
+        time: scenario.createdAt,
+        status: 'pending',
+        comment: scenario.timelineComment ?? '等待当前审批节点处理',
+      },
+    ];
+  }
+
+  if (scenario.status === 'approved') {
+    return [
+      submitted,
+      {
+        action: '审批通过',
+        operator: scenario.nodeName,
+        time: scenario.createdAt,
+        status: 'approved',
+        comment: scenario.timelineComment ?? '审批通过，变更已生效',
+      },
+    ];
+  }
+
+  if (scenario.status === 'rejected') {
+    return [
+      submitted,
+      {
+        action: '审批拒绝',
+        operator: scenario.nodeName,
+        time: scenario.createdAt,
+        status: 'rejected',
+        comment: scenario.timelineComment ?? '申请说明不足，已拒绝',
+      },
+    ];
+  }
+
+  return [
+    submitted,
+    {
+      action: '申请撤回',
+      operator: scenario.applicant,
+      time: scenario.createdAt,
+      status: 'system',
+      comment: scenario.timelineComment ?? '申请人撤回，未产生变更',
+    },
+  ];
+}
+
+function createApprovalInstance(scenario: ApprovalScenario): ApprovalInstance {
+  return {
+    id: `instance-${scenario.id}`,
+    subOrderNo: scenario.subOrderNo,
+    instanceCode: scenario.instanceCode,
+    feishuUrl: `https://example.feishu.cn/approval/${scenario.instanceCode}`,
+    status: scenario.status,
+    effectStatus: scenario.effectStatus,
+    assets: scenario.assets,
+    securityLevel: scenario.securityLevel,
+    permissionType: scenario.permissionType,
+    expireDate: scenario.expireDate,
+    directory: scenario.directory,
+    sourceType: scenario.sourceType,
+    sourceSystem: scenario.sourceSystem,
+    matchedFlow: scenario.matchedFlow,
+    matchedRoute: scenario.matchedRoute,
+    reason: scenario.reason,
+    ticketType: scenario.ticketType,
+    approvers: [
+      {
+        nodeId: `node-${scenario.id}`,
+        nodeName: scenario.nodeName,
+        mode: 'single',
+        approvers: [{ name: scenario.nodeName, openId: `ou_${scenario.id}` }],
+      },
+    ],
+    timeline: createTimeline(scenario),
+  };
+}
+
+function createApprovalBatch(ticketType: string, scenarios: ApprovalScenario[]): ApprovalBatch {
+  if (!scenarios.length) {
+    throw new Error(`No approval scenarios configured for ${ticketType}`);
+  }
+
+  const instances = scenarios.map(createApprovalInstance);
+  const primary = scenarios[0];
+  const status = scenarios.some(item => item.status === 'approving') ? 'approving' : primary.status;
+  const effectStatus = instances.some(instance => instance.effectStatus === 'effect_failed')
+    ? 'effect_failed'
+    : instances.some(instance => instance.effectStatus === 'effecting')
+      ? 'effecting'
+      : instances.length > 0 && instances.every(instance => instance.effectStatus === 'effective')
+        ? 'effective'
+        : 'not_effective';
+
+  return {
+    id: `batch-${ticketType}`,
+    batchId: `BATCH-${primary.createdAt.slice(0, 10).replace(/-/g, '')}-${ticketType}`,
+    ticketType,
+    totalAssets: instances.reduce((sum, instance) => sum + instance.assets.length, 0),
+    instanceCount: instances.length,
+    createdAt: primary.createdAt,
+    status,
+    effectStatus,
+    instances,
+  };
+}
 
 export type CatalogNode = {
   id: string;
@@ -151,7 +349,7 @@ export type CatalogNode = {
   children?: CatalogNode[];
 };
 
-export const ticketTypes = ['权限申请', '上架审批', '下架审批', '目录修改', '负责人交接', '血缘修正'];
+export const ticketTypes = ['权限申请', '上架审批', '下架审批', '目录修改', '目录编辑审批', '负责人交接', '血缘修正'];
 
 export const securityLevelOptions = ['S1', 'S2', 'S3', 'S4', 'S5'].map(value => ({ value, label: value }));
 
@@ -245,6 +443,7 @@ export const initialFlows: FlowConfig[] = [
   { id: 'fc-006', ticketType: '目录修改', name: '目录修改审批_业务域版', approvalCode: 'DIR-CHANGE-2024', idType: 'open_id', status: 'enabled', description: '资源或资产修改目录归属时使用，按目标目录业务负责人审批', formMappingStatus: 'complete', nodeMappingStatus: 'complete', lastValidatedAt: '2026-06-09 16:20:00', validateStatus: 'passed', createdAt: '2026-06-02 10:00:00', updatedAt: '2026-06-09 16:20:00' },
   { id: 'fc-007', ticketType: '负责人交接', name: '负责人交接审批_接收人确认', approvalCode: 'OWNER-HANDOVER-2024', idType: 'open_id', status: 'enabled', description: '技术负责人或业务负责人交接，由接收方确认接手', formMappingStatus: 'complete', nodeMappingStatus: 'complete', lastValidatedAt: '2026-06-09 16:30:00', validateStatus: 'passed', createdAt: '2026-06-02 11:00:00', updatedAt: '2026-06-09 16:30:00' },
   { id: 'fc-008', ticketType: '血缘修正', name: '血缘修正审批_治理版', approvalCode: 'LINEAGE-FIX-2024', idType: 'open_id', status: 'enabled', description: '血缘新增、删除、字段映射修正提交后，由治理负责人审批', formMappingStatus: 'complete', nodeMappingStatus: 'complete', lastValidatedAt: '2026-06-09 16:40:00', validateStatus: 'passed', createdAt: '2026-06-02 12:00:00', updatedAt: '2026-06-09 16:40:00' },
+  { id: 'fc-009', ticketType: '目录编辑审批', name: '目录编辑审批_统一版', approvalCode: 'DIR-EDIT-2024', idType: 'open_id', status: 'enabled', description: '新增、改名、移动、删除目录时使用，由目录委员会审批', formMappingStatus: 'complete', nodeMappingStatus: 'complete', lastValidatedAt: '2026-06-13 21:00:00', validateStatus: 'passed', createdAt: '2026-06-13 20:30:00', updatedAt: '2026-06-13 21:00:00' },
 ];
 
 export const initialRoutes: FlowRoute[] = [
@@ -263,6 +462,8 @@ export const initialRoutes: FlowRoute[] = [
   { id: 'route-010', flowConfigId: 'fc-007', ticketType: '负责人交接', priority: 99, name: '接收人确认（兜底）', conditions: [], conditionLogic: 'AND', isDefault: true, enabled: true, description: '负责人交接默认由接收方确认' },
   { id: 'route-011', flowConfigId: 'fc-008', ticketType: '血缘修正', priority: 1, name: '数仓血缘治理审批', conditions: [{ id: 'cond-011', field: 'source_system', fieldLabel: '来源系统', operator: 'in', operatorLabel: '属于', value: ['MaxCompute', 'Hive'], valueLabel: ['MaxCompute', 'Hive'] }], conditionLogic: 'AND', isDefault: false, enabled: true, description: '数仓来源血缘修正由治理负责人审批' },
   { id: 'route-012', flowConfigId: 'fc-008', ticketType: '血缘修正', priority: 99, name: '标准血缘修正（兜底）', conditions: [], conditionLogic: 'AND', isDefault: true, enabled: true, description: '其他血缘修正走标准治理审批' },
+  { id: 'route-013', flowConfigId: 'fc-009', ticketType: '目录编辑审批', priority: 1, name: '新增目录审批', conditions: [{ id: 'cond-013', field: 'catalog_path', fieldLabel: '目录', operator: 'contains', operatorLabel: '包含', value: '新增', valueLabel: '新增目录' }], conditionLogic: 'AND', isDefault: false, enabled: true, description: '新增目录时由目录委员会审批' },
+  { id: 'route-014', flowConfigId: 'fc-009', ticketType: '目录编辑审批', priority: 99, name: '目录结构调整审批', conditions: [], conditionLogic: 'AND', isDefault: true, enabled: true, description: '目录改名、移动、删除走统一目录结构调整审批' },
 ];
 
 export const initialFormMappings: FormMapping[] = [
@@ -275,6 +476,8 @@ export const initialFormMappings: FormMapping[] = [
   { id: 'fm-007', flowConfigId: 'fc-006', platformField: '目标目录', feishuWidgetId: 'target_catalog_path', widgetType: 'input', transformRule: '目录树路径原值传入', required: true, usedInCondition: true, exampleValue: '交易域/支付/支付流水' },
   { id: 'fm-008', flowConfigId: 'fc-007', platformField: '接收人 open_id', feishuWidgetId: 'target_owner_open_id', widgetType: 'contact', transformRule: '从交接目标人解析 open_id', required: true, usedInCondition: false, exampleValue: 'ou_new_owner_001' },
   { id: 'fm-009', flowConfigId: 'fc-008', platformField: '血缘修正摘要', feishuWidgetId: 'lineage_change_summary', widgetType: 'textarea', transformRule: '新增/删除/字段映射调整合并摘要', required: true, usedInCondition: false, exampleValue: '新增 dwd_order_detail -> rpt_gmv_daily 字段映射' },
+  { id: 'fm-010', flowConfigId: 'fc-009', platformField: '目录编辑动作', feishuWidgetId: 'directory_edit_action', widgetType: 'select', transformRule: '新增/改名/移动/删除', required: true, usedInCondition: true, exampleValue: '新增目录' },
+  { id: 'fm-011', flowConfigId: 'fc-009', platformField: '影响资源数量', feishuWidgetId: 'affected_resource_count', widgetType: 'number', transformRule: '数字直传', required: true, usedInCondition: false, exampleValue: '12' },
 ];
 
 export const initialNodeMappings: NodeMapping[] = [
@@ -284,6 +487,7 @@ export const initialNodeMappings: NodeMapping[] = [
   { id: 'nm-004', flowConfigId: 'fc-006', feishuNodeName: '目录负责人审批', feishuNodeId: 'directory_owner_node', approverRuleType: 'directory_owner', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: '按目标目录解析业务负责人' },
   { id: 'nm-005', flowConfigId: 'fc-007', feishuNodeName: '接收人确认', feishuNodeId: 'target_owner_node', approverRuleType: 'fixed_role', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: 'mock 中使用固定角色代表交接接收人确认' },
   { id: 'nm-006', flowConfigId: 'fc-008', feishuNodeName: '治理负责人审批', feishuNodeId: 'governance_owner_node', approverRuleType: 'fixed_role', multiApproverMode: 'countersign', missingAction: 'block', enabled: true, description: '血缘修正由数据治理委员会审批' },
+  { id: 'nm-007', flowConfigId: 'fc-009', feishuNodeName: '目录委员会审批', feishuNodeId: 'directory_committee_node', approverRuleType: 'fixed_role', multiApproverMode: 'countersign', missingAction: 'block', enabled: true, description: '目录结构变更由目录委员会审批' },
 ];
 
 export const initialRoles: ApprovalRole[] = [
