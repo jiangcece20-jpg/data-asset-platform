@@ -39,6 +39,36 @@ export function ApplicantPermDetail({ ticket, subOrders, actions, redTitle = fal
               <div className="permission-management__info-value">{ticket.reason}</div>
             </div>
           ) : null}
+          {ticket.dataTable ? (
+            <div className="permission-management__info-block">
+              <div className="permission-management__info-label">数据表</div>
+              <div className="permission-management__info-value">{ticket.dataTable}</div>
+            </div>
+          ) : null}
+          {ticket.usagePeriod ? (
+            <div className="permission-management__info-block">
+              <div className="permission-management__info-label">使用周期</div>
+              <div className="permission-management__info-value">{ticket.usagePeriod}</div>
+            </div>
+          ) : null}
+          {ticket.dataScope ? (
+            <div className="permission-management__info-block">
+              <div className="permission-management__info-label">数据范围</div>
+              <div className="permission-management__info-value">{ticket.dataScope}</div>
+            </div>
+          ) : null}
+          {ticket.permissionJudgment ? (
+            <div className="permission-management__info-block">
+              <div className="permission-management__info-label">权限申请判断</div>
+              <div className="permission-management__info-value">{ticket.permissionJudgment}</div>
+            </div>
+          ) : null}
+          {ticket.transactionOrder ? (
+            <div className="permission-management__info-block">
+              <div className="permission-management__info-label">交易订单</div>
+              <div className="permission-management__info-value">{ticket.transactionOrder}</div>
+            </div>
+          ) : null}
           <div className="permission-management__info-block">
             <div className="permission-management__info-label">审批进度</div>
             <div className="permission-management__progress-bar">
