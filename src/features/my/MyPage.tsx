@@ -4,13 +4,21 @@ import { Tag } from '../../components/base/Tag';
 import { SubmittedPanel } from '../approval-integration/components/SubmittedPanel';
 import { PendingPanel, ApprovalActionModal } from '../approval-integration/components/PendingPanel';
 import type { ActionDialog, PendingTask } from '../approval-integration/components/PendingPanel';
-import { initialBatches, initialPendingTasks } from '../approval-integration/approvalData';
+import { approvalScenarioSummaries, initialBatches, initialPendingTasks } from '../approval-integration/approvalData';
 import type { ApprovalInstance } from '../approval-integration/approvalData';
+import {
+  approveLineageApproval,
+  lineageApprovalsToBatches,
+  lineageApprovalsToMyApplyItems,
+  lineageApprovalsToPendingTasks,
+  rejectLineageApproval,
+  useLineageApprovals,
+} from '../lineage/lineageApprovalStore';
 import './my-page.css';
 
 type MySection = 'favorites' | 'applies' | 'submitted' | 'pending' | 'permissions' | 'owned' | 'cart';
 type ApplyStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
-type AssetType = 'all' | 'table' | 'api' | 'report' | 'metric' | 'label';
+type AssetType = 'all' | 'table' | 'api' | 'report' | 'metric' | 'label' | 'catalog';
 type SourcePlatform = 'all' | 'warehouse_engine' | 'biz_database' | 'report_system' | 'api_service' | 'metric_platform' | 'label_system' | 'message_stream';
 type OwnedStatus = 'all' | 'listed' | 'pending' | 'unlisted';
 type OwnedRole = 'all' | 'tech' | 'biz' | 'both';
@@ -28,7 +36,7 @@ type FavoriteItem = {
   favTime: string;
 };
 
-type ApplyItem = {
+type ApplyRow = {
   id: string;
   assetName: string;
   assetDisplay: string;
@@ -118,57 +126,7 @@ const favoritesData: FavoriteItem[] = [
   { id: 'f6', name: 'tag_user_profile', display: '用户画像标签', type: 'label', source: 'label_system', sourceLabel: '画像标签系统', catalog: '用户域/画像/用户标签', owner: '钱七', favTime: '2026-03-27 08:30' },
 ];
 
-const appliesData: ApplyItem[] = [
-  { id: 'a1', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', type: 'table', sourceLabel: '数仓引擎', reason: '需要查询金融业务线的交易数据用于月度分析报告', applyTime: '2026-04-01 09:30', status: 'pending', ticketId: 'PA-2026040100003', ticketType: '权限申请', subOrders: [
-    { assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', status: 'pending', timeline: [{ label: '上级审批 → 王经理', time: '2026-04-01 10:02', status: 'done' }, { label: '负责人审批 → 张三', time: '等待审批中...', status: 'waiting' }] },
-    { assetName: 'dwd_trade_payment', assetDisplay: '交易支付明细表', status: 'pending', timeline: [{ label: '上级审批 → 王经理', time: '2026-04-01 10:02', status: 'done' }, { label: '负责人审批 → 李四', time: '等待审批中...', status: 'waiting' }] },
-    { assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', status: 'rejected', timeline: [{ label: '金融业务线审批人 → 赵总', time: '2026-04-01 11:45', status: 'rejected' }] },
-  ]},
-  { id: 'a2', assetName: 'api_trade_query', assetDisplay: '交易查询接口', type: 'api', sourceLabel: 'API服务', reason: '需要调用交易查询接口进行实时数据查询', applyTime: '2026-03-28 15:10', status: 'approved', ticketId: 'PA-2026032800012', ticketType: '权限申请', subOrders: [
-    { assetName: 'api_trade_query', assetDisplay: '交易查询接口', status: 'approved', timeline: [{ label: 'API负责人 → 孙工', time: '2026-03-28 16:30', status: 'done' }] },
-  ]},
-  { id: 'a3', assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', type: 'report', sourceLabel: '报表系统', reason: '用于季度业务复盘报告', applyTime: '2026-03-25 11:00', status: 'rejected', ticketId: 'PA-2026032500008', ticketType: '权限申请', subOrders: [
-    { assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', status: 'rejected', timeline: [{ label: '金融业务线审批人 → 赵总', time: '2026-03-25 14:20', status: 'rejected' }] },
-  ]},
-  { id: 'a4', assetName: 'dim_user_profile', assetDisplay: '用户画像维表', type: 'table', sourceLabel: '数仓引擎', reason: '用于用户分群分析', applyTime: '2026-03-22 09:15', status: 'withdrawn', ticketId: 'PA-2026032200003', ticketType: '权限申请', subOrders: [
-    { assetName: 'dim_user_profile', assetDisplay: '用户画像维表', status: 'withdrawn', timeline: [{ label: '申请人撤回', time: '2026-03-22 10:30', status: 'done' }] },
-  ]},
-  // 上架审批
-  { id: 'a5', assetName: 'dwd_user_behavior_log', assetDisplay: '用户行为日志', type: 'table', sourceLabel: '数仓引擎', reason: '数据已通过质量校验，申请上架到资产目录供业务使用', applyTime: '2026-04-02 10:00', status: 'pending', ticketId: 'SL-2026040200001', ticketType: '上架审批', subOrders: [
-    { assetName: 'dwd_user_behavior_log', assetDisplay: '用户行为日志', status: 'pending', timeline: [{ label: '上级审批 → 王经理', time: '2026-04-02 10:30', status: 'done' }, { label: '目录管理员审批', time: '等待审批中...', status: 'waiting' }] },
-  ]},
-  { id: 'a6', assetName: 'api_product_catalog', assetDisplay: '商品目录查询接口', type: 'api', sourceLabel: 'API服务', reason: 'API已完成测试并通过安全审查，申请上架开放给下游调用', applyTime: '2026-03-30 14:20', status: 'approved', ticketId: 'SL-2026033000015', ticketType: '上架审批', subOrders: [
-    { assetName: 'api_product_catalog', assetDisplay: '商品目录查询接口', status: 'approved', timeline: [{ label: 'API网关管理员', time: '2026-03-30 16:00', status: 'done' }] },
-  ]},
-  // 下架审批
-  { id: 'a7', assetName: 'rpt_sales_temp', assetDisplay: '临时销售报表', type: 'report', sourceLabel: '报表系统', reason: '该报表数据源已下线，申请下架避免误导用户', applyTime: '2026-03-28 09:45', status: 'approved', ticketId: 'UL-2026032800010', ticketType: '下架审批', subOrders: [
-    { assetName: 'rpt_sales_temp', assetDisplay: '临时销售报表', status: 'approved', timeline: [{ label: '上级审批 → 王经理', time: '2026-03-28 11:00', status: 'done' }] },
-  ]},
-  { id: 'a8', assetName: 'metric_dau_temp', assetDisplay: '临时DAU指标', type: 'metric', sourceLabel: '指标平台', reason: '临时指标已过期，需要下架', applyTime: '2026-03-25 16:30', status: 'pending', ticketId: 'UL-2026032500012', ticketType: '下架审批', subOrders: [
-    { assetName: 'metric_dau_temp', assetDisplay: '临时DAU指标', status: 'pending', timeline: [{ label: '指标平台管理员', time: '等待审批中...', status: 'waiting' }] },
-  ]},
-  // 目录修改
-  { id: 'a9', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', type: 'table', sourceLabel: '数仓引擎', reason: '业务划分调整，将目录从"交易域/订单"迁移至"财务域/交易"', applyTime: '2026-04-01 11:00', status: 'pending', ticketId: 'CM-2026040100018', ticketType: '目录修改', subOrders: [
-    { assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', status: 'pending', timeline: [{ label: '目录管理员审批', time: '等待审批中...', status: 'waiting' }] },
-  ]},
-  { id: 'a10', assetName: 'rpt_gmv_daily', assetDisplay: 'GMV 日报', type: 'report', sourceLabel: '报表系统', reason: '目录结构调整，从"财务域/报表/日报"迁移至"业务域/财务/日报"', applyTime: '2026-03-20 14:00', status: 'approved', ticketId: 'CM-2026032000007', ticketType: '目录修改', subOrders: [
-    { assetName: 'rpt_gmv_daily', assetDisplay: 'GMV 日报', status: 'approved', timeline: [{ label: '目录管理员 → 刘管理员', time: '2026-03-20 15:30', status: 'done' }] },
-  ]},
-  // 负责人交接
-  { id: 'a11', assetName: 'api_payment_query', assetDisplay: '支付查询接口', type: 'api', sourceLabel: 'API服务', reason: '原负责人张工离职，工作交接给王工', applyTime: '2026-04-02 08:00', status: 'approved', ticketId: 'HO-2026040200002', ticketType: '负责人交接', subOrders: [
-    { assetName: 'api_payment_query', assetDisplay: '支付查询接口', status: 'approved', timeline: [{ label: '上级审批 → 陈总', time: '2026-04-02 09:30', status: 'done' }] },
-  ]},
-  { id: 'a12', assetName: 'dim_merchant_info', assetDisplay: '商户信息维表', type: 'table', sourceLabel: '数仓引擎', reason: '业务调整，商户域负责人从李经理变更为赵经理', applyTime: '2026-03-26 10:00', status: 'pending', ticketId: 'HO-2026032600009', ticketType: '负责人交接', subOrders: [
-    { assetName: 'dim_merchant_info', assetDisplay: '商户信息维表', status: 'pending', timeline: [{ label: '上级审批', time: '等待审批中...', status: 'waiting' }] },
-  ]},
-  // 血缘修正
-  { id: 'a13', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', type: 'table', sourceLabel: '数仓引擎', reason: '数据仓库重构，上游表从ods_trade_src变更为ods_trade_v2，需修正血缘关系', applyTime: '2026-04-01 15:00', status: 'pending', ticketId: 'LC-2026040100020', ticketType: '血缘修正', subOrders: [
-    { assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', status: 'pending', timeline: [{ label: '血缘治理管理员', time: '等待审批中...', status: 'waiting' }] },
-  ]},
-  { id: 'a14', assetName: 'rpt_revenue_summary', assetDisplay: '营收汇总报表', type: 'report', sourceLabel: '报表系统', reason: '报表底层表结构变更，需要更新血缘链路', applyTime: '2026-03-18 13:00', status: 'approved', ticketId: 'LC-2026031800005', ticketType: '血缘修正', subOrders: [
-    { assetName: 'rpt_revenue_summary', assetDisplay: '营收汇总报表', status: 'approved', timeline: [{ label: '血缘治理管理员 → 周工', time: '2026-03-18 14:30', status: 'done' }] },
-  ]},
-];
+const mockApplyRows: ApplyRow[] = approvalScenarioSummaries;
 
 const permData: PermItem[] = [
   { id: 'p1', name: 'dwd_trade_order', display: '交易订单宽表', type: 'table', sourceLabel: '数仓引擎', catalog: '交易域/订单/订单明细', permType: 'read', effectiveTime: '2026-03-28 17:00', ticketId: 'PA-2026032800012' },
@@ -241,7 +199,7 @@ function typeTone(t: AssetType): 'blue' | 'gray' | 'warning' | 'purple' | 'cyan'
 }
 
 function typeLabel(t: AssetType): string {
-  const m: Record<string, string> = { table: '数据表', api: 'API', report: '报表', metric: '指标', label: '标签' };
+  const m: Record<string, string> = { table: '数据表', api: 'API', report: '报表', metric: '指标', label: '标签', catalog: '目录' };
   return m[t] || t;
 }
 
@@ -330,22 +288,24 @@ function FavoritesPanel() {
    Applies Panel
    ================================================================ */
 function AppliesPanel() {
+  const lineageApprovals = useLineageApprovals();
   const [tab, setTab] = useState<ApplyStatus>('all');
   const [keyword, setKeyword] = useState('');
   const [ticketTypeFilter, setTicketTypeFilter] = useState('all');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const allApplyRows = useMemo(() => [...lineageApprovalsToMyApplyItems(), ...mockApplyRows], [lineageApprovals]);
 
   const rows = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
-    return appliesData.filter(a => {
+    return allApplyRows.filter(a => {
       if (tab !== 'all' && a.status !== tab) return false;
       if (ticketTypeFilter !== 'all' && a.ticketType !== ticketTypeFilter) return false;
       if (kw && !a.assetName.toLowerCase().includes(kw) && !a.assetDisplay.toLowerCase().includes(kw)) return false;
       return true;
     });
-  }, [tab, keyword, ticketTypeFilter]);
+  }, [allApplyRows, tab, keyword, ticketTypeFilter]);
 
-  const detailItem = detailId ? appliesData.find(a => a.id === detailId) : null;
+  const detailItem = detailId ? allApplyRows.find(a => a.id === detailId) : null;
 
   if (detailItem) {
     return (
@@ -402,6 +362,7 @@ function AppliesPanel() {
           <option value="上架审批">上架审批</option>
           <option value="下架审批">下架审批</option>
           <option value="目录修改">目录修改</option>
+          <option value="目录编辑审批">目录编辑审批</option>
           <option value="负责人交接">负责人交接</option>
           <option value="血缘修正">血缘修正</option>
         </select>
@@ -787,10 +748,12 @@ function CartPanel({ cartCount }: { cartCount: number }) {
    Main Page
    ================================================================ */
 export function MyPage() {
+  const lineageApprovals = useLineageApprovals();
   const [activeSection, setActiveSection] = useState<MySection>(() => getMySectionFromHash());
   const [cartCount] = useState(initialCartItems.length);
-  const [batches] = useState(initialBatches);
+  const batches = useMemo(() => [...lineageApprovalsToBatches(), ...initialBatches], [lineageApprovals]);
   const [tasks, setTasks] = useState(initialPendingTasks);
+  const pendingTasks = useMemo(() => [...lineageApprovalsToPendingTasks(), ...tasks], [lineageApprovals, tasks]);
   const [actionDialog, setActionDialog] = useState<ActionDialog>(null);
   const [toast, setToast] = useState('');
 
@@ -815,6 +778,10 @@ export function MyPage() {
     }
     const targets = Array.isArray(target) ? target : [target];
     const targetIds = new Set(targets.map(task => task.id));
+    targets.filter(task => task.ticketType === '血缘修正').forEach(task => {
+      if (type === 'approve') approveLineageApproval(task.id);
+      else rejectLineageApproval(task.id, comment);
+    });
     setTasks(prev => prev.filter(item => !targetIds.has(item.id)));
     setActionDialog(null);
     flash(type === 'approve' ? '已审批通过，飞书同步中...' : '已审批拒绝，飞书同步中...');
@@ -833,7 +800,7 @@ export function MyPage() {
             <button key={item.key} type="button" className={activeSection === item.key ? 'active' : ''} onClick={() => setActiveSection(item.key)}>
               <span className="my-page__sidebar-item-icon">{item.icon}</span>{item.label}
               {item.key === 'cart' && cartCount > 0 ? <b>{cartCount}</b> : null}
-              {item.key === 'pending' && tasks.length > 0 ? <b>{tasks.length}</b> : null}
+              {item.key === 'pending' && pendingTasks.length > 0 ? <b>{pendingTasks.length}</b> : null}
             </button>
           ))}
         </nav>
@@ -856,7 +823,7 @@ export function MyPage() {
         ) : null}
         {activeSection === 'pending' ? (
           <PendingPanel
-            tasks={tasks}
+            tasks={pendingTasks}
             onOpenAction={setActionDialog}
           />
         ) : null}

@@ -342,6 +342,54 @@ function createApprovalBatch(ticketType: string, scenarios: ApprovalScenario[], 
   };
 }
 
+export type ApprovalScenarioSummary = {
+  id: string;
+  assetName: string;
+  assetDisplay: string;
+  type: 'table' | 'api' | 'report' | 'metric' | 'label' | 'catalog';
+  sourceLabel: string;
+  reason: string;
+  applyTime: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  ticketId: string;
+  ticketType: string;
+  subOrders: Array<{
+    assetName: string;
+    assetDisplay: string;
+    status: 'approved' | 'rejected' | 'pending' | 'withdrawn';
+    timeline: Array<{ label: string; time: string; status: 'done' | 'rejected' | 'waiting' }>;
+  }>;
+};
+
+export function sourceLabelForMyPage(sourceType: SourceType) {
+  return sourceTypeOptions.find(option => option.value === sourceType)?.label ?? sourceType;
+}
+
+export function scenarioStatusForMyPage(status: ScenarioStatus): ApprovalScenarioSummary['status'] {
+  if (status === 'approving') return 'pending';
+  if (status === 'cancelled') return 'withdrawn';
+  return status;
+}
+
+export function assetTypeForMyPage(scenario: ApprovalScenario): ApprovalScenarioSummary['type'] {
+  if (scenario.ticketType === '目录编辑审批') return 'catalog';
+  if (scenario.sourceType === 'api_service') return 'api';
+  if (scenario.sourceType === 'report_system') return 'report';
+  if (scenario.sourceType === 'metric_platform') return 'metric';
+  return 'table';
+}
+
+export function ticketPrefixForMyPage(ticketType: string) {
+  if (ticketType === '权限申请') return 'PA';
+  if (ticketType === '上架审批') return 'SL';
+  if (ticketType === '下架审批') return 'UL';
+  if (ticketType === '目录修改') return 'CM';
+  if (ticketType === '目录编辑审批') return 'DE';
+  if (ticketType === '负责人交接') return 'HO';
+  if (ticketType === '血缘修正') return 'LC';
+  return 'AP';
+}
+
 export type CatalogNode = {
   id: string;
   label: string;
@@ -536,6 +584,39 @@ const approvalScenarios: ApprovalScenario[] = [
 export const initialPendingTasks: PendingTask[] = approvalScenarios
   .filter(scenario => scenario.status === 'approving')
   .map(createPendingTask);
+
+export const approvalScenarioSummaries: ApprovalScenarioSummary[] = approvalScenarios.map(scenario => {
+  const status = scenarioStatusForMyPage(scenario.status);
+
+  return {
+    id: `my-${scenario.id}`,
+    assetName: scenario.assets[0],
+    assetDisplay: scenario.assets[0],
+    type: assetTypeForMyPage(scenario),
+    sourceLabel: sourceLabelForMyPage(scenario.sourceType),
+    reason: scenario.reason,
+    applyTime: scenario.createdAt.slice(0, 16),
+    status,
+    ticketId: `${ticketPrefixForMyPage(scenario.ticketType)}-${scenario.subOrderNo.replace('SUB-', '')}`,
+    ticketType: scenario.ticketType,
+    subOrders: [{
+      assetName: scenario.assets[0],
+      assetDisplay: scenario.assets[0],
+      status,
+      timeline: [{
+        label: scenario.status === 'approving'
+          ? scenario.nodeName
+          : scenario.status === 'approved'
+            ? '审批通过'
+            : scenario.status === 'rejected'
+              ? '审批拒绝'
+              : '申请人撤回',
+        time: scenario.status === 'approving' ? '等待审批中...' : scenario.createdAt.slice(0, 16),
+        status: scenario.status === 'rejected' ? 'rejected' : scenario.status === 'approving' ? 'waiting' : 'done',
+      }],
+    }],
+  };
+});
 
 const scenarioStatuses = ['approving', 'approved', 'rejected', 'cancelled'] as const;
 
