@@ -1371,6 +1371,91 @@
   flex-wrap: wrap;
 }
 
+.approval-v6__detail-meta {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--approval-border);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.approval-v6__detail-meta span {
+  align-items: center;
+  color: #475569;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.approval-v6__detail-meta span::before {
+  background: #cbd5e1;
+  border-radius: 50%;
+  content: "";
+  height: 4px;
+  width: 4px;
+}
+
+.approval-v6__detail-meta span strong {
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.approval-v6__detail-meta code {
+  background: #ffffff;
+  border: 1px solid var(--approval-border);
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.approval-v6__applicant-summary {
+  background: #ffffff;
+  border: 1px solid var(--approval-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.approval-v6__applicant-summary div {
+  display: grid;
+  gap: 4px;
+}
+
+.approval-v6__applicant-summary .wide {
+  grid-column: 1 / -1;
+}
+
+.approval-v6__applicant-summary span,
+.approval-v6__detail-item span {
+  color: #697386;
+  display: block;
+  font-size: 12px;
+}
+
+.approval-v6__applicant-summary strong,
+.approval-v6__detail-item strong {
+  color: #252a33;
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.approval-v6__applicant-summary em {
+  color: #697386;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
 .approval-v6__instance-section {
   display: flex;
   flex-direction: column;
@@ -1505,6 +1590,124 @@
   display: grid;
   gap: 10px;
   padding: 12px;
+}
+
+.approval-v6__type-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.approval-v6__type-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.approval-v6__detail-item {
+  background: #ffffff;
+  border: 1px solid var(--approval-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.approval-v6__detail-item--risk {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.approval-v6__detail-item--risk strong {
+  color: #9a3412;
+}
+
+.approval-v6__detail-item--success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.approval-v6__detail-item--success strong {
+  color: #166534;
+}
+
+.approval-v6__inline-action {
+  background: transparent;
+  border: 0;
+  color: var(--approval-blue);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  text-align: left;
+}
+
+.approval-v6__summary--typed {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.approval-v6__risk-note {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px;
+}
+
+.approval-v6__change-list {
+  display: grid;
+  gap: 10px;
+}
+
+.approval-v6__change-card {
+  background: #ffffff;
+  border: 1px solid var(--approval-border);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.approval-v6__change-card header {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.approval-v6__change-card header strong {
+  color: #252a33;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.approval-v6__change-card header span,
+.approval-v6__change-card p {
+  color: #697386;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.approval-v6__endpoint-config {
+  background: #f8fafc;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+}
+
+.approval-v6__endpoint-config span {
+  background: #ffffff;
+  border: 1px solid var(--approval-border);
+  border-radius: 999px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 4px 8px;
 }
 
 .approval-v6__modal-actions {

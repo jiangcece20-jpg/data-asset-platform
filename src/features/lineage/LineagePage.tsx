@@ -1,6 +1,17 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Tag } from '../../components/base/Tag';
 import { Button } from '../../components/base/Button';
+import {
+  approveLineageApproval,
+  getActiveLineageApproval,
+  lineageApprovalSummary,
+  lineageApprovalSummaryText,
+  rejectLineageApproval,
+  submitLineageApproval,
+  useLineageApprovals,
+  withdrawLineageApproval,
+} from './lineageApprovalStore';
+import type { LineageChangeSetItem, LineageFieldMappingChange, LineageRelationChange } from './lineageApprovalStore';
 import './lineage.css';
 
 /* ─── Types ───────────────────────────────────── */
@@ -168,6 +179,20 @@ const NODES_DB: Record<string, LineageNodeData> = {
     upstream: ['dwd_order_detail'],
     downstream: ['rpt_sales_daily'],
   },
+  dws_order_subject_view: {
+    id: 'dws_order_subject_view', name: 'dws_order_subject_view', display: '订单主题视图',
+    type: 'view', platform: 'Hive', db: 'dws_db',
+    tech_owner: '李四', biz_owner: '王五', catalog: '交易域/订单/主题视图',
+    updated: '2026-03-22', storage: '-', partitioned: true,
+    fields: [
+      { name: 'order_id', type: 'STRING', comment: '订单唯一标识' },
+      { name: 'user_id', type: 'STRING', comment: '用户唯一标识' },
+      { name: 'order_amount', type: 'DECIMAL(18,2)', comment: '订单金额' },
+      { name: 'dt', type: 'STRING', comment: '分区日期' },
+    ],
+    upstream: [],
+    downstream: [],
+  },
   rpt_sales_daily: {
     id: 'rpt_sales_daily', name: 'rpt_sales_daily', display: '销售日报',
     type: 'report', platform: 'BI', db: 'Tableau',
@@ -257,6 +282,18 @@ function typeShortLabel(type: LineageNodeType): string {
 
 function typeFullLabel(type: LineageNodeType): string {
   return { table: '表', view: '视图', api: 'API', report: '报表', metric: '指标', label: '标签' }[type] ?? '表';
+}
+
+function isTableLikeType(type: LineageNodeType) {
+  return type === 'table' || type === 'view' || type === 'api';
+}
+
+function isEntityType(type: LineageNodeType) {
+  return type === 'metric' || type === 'label';
+}
+
+function mappingUnitLabel(type: LineageNodeType) {
+  return type === 'api' ? '参数' : '字段';
 }
 
 function typeIconClass(type: LineageNodeType): string {
@@ -390,9 +427,10 @@ function layoutNodes(
   canvasW: number,
   canvasH: number,
   db: Record<string, LineageNodeData> = NODES_DB,
+  fixedCol?: number,
 ): { positions: Record<string, NodePosition>; colMap: Record<string, number> } {
   const colMap: Record<string, number> = {};
-  colMap[centerNodeId] = 0;
+  colMap[centerNodeId] = fixedCol !== undefined ? fixedCol : 0;
 
   const nodeSet = new Set(nodes.map((n) => n.id));
 
@@ -1091,6 +1129,30 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [connectionSource, setConnectionSource] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const approvals = useLineageApprovals();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorTab, setEditorTab] = useState<'table' | 'field'>('table');
+  const [draftChanges, setDraftChanges] = useState<LineageChangeSetItem[]>([]);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDirection, setAddDirection] = useState<'' | 'upstream' | 'downstream'>('');
+  const [addTargetType, setAddTargetType] = useState<'' | LineageNodeType>('');
+  const [addTargetId, setAddTargetId] = useState('');
+  const [addUpField, setAddUpField] = useState('');
+  const [addDownField, setAddDownField] = useState('');
+  const [addSelectedFields, setAddSelectedFields] = useState<string[]>([]);
+  const [addReason, setAddReason] = useState('');
+  const [addError, setAddError] = useState('');
+  const [approvalDetailOpen, setApprovalDetailOpen] = useState(false);
+  const [submitApprovalOpen, setSubmitApprovalOpen] = useState(false);
+  const [submitReason, setSubmitReason] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [initApprovalOpen, setInitApprovalOpen] = useState(false);
+  const [initReason, setInitReason] = useState('');
+  const [initRiskConfirmed, setInitRiskConfirmed] = useState(false);
+  const [initError, setInitError] = useState('');
+  const subjectNodeColRef = useRef<number>(0);
+  const addDialogOpenPrevRef = useRef(false);
+  const submitReasonRef = useRef<HTMLTextAreaElement>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -1100,7 +1162,30 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   // Effective nodes DB: if centerNodeId doesn't exist in NODES_DB,
   // dynamically create a mock lineage graph for it
   const effectiveNodes: Record<string, LineageNodeData> = useMemo(() => {
-    if (NODES_DB[centerNodeId]) return NODES_DB;
+    const applyApprovedChanges = (base: Record<string, LineageNodeData>) => {
+      const next: Record<string, LineageNodeData> = Object.fromEntries(
+        Object.entries(base).map(([id, node]) => [id, { ...node, upstream: [...node.upstream], downstream: [...node.downstream] }]),
+      );
+      approvals
+        .filter(approval => approval.status === 'approved')
+        .flatMap(approval => approval.changes)
+        .filter((change): change is LineageRelationChange => change.kind === 'relation')
+        .forEach(change => {
+          const source = next[change.sourceId];
+          const target = next[change.targetId];
+          if (!source || !target) return;
+          if (change.action === 'add') {
+            if (!source.downstream.includes(target.id)) source.downstream.push(target.id);
+            if (!target.upstream.includes(source.id)) target.upstream.push(source.id);
+          } else {
+            source.downstream = source.downstream.filter(id => id !== target.id);
+            target.upstream = target.upstream.filter(id => id !== source.id);
+          }
+        });
+      return next;
+    };
+
+    if (NODES_DB[centerNodeId]) return applyApprovedChanges(NODES_DB);
 
     const srcId1 = `source_${centerNodeId}_1`;
     const srcId2 = `source_${centerNodeId}_2`;
@@ -1193,12 +1278,23 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       },
     };
 
-    return { ...NODES_DB, ...dynamicNodes };
-  }, [centerNodeId]);
+    return applyApprovedChanges({ ...NODES_DB, ...dynamicNodes });
+  }, [centerNodeId, approvals]);
 
   // Effective field edges: use static FIELD_EDGES for known nodes, generate dynamic ones otherwise
   const effectiveFieldEdges: FieldEdge[] = useMemo(() => {
-    if (NODES_DB[centerNodeId]) return FIELD_EDGES;
+    const approvedFieldEdges = approvals
+      .filter(approval => approval.status === 'approved')
+      .flatMap(approval => approval.changes)
+      .filter((change): change is LineageFieldMappingChange => change.kind === 'field')
+      .map(change => ({
+        from: change.sourceId,
+        fromField: change.sourceField,
+        to: change.targetId,
+        toField: change.targetField,
+      }));
+
+    if (NODES_DB[centerNodeId]) return [...FIELD_EDGES, ...approvedFieldEdges];
 
     const srcId1 = `source_${centerNodeId}_1`;
     const tgtId1 = `target_${centerNodeId}_1`;
@@ -1209,8 +1305,9 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       { from: srcId1, fromField: 'created_at', to: centerNodeId, toField: 'created_at' },
       { from: centerNodeId, fromField: 'id', to: tgtId1, toField: 'id' },
       { from: centerNodeId, fromField: 'name', to: tgtId1, toField: 'name' },
+      ...approvedFieldEdges,
     ];
-  }, [centerNodeId]);
+  }, [centerNodeId, approvals]);
 
   // Build visible nodes and edges
   const { nodes, edges } = useMemo(
@@ -1236,9 +1333,21 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
 
   // Layout
   const { positions, colMap } = useMemo(
-    () => layoutNodes(nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize.w, canvasSize.h, effectiveNodes),
+    () => layoutNodes(nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize.w, canvasSize.h, effectiveNodes, subjectNodeColRef.current),
     [nodes, centerNodeId, expandedNodes, fieldPageMap, canvasSize, effectiveNodes],
   );
+
+  // Keep colMapRef in sync for cross-closure reads
+  const colMapRef = useRef<Record<string, number>>({});
+  colMapRef.current = colMap;
+
+  // Capture subject node column when add dialog opens
+  useEffect(() => {
+    if (addDialogOpen && !addDialogOpenPrevRef.current) {
+      subjectNodeColRef.current = colMapRef.current[centerNodeId] ?? 0;
+    }
+    addDialogOpenPrevRef.current = addDialogOpen;
+  }, [addDialogOpen]);
 
   // Compute linked fields per node for highlighting
   const linkedFieldsMap = useMemo(() => {
@@ -1489,6 +1598,652 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     setPendingChanges((prev) => prev.filter((c) => c.id !== changeId));
   }, []);
 
+  const subjectNode = effectiveNodes[centerNodeId] ?? NODES_DB.dwd_order_detail;
+  const activeApproval = approvals.find(approval => approval.objectId === centerNodeId && approval.status === 'approving');
+  const editorBlocked = !!activeApproval;
+  const relationDraftChanges = draftChanges.filter((change): change is LineageRelationChange => change.kind === 'relation');
+  const fieldDraftChanges = draftChanges.filter((change): change is LineageFieldMappingChange => change.kind === 'field');
+  const draftChangeCount = draftChanges.length;
+  const submitSummary = {
+    total: draftChangeCount,
+    addUpstream: relationDraftChanges.filter(change => change.action === 'add' && change.direction === 'upstream').length,
+    addDownstream: relationDraftChanges.filter(change => change.action === 'add' && change.direction === 'downstream').length,
+    deleteUpstream: relationDraftChanges.filter(change => change.action === 'delete' && change.direction === 'upstream').length,
+    deleteDownstream: relationDraftChanges.filter(change => change.action === 'delete' && change.direction === 'downstream').length,
+    fieldFix: fieldDraftChanges.length,
+  };
+  const targetOptions = useMemo(
+    () => addTargetType ? Object.values(effectiveNodes).filter(node => node.id !== centerNodeId && node.type === addTargetType && node.type !== 'report') : [],
+    [addTargetType, centerNodeId, effectiveNodes],
+  );
+  const selectedTargetNode = addTargetId ? (effectiveNodes[addTargetId] ?? null) : null;
+  const sourceNodeForAdd = addDirection === 'upstream' ? selectedTargetNode : addDirection === 'downstream' ? subjectNode : null;
+  const targetNodeForAdd = addDirection === 'upstream' ? subjectNode : addDirection === 'downstream' ? selectedTargetNode : null;
+  const needsTableMapping = !!sourceNodeForAdd && !!targetNodeForAdd && isTableLikeType(sourceNodeForAdd.type) && isTableLikeType(targetNodeForAdd.type);
+  const needsEntityFieldSelection = !!sourceNodeForAdd && !!targetNodeForAdd &&
+    ((isEntityType(sourceNodeForAdd.type) && isTableLikeType(targetNodeForAdd.type)) || (isTableLikeType(sourceNodeForAdd.type) && isEntityType(targetNodeForAdd.type)));
+  const isEntityToEntityAdd = !!sourceNodeForAdd && !!targetNodeForAdd && isEntityType(sourceNodeForAdd.type) && isEntityType(targetNodeForAdd.type);
+  const sourceMappingLabel = sourceNodeForAdd
+    ? `${sourceNodeForAdd.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(sourceNodeForAdd.type)}`
+    : '来源节点字段';
+  const targetMappingLabel = targetNodeForAdd
+    ? `${targetNodeForAdd.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(targetNodeForAdd.type)}`
+    : '去向节点字段';
+  const carrierNodeForSelection = needsEntityFieldSelection
+    ? (sourceNodeForAdd && isTableLikeType(sourceNodeForAdd.type) ? sourceNodeForAdd : targetNodeForAdd)
+    : null;
+  const carrierSelectionLabel = carrierNodeForSelection
+    ? `${carrierNodeForSelection.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(carrierNodeForSelection.type)}`
+    : '承载字段';
+
+  function resetAddForm() {
+    setAddDirection('');
+    setAddTargetType('');
+    setAddTargetId('');
+    setAddUpField('');
+    setAddDownField('');
+    setAddSelectedFields([]);
+    setAddReason('');
+    setAddError('');
+  }
+
+  function openAddDialog() {
+    resetAddForm();
+    setAddDialogOpen(true);
+  }
+
+  function openInitializeApproval() {
+    setInitReason('');
+    setInitRiskConfirmed(false);
+    setInitError('');
+    setAddDialogOpen(false);
+    setSubmitApprovalOpen(false);
+    setInitApprovalOpen(true);
+  }
+
+  function pendingKey(change: LineageRelationChange) {
+    return `${change.action}:${change.sourceId}>${change.targetId}`;
+  }
+
+  function removeDraftByRelation(change: LineageRelationChange) {
+    setDraftChanges(prev => prev.filter(item => {
+      if (item.id === change.id) return false;
+      if (item.kind === 'field' && item.action === change.action && item.sourceId === change.sourceId && item.targetId === change.targetId) return false;
+      return true;
+    }));
+  }
+
+  function markRelationDelete(sourceId: string, targetId: string, direction: 'upstream' | 'downstream') {
+    if (editorBlocked) return;
+    const sourceNode = effectiveNodes[sourceId];
+    const targetNode = effectiveNodes[targetId];
+    if (!sourceNode || !targetNode) return;
+    const relationChange: LineageRelationChange = {
+      id: `delete-relation-${sourceId}-${targetId}-${Date.now()}`,
+      kind: 'relation',
+      action: 'delete',
+      direction,
+      sourceId,
+      sourceName: sourceNode.name,
+      targetId,
+      targetName: targetNode.name,
+      reason: '人工删除关系',
+    };
+    setDraftChanges(prev => {
+      if (prev.some(item => item.kind === 'relation' && pendingKey(item) === pendingKey(relationChange))) return prev;
+      return [...prev, relationChange];
+    });
+  }
+
+  function toggleSelectedField(fieldName: string, checked: boolean) {
+    setAddSelectedFields(prev => checked ? Array.from(new Set([...prev, fieldName])) : prev.filter(item => item !== fieldName));
+  }
+
+  function entityField(node: LineageNodeData) {
+    return node.fields[0]?.name ?? '(指标)';
+  }
+
+  function submitAddRelation() {
+    setAddError('');
+    const direction = addDirection;
+    if (!direction) {
+      setAddError('请选择方向');
+      return;
+    }
+    if (!addTargetType) {
+      setAddError('请选择目标类型');
+      return;
+    }
+    if (!selectedTargetNode || !sourceNodeForAdd || !targetNodeForAdd) {
+      setAddError('请选择目标资源');
+      return;
+    }
+    if (!addReason.trim()) {
+      setAddError('请填写单条修正原因');
+      return;
+    }
+    if (!needsTableMapping && !needsEntityFieldSelection && !isEntityToEntityAdd) {
+      setAddError(`${typeFullLabel(subjectNode.type)} 与 ${typeFullLabel(selectedTargetNode.type)} 暂不支持新增血缘`);
+      return;
+    }
+    if (needsTableMapping && (!addUpField || !addDownField)) {
+      setAddError('表级血缘必须配置字段映射');
+      return;
+    }
+    if (needsEntityFieldSelection && addSelectedFields.length === 0) {
+      setAddError('指标/标签与表级节点建立关系时必须选择表字段');
+      return;
+    }
+
+    const changeSetId = `add-${sourceNodeForAdd.id}-${targetNodeForAdd.id}-${Date.now()}`;
+    const relationChange: LineageRelationChange = {
+      id: `${changeSetId}-relation`,
+      kind: 'relation',
+      action: 'add',
+      direction,
+      sourceId: sourceNodeForAdd.id,
+      sourceName: sourceNodeForAdd.name,
+      targetId: targetNodeForAdd.id,
+      targetName: targetNodeForAdd.name,
+      reason: addReason,
+    };
+    const fieldChanges: LineageFieldMappingChange[] = [];
+    if (needsTableMapping) {
+      fieldChanges.push({
+        id: `${changeSetId}-field-1`,
+        kind: 'field',
+        action: 'add',
+        direction,
+        sourceId: sourceNodeForAdd.id,
+        sourceName: sourceNodeForAdd.name,
+        sourceField: addUpField,
+        targetId: targetNodeForAdd.id,
+        targetName: targetNodeForAdd.name,
+        targetField: addDownField,
+        reason: addReason,
+      });
+    }
+    if (needsEntityFieldSelection) {
+      const tableNode = isTableLikeType(sourceNodeForAdd.type) ? sourceNodeForAdd : targetNodeForAdd;
+      addSelectedFields.forEach(fieldName => {
+        fieldChanges.push({
+          id: `${changeSetId}-field-${fieldName}`,
+          kind: 'field',
+          action: 'add',
+          direction,
+          sourceId: sourceNodeForAdd.id,
+          sourceName: sourceNodeForAdd.name,
+          sourceField: sourceNodeForAdd.id === tableNode.id ? fieldName : entityField(sourceNodeForAdd),
+          targetId: targetNodeForAdd.id,
+          targetName: targetNodeForAdd.name,
+          targetField: targetNodeForAdd.id === tableNode.id ? fieldName : entityField(targetNodeForAdd),
+          reason: addReason,
+        });
+      });
+    }
+    setDraftChanges(prev => [...prev, relationChange, ...fieldChanges]);
+    setAddDialogOpen(false);
+  }
+
+  function initializationChanges(): LineageChangeSetItem[] {
+    const firstUpstream = subjectNode.upstream.find(id => effectiveNodes[id]);
+    const firstDownstream = subjectNode.downstream.find(id => effectiveNodes[id]);
+    const relationChanges: LineageRelationChange[] = [];
+    if (firstUpstream) {
+      const source = effectiveNodes[firstUpstream];
+      relationChanges.push({
+        id: `init-delete-${firstUpstream}-${centerNodeId}`,
+        kind: 'relation',
+        action: 'delete',
+        direction: 'upstream',
+        sourceId: firstUpstream,
+        sourceName: source?.name ?? firstUpstream,
+        targetId: centerNodeId,
+        targetName: subjectNode.name,
+        reason: '初始化血缘全量重建前删除旧关系',
+      });
+    }
+    if (firstDownstream) {
+      const target = effectiveNodes[firstDownstream];
+      relationChanges.push({
+        id: `init-add-${centerNodeId}-${firstDownstream}`,
+        kind: 'relation',
+        action: 'add',
+        direction: 'downstream',
+        sourceId: centerNodeId,
+        sourceName: subjectNode.name,
+        targetId: firstDownstream,
+        targetName: target?.name ?? firstDownstream,
+        reason: '初始化血缘规则推断保留/新增关系',
+      });
+    }
+    const firstField = subjectNode.fields[0]?.name ?? 'id';
+    const fieldChange: LineageFieldMappingChange = {
+      id: `init-field-${centerNodeId}-${firstField}`,
+      kind: 'field',
+      action: 'add',
+      direction: 'downstream',
+      sourceId: centerNodeId,
+      sourceName: subjectNode.name,
+      sourceField: firstField,
+      targetId: firstDownstream ?? centerNodeId,
+      targetName: firstDownstream ? (effectiveNodes[firstDownstream]?.name ?? firstDownstream) : subjectNode.name,
+      targetField: firstField,
+      reason: '初始化血缘推断字段级关系',
+    };
+    return [...relationChanges, fieldChange];
+  }
+
+  function submitInitializationApproval() {
+    setInitError('');
+    if (!initReason.trim()) {
+      setInitError('请填写初始化原因');
+      return;
+    }
+    if (!initRiskConfirmed) {
+      setInitError('请确认审批通过后将覆盖当前资产已有血缘');
+      return;
+    }
+    try {
+      submitLineageApproval({
+        objectId: centerNodeId,
+        objectName: subjectNode.name,
+        objectDisplay: subjectNode.display,
+        catalog: subjectNode.catalog,
+        securityLevel: 'S3',
+        reason: initReason.trim(),
+        correctionMode: 'initialize',
+        effectMode: 'full_rebuild',
+        riskConfirmed: true,
+        initStats: { add: 1, delete: 1, keep: Math.max(0, subjectNode.upstream.length + subjectNode.downstream.length - 1) },
+        changes: initializationChanges(),
+      });
+      setInitApprovalOpen(false);
+      setEditorOpen(true);
+    } catch (error) {
+      setInitError(error instanceof Error ? error.message : '提交失败');
+    }
+  }
+
+  function openSubmitApproval() {
+    setSubmitReason('');
+    setSubmitError('');
+    setSubmitApprovalOpen(true);
+  }
+
+  function submitDraftForApproval() {
+    if (!submitReason.trim()) {
+      setSubmitError('请填写修正总原因');
+      submitReasonRef.current?.focus();
+      submitReasonRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    try {
+      submitLineageApproval({
+        objectId: centerNodeId,
+        objectName: subjectNode.name,
+        objectDisplay: subjectNode.display,
+        catalog: subjectNode.catalog,
+        securityLevel: 'S3',
+        reason: submitReason.trim(),
+        changes: draftChanges,
+      });
+      setDraftChanges([]);
+      setSubmitApprovalOpen(false);
+      setEditorOpen(true);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '提交失败');
+    }
+  }
+
+  function approvalJudgment() {
+    const hasDelete = submitSummary.deleteUpstream > 0 || submitSummary.deleteDownstream > 0;
+    const parts = [hasDelete ? '包含删除生效关系，请重点核验影响' : '本次不删除当前生效关系'];
+    if (submitSummary.addUpstream > 0 || submitSummary.addDownstream > 0) parts.push('新增关系审批通过后才会进入当前血缘图');
+    if (submitSummary.fieldFix > 0) parts.push('字段映射需重点核验');
+    if (parts.length === 1) parts.push('审批通过前不会改变当前血缘图');
+    return `${parts.join('；')}。`;
+  }
+
+  function relationRows() {
+    const rows: Array<{ key: string; direction: 'upstream' | 'downstream'; sourceId: string; targetId: string; label: string; status: 'active' | 'pending-add' | 'pending-delete'; change?: LineageRelationChange }> = [];
+    subjectNode.upstream.forEach(sourceId => {
+      const source = effectiveNodes[sourceId];
+      if (!source) return;
+      const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === sourceId && change.targetId === centerNodeId);
+      rows.push({ key: `up-${sourceId}`, direction: 'upstream', sourceId, targetId: centerNodeId, label: `${source.name} → ${subjectNode.name}`, status: deleteChange ? 'pending-delete' : 'active', change: deleteChange });
+    });
+    subjectNode.downstream.forEach(targetId => {
+      const target = effectiveNodes[targetId];
+      if (!target) return;
+      const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === centerNodeId && change.targetId === targetId);
+      rows.push({ key: `down-${targetId}`, direction: 'downstream', sourceId: centerNodeId, targetId, label: `${subjectNode.name} → ${target.name}`, status: deleteChange ? 'pending-delete' : 'active', change: deleteChange });
+    });
+    relationDraftChanges.filter(change => change.action === 'add').forEach(change => {
+      rows.push({ key: change.id, direction: change.direction, sourceId: change.sourceId, targetId: change.targetId, label: `${change.sourceName} → ${change.targetName}`, status: 'pending-add', change });
+    });
+    return rows;
+  }
+
+  function fieldRows() {
+    const activeRows = effectiveFieldEdges
+      .filter(edge => edge.from === centerNodeId || edge.to === centerNodeId || subjectNode.upstream.includes(edge.from) || subjectNode.downstream.includes(edge.to))
+      .map(edge => ({
+        key: `${edge.from}-${edge.fromField}-${edge.to}-${edge.toField}`,
+        label: `${edge.from}.${edge.fromField} → ${edge.to}.${edge.toField}`,
+        status: 'active' as const,
+        change: undefined as LineageFieldMappingChange | undefined,
+      }));
+    const pendingRows = fieldDraftChanges.map(change => ({
+      key: change.id,
+      label: `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`,
+      status: change.action === 'add' ? 'pending-add' as const : 'pending-delete' as const,
+      change,
+    }));
+    return [...activeRows, ...pendingRows];
+  }
+
+  function renderStatusTag(status: 'active' | 'pending-add' | 'pending-delete') {
+    if (status === 'pending-add') return <Tag tone="success">待新增</Tag>;
+    if (status === 'pending-delete') return <Tag tone="danger">待删除</Tag>;
+    return <Tag tone="gray">当前生效</Tag>;
+  }
+
+  function renderRelationUndoButton(change?: LineageRelationChange | LineageFieldMappingChange) {
+    if (!change || change.kind !== 'relation') return null;
+    return <Button size="sm" onClick={() => removeDraftByRelation(change)}>撤销</Button>;
+  }
+
+  function renderEditorDrawer() {
+    if (!editorOpen) return null;
+    const rows = editorTab === 'table' ? relationRows() : fieldRows();
+    return (
+      <div className="lineage-editor-drawer open" aria-label="血缘关系管理">
+        <div className="lineage-editor-drawer__inner">
+          <header className="lineage-editor-drawer__header">
+            <div>
+              <h2>血缘关系管理</h2>
+              <p>{subjectNode.display} · {subjectNode.name}</p>
+            </div>
+            <button type="button" onClick={() => setEditorOpen(false)}>×</button>
+          </header>
+          <div className="lineage-editor-drawer__body">
+            {activeApproval ? (
+              <div className="lineage-editor-block lineage-editor-block--warning">
+                <strong>当前对象已有血缘修正审批中，请撤回或等待审批结束后再提交新的修正。</strong>
+                <span>{activeApproval.approvalNo} · {lineageApprovalSummaryText(activeApproval)}</span>
+                <div className="lineage-editor-actions">
+                  <Button size="sm" onClick={() => setApprovalDetailOpen(true)}>查看审批详情</Button>
+                  <Button size="sm" variant="danger" onClick={() => withdrawLineageApproval(activeApproval.id)}>撤回申请</Button>
+                  <Button size="sm" variant="primary" onClick={() => approveLineageApproval(activeApproval.id)}>模拟审批通过</Button>
+                  <Button size="sm" onClick={() => rejectLineageApproval(activeApproval.id, '审批人拒绝本次血缘修正')}>模拟审批拒绝</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="lineage-editor-block lineage-editor-block--success">本次修正提交审批后生效，审批通过前不会改变当前血缘图。</div>
+            )}
+            <div className="lineage-editor-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={editorTab === 'table'} className={editorTab === 'table' ? 'active' : ''} onClick={() => setEditorTab('table')}>表级血缘</button>
+              <button type="button" role="tab" aria-selected={editorTab === 'field'} className={editorTab === 'field' ? 'active' : ''} onClick={() => setEditorTab('field')}>字段级血缘</button>
+            </div>
+            <div className="lineage-editor-list">
+              {rows.map(row => (
+                <div key={row.key} className={`lineage-editor-row lineage-editor-row--${row.status}`}>
+                  <div>
+                    <strong>{row.label}</strong>
+                    <span>{'direction' in row ? row.direction === 'upstream' ? '上游' : '下游' : '字段映射'}</span>
+                  </div>
+                  <div className="lineage-editor-row__actions">
+                    {renderStatusTag(row.status)}
+                    {row.status === 'active' && editorTab === 'table' && 'sourceId' in row ? (
+                      <Button size="sm" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>删除</Button>
+                    ) : null}
+                    {renderRelationUndoButton(row.change)}
+                  </div>
+                </div>
+              ))}
+              {rows.length === 0 ? <div className="lineage-editor-empty">暂无血缘关系</div> : null}
+            </div>
+          </div>
+          <footer className="lineage-editor-drawer__footer">
+            <div className="lineage-editor-drawer__footer-left">
+              <Button onClick={openAddDialog} disabled={editorBlocked}>添加血缘关系</Button>
+              <Button variant="danger" onClick={openInitializeApproval} disabled={editorBlocked}>重置血缘</Button>
+            </div>
+            <Button variant="primary" disabled={editorBlocked || draftChangeCount === 0} onClick={openSubmitApproval}>提交修正（{draftChangeCount} 项变更）</Button>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+  function renderAddDialog() {
+    if (!addDialogOpen) return null;
+    const sourceFields = sourceNodeForAdd?.fields ?? [];
+    const targetFields = targetNodeForAdd?.fields ?? [];
+    return (
+      <div className="lineage-modal-overlay" onClick={() => setAddDialogOpen(false)}>
+        <div className="lineage-modal lineage-modal--wide" role="dialog" aria-label="添加血缘关系" onClick={(event) => event.stopPropagation()}>
+          <div className="lineage-modal-header">添加血缘关系</div>
+          <div className="lineage-modal-body lineage-form">
+            {addError ? <div className="lineage-form__error">{addError}</div> : null}
+            <div className="lineage-form__field">
+              <label htmlFor="lineage-add-direction">方向</label>
+              <select id="lineage-add-direction" value={addDirection} onChange={event => setAddDirection(event.target.value as '' | 'upstream' | 'downstream')}>
+                <option value="">请选择方向</option>
+                <option value="upstream">添加上游</option>
+                <option value="downstream">添加下游</option>
+              </select>
+            </div>
+            <div className="lineage-form__field">
+              <label htmlFor="lineage-add-target-type">目标类型</label>
+              <select id="lineage-add-target-type" value={addTargetType} onChange={event => {
+                setAddTargetType(event.target.value as '' | LineageNodeType);
+                setAddTargetId('');
+                setAddUpField('');
+                setAddDownField('');
+                setAddSelectedFields([]);
+              }}>
+                <option value="">请选择目标类型</option>
+                <option value="table">表</option>
+                <option value="view">视图</option>
+                <option value="api">API</option>
+                <option value="metric">指标</option>
+                <option value="label">标签</option>
+              </select>
+            </div>
+            <div className="lineage-form__field">
+              <label htmlFor="lineage-add-target">目标资源</label>
+              <select id="lineage-add-target" value={addTargetId} disabled={!addTargetType || targetOptions.length === 0} onChange={event => {
+                setAddTargetId(event.target.value);
+                setAddUpField('');
+                setAddDownField('');
+                setAddSelectedFields([]);
+              }}>
+                {!addTargetType ? <option value="">请先选择目标类型</option> : <option value="">{targetOptions.length === 0 ? '当前类型暂无可选资产' : '请选择目标资源'}</option>}
+                {targetOptions.map(node => <option key={node.id} value={node.id}>{node.display}（{node.name}）</option>)}
+              </select>
+            </div>
+            {needsTableMapping ? (
+              <div className="lineage-form__mapping">
+                <div className="lineage-form__field">
+                  <label htmlFor="lineage-add-up-field">{sourceMappingLabel}</label>
+                  <select id="lineage-add-up-field" value={addUpField} onChange={event => setAddUpField(event.target.value)}>
+                    <option value="">请选择</option>
+                    {sourceFields.map(field => <option key={field.name} value={field.name}>{field.name}（{field.type}）</option>)}
+                  </select>
+                </div>
+                <div className="lineage-form__field">
+                  <label htmlFor="lineage-add-down-field">{targetMappingLabel}</label>
+                  <select id="lineage-add-down-field" value={addDownField} onChange={event => setAddDownField(event.target.value)}>
+                    <option value="">请选择</option>
+                    {targetFields.map(field => <option key={field.name} value={field.name}>{field.name}（{field.type}）</option>)}
+                  </select>
+                </div>
+              </div>
+            ) : null}
+            {needsEntityFieldSelection && carrierNodeForSelection ? (
+              <fieldset className="lineage-form__fieldset lineage-form__fieldset--carrier">
+                <legend>选择承载字段</legend>
+                <p>指标/标签需要绑定到表、视图或 API 的一个或多个字段/参数。</p>
+                <div className="lineage-form__section-label">{carrierSelectionLabel}</div>
+                <div className="lineage-form__carrier-list">
+                  {carrierNodeForSelection.fields.map(field => (
+                    <label key={field.name} className="lineage-form__checkline">
+                      <input type="checkbox" checked={addSelectedFields.includes(field.name)} onChange={event => toggleSelectedField(field.name, event.target.checked)} />
+                      <span className="lineage-form__check-main">
+                        <strong>{field.name}</strong>
+                        <em>{field.type}</em>
+                      </span>
+                      <span className="lineage-form__check-desc">{field.comment}</span>
+                    </label>
+                ))}
+                </div>
+              </fieldset>
+            ) : null}
+            {isEntityToEntityAdd ? <div className="lineage-form__note">指标/标签之间将直接建立口径依赖关系，无需配置字段或参数映射。</div> : null}
+            <label htmlFor="lineage-add-reason">单条修正原因</label>
+            <textarea id="lineage-add-reason" value={addReason} onChange={event => setAddReason(event.target.value)} placeholder="必填，说明这条关系的修正依据" />
+          </div>
+          <div className="lineage-modal-footer">
+            <Button size="sm" onClick={() => setAddDialogOpen(false)}>取消</Button>
+            <Button size="sm" variant="primary" onClick={submitAddRelation}>确认添加</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSubmitApprovalDialog() {
+    if (!submitApprovalOpen) return null;
+    return (
+      <div className="lineage-modal-overlay" onClick={() => setSubmitApprovalOpen(false)}>
+        <div className="lineage-modal lineage-modal--submit" role="dialog" aria-label="提交血缘修正审批" onClick={(event) => event.stopPropagation()}>
+          <div className="lineage-modal-header">提交血缘修正审批</div>
+          <div className="lineage-modal-body lineage-submit">
+            <div className="lineage-submit__judgment">
+              <strong>审批判断</strong>
+              <span>{approvalJudgment()}</span>
+            </div>
+            <div className="lineage-submit__meta">
+              <div className="lineage-submit__meta-row"><span>主体对象</span><strong>{subjectNode.display}</strong><em>{subjectNode.name} · {subjectNode.catalog} · S3</em></div>
+              <div className="lineage-submit__meta-row"><span>审批链</span><strong>直接上级 → S4/S5 安全管理员 → S4/S5 数据管理员 → CTO</strong><em>审批流程：血缘修正_统一版</em></div>
+            </div>
+            <div className="lineage-submit__cards">
+              <div><span>新增上游</span><strong>{submitSummary.addUpstream}</strong></div>
+              <div><span>新增下游</span><strong>{submitSummary.addDownstream}</strong></div>
+              <div><span>删除关系</span><strong>{submitSummary.deleteUpstream + submitSummary.deleteDownstream}</strong></div>
+              <div><span>字段映射</span><strong>{submitSummary.fieldFix}</strong></div>
+            </div>
+            <div className="lineage-submit__details">
+              <strong>变更明细核验</strong>
+              {draftChanges.map(change => (
+                <div key={change.id}>
+                  <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                  <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
+                  <em>{change.reason || '未填写'}</em>
+                </div>
+              ))}
+            </div>
+            <div className="lineage-submit__reason-wrap">
+              <label htmlFor="lineage-submit-reason">修正总原因</label>
+              <textarea ref={submitReasonRef} id="lineage-submit-reason" value={submitReason} onChange={event => { setSubmitReason(event.target.value); setSubmitError(''); }} placeholder="请说明本次血缘修正的整体原因" />
+            </div>
+            {submitError ? <div className="lineage-form__error">{submitError}</div> : null}
+            <div className="lineage-submit__state">生成审批单；草稿冻结；审批通过后应用 change set；审批拒绝或撤回不应用；撤回后可重新提交。</div>
+          </div>
+          <div className="lineage-modal-footer">
+            <Button size="sm" onClick={() => setSubmitApprovalOpen(false)}>取消</Button>
+            <Button size="sm" variant="primary" onClick={submitDraftForApproval}>确认提交审批</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderInitializeApprovalDialog() {
+    if (!initApprovalOpen) return null;
+    const stats = { add: 1, delete: 1, keep: Math.max(0, subjectNode.upstream.length + subjectNode.downstream.length - 1) };
+    const previewChanges = initializationChanges();
+    return (
+      <div className="lineage-modal-overlay" onClick={() => setInitApprovalOpen(false)}>
+        <div className="lineage-modal lineage-modal--submit" role="dialog" aria-label="初始化血缘审批申请" onClick={(event) => event.stopPropagation()}>
+          <div className="lineage-modal-header">初始化血缘审批申请</div>
+          <div className="lineage-modal-body lineage-submit">
+            <div className="lineage-submit__judgment">
+              <strong>风险提示</strong>
+              <span>审批通过后将以本次初始化结果覆盖当前资产已有血缘；审批拒绝或撤回不改变当前血缘。</span>
+            </div>
+            <div className="lineage-submit__meta">
+              <div className="lineage-submit__meta-row"><span>修正动作</span><strong>初始化血缘</strong><em>生效方式：全量重建</em></div>
+              <div className="lineage-submit__meta-row"><span>覆盖对象</span><strong>{subjectNode.display}</strong><em>{subjectNode.name} · {subjectNode.catalog}</em></div>
+            </div>
+            <div className="lineage-submit__cards">
+              <div><span>预计新增</span><strong>{stats.add}</strong></div>
+              <div><span>预计删除</span><strong>{stats.delete}</strong></div>
+              <div><span>预计保留</span><strong>{stats.keep}</strong></div>
+              <div><span>端点关系</span><strong>{previewChanges.filter(item => item.kind === 'field').length}</strong></div>
+            </div>
+            <div className="lineage-submit__details">
+              <strong>本次提交变更数据</strong>
+              {previewChanges.map(change => (
+                <div key={change.id}>
+                  <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                  <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
+                  <em>{change.reason}</em>
+                </div>
+              ))}
+            </div>
+            <label htmlFor="lineage-init-reason">初始化原因</label>
+            <textarea id="lineage-init-reason" value={initReason} onChange={event => { setInitReason(event.target.value); setInitError(''); }} placeholder="必填，请说明为什么需要全量重建血缘" />
+            <label className="lineage-form__checkline lineage-form__checkline--risk">
+              <input type="checkbox" checked={initRiskConfirmed} onChange={event => { setInitRiskConfirmed(event.target.checked); setInitError(''); }} />
+              我确认审批通过后将覆盖当前资产已有血缘
+            </label>
+            {initError ? <div className="lineage-form__error">{initError}</div> : null}
+          </div>
+          <div className="lineage-modal-footer">
+            <Button size="sm" onClick={() => setInitApprovalOpen(false)}>取消</Button>
+            <Button size="sm" variant="primary" onClick={submitInitializationApproval}>确认提交审批</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderApprovalDetailDialog() {
+    if (!approvalDetailOpen || !activeApproval) return null;
+    const summary = lineageApprovalSummary(activeApproval);
+    return (
+      <div className="lineage-modal-overlay" onClick={() => setApprovalDetailOpen(false)}>
+        <div className="lineage-modal lineage-modal--wide" role="dialog" aria-label="血缘审批详情" onClick={(event) => event.stopPropagation()}>
+          <div className="lineage-modal-header">血缘审批详情</div>
+          <div className="lineage-modal-body">
+            <div className="lineage-submit__meta single">
+              <div><span>审批单号</span><strong>{activeApproval.approvalNo}</strong><em>{activeApproval.currentNode} · {activeApproval.matchedFlow}</em></div>
+              <div><span>变更数量</span><strong>{summary.total} 项</strong><em>{lineageApprovalSummaryText(activeApproval)}</em></div>
+            </div>
+            {activeApproval.reason ? (
+              <div className="lineage-approval-detail-reason"><strong>修正原因</strong><p>{activeApproval.reason}</p></div>
+            ) : null}
+            {activeApproval.changes.length > 0 && (
+              <div className="lineage-approval-detail-changes"><strong>变更明细</strong>
+                {activeApproval.changes.map(change => (
+                  <div key={change.id} className="lineage-approval-detail-change">
+                    <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                    <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
+                    {change.reason ? <em>{change.reason}</em> : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="lineage-modal-footer"><Button size="sm" onClick={() => setApprovalDetailOpen(false)}>关闭</Button></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className={`lineage-page${correctMode ? ' lineage-page--correct-mode' : ''}${isEmbedded ? ' lineage-page--embedded' : ''}`} id="page-lineage-wrap">
       {/* Correct mode banner */}
@@ -1530,20 +2285,9 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
         <div className="lineage-toolbar-sep" />
         {/* Right-aligned actions */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
-          {correctMode ? (
-            <>
-              <Button variant="primary" size="sm" onClick={() => setSubmitDialogOpen(true)} disabled={pendingChanges.length === 0}>
-                <CheckIcon /> 提交修正
-              </Button>
-              <Button variant="default" size="sm" onClick={() => { setCorrectMode(false); setPendingChanges([]); setConnectionSource(null); }}>
-                取消
-              </Button>
-            </>
-          ) : (
-            <Button variant="default" size="sm" onClick={() => setCorrectMode(true)}>
-              <EditIcon /> 修正血缘
-            </Button>
-          )}
+          <Button variant="default" size="sm" onClick={() => { setEditorOpen(true); setEditorTab('table'); }}>
+            <EditIcon /> 修正血缘
+          </Button>
           <div className="lineage-toolbar-sep" />
           <div className="lineage-toolbar-icon-btn" title="全屏" onClick={handleFullscreen}>
             <FullscreenIcon />
@@ -1626,6 +2370,12 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
           db={effectiveNodes}
         />
       </div>
+
+      {renderEditorDrawer()}
+      {renderAddDialog()}
+      {renderSubmitApprovalDialog()}
+      {renderInitializeApprovalDialog()}
+      {renderApprovalDetailDialog()}
 
       {/* Submit confirmation dialog */}
       {submitDialogOpen && (

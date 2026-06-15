@@ -39,6 +39,13 @@ import {
 import { SubmittedPanel } from './components/SubmittedPanel';
 import { PendingPanel, ApprovalActionModal } from './components/PendingPanel';
 import type { ActionDialog } from './components/PendingPanel';
+import {
+  approveLineageApproval,
+  lineageApprovalsToBatches,
+  lineageApprovalsToPendingTasks,
+  rejectLineageApproval,
+  useLineageApprovals,
+} from '../lineage/lineageApprovalStore';
 import './approval-integration.css';
 
 type DrawerState =
@@ -130,6 +137,7 @@ function newFlow(): FlowConfig {
 }
 
 export function ApprovalIntegrationPage() {
+  const lineageApprovals = useLineageApprovals();
   const [section, setSection] = useState<Section>(() => sectionFromHash());
   const [detailTab, setDetailTab] = useState<DetailTab>(() => detailTabFromHash());
   const [detailId, setDetailId] = useState(() => queryParam('id') ?? 'fc-001');
@@ -138,8 +146,9 @@ export function ApprovalIntegrationPage() {
   const [formMappings, setFormMappings] = useState(initialFormMappings);
   const [nodeMappings, setNodeMappings] = useState(initialNodeMappings);
   const [roles, setRoles] = useState(initialRoles);
-  const [batches] = useState(initialBatches);
+  const batches = useMemo(() => [...lineageApprovalsToBatches(), ...initialBatches], [lineageApprovals]);
   const [tasks, setTasks] = useState(initialPendingTasks);
+  const pendingTasks = useMemo(() => [...lineageApprovalsToPendingTasks(), ...tasks], [lineageApprovals, tasks]);
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [actionDialog, setActionDialog] = useState<ActionDialog>(null);
   const [toast, setToast] = useState('');
@@ -245,6 +254,10 @@ export function ApprovalIntegrationPage() {
     }
     const targets = Array.isArray(target) ? target : [target];
     const targetIds = new Set(targets.map(task => task.id));
+    targets.filter(task => task.ticketType === '血缘修正').forEach(task => {
+      if (type === 'approve') approveLineageApproval(task.id);
+      else rejectLineageApproval(task.id, comment);
+    });
     setTasks(prev => prev.filter(item => !targetIds.has(item.id)));
     setActionDialog(null);
     flash(type === 'approve' ? '已审批通过，飞书同步中...' : '已审批拒绝，飞书同步中...');
@@ -260,7 +273,7 @@ export function ApprovalIntegrationPage() {
               <div className="approval-v6__nav-title">{group.title}</div>
               {group.items.map(item => (
                 <button key={item.key} type="button" className={section === item.key ? 'active' : ''} onClick={() => setSectionHash(item.key)}>
-                  <span>{item.label}</span>{item.key === 'pending' && tasks.length ? <b>{tasks.length}</b> : item.badge ? <b>{item.badge}</b> : null}
+                  <span>{item.label}</span>{item.key === 'pending' && pendingTasks.length ? <b>{pendingTasks.length}</b> : item.badge ? <b>{item.badge}</b> : null}
                 </button>
               ))}
             </div>
@@ -275,7 +288,7 @@ export function ApprovalIntegrationPage() {
           {section === 'flow-detail' ? <FlowDetailPanel flow={selectedFlow} tab={detailTab} routes={routes} formMappings={formMappings} nodeMappings={nodeMappings} validatingId={validatingId} onTabChange={(tab) => openFlowDetail(selectedFlow.id, tab)} onBack={() => setSectionHash('flows')} onValidate={validateFlow} onEdit={() => setDrawer({ kind: 'edit-flow', flow: selectedFlow })} onNewMapping={() => setDrawer({ kind: 'form', mapping: newMappingFor(selectedFlow.id), isNew: true })} onEditMapping={(mapping) => setDrawer({ kind: 'form', mapping, isNew: false })} onDeleteMapping={(id) => setFormMappings(prev => prev.filter(item => item.id !== id))} onNewNode={() => setDrawer({ kind: 'node', node: newNodeFor(selectedFlow.id), isNew: true })} onEditNode={(node) => setDrawer({ kind: 'node', node, isNew: false })} onDeleteNode={(id) => setNodeMappings(prev => prev.filter(item => item.id !== id))} onToggleNode={(id) => setNodeMappings(prev => prev.map(item => item.id === id ? { ...item, enabled: !item.enabled } : item))} onNewRoute={() => setDrawer({ kind: 'route', route: newRouteFor(selectedFlow.ticketType, flows, routes, selectedFlow.id), isNew: true })} onEditRoute={(route) => setDrawer({ kind: 'route', route, isNew: false })} onDeleteRoute={(id) => setRoutes(prev => prev.filter(item => item.id !== id))} /> : null}
           {section === 'roles' ? <RolesPanel roles={roles} onNew={() => setDrawer({ kind: 'role', role: newRole(), isNew: true })} onEdit={(role) => setDrawer({ kind: 'role', role, isNew: false })} /> : null}
           {section === 'submitted' ? <SubmittedPanel batches={batches} onView={(instance) => setDrawer({ kind: 'instance', instance })} /> : null}
-          {section === 'pending' ? <PendingPanel tasks={tasks} onOpenAction={setActionDialog} /> : null}
+          {section === 'pending' ? <PendingPanel tasks={pendingTasks} onOpenAction={setActionDialog} /> : null}
           {section === 'monitor' ? <MonitorPanel /> : null}
         </div>
       </main>
