@@ -83,4 +83,20 @@ describe('MyPage approval entries', () => {
       expect(within(row).getByText(label)).toBeInTheDocument();
     }
   });
+
+  it('prefills the cart with a known asset and reason when arriving via reapply hash', () => {
+    window.location.hash = 'my?section=cart&assetName=dwd_trade_order&reason=月度复盘需要';
+    render(<MyPage />);
+
+    expect(screen.getByText(/已预填「交易订单宽表」到申请单/)).toBeInTheDocument();
+    const reasonBox = screen.getByPlaceholderText(/请填写申请理由/) as HTMLTextAreaElement;
+    expect(reasonBox.value).toBe('月度复盘需要');
+  });
+
+  it('shows a fallback notice when the reapply asset is not in the cart catalog', () => {
+    window.location.hash = 'my?section=cart&assetName=unknown_asset_xyz';
+    render(<MyPage />);
+
+    expect(screen.getByText(/暂未配置资产「unknown_asset_xyz」/)).toBeInTheDocument();
+  });
 });

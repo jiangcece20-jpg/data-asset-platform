@@ -172,6 +172,12 @@ const navItems: Array<{ key: PermissionSection; label: string; badge?: number; g
   { key: 'records', label: '审批记录', group: '管理' },
 ];
 
+function buildReapplyHash(assetName: string, reason?: string): string {
+  const params = new URLSearchParams({ section: 'cart', assetName });
+  if (reason && reason.trim()) params.set('reason', reason);
+  return `my?${params.toString()}`;
+}
+
 function getPermissionSectionFromHash(): PermissionSection {
   const [, query = ''] = window.location.hash.replace(/^#/, '').split('?');
   const section = new URLSearchParams(query).get('section');
@@ -509,7 +515,7 @@ function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
         ) : null}
         {order.status === 'pending' ? <Button size="sm" onClick={() => setWithdrawn(true)}>撤回</Button> : null}
         {order.status === 'rejected' ? (
-          <Button variant="primary" size="sm" onClick={() => { window.location.hash = 'my?section=cart'; }}>重新申请</Button>
+          <Button variant="primary" size="sm" onClick={() => { window.location.hash = buildReapplyHash(order.assetName); }}>重新申请</Button>
         ) : null}
       </div>
     </div>
@@ -695,7 +701,18 @@ function TicketQueryPanel() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.hash = 'my?section=cart';
+                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
+                        }}
+                      >
+                        重新申请
+                      </button>
+                    ) : null}
+                    {ticket.status === 'withdrawn' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
                         }}
                       >
                         重新申请

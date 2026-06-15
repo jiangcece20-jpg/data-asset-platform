@@ -72,6 +72,19 @@ describe('PermissionManagementPage', () => {
     expect(screen.queryByText('dwd_order_legacy')).not.toBeInTheDocument();
   });
 
+  it('reapply hash includes the rejected ticket asset name', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '/');
+    render(<PermissionManagementPage />);
+
+    await user.click(screen.getByRole('tab', { name: '已拒绝' }));
+
+    const row = screen.getByRole('row', { name: /PA-2026032500008/ });
+    await user.click(within(row).getByRole('button', { name: '重新申请' }));
+
+    expect(window.location.hash).toBe('#my?section=cart&assetName=api_logistics_track');
+  });
+
   it('shows pending approvals with status-based tabs', async () => {
     const user = userEvent.setup();
     render(<PermissionManagementPage />);
