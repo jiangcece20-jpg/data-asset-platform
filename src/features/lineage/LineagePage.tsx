@@ -1905,38 +1905,123 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     return `${parts.join('；')}。`;
   }
 
-  function relationRows() {
-    const rows: Array<{ key: string; direction: 'upstream' | 'downstream'; sourceId: string; targetId: string; label: string; status: 'active' | 'pending-add' | 'pending-delete'; change?: LineageRelationChange }> = [];
+  type RelationRow = {
+    key: string;
+    direction: 'upstream' | 'downstream';
+    sourceId: string;
+    targetId: string;
+    resourceName: string;
+    resourceDisplay: string;
+    resourceType: LineageNodeType;
+    origin: 'auto' | 'manual';
+    status: 'active' | 'pending-add' | 'pending-delete';
+    change?: LineageRelationChange;
+  };
+
+  type FieldRow = {
+    key: string;
+    direction: 'upstream' | 'downstream';
+    upResource: string;
+    upField: string;
+    downResource: string;
+    downField: string;
+    origin: 'auto' | 'manual';
+    status: 'active' | 'pending-add' | 'pending-delete';
+    change?: LineageFieldMappingChange;
+  };
+
+  function relationRows(): RelationRow[] {
+    // Build a set of "sourceId>targetId" pairs that were manually added via approved corrections
+    const manualRelationKeys = new Set<string>();
+    approvals
+      .filter(a => a.status === 'approved')
+      .flatMap(a => a.changes)
+      .filter((c): c is LineageRelationChange => c.kind === 'relation' && c.action === 'add')
+      .forEach(c => manualRelationKeys.add(`${c.sourceId}>${c.targetId}`));
+
+    const rows: RelationRow[] = [];
     subjectNode.upstream.forEach(sourceId => {
       const source = effectiveNodes[sourceId];
       if (!source) return;
       const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === sourceId && change.targetId === centerNodeId);
-      rows.push({ key: `up-${sourceId}`, direction: 'upstream', sourceId, targetId: centerNodeId, label: `${source.name} → ${subjectNode.name}`, status: deleteChange ? 'pending-delete' : 'active', change: deleteChange });
+      rows.push({
+        key: `up-${sourceId}`,
+        direction: 'upstream',
+        sourceId,
+        targetId: centerNodeId,
+        resourceName: source.name,
+        resourceDisplay: source.display,
+        resourceType: source.type,
+        origin: manualRelationKeys.has(`${sourceId}>${centerNodeId}`) ? 'manual' : 'auto',
+        status: deleteChange ? 'pending-delete' : 'active',
+        change: deleteChange,
+      });
     });
     subjectNode.downstream.forEach(targetId => {
       const target = effectiveNodes[targetId];
       if (!target) return;
       const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === centerNodeId && change.targetId === targetId);
-      rows.push({ key: `down-${targetId}`, direction: 'downstream', sourceId: centerNodeId, targetId, label: `${subjectNode.name} → ${target.name}`, status: deleteChange ? 'pending-delete' : 'active', change: deleteChange });
+      rows.push({
+        key: `down-${targetId}`,
+        direction: 'downstream',
+        sourceId: centerNodeId,
+        targetId,
+        resourceName: target.name,
+        resourceDisplay: target.display,
+        resourceType: target.type,
+        origin: manualRelationKeys.has(`${centerNodeId}>${targetId}`) ? 'manual' : 'auto',
+        status: deleteChange ? 'pending-delete' : 'active',
+        change: deleteChange,
+      });
     });
     relationDraftChanges.filter(change => change.action === 'add').forEach(change => {
-      rows.push({ key: change.id, direction: change.direction, sourceId: change.sourceId, targetId: change.targetId, label: `${change.sourceName} → ${change.targetName}`, status: 'pending-add', change });
+      const peerNode = change.direction === 'upstream' ? effectiveNodes[change.sourceId] : effectiveNodes[change.targetId];
+      rows.push({
+        key: change.id,
+        direction: change.direction,
+        sourceId: change.sourceId,
+        targetId: change.targetId,
+        resourceName: change.direction === 'upstream' ? change.sourceName : change.targetName,
+        resourceDisplay: peerNode?.display ?? '',
+        resourceType: peerNode?.type ?? 'table',
+        origin: 'manual',
+        status: 'pending-add',
+        change,
+      });
     });
     return rows;
   }
 
-  function fieldRows() {
-    const activeRows = effectiveFieldEdges
+  function fieldRows(): FieldRow[] {
+    // Build a set of "from.fromField>to.toField" keys from approved manual corrections
+    const manualFieldKeys = new Set<string>();
+    approvals
+      .filter(a => a.status === 'approved')
+      .flatMap(a => a.changes)
+      .filter((c): c is LineageFieldMappingChange => c.kind === 'field' && c.action === 'add')
+      .forEach(c => manualFieldKeys.add(`${c.sourceId}.${c.sourceField}>${c.targetId}.${c.targetField}`));
+
+    const activeRows: FieldRow[] = effectiveFieldEdges
       .filter(edge => edge.from === centerNodeId || edge.to === centerNodeId || subjectNode.upstream.includes(edge.from) || subjectNode.downstream.includes(edge.to))
       .map(edge => ({
         key: `${edge.from}-${edge.fromField}-${edge.to}-${edge.toField}`,
-        label: `${edge.from}.${edge.fromField} → ${edge.to}.${edge.toField}`,
+        direction: (subjectNode.upstream.includes(edge.from) || edge.to === centerNodeId ? 'upstream' : 'downstream') as 'upstream' | 'downstream',
+        upResource: edge.from,
+        upField: edge.fromField,
+        downResource: edge.to,
+        downField: edge.toField,
+        origin: manualFieldKeys.has(`${edge.from}.${edge.fromField}>${edge.to}.${edge.toField}`) ? 'manual' as const : 'auto' as const,
         status: 'active' as const,
-        change: undefined as LineageFieldMappingChange | undefined,
+        change: undefined,
       }));
-    const pendingRows = fieldDraftChanges.map(change => ({
+    const pendingRows: FieldRow[] = fieldDraftChanges.map(change => ({
       key: change.id,
-      label: `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`,
+      direction: change.direction,
+      upResource: change.sourceId,
+      upField: change.sourceField,
+      downResource: change.targetId,
+      downField: change.targetField,
+      origin: 'manual' as const,
       status: change.action === 'add' ? 'pending-add' as const : 'pending-delete' as const,
       change,
     }));
@@ -1946,24 +2031,26 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   function renderStatusTag(status: 'active' | 'pending-add' | 'pending-delete') {
     if (status === 'pending-add') return <Tag tone="success">待新增</Tag>;
     if (status === 'pending-delete') return <Tag tone="danger">待删除</Tag>;
-    return <Tag tone="gray">当前生效</Tag>;
+    return <Tag tone="success">有效</Tag>;
   }
 
   function renderRelationUndoButton(change?: LineageRelationChange | LineageFieldMappingChange) {
     if (!change || change.kind !== 'relation') return null;
-    return <Button size="sm" onClick={() => removeDraftByRelation(change)}>撤销</Button>;
+    return <button type="button" className="lineage-tbl-link lineage-tbl-link--undo" onClick={() => removeDraftByRelation(change)}>撤销</button>;
   }
 
   function renderEditorDrawer() {
     if (!editorOpen) return null;
-    const rows = editorTab === 'table' ? relationRows() : fieldRows();
+    const tableRows = relationRows();
+    const fRows = fieldRows();
+
     return (
       <div className="lineage-editor-drawer open" aria-label="血缘关系管理">
         <div className="lineage-editor-drawer__inner">
           <header className="lineage-editor-drawer__header">
             <div>
-              <h2>血缘关系管理</h2>
-              <p>{subjectNode.display} · {subjectNode.name}</p>
+              <h2>血缘关系管理 — {subjectNode.display}</h2>
+              <p>{subjectNode.name}</p>
             </div>
             <button type="button" onClick={() => setEditorOpen(false)}>×</button>
           </header>
@@ -1986,29 +2073,108 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <button type="button" role="tab" aria-selected={editorTab === 'table'} className={editorTab === 'table' ? 'active' : ''} onClick={() => setEditorTab('table')}>表级血缘</button>
               <button type="button" role="tab" aria-selected={editorTab === 'field'} className={editorTab === 'field' ? 'active' : ''} onClick={() => setEditorTab('field')}>字段级血缘</button>
             </div>
-            <div className="lineage-editor-list">
-              {rows.map(row => (
-                <div key={row.key} className={`lineage-editor-row lineage-editor-row--${row.status}`}>
-                  <div>
-                    <strong>{row.label}</strong>
-                    <span>{'direction' in row ? row.direction === 'upstream' ? '上游' : '下游' : '字段映射'}</span>
-                  </div>
-                  <div className="lineage-editor-row__actions">
-                    {renderStatusTag(row.status)}
-                    {row.status === 'active' && editorTab === 'table' && 'sourceId' in row ? (
-                      <Button size="sm" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>删除</Button>
-                    ) : null}
-                    {renderRelationUndoButton(row.change)}
-                  </div>
-                </div>
-              ))}
-              {rows.length === 0 ? <div className="lineage-editor-empty">暂无血缘关系</div> : null}
-            </div>
+
+            {editorTab === 'table' ? (
+              <table className="lineage-editor-table">
+                <thead>
+                  <tr>
+                    <th className="col-dir">方向</th>
+                    <th className="col-name">资源名称</th>
+                    <th className="col-type">类型</th>
+                    <th className="col-origin">来源方式</th>
+                    <th className="col-status">状态</th>
+                    <th className="col-actions">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.length === 0 ? (
+                    <tr><td colSpan={6} className="lineage-editor-empty">暂无血缘关系</td></tr>
+                  ) : tableRows.map(row => (
+                    <tr key={row.key} className={`lineage-editor-tr lineage-editor-tr--${row.status}`}>
+                      <td className="col-dir">
+                        <span className={`lineage-dir-tag lineage-dir-tag--${row.direction}`}>
+                          {row.direction === 'upstream' ? '上游' : '下游'}
+                        </span>
+                      </td>
+                      <td className="col-name">
+                        <strong className="lineage-res-name">{row.resourceName}</strong>
+                        {row.resourceDisplay && <span className="lineage-res-display">{row.resourceDisplay}</span>}
+                      </td>
+                      <td className="col-type">
+                        <span className="lineage-type-badge">{typeFullLabel(row.resourceType)}</span>
+                      </td>
+                      <td className="col-origin">
+                        <span className={`lineage-origin-tag lineage-origin-tag--${row.origin}`}>
+                          {row.origin === 'auto' ? '自动采集' : '手动添加'}
+                        </span>
+                      </td>
+                      <td className="col-status">{renderStatusTag(row.status)}</td>
+                      <td className="col-actions">
+                        {row.status === 'active' ? (
+                          <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>排除</button>
+                        ) : null}
+                        {row.status === 'pending-add' ? (
+                          <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>删除</button>
+                        ) : null}
+                        {renderRelationUndoButton(row.change)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="lineage-editor-table lineage-editor-table--field">
+                <thead>
+                  <tr>
+                    <th className="col-dir">方向</th>
+                    <th className="col-field-up">上游资源.字段</th>
+                    <th className="col-arrow"></th>
+                    <th className="col-field-down">下游资源.字段</th>
+                    <th className="col-origin">来源方式</th>
+                    <th className="col-status">状态</th>
+                    <th className="col-actions">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fRows.length === 0 ? (
+                    <tr><td colSpan={7} className="lineage-editor-empty">暂无字段级血缘</td></tr>
+                  ) : fRows.map(row => (
+                    <tr key={row.key} className={`lineage-editor-tr lineage-editor-tr--${row.status}`}>
+                      <td className="col-dir">
+                        <span className={`lineage-dir-tag lineage-dir-tag--${row.direction}`}>
+                          {row.direction === 'upstream' ? '上游' : '下游'}
+                        </span>
+                      </td>
+                      <td className="col-field-up">
+                        <span className="lineage-field-res">{row.upResource}</span>
+                        <strong className="lineage-field-name">.{row.upField}</strong>
+                      </td>
+                      <td className="col-arrow"><span className="lineage-field-arrow">→</span></td>
+                      <td className="col-field-down">
+                        <span className="lineage-field-res">{row.downResource}</span>
+                        <strong className="lineage-field-name">.{row.downField}</strong>
+                      </td>
+                      <td className="col-origin">
+                        <span className={`lineage-origin-tag lineage-origin-tag--${row.origin}`}>
+                          {row.origin === 'auto' ? '自动采集' : '手动添加'}
+                        </span>
+                      </td>
+                      <td className="col-status">{renderStatusTag(row.status)}</td>
+                      <td className="col-actions">
+                        {row.change && (
+                          <button type="button" className="lineage-tbl-link lineage-tbl-link--undo" onClick={() => row.change && setDraftChanges(prev => prev.filter(c => c.id !== row.change!.id))}>撤销</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
           <footer className="lineage-editor-drawer__footer">
             <div className="lineage-editor-drawer__footer-left">
-              <Button onClick={openAddDialog} disabled={editorBlocked}>添加血缘关系</Button>
-              <Button variant="danger" onClick={openInitializeApproval} disabled={editorBlocked}>重置血缘</Button>
+              <Button onClick={openAddDialog} disabled={editorBlocked}>+ 添加血缘关系</Button>
+              <Button variant="danger" onClick={openInitializeApproval} disabled={editorBlocked}>初始化血缘</Button>
             </div>
             <Button variant="primary" disabled={editorBlocked || draftChangeCount === 0} onClick={openSubmitApproval}>提交修正（{draftChangeCount} 项变更）</Button>
           </footer>

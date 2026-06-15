@@ -878,7 +878,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: min(560px, 96vw);
+  width: min(720px, 96vw);
   height: 100%;
   background: #fff;
   box-shadow: -8px 0 28px rgba(0, 0, 0, 0.14);
@@ -918,6 +918,124 @@
   overflow: auto;
   padding: 14px 18px;
 }
+
+/* ─── Table list ──────────────────────────────── */
+.lineage-editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.lineage-editor-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  background: #fafafa;
+  white-space: nowrap;
+}
+
+.lineage-editor-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.lineage-editor-tr:hover td {
+  background: #fafafa;
+}
+
+.lineage-editor-tr--pending-add td {
+  background: #f6ffed;
+}
+
+.lineage-editor-tr--pending-delete td {
+  background: #fff2e8;
+}
+
+/* Col widths */
+.lineage-editor-table .col-dir   { width: 52px; }
+.lineage-editor-table .col-type  { width: 52px; }
+.lineage-editor-table .col-origin{ width: 80px; }
+.lineage-editor-table .col-status{ width: 70px; }
+.lineage-editor-table .col-actions{ width: 72px; text-align: right; }
+.lineage-editor-table .col-arrow { width: 24px; text-align: center; color: var(--text-tertiary); }
+.lineage-editor-table .col-field-up,
+.lineage-editor-table .col-field-down { width: auto; }
+
+/* Direction tag */
+.lineage-dir-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.lineage-dir-tag--upstream  { color: #1677ff; }
+.lineage-dir-tag--downstream { color: #52c41a; }
+
+/* Resource name */
+.lineage-res-name {
+  display: block;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.lineage-res-display {
+  display: block;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+/* Type badge */
+.lineage-type-badge {
+  display: inline-block;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: #fff;
+}
+
+/* Origin tag */
+.lineage-origin-tag {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.lineage-origin-tag--manual {
+  color: #1677ff;
+}
+
+/* Field cell */
+.lineage-field-res {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+.lineage-field-name {
+  font-weight: 600;
+  font-size: 12px;
+}
+.lineage-field-arrow {
+  color: var(--text-tertiary);
+}
+
+/* Action links */
+.lineage-tbl-link {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+.lineage-tbl-link--danger  { color: #ff4d4f; }
+.lineage-tbl-link--danger:hover { color: #d32029; }
+.lineage-tbl-link--undo    { color: var(--text-secondary); }
+.lineage-tbl-link--undo:hover { color: var(--text-primary); }
+.lineage-tbl-link:disabled { color: var(--text-tertiary); cursor: not-allowed; }
 
 .lineage-editor-drawer__footer {
   border-top: 1px solid var(--border-color);

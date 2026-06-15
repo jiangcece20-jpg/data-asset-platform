@@ -47,6 +47,12 @@ export type Ticket = {
   status: Exclude<TicketStatus, 'all'>;
   applicant: string;
   reason?: string;
+  // 申请表单字段
+  dataTable?: string;       // 数据表
+  usagePeriod?: string;     // 使用周期
+  dataScope?: string;       // 数据范围
+  permissionJudgment?: string; // 权限申请判断
+  transactionOrder?: string;  // 交易订单
 };
 
 type SubOrder = {
@@ -191,7 +197,7 @@ function getPermissionSectionFromHash(): PermissionSection {
 }
 
 const tickets: Ticket[] = [
-  { id: 'PA-2026033100001', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-001', instanceCode: 'FS-PERM-0001', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0001', syncText: '事件同步正常', syncMode: 'event', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetType: '数据表', applyTime: '2026-03-31 14:30', status: 'pending', applicant: '张三', reason: '需要查询金融业务线的交易数据用于月度分析报告' },
+  { id: 'PA-2026033100001', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-001', instanceCode: 'FS-PERM-0001', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0001', syncText: '事件同步正常', syncMode: 'event', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetType: '数据表', applyTime: '2026-03-31 14:30', status: 'pending', applicant: '张三', dataTable: 'dwd_trade_order（交易订单宽表）', usagePeriod: '3 个月', dataScope: '全部字段', permissionJudgment: '业务分析', transactionOrder: '2026Q1-0027', reason: '需要查询金融业务线的交易数据用于月度分析报告' },
   { id: 'PA-2026032800012', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-002', instanceCode: 'FS-PERM-0002', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0002', syncText: '事件同步正常', syncMode: 'event', assetName: 'dim_user_profile', assetDisplay: '用户画像维表', assetType: '数据表', applyTime: '2026-03-28 09:15', status: 'approved', applicant: '李四' },
   { id: 'PA-2026032500008', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-003', instanceCode: 'FS-PERM-0003', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0003', syncText: '轮询补偿完成', syncMode: 'polling', assetName: 'api_logistics_track', assetDisplay: '物流追踪接口', assetType: 'API', applyTime: '2026-03-25 16:40', status: 'rejected', applicant: '张三' },
   { id: 'PA-2026032200003', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-004', instanceCode: 'FS-PERM-0004', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0004', syncText: '事件同步正常', syncMode: 'event', assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', assetType: '报表', applyTime: '2026-03-22 11:00', status: 'withdrawn', applicant: '王五' },
