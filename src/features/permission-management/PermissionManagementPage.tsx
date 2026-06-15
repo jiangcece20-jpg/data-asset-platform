@@ -3,6 +3,13 @@ import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
 import { ConditionFieldCheckbox } from '../../components/forms/ConditionFieldCheckbox';
 import './permission-management.css';
+import { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag } from './components/ticketStatus';
+import { TimelineItem } from './components/TimelineItem';
+import { buildReapplyHash } from './components/buildReapplyHash';
+
+export { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag };
+export { TimelineItem };
+export { buildReapplyHash };
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
 type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
@@ -171,12 +178,6 @@ const navItems: Array<{ key: PermissionSection; label: string; badge?: number; g
   { key: 'approval-management', label: '审批管理', group: '管理' },
   { key: 'records', label: '审批记录', group: '管理' },
 ];
-
-function buildReapplyHash(assetName: string, reason?: string): string {
-  const params = new URLSearchParams({ section: 'cart', assetName });
-  if (reason && reason.trim()) params.set('reason', reason);
-  return `my?${params.toString()}`;
-}
 
 function getPermissionSectionFromHash(): PermissionSection {
   const [, query = ''] = window.location.hash.replace(/^#/, '').split('?');
@@ -424,64 +425,7 @@ const approvalRecords = [
   { id: 'GA-2026033000038', category: '治理' as const, applicant: '王五', target: '下架 \xb7 dwd_order_legacy', applyTime: '2026-03-30 15:20', approver: '张三', approveTime: '2026-03-30 16:00', result: '通过' },
 ];
 
-const statusLabels: Record<string, string> = {
-  pending: '审批中',
-  approved: '已通过',
-  rejected: '已拒绝',
-  withdrawn: '已撤回',
-  expired: '已过期',
-};
-
-const pendingStatusLabels: Record<string, string> = {
-  pending: '待审批',
-  approved: '已通过',
-  rejected: '已拒绝',
-  expired: '已过期',
-};
-
-function statusTone(status: string): 'success' | 'warning' | 'danger' | 'gray' {
-  if (status === 'approved' || status === '通过' || status === '启用') return 'success';
-  if (status === 'pending' || status === '审批中') return 'warning';
-  if (status === 'rejected' || status === '驳回' || status === '已拒绝') return 'danger';
-  return 'gray';
-}
-
-function categoryTone(category: string): 'blue' | 'warning' | 'gray' {
-  if (category === 'perm' || category === '权限') return 'blue';
-  if (category === 'gov' || category === '治理') return 'warning';
-  return 'gray';
-}
-
-function syncTone(syncMode: Ticket['syncMode']): 'success' | 'warning' | 'gray' {
-  if (syncMode === 'event') return 'success';
-  if (syncMode === 'polling') return 'warning';
-  return 'gray';
-}
-
-function subOrderStatusTag(status: SubOrder['status']) {
-  const map: Record<string, { label: string; tone: 'success' | 'danger' | 'warning' | 'gray' }> = {
-    approved: { label: '✅ 已通过', tone: 'success' },
-    rejected: { label: '❌ 已驳回', tone: 'danger' },
-    pending: { label: '⏳ 审批中', tone: 'warning' },
-    withdrawn: { label: '已撤回', tone: 'gray' },
-  };
-  const item = map[status];
-  return item ? <Tag tone={item.tone}>{item.label}</Tag> : null;
-}
-
-function TimelineItem({ label, time, status }: { label: string; time: string; status: 'done' | 'rejected' | 'waiting' }) {
-  const dotClass = status === 'done' ? 'done' : status === 'rejected' ? 'rejected' : 'waiting';
-  const actionTag = status === 'done' ? <Tag tone="success">通过</Tag> : status === 'rejected' ? <Tag tone="danger">驳回</Tag> : <Tag tone="warning">待审批</Tag>;
-  return (
-    <div className="permission-management__timeline-item">
-      <div className={`permission-management__timeline-dot ${dotClass}`} />
-      <div className="permission-management__timeline-content">
-        {label} {actionTag}
-      </div>
-      <div className="permission-management__timeline-time">{time}</div>
-    </div>
-  );
-}
+// statusLabels, statusTone, syncTone imported from ./components/ticketStatus
 
 function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
   const [withdrawn, setWithdrawn] = useState(false);
