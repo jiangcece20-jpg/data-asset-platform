@@ -22,7 +22,6 @@ export function ApplicantPermDetail({ ticket, subOrders, actions, redTitle = fal
 
   return (
     <section className="permission-management__panel">
-      <button type="button" className="permission-management__back-btn" onClick={() => { /* noop here; parent handles back via its own button */ }} disabled aria-hidden="true" style={{ display: 'none' }}>← 返回工单列表</button>
       <h2 className={titleClass}>权限申请详情 — {ticket.id}</h2>
       <div className="permission-management__card">
         <div className="permission-management__card-body">
