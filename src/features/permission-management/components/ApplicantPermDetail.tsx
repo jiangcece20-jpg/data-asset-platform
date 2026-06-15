@@ -1,15 +1,8 @@
 import type { ReactNode } from 'react';
 import { Tag } from '../../../components/base/Tag';
 import type { Ticket } from '../PermissionManagementPage';
+import type { PermSubOrder } from './permTypes';
 import { PermDetailSubOrderCard } from './PermDetailSubOrderCard';
-
-type PermSubOrder = {
-  assetName: string;
-  assetDisplay?: string;
-  status: 'approved' | 'rejected' | 'pending' | 'withdrawn';
-  rejectReason?: string;
-  timeline: Array<{ label: string; time: string; status: 'done' | 'rejected' | 'waiting' }>;
-};
 
 type ApplicantPermDetailProps = {
   ticket: Ticket;
