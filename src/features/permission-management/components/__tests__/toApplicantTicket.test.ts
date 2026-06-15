@@ -38,7 +38,7 @@ describe('toApplicantTicket', () => {
     const result = toApplicantTicket({
       id: 'PA-2026041000007',
       detailType: 'transfer',
-      detailData: { applicant: '赵六', applyTime: '2026-04-10 14:20', asset: 'dwd_user_behavior', assignee: '钱七', reason: '原负责人离职' },
+      detailData: { transferor: '赵六', applyTime: '2026-04-10 14:20', asset: 'dwd_user_behavior', assignee: '钱七', reason: '原负责人离职' },
     });
     expect(result).toMatchObject({
       id: 'PA-2026041000007',

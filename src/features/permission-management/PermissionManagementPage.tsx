@@ -679,7 +679,10 @@ function PendingApprovalPanel() {
         {detailItem.detailType === 'perm' && detailItem.detailData ? (
           <ApplicantPermDetail
             ticket={toApplicantTicket(detailItem)}
-            subOrders={[]}
+            subOrders={[
+              { assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetDetail: { assetType: '数据表 · 金融', source: 'Hive · 交易域', updateFrequency: '每日', securityLevel: 'L2 内部', securityLevelTone: 'warning' as const }, status: 'pending', timeline: [] },
+              { assetName: 'dwd_trade_payment', assetDisplay: '交易支付明细表', assetDetail: { assetType: '数据表 · 金融', source: 'Hive · 交易域', updateFrequency: '每日', securityLevel: 'L2 内部', securityLevelTone: 'warning' as const }, status: 'pending', timeline: [] },
+            ]}
             redTitle
             actions={[
               <Button key="cancel" onClick={() => setDetailId(null)}>取消</Button>,

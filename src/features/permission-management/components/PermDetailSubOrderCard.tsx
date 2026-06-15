@@ -31,6 +31,16 @@ export function PermDetailSubOrderCard({ order }: PermDetailSubOrderCardProps) {
         </div>
         {order.assetTypeTag ? <Tag tone="blue">{order.assetTypeTag}</Tag> : null}
       </div>
+      {order.assetDetail ? (
+        <div className="permission-management__sub-order-body">
+          <div className="permission-management__asset-card-meta">
+            <span>类型：{order.assetDetail.assetType}</span>
+            <span>来源：{order.assetDetail.source}</span>
+            <span>更新频率：{order.assetDetail.updateFrequency}</span>
+            <span>安全等级：<Tag tone={order.assetDetail.securityLevelTone}>{order.assetDetail.securityLevel}</Tag></span>
+          </div>
+        </div>
+      ) : null}
       <div className="permission-management__sub-order-body">
         <div className="permission-management__timeline">
           {order.timeline.map((t, i) => <TimelineItem key={i} label={t.label} time={t.time} status={t.status} />)}
