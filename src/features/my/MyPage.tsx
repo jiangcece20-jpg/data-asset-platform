@@ -603,8 +603,32 @@ function CartPanel({ cartCount }: { cartCount: number }) {
   const [showIndividual, setShowIndividual] = useState(false);
   const [individualReasons, setIndividualReasons] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [reapplyNotice, setReapplyNotice] = useState('');
 
   void cartCount;
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const [, query = ''] = window.location.hash.replace(/^#/, '').split('?');
+      const params = new URLSearchParams(query);
+      const assetName = params.get('assetName');
+      if (!assetName) return;
+      const seed = initialCartItems.find(c => c.name === assetName);
+      if (!seed) {
+        setReapplyNotice(`已跳转到申请单，但暂未配置资产「${assetName}」的预填信息，请手动添加`);
+        window.setTimeout(() => setReapplyNotice(''), 4000);
+        return;
+      }
+      setCartItems(prev => prev.some(c => c.id === seed.id) ? prev : [...prev, seed]);
+      const seedReason = params.get('reason');
+      if (seedReason) setReason(seedReason);
+      setReapplyNotice(`已预填「${seed.display}」到申请单`);
+      window.setTimeout(() => setReapplyNotice(''), 4000);
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const removeItem = (id: string) => setCartItems(prev => prev.filter(c => c.id !== id));
   const clearCart = () => setCartItems([]);
@@ -619,6 +643,7 @@ function CartPanel({ cartCount }: { cartCount: number }) {
   if (submitted) {
     return (
       <section className="my-page__panel">
+        {reapplyNotice ? <div className="my-page__toast" role="status">{reapplyNotice}</div> : null}
         <div className="my-page__content-header">
           <div className="my-page__content-title-wrap">
             <div className="my-page__content-icon">🛒</div>
@@ -638,6 +663,7 @@ function CartPanel({ cartCount }: { cartCount: number }) {
   if (cartItems.length === 0) {
     return (
       <section className="my-page__panel">
+        {reapplyNotice ? <div className="my-page__toast" role="status">{reapplyNotice}</div> : null}
         <div className="my-page__content-header">
           <div className="my-page__content-title-wrap">
             <div className="my-page__content-icon">🛒</div>
@@ -654,6 +680,7 @@ function CartPanel({ cartCount }: { cartCount: number }) {
 
   return (
     <section className="my-page__panel">
+      {reapplyNotice ? <div className="my-page__toast" role="status">{reapplyNotice}</div> : null}
       <div className="my-page__content-header">
         <div className="my-page__content-title-wrap">
           <div className="my-page__content-icon">🛒</div>

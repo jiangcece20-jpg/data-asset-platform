@@ -3,11 +3,22 @@ import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
 import { ConditionFieldCheckbox } from '../../components/forms/ConditionFieldCheckbox';
 import './permission-management.css';
+import { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag } from './components/ticketStatus';
+import { TimelineItem } from './components/TimelineItem';
+import { buildReapplyHash } from './components/buildReapplyHash';
+import { ApplicantPermDetail } from './components/ApplicantPermDetail';
+import { ApplicantGovDetail } from './components/ApplicantGovDetail';
+import { ApplicantTransferDetail } from './components/ApplicantTransferDetail';
+import { toApplicantTicket } from './components/toApplicantTicket';
+
+export { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag };
+export { TimelineItem };
+export { buildReapplyHash };
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
 type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
 type TicketCategory = 'all' | 'perm' | 'gov';
-type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正';
+type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正' | '负责人交接';
 type PendingStatusTab = 'all' | 'pending' | 'approved' | 'rejected' | 'expired';
 type ManagementTab = 'flows' | 'routes' | 'approver-rules' | 'sync';
 type RecordCategory = 'all' | '权限' | '治理';
@@ -18,7 +29,7 @@ type ModalState = (
   | { type: 'reject'; pendingId: string }
 ) & { editIndex?: number };
 
-type Ticket = {
+export type Ticket = {
   id: string;
   type: Exclude<TicketType, 'all'>;
   category: Exclude<TicketCategory, 'all'>;
@@ -36,6 +47,12 @@ type Ticket = {
   status: Exclude<TicketStatus, 'all'>;
   applicant: string;
   reason?: string;
+  // 申请表单字段
+  dataTable?: string;       // 数据表
+  usagePeriod?: string;     // 使用周期
+  dataScope?: string;       // 数据范围
+  permissionJudgment?: string; // 权限申请判断
+  transactionOrder?: string;  // 交易订单
 };
 
 type SubOrder = {
@@ -180,7 +197,7 @@ function getPermissionSectionFromHash(): PermissionSection {
 }
 
 const tickets: Ticket[] = [
-  { id: 'PA-2026033100001', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-001', instanceCode: 'FS-PERM-0001', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0001', syncText: '事件同步正常', syncMode: 'event', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetType: '数据表', applyTime: '2026-03-31 14:30', status: 'pending', applicant: '张三', reason: '需要查询金融业务线的交易数据用于月度分析报告' },
+  { id: 'PA-2026033100001', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-001', instanceCode: 'FS-PERM-0001', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0001', syncText: '事件同步正常', syncMode: 'event', assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetType: '数据表', applyTime: '2026-03-31 14:30', status: 'pending', applicant: '张三', dataTable: 'dwd_trade_order（交易订单宽表）', usagePeriod: '3 个月', dataScope: '全部字段', permissionJudgment: '业务分析', transactionOrder: '2026Q1-0027', reason: '需要查询金融业务线的交易数据用于月度分析报告' },
   { id: 'PA-2026032800012', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-002', instanceCode: 'FS-PERM-0002', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0002', syncText: '事件同步正常', syncMode: 'event', assetName: 'dim_user_profile', assetDisplay: '用户画像维表', assetType: '数据表', applyTime: '2026-03-28 09:15', status: 'approved', applicant: '李四' },
   { id: 'PA-2026032500008', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-003', instanceCode: 'FS-PERM-0003', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0003', syncText: '轮询补偿完成', syncMode: 'polling', assetName: 'api_logistics_track', assetDisplay: '物流追踪接口', assetType: 'API', applyTime: '2026-03-25 16:40', status: 'rejected', applicant: '张三' },
   { id: 'PA-2026032200003', type: '权限申请', category: 'perm', feishuDefinition: '权限申请审批', approvalCode: 'APPROVAL_PERMISSION', batchId: 'BATCH-20260603-004', instanceCode: 'FS-PERM-0004', feishuUrl: 'https://applink.feishu.cn/client/approval/open?instance_code=FS-PERM-0004', syncText: '事件同步正常', syncMode: 'event', assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', assetType: '报表', applyTime: '2026-03-22 11:00', status: 'withdrawn', applicant: '王五' },
@@ -198,7 +215,7 @@ const permDetailSubOrders: SubOrder[] = [
 ];
 
 const pendingApprovals: PendingApproval[] = [
-  { id: 'PA-2026040100003-S2', category: 'perm', type: '权限申请', applicant: '王五', target: 'dwd_trade_order / dwd_trade_payment', description: '交易订单宽表、交易支付明细表 \xb7 数据表 \xb7 金融', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。', applyTime: '2026-04-01 09:30', status: 'pending', primaryAction: '通过', secondaryAction: '驳回', detailType: 'perm', detailData: { applicant: '王五', applyTime: '2026-04-01 09:30', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。' } },
+  { id: 'PA-2026040100003-S2', category: 'perm', type: '权限申请', applicant: '王五', target: 'dwd_trade_order / dwd_trade_payment', description: '交易订单宽表、交易支付明细表 \xb7 数据表 \xb7 金融', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。', applyTime: '2026-04-01 09:30', status: 'pending', primaryAction: '通过', secondaryAction: '驳回', detailType: 'perm', detailData: { applicant: '王五', applyTime: '2026-04-01 09:30', dataTable: 'dwd_trade_order（交易订单宽表）', usagePeriod: '3 个月', dataScope: '全部字段', permissionJudgment: '业务分析', transactionOrder: '2026Q1-0027', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。' } },
   { id: 'GA-2026040100044', category: 'gov', type: '变更目录', applicant: '李四', target: 'dwd_user_behavior', description: '用户域/行为 → 用户域/画像', reason: '该表包含用户画像相关字段，归属行为目录有误，应归属画像目录。', applyTime: '2026-04-01 10:15', status: 'pending', primaryAction: '通过', secondaryAction: '驳回', detailType: 'catalog', detailData: { applicant: '李四', applyTime: '2026-04-01 10:15', asset: 'dwd_user_behavior', from: '用户域/行为', to: '用户域/画像', reason: '该表包含用户画像相关字段，归属行为目录有误，应归属画像目录。' } },
   { id: 'GA-2026040100045', category: 'gov', type: '转交负责人', applicant: '赵六', target: 'rpt_logistics_daily', description: '赵六 → 钱七（待您确认接收）', reason: '赵六岗位调整，物流报表相关工作移交给钱七负责。', applyTime: '2026-04-01 11:00', status: 'pending', primaryAction: '确认接收', secondaryAction: '拒绝', detailType: 'transfer', detailData: { transferor: '赵六', applyTime: '2026-04-01 11:00', asset: 'rpt_logistics_daily（物流日报表）', assignee: '钱七（您）', reason: '赵六岗位调整，物流报表相关工作移交给钱七负责。' } },
   { id: 'GA-2026040100046', category: 'gov', type: '上架申请', applicant: '张三', target: 'metric_sales_daily', description: '销售日指标 \xb7 指标 \xb7 金融', reason: '指标已完善元数据', applyTime: '2026-04-02 09:00', status: 'approved', primaryAction: '通过', secondaryAction: '驳回' },
@@ -418,64 +435,7 @@ const approvalRecords = [
   { id: 'GA-2026033000038', category: '治理' as const, applicant: '王五', target: '下架 \xb7 dwd_order_legacy', applyTime: '2026-03-30 15:20', approver: '张三', approveTime: '2026-03-30 16:00', result: '通过' },
 ];
 
-const statusLabels: Record<string, string> = {
-  pending: '审批中',
-  approved: '已通过',
-  rejected: '已拒绝',
-  withdrawn: '已撤回',
-  expired: '已过期',
-};
-
-const pendingStatusLabels: Record<string, string> = {
-  pending: '待审批',
-  approved: '已通过',
-  rejected: '已拒绝',
-  expired: '已过期',
-};
-
-function statusTone(status: string): 'success' | 'warning' | 'danger' | 'gray' {
-  if (status === 'approved' || status === '通过' || status === '启用') return 'success';
-  if (status === 'pending' || status === '审批中') return 'warning';
-  if (status === 'rejected' || status === '驳回' || status === '已拒绝') return 'danger';
-  return 'gray';
-}
-
-function categoryTone(category: string): 'blue' | 'warning' | 'gray' {
-  if (category === 'perm' || category === '权限') return 'blue';
-  if (category === 'gov' || category === '治理') return 'warning';
-  return 'gray';
-}
-
-function syncTone(syncMode: Ticket['syncMode']): 'success' | 'warning' | 'gray' {
-  if (syncMode === 'event') return 'success';
-  if (syncMode === 'polling') return 'warning';
-  return 'gray';
-}
-
-function subOrderStatusTag(status: SubOrder['status']) {
-  const map: Record<string, { label: string; tone: 'success' | 'danger' | 'warning' | 'gray' }> = {
-    approved: { label: '✅ 已通过', tone: 'success' },
-    rejected: { label: '❌ 已驳回', tone: 'danger' },
-    pending: { label: '⏳ 审批中', tone: 'warning' },
-    withdrawn: { label: '已撤回', tone: 'gray' },
-  };
-  const item = map[status];
-  return item ? <Tag tone={item.tone}>{item.label}</Tag> : null;
-}
-
-function TimelineItem({ label, time, status }: { label: string; time: string; status: 'done' | 'rejected' | 'waiting' }) {
-  const dotClass = status === 'done' ? 'done' : status === 'rejected' ? 'rejected' : 'waiting';
-  const actionTag = status === 'done' ? <Tag tone="success">通过</Tag> : status === 'rejected' ? <Tag tone="danger">驳回</Tag> : <Tag tone="warning">待审批</Tag>;
-  return (
-    <div className="permission-management__timeline-item">
-      <div className={`permission-management__timeline-dot ${dotClass}`} />
-      <div className="permission-management__timeline-content">
-        {label} {actionTag}
-      </div>
-      <div className="permission-management__timeline-time">{time}</div>
-    </div>
-  );
-}
+// statusLabels, statusTone, syncTone imported from ./components/ticketStatus
 
 function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
   const [withdrawn, setWithdrawn] = useState(false);
@@ -509,7 +469,7 @@ function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
         ) : null}
         {order.status === 'pending' ? <Button size="sm" onClick={() => setWithdrawn(true)}>撤回</Button> : null}
         {order.status === 'rejected' ? (
-          <Button variant="primary" size="sm" onClick={() => { window.location.hash = 'my?section=cart'; }}>重新申请</Button>
+          <Button variant="primary" size="sm" onClick={() => { window.location.hash = buildReapplyHash(order.assetName); }}>重新申请</Button>
         ) : null}
       </div>
     </div>
@@ -522,12 +482,13 @@ function TicketQueryPanel() {
   const [type, setType] = useState<TicketType>('all');
   const [keyword, setKeyword] = useState('');
   const [applicant, setApplicant] = useState('');
+  const [sortByTime, setSortByTime] = useState<'none' | 'desc' | 'asc'>('none');
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     const applicantKw = applicant.trim().toLowerCase();
-    return tickets.filter((ticket) => {
+    const filtered = tickets.filter((ticket) => {
       if (status !== 'all' && ticket.status !== status) return false;
       if (category !== 'all' && ticket.category !== category) return false;
       if (type !== 'all' && ticket.type !== type) return false;
@@ -535,97 +496,54 @@ function TicketQueryPanel() {
       if (applicantKw && !ticket.applicant.toLowerCase().includes(applicantKw)) return false;
       return true;
     });
-  }, [applicant, category, keyword, status, type]);
+    if (sortByTime === 'none') return filtered;
+    const sorted = [...filtered].sort((a, b) => a.applyTime.localeCompare(b.applyTime));
+    return sortByTime === 'desc' ? sorted.reverse() : sorted;
+  }, [applicant, category, keyword, sortByTime, status, type]);
 
   const detailTicket = detailId ? tickets.find(t => t.id === detailId) : null;
 
   if (detailTicket && detailTicket.category === 'perm') {
-    const approvedCount = permDetailSubOrders.filter(s => s.status === 'approved').length;
-    const rejectedCount = permDetailSubOrders.filter(s => s.status === 'rejected').length;
-    const pendingCount = permDetailSubOrders.filter(s => s.status === 'pending').length;
-    const total = permDetailSubOrders.length;
     return (
-      <section className="permission-management__panel">
-        <button type="button" className="permission-management__back-btn" onClick={() => setDetailId(null)}>← 返回工单列表</button>
-        <div className="permission-management__card">
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">申请编号</div><div className="permission-management__info-value primary">{detailTicket.id}</div></div>
-              <div><div className="permission-management__info-label">申请类型</div><div className="permission-management__info-value">{detailTicket.type}</div></div>
-              <div><div className="permission-management__info-label">飞书定义</div><div className="permission-management__info-value">{detailTicket.feishuDefinition}</div></div>
-              <div><div className="permission-management__info-label">批次/实例</div><div className="permission-management__info-value">{detailTicket.batchId ?? '单实例'} / {detailTicket.instanceCode}</div></div>
-              <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailTicket.applyTime}</div></div>
-              <div><div className="permission-management__info-label">整体状态</div><div className="permission-management__info-value"><Tag tone="warning">部分通过</Tag></div></div>
-            </div>
-            {detailTicket.reason ? (
-              <div className="permission-management__info-block"><div className="permission-management__info-label">申请理由</div><div className="permission-management__info-value">{detailTicket.reason}</div></div>
-            ) : null}
-            <div className="permission-management__info-block">
-              <div className="permission-management__info-label">审批进度</div>
-              <div className="permission-management__progress-bar">
-                <div className="permission-management__progress-segment green" style={{ width: `${(approvedCount / total) * 100}%` }} />
-                <div className="permission-management__progress-segment red" style={{ width: `${(rejectedCount / total) * 100}%` }} />
-                <div className="permission-management__progress-segment blue" style={{ width: `${(pendingCount / total) * 100}%` }} />
-              </div>
-              <div className="permission-management__progress-legend">
-                <span>✅ 已通过 {approvedCount}</span>
-                <span>❌ 已驳回 {rejectedCount}</span>
-                <span>⏳ 审批中 {pendingCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <h3>审批流明细（{total} 个子单）</h3>
-        {permDetailSubOrders.map((order, i) => <PermDetailSubOrderCard key={i} order={order} />)}
-        <div className="permission-management__detail-actions">
-          <Button variant="danger" size="sm">撤回所有未完成审批</Button>
-        </div>
-      </section>
+      <ApplicantPermDetail
+        ticket={detailTicket}
+        subOrders={permDetailSubOrders}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回所有未完成审批</Button>]}
+      />
     );
   }
 
   if (detailTicket && detailTicket.category === 'gov') {
+    const isCatalog = detailTicket.type === '目录修改';
     return (
-      <section className="permission-management__panel">
-        <button type="button" className="permission-management__back-btn" onClick={() => setDetailId(null)}>← 返回工单列表</button>
-        <div className="permission-management__card">
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">审批编号</div><div className="permission-management__info-value primary">{detailTicket.id}</div></div>
-              <div><div className="permission-management__info-label">操作类型</div><div className="permission-management__info-value"><Tag tone="blue">{detailTicket.type}</Tag></div></div>
-              <div><div className="permission-management__info-label">飞书定义</div><div className="permission-management__info-value">{detailTicket.feishuDefinition}</div></div>
-              <div><div className="permission-management__info-label">飞书实例</div><div className="permission-management__info-value">{detailTicket.instanceCode}</div></div>
-              <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailTicket.applyTime}</div></div>
-              <div><div className="permission-management__info-label">状态</div><div className="permission-management__info-value"><Tag tone={statusTone(detailTicket.status)}>{statusLabels[detailTicket.status]}</Tag></div></div>
-              <div><div className="permission-management__info-label">审批人</div><div className="permission-management__info-value">张三（数据管理员）</div></div>
-              <div><div className="permission-management__info-label">同步状态</div><div className="permission-management__info-value"><Tag tone={syncTone(detailTicket.syncMode)}>{detailTicket.syncText}</Tag></div></div>
-            </div>
-          </div>
-        </div>
-        <div className="permission-management__card">
-          <div className="permission-management__card-header"><strong>操作对象</strong></div>
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">资产名称</div><div className="permission-management__info-value"><strong>{detailTicket.assetName}</strong><br /><span className="permission-management__sub-order-secondary">{detailTicket.assetDisplay}</span></div></div>
-              <div><div className="permission-management__info-label">资产类型</div><div className="permission-management__info-value">{detailTicket.assetType}</div></div>
-            </div>
-          </div>
-        </div>
-        {detailTicket.reason ? (
-          <div className="permission-management__card">
-            <div className="permission-management__card-header"><strong>审批时间线</strong></div>
-            <div className="permission-management__card-body">
-              <div className="permission-management__timeline">
-                <TimelineItem label={`${detailTicket.applicant} 提交${detailTicket.type}`} time={detailTicket.applyTime} status="done" />
-                <TimelineItem label="张三（数据管理员）" time="等待审批中..." status="waiting" />
-              </div>
-            </div>
-          </div>
-        ) : null}
-        <div className="permission-management__detail-actions">
-          <Button variant="danger" size="sm">撤回申请</Button>
-        </div>
-      </section>
+      <ApplicantGovDetail
+        ticket={detailTicket}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回申请</Button>]}
+        timeline={[
+          { label: `${detailTicket.applicant} 提交${detailTicket.type}`, time: detailTicket.applyTime, status: 'done' },
+          { label: '张三（数据管理员）', time: '等待审批中...', status: 'waiting' },
+        ]}
+        diff={isCatalog ? { label: '当前目录', before: '用户域/行为/行为日志', after: '用户域/行为/点击流' } : undefined}
+      />
+    );
+  }
+
+  if (detailTicket && detailTicket.type === '负责人交接') {
+    return (
+      <ApplicantTransferDetail
+        ticket={{ id: detailTicket.id }}
+        transferor={detailTicket.applicant}
+        assignee="钱七"
+        asset={detailTicket.assetName}
+        applyTime={detailTicket.applyTime}
+        reason="原负责人离职"
+        timeline={[
+          { label: '① 赵六的上级（王经理）', time: detailTicket.applyTime, status: 'done' },
+          { label: '② 被转交人确认（钱七 · 您）', time: '', status: 'waiting' },
+          { label: '③ 钱七的上级（孙总）', time: '', status: 'waiting' },
+        ]}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回</Button>]}
+      />
     );
   }
 
@@ -654,6 +572,11 @@ function TicketQueryPanel() {
         </select>
         <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索资产名称…" />
         <input value={applicant} onChange={(e) => setApplicant(e.target.value)} placeholder="搜索申请人…" />
+        <select aria-label="按申请时间排序" value={sortByTime} onChange={(e) => setSortByTime(e.target.value as 'none' | 'desc' | 'asc')}>
+          <option value="none">默认顺序</option>
+          <option value="desc">申请时间 ↓</option>
+          <option value="asc">申请时间 ↑</option>
+        </select>
       </div>
       <TableShell>
         <table>
@@ -686,7 +609,18 @@ function TicketQueryPanel() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.location.hash = 'my?section=cart';
+                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
+                        }}
+                      >
+                        重新申请
+                      </button>
+                    ) : null}
+                    {ticket.status === 'withdrawn' ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
                         }}
                       >
                         重新申请
@@ -706,13 +640,27 @@ function TicketQueryPanel() {
 
 function PendingApprovalPanel() {
   const [tab, setTab] = useState<PendingStatusTab>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'perm' | 'gov'>('all');
+  const [applicantFilter, setApplicantFilter] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [rejectReason, setRejectReason] = useState('');
 
   const filteredRows = useMemo(() => {
-    return pendingApprovals.filter(item => tab === 'all' ? true : item.status === tab);
-  }, [tab]);
+    const kw = keyword.trim().toLowerCase();
+    const applicantKw = applicantFilter.trim().toLowerCase();
+    return pendingApprovals.filter(item => {
+      if (tab !== 'all' && item.status !== tab) return false;
+      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
+      if (applicantKw && !item.applicant.toLowerCase().includes(applicantKw)) return false;
+      if (kw) {
+        const haystack = `${item.target} ${item.description} ${item.applicant}`.toLowerCase();
+        if (!haystack.includes(kw)) return false;
+      }
+      return true;
+    });
+  }, [tab, categoryFilter, applicantFilter, keyword]);
 
   const detailItem = detailId ? pendingApprovals.find(p => p.id === detailId) : null;
 
@@ -735,93 +683,54 @@ function PendingApprovalPanel() {
       <section className="permission-management__panel">
         <button type="button" className="permission-management__back-btn" onClick={() => setDetailId(null)}>← 返回列表</button>
         {detailItem.detailType === 'perm' && detailItem.detailData ? (
-          <>
-            <span className="permission-management__detail-title">权限申请详情 — {detailItem.id}</span>
-            <div className="permission-management__card">
-              <div className="permission-management__card-body">
-                <div className="permission-management__info-grid">
-                  <div><div className="permission-management__info-label">申请人</div><div className="permission-management__info-value">{detailItem.detailData.applicant}</div></div>
-                  <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailItem.detailData.applyTime}</div></div>
-                  <div style={{ gridColumn: '1/-1' }}><div className="permission-management__info-label">申请理由</div><div className="permission-management__info-value">{detailItem.detailData.reason}</div></div>
-                </div>
-              </div>
-            </div>
-            <div className="permission-management__card">
-              <div className="permission-management__card-body">
-                <strong>申请资产（共 2 项）</strong>
-                <div className="permission-management__asset-card">
-                  <div className="permission-management__asset-card-head"><strong>dwd_trade_order</strong> <span className="permission-management__sub-order-secondary">交易订单宽表</span></div>
-                  <div className="permission-management__asset-card-meta">
-                    <span>类型：数据表 \xb7 金融</span><span>来源：Hive \xb7 交易域</span>
-                    <span>更新频率：每日</span><span>安全等级：<Tag tone="warning">L2 内部</Tag></span>
-                  </div>
-                </div>
-                <div className="permission-management__asset-card">
-                  <div className="permission-management__asset-card-head"><strong>dwd_trade_payment</strong> <span className="permission-management__sub-order-secondary">交易支付明细表</span></div>
-                  <div className="permission-management__asset-card-meta">
-                    <span>类型：数据表 \xb7 金融</span><span>来源：Hive \xb7 交易域</span>
-                    <span>更新频率：每日</span><span>安全等级：<Tag tone="warning">L2 内部</Tag></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="permission-management__detail-actions">
-              <Button onClick={() => setDetailId(null)}>取消</Button>
-              <Button variant="danger" onClick={() => handleReject(detailItem.id)}>驳回</Button>
-              <Button variant="primary" onClick={() => handleApprove(detailItem.id)}>通过</Button>
-            </div>
-          </>
+          <ApplicantPermDetail
+            ticket={toApplicantTicket(detailItem)}
+            subOrders={[
+              { assetName: 'dwd_trade_order', assetDisplay: '交易订单宽表', assetDetail: { assetType: '数据表 · 金融', source: 'Hive · 交易域', updateFrequency: '每日', securityLevel: 'L2 内部', securityLevelTone: 'warning' as const }, status: 'pending', timeline: [] },
+              { assetName: 'dwd_trade_payment', assetDisplay: '交易支付明细表', assetDetail: { assetType: '数据表 · 金融', source: 'Hive · 交易域', updateFrequency: '每日', securityLevel: 'L2 内部', securityLevelTone: 'warning' as const }, status: 'pending', timeline: [] },
+            ]}
+            redTitle
+            actions={[
+              <Button key="cancel" onClick={() => setDetailId(null)}>取消</Button>,
+              <Button key="reject" variant="danger" onClick={() => handleReject(detailItem.id)}>驳回</Button>,
+              <Button key="approve" variant="primary" onClick={() => handleApprove(detailItem.id)}>通过</Button>,
+            ]}
+          />
         ) : detailItem.detailType === 'catalog' && detailItem.detailData ? (
-          <>
-            <span className="permission-management__detail-title">变更目录审批 — {detailItem.id}</span>
-            <div className="permission-management__card">
-              <div className="permission-management__card-body">
-                <div className="permission-management__info-grid">
-                  <div><div className="permission-management__info-label">申请人</div><div className="permission-management__info-value">{detailItem.detailData.applicant}</div></div>
-                  <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailItem.detailData.applyTime}</div></div>
-                  <div><div className="permission-management__info-label">资产</div><div className="permission-management__info-value">{detailItem.detailData.asset}</div></div>
-                  <div><div className="permission-management__info-label">当前目录</div><div className="permission-management__info-value">{detailItem.detailData.from}</div></div>
-                  <div><div className="permission-management__info-label">变更为</div><div className="permission-management__info-value primary">{detailItem.detailData.to}</div></div>
-                  <div style={{ gridColumn: '1/-1' }}><div className="permission-management__info-label">变更原因</div><div className="permission-management__info-value">{detailItem.detailData.reason}</div></div>
-                </div>
-              </div>
-            </div>
-            <div className="permission-management__detail-actions">
-              <Button onClick={() => setDetailId(null)}>取消</Button>
-              <Button variant="danger" onClick={() => handleReject(detailItem.id)}>驳回</Button>
-              <Button variant="primary" onClick={() => handleApprove(detailItem.id)}>通过</Button>
-            </div>
-          </>
+          <ApplicantGovDetail
+            ticket={toApplicantTicket(detailItem)}
+            redTitle
+            timeline={[
+              { label: `${detailItem.detailData.applicant} 提交目录修改`, time: detailItem.detailData.applyTime, status: 'done' },
+              { label: '张三（数据管理员）', time: '等待审批中...', status: 'waiting' },
+            ]}
+            diff={{ label: '当前目录', before: detailItem.detailData.from, after: detailItem.detailData.to }}
+            actions={[
+              <Button key="cancel" onClick={() => setDetailId(null)}>取消</Button>,
+              <Button key="reject" variant="danger" onClick={() => handleReject(detailItem.id)}>驳回</Button>,
+              <Button key="approve" variant="primary" onClick={() => handleApprove(detailItem.id)}>通过</Button>,
+            ]}
+          />
         ) : detailItem.detailType === 'transfer' && detailItem.detailData ? (
-          <>
-            <span className="permission-management__detail-title">转交负责人确认 — {detailItem.id}</span>
-            <div className="permission-management__card">
-              <div className="permission-management__card-body">
-                <div className="permission-management__info-grid">
-                  <div><div className="permission-management__info-label">转交人</div><div className="permission-management__info-value">{detailItem.detailData.transferor}</div></div>
-                  <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailItem.detailData.applyTime}</div></div>
-                  <div><div className="permission-management__info-label">资产</div><div className="permission-management__info-value">{detailItem.detailData.asset}</div></div>
-                  <div><div className="permission-management__info-label">被转交人</div><div className="permission-management__info-value primary">{detailItem.detailData.assignee}</div></div>
-                  <div style={{ gridColumn: '1/-1' }}><div className="permission-management__info-label">转交原因</div><div className="permission-management__info-value">{detailItem.detailData.reason}</div></div>
-                </div>
-              </div>
-            </div>
-            <div className="permission-management__card">
-              <div className="permission-management__card-header"><strong>审批进度</strong></div>
-              <div className="permission-management__card-body">
-                <div className="permission-management__timeline">
-                  <TimelineItem label="① 赵六的上级（王经理）" time="2026-04-01 11:30" status="done" />
-                  <TimelineItem label="② 被转交人确认（钱七 \xb7 您）" time="" status="waiting" />
-                  <TimelineItem label="③ 钱七的上级（孙总）" time="" status="waiting" />
-                </div>
-              </div>
-            </div>
-            <div className="permission-management__detail-actions">
-              <Button onClick={() => setDetailId(null)}>取消</Button>
-              <Button variant="danger" onClick={() => handleReject(detailItem.id)}>拒绝接收</Button>
-              <Button variant="primary" onClick={() => handleApprove(detailItem.id)}>确认接收</Button>
-            </div>
-          </>
+          <ApplicantTransferDetail
+            ticket={toApplicantTicket(detailItem)}
+            redTitle
+            transferor={detailItem.detailData.transferor}
+            assignee={detailItem.detailData.assignee}
+            asset={detailItem.detailData.asset}
+            applyTime={detailItem.detailData.applyTime}
+            reason={detailItem.detailData.reason}
+            timeline={[
+              { label: '① 赵六的上级（王经理）', time: '2026-04-01 11:30', status: 'done' },
+              { label: '② 被转交人确认（钱七 · 您）', time: '', status: 'waiting' },
+              { label: '③ 钱七的上级（孙总）', time: '', status: 'waiting' },
+            ]}
+            actions={[
+              <Button key="cancel" onClick={() => setDetailId(null)}>取消</Button>,
+              <Button key="reject" variant="danger" onClick={() => handleReject(detailItem.id)}>拒绝接收</Button>,
+              <Button key="approve" variant="primary" onClick={() => handleApprove(detailItem.id)}>确认接收</Button>,
+            ]}
+          />
         ) : (
           <div className="permission-management__empty">无详情数据</div>
         )}
@@ -856,6 +765,15 @@ function PendingApprovalPanel() {
             {label}{key === 'all' ? ` ${pendingApprovals.length}` : ''}
           </button>
         ))}
+      </div>
+      <div className="permission-management__filters">
+        <select aria-label="待审批类别" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'perm' | 'gov')}>
+          <option value="all">全部类别</option>
+          <option value="perm">权限</option>
+          <option value="gov">治理</option>
+        </select>
+        <input value={applicantFilter} onChange={(e) => setApplicantFilter(e.target.value)} placeholder="筛选申请人…" aria-label="筛选申请人" />
+        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索资产/描述…" aria-label="搜索资产或描述" />
       </div>
       <TableShell>
         <table>
