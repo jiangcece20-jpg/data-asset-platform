@@ -522,12 +522,13 @@ function TicketQueryPanel() {
   const [type, setType] = useState<TicketType>('all');
   const [keyword, setKeyword] = useState('');
   const [applicant, setApplicant] = useState('');
+  const [sortByTime, setSortByTime] = useState<'none' | 'desc' | 'asc'>('none');
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     const applicantKw = applicant.trim().toLowerCase();
-    return tickets.filter((ticket) => {
+    const filtered = tickets.filter((ticket) => {
       if (status !== 'all' && ticket.status !== status) return false;
       if (category !== 'all' && ticket.category !== category) return false;
       if (type !== 'all' && ticket.type !== type) return false;
@@ -535,7 +536,10 @@ function TicketQueryPanel() {
       if (applicantKw && !ticket.applicant.toLowerCase().includes(applicantKw)) return false;
       return true;
     });
-  }, [applicant, category, keyword, status, type]);
+    if (sortByTime === 'none') return filtered;
+    const sorted = [...filtered].sort((a, b) => a.applyTime.localeCompare(b.applyTime));
+    return sortByTime === 'desc' ? sorted.reverse() : sorted;
+  }, [applicant, category, keyword, sortByTime, status, type]);
 
   const detailTicket = detailId ? tickets.find(t => t.id === detailId) : null;
 
@@ -654,6 +658,11 @@ function TicketQueryPanel() {
         </select>
         <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索资产名称…" />
         <input value={applicant} onChange={(e) => setApplicant(e.target.value)} placeholder="搜索申请人…" />
+        <select aria-label="按申请时间排序" value={sortByTime} onChange={(e) => setSortByTime(e.target.value as 'none' | 'desc' | 'asc')}>
+          <option value="none">默认顺序</option>
+          <option value="desc">申请时间 ↓</option>
+          <option value="asc">申请时间 ↑</option>
+        </select>
       </div>
       <TableShell>
         <table>
@@ -706,13 +715,27 @@ function TicketQueryPanel() {
 
 function PendingApprovalPanel() {
   const [tab, setTab] = useState<PendingStatusTab>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'perm' | 'gov'>('all');
+  const [applicantFilter, setApplicantFilter] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>({ type: 'none' });
   const [rejectReason, setRejectReason] = useState('');
 
   const filteredRows = useMemo(() => {
-    return pendingApprovals.filter(item => tab === 'all' ? true : item.status === tab);
-  }, [tab]);
+    const kw = keyword.trim().toLowerCase();
+    const applicantKw = applicantFilter.trim().toLowerCase();
+    return pendingApprovals.filter(item => {
+      if (tab !== 'all' && item.status !== tab) return false;
+      if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
+      if (applicantKw && !item.applicant.toLowerCase().includes(applicantKw)) return false;
+      if (kw) {
+        const haystack = `${item.target} ${item.description} ${item.applicant}`.toLowerCase();
+        if (!haystack.includes(kw)) return false;
+      }
+      return true;
+    });
+  }, [tab, categoryFilter, applicantFilter, keyword]);
 
   const detailItem = detailId ? pendingApprovals.find(p => p.id === detailId) : null;
 
@@ -856,6 +879,15 @@ function PendingApprovalPanel() {
             {label}{key === 'all' ? ` ${pendingApprovals.length}` : ''}
           </button>
         ))}
+      </div>
+      <div className="permission-management__filters">
+        <select aria-label="待审批类别" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value as 'all' | 'perm' | 'gov')}>
+          <option value="all">全部类别</option>
+          <option value="perm">权限</option>
+          <option value="gov">治理</option>
+        </select>
+        <input value={applicantFilter} onChange={(e) => setApplicantFilter(e.target.value)} placeholder="筛选申请人…" aria-label="筛选申请人" />
+        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索资产/描述…" aria-label="搜索资产或描述" />
       </div>
       <TableShell>
         <table>

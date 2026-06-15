@@ -361,4 +361,55 @@ describe('PermissionManagementPage', () => {
 
     expect(screen.getByText('已进入手动维护节点模式，请确保 custom_node_id 与飞书后台一致')).toBeInTheDocument();
   });
+
+  it('filters pending approvals by category, applicant and keyword', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+
+    await user.click(screen.getByRole('button', { name: /待我审批 3/ }));
+
+    expect(screen.getByText('PA-2026040100003-S2')).toBeInTheDocument();
+    expect(screen.getByText('GA-2026040100044')).toBeInTheDocument();
+    expect(screen.getByText('GA-2026040100045')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '待审批类别' }), 'perm');
+    expect(screen.getByText('PA-2026040100003-S2')).toBeInTheDocument();
+    expect(screen.queryByText('GA-2026040100044')).not.toBeInTheDocument();
+    expect(screen.queryByText('GA-2026040100045')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '待审批类别' }), 'all');
+    await user.type(screen.getByPlaceholderText('筛选申请人…'), '王五');
+    expect(screen.getByText('PA-2026040100003-S2')).toBeInTheDocument();
+    expect(screen.queryByText('GA-2026040100044')).not.toBeInTheDocument();
+    expect(screen.queryByText('GA-2026040100045')).not.toBeInTheDocument();
+
+    await user.clear(screen.getByPlaceholderText('筛选申请人…'));
+    await user.type(screen.getByPlaceholderText('搜索资产/描述…'), 'dwd_user_behavior');
+    expect(screen.getByText('GA-2026040100044')).toBeInTheDocument();
+    expect(screen.queryByText('PA-2026040100003-S2')).not.toBeInTheDocument();
+  });
+
+  it('sorts submitted tickets by apply time', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+
+    const getRowIds = () => Array.from(document.querySelectorAll('tbody tr td.primary')).map(td => td.textContent);
+    const before = getRowIds();
+    expect(before[0]).toBe('PA-2026033100001');
+    expect(before[before.length - 1]).toBe('GA-2026032800020');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '按申请时间排序' }), 'desc');
+    const desc = getRowIds();
+    expect(desc[0]).toBe('PA-2026033100001');
+    expect(desc[desc.length - 1]).toBe('PA-2026032200003');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '按申请时间排序' }), 'asc');
+    const asc = getRowIds();
+    expect(asc[0]).toBe('PA-2026032200003');
+    expect(asc[asc.length - 1]).toBe('PA-2026033100001');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '按申请时间排序' }), 'none');
+    expect(getRowIds()[0]).toBe('PA-2026033100001');
+    expect(getRowIds()[getRowIds().length - 1]).toBe('GA-2026032800020');
+  });
 });
