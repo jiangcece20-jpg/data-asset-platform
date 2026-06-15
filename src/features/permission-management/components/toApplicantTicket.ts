@@ -1,6 +1,15 @@
 import type { Ticket } from '../PermissionManagementPage';
 
-type PermDetailData = { applicant: string; applyTime: string; reason?: string };
+type PermDetailData = {
+  applicant: string;
+  applyTime: string;
+  reason?: string;
+  dataTable?: string;
+  usagePeriod?: string;
+  dataScope?: string;
+  permissionJudgment?: string;
+  transactionOrder?: string;
+};
 type CatalogDetailData = { applicant: string; applyTime: string; asset: string; from: string; to: string; reason: string };
 type TransferDetailData = { transferor: string; applyTime: string; asset: string; assignee: string; reason: string };
 
@@ -29,6 +38,11 @@ export function toApplicantTicket(
         applicant: d?.applicant ?? '',
         applyTime: d?.applyTime ?? '',
         reason: d?.reason,
+        dataTable: d?.dataTable,
+        usagePeriod: d?.usagePeriod,
+        dataScope: d?.dataScope,
+        permissionJudgment: d?.permissionJudgment,
+        transactionOrder: d?.transactionOrder,
         assetName: '',
         assetDisplay: '',
       } as Ticket;
