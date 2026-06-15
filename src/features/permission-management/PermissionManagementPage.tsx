@@ -14,12 +14,11 @@ import { toApplicantTicket } from './components/toApplicantTicket';
 export { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag };
 export { TimelineItem };
 export { buildReapplyHash };
-export type { Ticket };
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
 type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
 type TicketCategory = 'all' | 'perm' | 'gov';
-type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正';
+type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正' | '负责人交接';
 type PendingStatusTab = 'all' | 'pending' | 'approved' | 'rejected' | 'expired';
 type ManagementTab = 'flows' | 'routes' | 'approver-rules' | 'sync';
 type RecordCategory = 'all' | '权限' | '治理';

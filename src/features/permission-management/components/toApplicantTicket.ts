@@ -2,14 +2,11 @@ import type { Ticket } from '../PermissionManagementPage';
 
 type PermDetailData = { applicant: string; applyTime: string; reason?: string };
 type CatalogDetailData = { applicant: string; applyTime: string; asset: string; from: string; to: string; reason: string };
-type TransferDetailData = { applicant: string; applyTime: string; asset: string; assignee: string; reason: string };
+type TransferDetailData = { transferor: string; applyTime: string; asset: string; assignee: string; reason: string };
 
-type ApproverDetailItem =
-  | { id: string; detailType: 'perm'; detailData: PermDetailData }
-  | { id: string; detailType: 'catalog'; detailData: CatalogDetailData }
-  | { id: string; detailType: 'transfer'; detailData: TransferDetailData };
-
-export function toApplicantTicket(item: ApproverDetailItem): Ticket {
+export function toApplicantTicket(
+  item: { id: string; detailType?: string; detailData?: Record<string, unknown> }
+): Ticket {
   const base = {
     id: item.id,
     feishuDefinition: '',
@@ -21,39 +18,57 @@ export function toApplicantTicket(item: ApproverDetailItem): Ticket {
     assetType: '数据表',
     status: 'pending' as const,
   };
+
   switch (item.detailType) {
-    case 'perm':
+    case 'perm': {
+      const d = item.detailData as PermDetailData;
       return {
         ...base,
         category: 'perm',
         type: '权限申请',
-        applicant: item.detailData.applicant,
-        applyTime: item.detailData.applyTime,
-        reason: item.detailData.reason,
+        applicant: d?.applicant ?? '',
+        applyTime: d?.applyTime ?? '',
+        reason: d?.reason,
         assetName: '',
         assetDisplay: '',
-      };
-    case 'catalog':
+      } as Ticket;
+    }
+    case 'catalog': {
+      const d = item.detailData as CatalogDetailData;
       return {
         ...base,
         category: 'gov',
         type: '目录修改',
-        applicant: item.detailData.applicant,
-        applyTime: item.detailData.applyTime,
-        reason: item.detailData.reason,
-        assetName: item.detailData.asset,
-        assetDisplay: item.detailData.asset,
-      };
-    case 'transfer':
+        applicant: d?.applicant ?? '',
+        applyTime: d?.applyTime ?? '',
+        reason: d?.reason ?? '',
+        assetName: d?.asset ?? '',
+        assetDisplay: d?.asset ?? '',
+      } as Ticket;
+    }
+    case 'transfer': {
+      const d = item.detailData as TransferDetailData;
       return {
         ...base,
         category: 'gov',
-        type: '负责人交接',
-        applicant: item.detailData.applicant,
-        applyTime: item.detailData.applyTime,
-        reason: item.detailData.reason,
-        assetName: item.detailData.asset,
-        assetDisplay: item.detailData.asset,
-      };
+        type: '负责人交接' as Ticket['type'],
+        applicant: d?.transferor ?? '',
+        applyTime: d?.applyTime ?? '',
+        reason: d?.reason ?? '',
+        assetName: d?.asset ?? '',
+        assetDisplay: d?.asset ?? '',
+      } as Ticket;
+    }
+    default:
+      return {
+        ...base,
+        category: 'perm',
+        type: '权限申请',
+        applicant: '',
+        applyTime: '',
+        reason: undefined,
+        assetName: '',
+        assetDisplay: '',
+      } as Ticket;
   }
 }
