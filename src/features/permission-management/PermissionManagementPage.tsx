@@ -6,10 +6,14 @@ import './permission-management.css';
 import { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag } from './components/ticketStatus';
 import { TimelineItem } from './components/TimelineItem';
 import { buildReapplyHash } from './components/buildReapplyHash';
+import { ApplicantPermDetail } from './components/ApplicantPermDetail';
+import { ApplicantGovDetail } from './components/ApplicantGovDetail';
+import { ApplicantTransferDetail } from './components/ApplicantTransferDetail';
 
 export { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag };
 export { TimelineItem };
 export { buildReapplyHash };
+export type { Ticket };
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
 type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
@@ -25,7 +29,7 @@ type ModalState = (
   | { type: 'reject'; pendingId: string }
 ) & { editIndex?: number };
 
-type Ticket = {
+export type Ticket = {
   id: string;
   type: Exclude<TicketType, 'all'>;
   category: Exclude<TicketCategory, 'all'>;
@@ -494,92 +498,46 @@ function TicketQueryPanel() {
   const detailTicket = detailId ? tickets.find(t => t.id === detailId) : null;
 
   if (detailTicket && detailTicket.category === 'perm') {
-    const approvedCount = permDetailSubOrders.filter(s => s.status === 'approved').length;
-    const rejectedCount = permDetailSubOrders.filter(s => s.status === 'rejected').length;
-    const pendingCount = permDetailSubOrders.filter(s => s.status === 'pending').length;
-    const total = permDetailSubOrders.length;
     return (
-      <section className="permission-management__panel">
-        <button type="button" className="permission-management__back-btn" onClick={() => setDetailId(null)}>← 返回工单列表</button>
-        <div className="permission-management__card">
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">申请编号</div><div className="permission-management__info-value primary">{detailTicket.id}</div></div>
-              <div><div className="permission-management__info-label">申请类型</div><div className="permission-management__info-value">{detailTicket.type}</div></div>
-              <div><div className="permission-management__info-label">飞书定义</div><div className="permission-management__info-value">{detailTicket.feishuDefinition}</div></div>
-              <div><div className="permission-management__info-label">批次/实例</div><div className="permission-management__info-value">{detailTicket.batchId ?? '单实例'} / {detailTicket.instanceCode}</div></div>
-              <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailTicket.applyTime}</div></div>
-              <div><div className="permission-management__info-label">整体状态</div><div className="permission-management__info-value"><Tag tone="warning">部分通过</Tag></div></div>
-            </div>
-            {detailTicket.reason ? (
-              <div className="permission-management__info-block"><div className="permission-management__info-label">申请理由</div><div className="permission-management__info-value">{detailTicket.reason}</div></div>
-            ) : null}
-            <div className="permission-management__info-block">
-              <div className="permission-management__info-label">审批进度</div>
-              <div className="permission-management__progress-bar">
-                <div className="permission-management__progress-segment green" style={{ width: `${(approvedCount / total) * 100}%` }} />
-                <div className="permission-management__progress-segment red" style={{ width: `${(rejectedCount / total) * 100}%` }} />
-                <div className="permission-management__progress-segment blue" style={{ width: `${(pendingCount / total) * 100}%` }} />
-              </div>
-              <div className="permission-management__progress-legend">
-                <span>✅ 已通过 {approvedCount}</span>
-                <span>❌ 已驳回 {rejectedCount}</span>
-                <span>⏳ 审批中 {pendingCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <h3>审批流明细（{total} 个子单）</h3>
-        {permDetailSubOrders.map((order, i) => <PermDetailSubOrderCard key={i} order={order} />)}
-        <div className="permission-management__detail-actions">
-          <Button variant="danger" size="sm">撤回所有未完成审批</Button>
-        </div>
-      </section>
+      <ApplicantPermDetail
+        ticket={detailTicket}
+        subOrders={permDetailSubOrders}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回所有未完成审批</Button>]}
+      />
     );
   }
 
   if (detailTicket && detailTicket.category === 'gov') {
+    const isCatalog = detailTicket.type === '目录修改';
     return (
-      <section className="permission-management__panel">
-        <button type="button" className="permission-management__back-btn" onClick={() => setDetailId(null)}>← 返回工单列表</button>
-        <div className="permission-management__card">
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">审批编号</div><div className="permission-management__info-value primary">{detailTicket.id}</div></div>
-              <div><div className="permission-management__info-label">操作类型</div><div className="permission-management__info-value"><Tag tone="blue">{detailTicket.type}</Tag></div></div>
-              <div><div className="permission-management__info-label">飞书定义</div><div className="permission-management__info-value">{detailTicket.feishuDefinition}</div></div>
-              <div><div className="permission-management__info-label">飞书实例</div><div className="permission-management__info-value">{detailTicket.instanceCode}</div></div>
-              <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{detailTicket.applyTime}</div></div>
-              <div><div className="permission-management__info-label">状态</div><div className="permission-management__info-value"><Tag tone={statusTone(detailTicket.status)}>{statusLabels[detailTicket.status]}</Tag></div></div>
-              <div><div className="permission-management__info-label">审批人</div><div className="permission-management__info-value">张三（数据管理员）</div></div>
-              <div><div className="permission-management__info-label">同步状态</div><div className="permission-management__info-value"><Tag tone={syncTone(detailTicket.syncMode)}>{detailTicket.syncText}</Tag></div></div>
-            </div>
-          </div>
-        </div>
-        <div className="permission-management__card">
-          <div className="permission-management__card-header"><strong>操作对象</strong></div>
-          <div className="permission-management__card-body">
-            <div className="permission-management__info-grid">
-              <div><div className="permission-management__info-label">资产名称</div><div className="permission-management__info-value"><strong>{detailTicket.assetName}</strong><br /><span className="permission-management__sub-order-secondary">{detailTicket.assetDisplay}</span></div></div>
-              <div><div className="permission-management__info-label">资产类型</div><div className="permission-management__info-value">{detailTicket.assetType}</div></div>
-            </div>
-          </div>
-        </div>
-        {detailTicket.reason ? (
-          <div className="permission-management__card">
-            <div className="permission-management__card-header"><strong>审批时间线</strong></div>
-            <div className="permission-management__card-body">
-              <div className="permission-management__timeline">
-                <TimelineItem label={`${detailTicket.applicant} 提交${detailTicket.type}`} time={detailTicket.applyTime} status="done" />
-                <TimelineItem label="张三（数据管理员）" time="等待审批中..." status="waiting" />
-              </div>
-            </div>
-          </div>
-        ) : null}
-        <div className="permission-management__detail-actions">
-          <Button variant="danger" size="sm">撤回申请</Button>
-        </div>
-      </section>
+      <ApplicantGovDetail
+        ticket={detailTicket}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回申请</Button>]}
+        timeline={[
+          { label: `${detailTicket.applicant} 提交${detailTicket.type}`, time: detailTicket.applyTime, status: 'done' },
+          { label: '张三（数据管理员）', time: '等待审批中...', status: 'waiting' },
+        ]}
+        diff={isCatalog ? { label: '当前目录', before: '用户域/行为/行为日志', after: '用户域/行为/点击流' } : undefined}
+      />
+    );
+  }
+
+  if (detailTicket && detailTicket.type === '负责人交接') {
+    return (
+      <ApplicantTransferDetail
+        ticket={{ id: detailTicket.id }}
+        transferor={detailTicket.applicant}
+        assignee="钱七"
+        asset={detailTicket.assetName}
+        applyTime={detailTicket.applyTime}
+        reason="原负责人离职"
+        timeline={[
+          { label: '① 赵六的上级（王经理）', time: detailTicket.applyTime, status: 'done' },
+          { label: '② 被转交人确认（钱七 · 您）', time: '', status: 'waiting' },
+          { label: '③ 钱七的上级（孙总）', time: '', status: 'waiting' },
+        ]}
+        actions={[<Button key="withdraw" variant="danger" size="sm">撤回</Button>]}
+      />
     );
   }
 
