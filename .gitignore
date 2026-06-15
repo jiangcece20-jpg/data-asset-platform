@@ -2,13 +2,18 @@
 .DS_Store
 **/.DS_Store
 
+# frontend generated files
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
 # 文档目录（不上传到 GitHub）
+# 文档目录默认不自动纳入 Git，关键 PRD/spec 需要时用 git add -f 精准加入
 docs/
 backups/
 deliverables/
 archive/
 .worktrees/
-
-# 备份文件
-*.bak
-prototype/backup/
+.vercel

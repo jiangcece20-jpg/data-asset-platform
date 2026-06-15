@@ -1,0 +1,34 @@
+:root {
+  --primary: #1677ff;
+  --primary-hover: #4096ff;
+  --primary-bg: #e6f4ff;
+  --primary-border: #91caff;
+  --success: #52c41a;
+  --success-bg: #f6ffed;
+  --warning: #faad14;
+  --warning-bg: #fff7e6;
+  --danger: #ff4d4f;
+  --danger-bg: #fff2f0;
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --text-tertiary: rgba(0, 0, 0, 0.45);
+  --text-quaternary: rgba(0, 0, 0, 0.25);
+  --border-color: #e8e8e8;
+  --border-color-light: #f0f0f0;
+  --bg-layout: #f5f5f5;
+  --bg-container: #ffffff;
+  --bg-hover: #f5f5f5;
+  --header-bg: #001529;
+  --header-height: 56px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --transition-fast: 0.15s ease;
+}

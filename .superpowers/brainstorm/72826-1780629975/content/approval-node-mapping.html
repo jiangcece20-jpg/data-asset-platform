@@ -1,0 +1,66 @@
+<h2>飞书流程节点和平台配置怎么对应</h2>
+<p class="subtitle">核心：飞书负责“节点顺序和任务流转”，平台负责“每个节点的审批人怎么解析、表单值怎么填”。</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">飞书后台：审批定义 / 流程设计</div>
+    <div class="mockup-body">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="padding:10px 14px;border-radius:8px;background:#eef2ff;border:1px solid #c7d2fe">提交</div>
+        <div>→</div>
+        <div style="padding:10px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe">
+          节点 A<br><b>custom_node_id: applicant_manager</b>
+        </div>
+        <div>→</div>
+        <div style="padding:10px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe">
+          节点 B<br><b>custom_node_id: resource_owner</b>
+        </div>
+        <div>→</div>
+        <div style="padding:10px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe">
+          节点 C<br><b>custom_node_id: fixed_leader</b>
+        </div>
+        <div>→</div>
+        <div style="padding:10px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe">
+          节点 D<br><b>custom_node_id: governance_owner</b>
+        </div>
+        <div>→</div>
+        <div style="padding:10px 14px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0">结束</div>
+      </div>
+      <p style="margin-top:16px;color:#64748b">飞书里每个审批节点建议配置为“发起人自选审批人”，并设置稳定的 custom_node_id。这样平台创建实例时可以把每个节点的审批人传进去。</p>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">平台后台：审批路由 + 节点审批人方案</div>
+    <div class="mockup-body">
+      <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:10px">
+        <b>审批路由</b><br>
+        工单类型 = 权限申请，安全等级 = S5 → approval_code = APPROVAL_PERMISSION
+      </div>
+      <div style="display:grid;gap:8px">
+        <div style="padding:10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">applicant_manager → 申请人上级</div>
+        <div style="padding:10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">resource_owner → 资源技术/业务负责人</div>
+        <div style="padding:10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">fixed_leader → 固定领导：张总 open_id</div>
+        <div style="padding:10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">governance_owner → 治理负责人角色</div>
+      </div>
+      <p style="margin-top:16px;color:#64748b">平台发起实例前解析每个节点的 open_id，并把“节点 ID → 审批人列表”传给飞书。</p>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="recommended" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>推荐：路由选择流程，节点方案配置每个节点审批人</h3>
+      <p>飞书后台维护节点顺序；平台维护每个 custom_node_id 对应哪类审批人规则。适合多节点、可扩展、不会重新自建审批引擎。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="simple" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>简化：一个路由只选一个审批人规则</h3>
+      <p>适合单节点或审批人很简单的流程；但遇到“上级→负责人→领导→治理负责人”会表达不清。</p>
+    </div>
+  </div>
+</div>
