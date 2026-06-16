@@ -17,3 +17,7 @@ deliverables/
 archive/
 .worktrees/
 .vercel
+.vercel-tmp/
+.agent/
+.qoder/
+.superpowers/
