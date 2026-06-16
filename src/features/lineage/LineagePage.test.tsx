@@ -112,6 +112,44 @@ describe('LineagePage lineage edit approval flow', () => {
     expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
   });
 
+  it('cascades table-level relation exclusion to its direct field-level mappings', async () => {
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+
+    const table = document.querySelector('.lineage-editor-table') as HTMLElement;
+    const orderRawRow = within(table).getAllByRole('row').find(row =>
+      row.textContent?.includes('ods_order_raw')
+    ) as HTMLElement;
+    expect(orderRawRow).toBeTruthy();
+
+    await user.click(within(orderRawRow).getByRole('button', { name: '排除' }));
+
+    expect(within(orderRawRow).getByText('待提交')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '提交修正（3 项变更）' })).toBeEnabled();
+
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+    await user.selectOptions(screen.getByLabelText('状态'), 'draft');
+
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const fieldRows = within(fieldTable).getAllByRole('row').filter(row => row.querySelector('td'));
+    expect(fieldRows).toHaveLength(2);
+    expect(fieldRows[0]).toHaveTextContent('ods_order_raw');
+    expect(fieldRows[0]).toHaveTextContent('dwd_order_detail');
+    expect(fieldRows[0]).toHaveTextContent('待提交');
+    expect(fieldRows[1]).toHaveTextContent('ods_order_raw');
+    expect(fieldRows[1]).toHaveTextContent('dwd_order_detail');
+    expect(fieldRows[1]).toHaveTextContent('待提交');
+
+    await user.click(screen.getByRole('button', { name: '提交修正（3 项变更）' }));
+
+    const submitDialog = screen.getByRole('dialog', { name: '提交血缘修正审批' });
+    expect(within(submitDialog).getByText('ods_order_raw → dwd_order_detail')).toBeInTheDocument();
+    expect(within(submitDialog).getByText('ods_order_raw.order_id → dwd_order_detail.order_id')).toBeInTheDocument();
+    expect(within(submitDialog).getByText('ods_order_raw.create_time → dwd_order_detail.create_time')).toBeInTheDocument();
+  });
+
   it('defaults to effective lineage rows and restores an excluded table relation through a draft approval change', async () => {
     const user = userEvent.setup();
     render(<LineagePage />);
