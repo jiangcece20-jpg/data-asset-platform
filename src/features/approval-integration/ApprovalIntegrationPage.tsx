@@ -39,6 +39,7 @@ import {
 import { SubmittedPanel } from './components/SubmittedPanel';
 import { PendingPanel, ApprovalActionModal } from './components/PendingPanel';
 import type { ActionDialog } from './components/PendingPanel';
+import { ApprovalDetailTables } from './components/ApprovalDetailTables';
 import {
   approveLineageApproval,
   lineageApprovalsToBatches,
@@ -701,11 +702,7 @@ function InstanceDrawer({ instance, onClose }: { instance: ApprovalInstance; onC
             <code>{instance.instanceCode}</code>
           </div>
 
-          <h3>申请信息</h3>
-          <InstanceInfoTable instance={instance} ticketType={ticketType} />
-
-          <h3>申请资产明细</h3>
-          <InstanceAssetsTable instance={instance} ticketType={ticketType} />
+          <ApprovalDetailTables record={instance} />
 
           <h3>审批节点</h3>
           {instance.approvers.map(node => (

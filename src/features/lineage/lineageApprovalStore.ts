@@ -32,7 +32,7 @@ export type LineageApprovalStatus = 'approving' | 'approved' | 'rejected' | 'wit
 export type LineageRelationChange = {
   id: string;
   kind: 'relation';
-  action: 'add' | 'delete';
+  action: 'add' | 'delete' | 'restore';
   direction: 'upstream' | 'downstream';
   sourceId: string;
   sourceName: string;
@@ -44,7 +44,7 @@ export type LineageRelationChange = {
 export type LineageFieldMappingChange = {
   id: string;
   kind: 'field';
-  action: 'add' | 'delete';
+  action: 'add' | 'delete' | 'restore';
   direction: 'upstream' | 'downstream';
   sourceId: string;
   sourceName: string;
@@ -256,6 +256,16 @@ export function lineageApprovalsToPendingTasks(): PendingTask[] {
     instanceCode: approval.instanceCode,
     createdAt: approval.submittedAt,
     ticketType: '血缘修正',
+    approvers: [
+      { nodeId: 'manager_node', nodeName: '直接上级', mode: 'single', approvers: [{ name: '王经理', openId: 'ou_manager_001' }] },
+      { nodeId: 'security_admin_node', nodeName: 'S4/S5 安全管理员', mode: 'single', approvers: [{ name: '周安全', openId: 'ou_security_001' }] },
+      { nodeId: 'data_admin_node', nodeName: 'S4/S5 数据管理员', mode: 'single', approvers: [{ name: '李治理', openId: 'ou_data_001' }] },
+      { nodeId: 'cto_node', nodeName: 'CTO', mode: 'single', approvers: [{ name: '郑技术', openId: 'ou_cto_001' }] },
+    ],
+    timeline: [
+      { action: '提交血缘修正', operator: approval.applicant, time: approval.submittedAt, status: 'system' },
+      { action: '等待直接上级审批', operator: '王经理', time: approval.submittedAt, status: 'pending', comment: '等待当前审批节点处理' },
+    ],
     lineageApproval: approval,
   }));
 }

@@ -1,26 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import { Button } from '../../../components/base/Button';
 import { Tag } from '../../../components/base/Tag';
 import { Modal } from '../../../components/feedback/Modal';
 import type { PendingTask } from '../approvalData';
+import { ApprovalDetailTables, approvalSecurityTone } from './ApprovalDetailTables';
 // re-export for consumers
 export type { PendingTask };
-
-const sourceTypeOptions = [
-  { value: 'warehouse_engine', label: '数仓引擎' },
-  { value: 'analytic_db', label: '分析型数据库' },
-  { value: 'biz_database', label: '业务数据库' },
-  { value: 'report_system', label: '报表系统' },
-  { value: 'api_service', label: 'API服务' },
-  { value: 'message_stream', label: '消息队列' },
-  { value: 'file_storage', label: '文件存储' },
-  { value: 'metric_platform', label: '指标平台' },
-];
-
-function sourceTypeLabel(value: string) {
-  return sourceTypeOptions.find(item => item.value === value)?.label ?? value;
-}
 
 type ApprovalActionType = 'approve' | 'reject';
 export type ActionDialog =
@@ -182,13 +167,9 @@ function PendingTaskDrawer({ task, onClose, onOpenAction }: { task: PendingTask;
         </header>
         <div className="approval-v6__instance-detail">
           <PendingDetailMeta task={task} ticketType={ticketType} />
-          <PendingApplicantSummary task={task} />
-
-          {ticketType === '血缘修正' ? (
-            <PendingLineageDetail task={task} />
-          ) : (
-            <PendingTypedDetail task={task} ticketType={ticketType} />
-          )}
+          <ApprovalDetailTables record={task} />
+          <ApprovalNodes nodes={approvalNodesForTask(task)} />
+          <ApprovalTimeline timeline={approvalTimelineForTask(task, ticketType)} />
 
           <h3>审批操作</h3>
           <div className="approval-v6__drawer-actions approval-v6__drawer-actions--sticky">
@@ -201,253 +182,63 @@ function PendingTaskDrawer({ task, onClose, onOpenAction }: { task: PendingTask;
   );
 }
 
-function detailSectionTitle(ticketType: string) {
-  if (ticketType === '上架审批') return '上架审批判断';
-  if (ticketType === '下架审批') return '下架审批判断';
-  if (ticketType === '目录修改') return '资源目录修改判断';
-  if (ticketType === '目录编辑审批') return '目录编辑审批判断';
-  if (ticketType === '负责人交接') return '负责人交接判断';
-  if (ticketType === '血缘修正') return '血缘变更详情';
-  return '权限申请判断';
+function approvalNodesForTask(task: PendingTask): NonNullable<PendingTask['approvers']> {
+  return task.approvers ?? [
+    {
+      nodeId: `node-${task.id}`,
+      nodeName: task.nodeName,
+      mode: 'single',
+      approvers: [{ name: task.nodeName, openId: '' }],
+    },
+  ];
+}
+
+function approvalTimelineForTask(task: PendingTask, ticketType: string): NonNullable<PendingTask['timeline']> {
+  return task.timeline ?? [
+    { action: `提交${ticketType}`, operator: task.applicant, time: task.createdAt, status: 'system', comment: task.reason },
+    { action: task.nodeName, operator: task.nodeName, time: task.createdAt, status: 'pending', comment: '等待当前审批节点处理' },
+  ];
+}
+
+function ApprovalNodes({ nodes }: { nodes: NonNullable<PendingTask['approvers']> }) {
+  return (
+    <>
+      <h3>审批节点</h3>
+      {nodes.map(node => (
+        <div key={node.nodeId} className="approval-v6__timeline">
+          <strong>{node.nodeName}</strong>
+          <span>{node.approvers.map(item => item.name).join('、')}{node.mode === 'countersign' ? '（会签）' : ''}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function ApprovalTimeline({ timeline }: { timeline: NonNullable<PendingTask['timeline']> }) {
+  return (
+    <>
+      <h3>审批时间线</h3>
+      {timeline.map((item, index) => (
+        <div key={index} className="approval-v6__timeline">
+          <strong>{item.action}</strong>
+          <span>{item.operator} · {item.time}</span>
+          {item.comment ? <em>{item.comment}</em> : null}
+        </div>
+      ))}
+    </>
+  );
 }
 
 function PendingDetailMeta({ task, ticketType }: { task: PendingTask; ticketType: string }) {
   return (
     <div className="approval-v6__detail-meta" aria-label="审批元信息">
       <Tag tone="warning">{ticketType}</Tag>
-      <Tag tone={task.securityLevel === 'S4' || task.securityLevel === 'S5' ? 'danger' : 'blue'}>{task.securityLevel}</Tag>
+      <Tag tone={approvalSecurityTone(task.securityLevel)}>{task.securityLevel}</Tag>
       <span><strong>{task.subOrderNo}</strong></span>
       <span>{task.nodeName}</span>
       <span>{task.createdAt}</span>
       <code title={`实例号：${task.instanceCode}`}>{task.instanceCode}</code>
     </div>
-  );
-}
-
-function PendingApplicantSummary({ task }: { task: PendingTask }) {
-  return (
-    <section className="approval-v6__applicant-summary" aria-label="申请摘要">
-      <div><span>申请人</span><strong>{task.applicant}</strong><em>{task.applicantDept}</em></div>
-      <div><span>命中流程</span><strong>{task.matchedFlow}</strong><em>{task.matchedRoute}</em></div>
-      <div className="wide"><span>申请理由</span><strong>{task.reason}</strong></div>
-    </section>
-  );
-}
-
-function TypeDetailGrid({ children }: { children: ReactNode }) {
-  return <div className="approval-v6__type-grid">{children}</div>;
-}
-
-function DetailItem({ label, value, tone }: { label: string; value: ReactNode; tone?: 'risk' | 'success' }) {
-  return (
-    <div className={tone ? `approval-v6__detail-item approval-v6__detail-item--${tone}` : 'approval-v6__detail-item'}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function DetailLinkItem({ label = '操作', text = '查看详情' }: { label?: string; text?: string }) {
-  return <DetailItem label={label} value={<button type="button" className="approval-v6__inline-action">{text}</button>} />;
-}
-
-function mockOriginalCatalog(task: PendingTask) {
-  if (task.ticketType === '目录修改' && task.reason.includes('迁移至')) {
-    const match = task.reason.match(/从[“"]?(.+?)[”"]?迁移至/);
-    return match?.[1] ?? 'mock 原目录 / 待迁移';
-  }
-  return 'mock 原目录 / 待迁移';
-}
-
-function directoryEditAction(task: PendingTask) {
-  if (task.reason.includes('新增')) return '新增目录';
-  if (task.reason.includes('改名') || task.reason.includes('重命名')) return '改名目录';
-  if (task.reason.includes('删除')) return '删除目录';
-  return '移动目录';
-}
-
-function PendingTypedDetail({ task, ticketType }: { task: PendingTask; ticketType: string }) {
-  if (ticketType === '权限申请') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="申请资产" value={assetSummary(task)} />
-          <DetailItem label="权限类型" value={task.permissionType} />
-          <DetailItem label="安全等级" value={<Tag tone={task.securityLevel === 'S4' || task.securityLevel === 'S5' ? 'danger' : 'blue'}>{task.securityLevel}</Tag>} tone={task.securityLevel === 'S4' || task.securityLevel === 'S5' ? 'risk' : undefined} />
-          <DetailItem label="目录" value={task.directory} />
-          <DetailItem label="来源系统" value={`${sourceTypeLabel(task.sourceType)} / ${task.sourceSystem}`} />
-          <DetailItem label="判断重点" value={task.securityLevel === 'S4' || task.securityLevel === 'S5' ? '高安全等级权限申请，重点核验申请用途和最小授权范围' : '核验申请用途与资产范围是否匹配'} />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  if (ticketType === '上架审批') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="上架对象" value={assetSummary(task)} />
-          <DetailItem label="目录" value={task.directory} />
-          <DetailItem label="负责人" value={task.applicant} />
-          <DetailItem label="元数据完整性" value="已完成基础信息、字段说明、质量规则校验" tone="success" />
-          <DetailItem label="来源" value={`${sourceTypeLabel(task.sourceType)} / ${task.sourceSystem}`} />
-          <DetailLinkItem />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  if (ticketType === '下架审批') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="下架对象" value={assetSummary(task)} />
-          <DetailItem label="下架原因" value={task.reason} />
-          <DetailItem label="影响范围" value={task.securityLevel === 'S4' || task.securityLevel === 'S5' ? '高安全等级资产，需重点核验引用方' : '影响当前目录可见与检索'} tone="risk" />
-          <DetailItem label="下游依赖" value="mock 依赖：2 个应用、1 个报表" />
-          <DetailItem label="目录" value={task.directory} />
-          <DetailLinkItem />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  if (ticketType === '目录修改') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="资产或资源" value={assetSummary(task)} />
-          <DetailItem label="原目录" value={mockOriginalCatalog(task)} />
-          <DetailItem label="目标目录" value={task.directory} />
-          <DetailItem label="变更原因" value={task.reason} />
-          <DetailItem label="变更类型" value="资源目录修改" />
-          <DetailItem label="判断重点" value="核验目标目录归属和目录负责人是否匹配" />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  if (ticketType === '目录编辑审批') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="编辑动作" value={directoryEditAction(task)} />
-          <DetailItem label="旧目录结构" value="mock 旧目录结构 / 待确认" />
-          <DetailItem label="新目录结构" value={task.directory} />
-          <DetailItem label="影响子目录数量" value="mock 影响 3 个子目录" />
-          <DetailItem label="影响资源数量" value={`mock 影响 ${Math.max(1, task.assets.length)} 个资源`} />
-          <DetailLinkItem />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  if (ticketType === '负责人交接') {
-    return (
-      <section className="approval-v6__type-detail">
-        <h3>{detailSectionTitle(ticketType)}</h3>
-        <TypeDetailGrid>
-          <DetailItem label="原负责人" value={task.applicant} />
-          <DetailItem label="新负责人" value="mock 接收人" />
-          <DetailItem label="交接范围" value={assetSummary(task)} />
-          <DetailItem label="接收确认" value={task.nodeName.includes('接收') ? '等待接收人确认' : '需审批节点确认'} />
-          <DetailItem label="目录" value={task.directory} />
-          <DetailItem label="交接说明" value={task.reason} />
-        </TypeDetailGrid>
-      </section>
-    );
-  }
-
-  return (
-    <section className="approval-v6__type-detail">
-      <h3>{detailSectionTitle(ticketType)}</h3>
-      <TypeDetailGrid>
-        <DetailItem label="审批对象" value={assetSummary(task)} />
-        <DetailItem label="目录" value={task.directory} />
-        <DetailItem label="来源" value={`${sourceTypeLabel(task.sourceType)} / ${task.sourceSystem}`} />
-        <DetailItem label="申请说明" value={task.reason} />
-      </TypeDetailGrid>
-    </section>
-  );
-}
-
-function nodeUnitLabel(nodeId: string, nodeName: string) {
-  const value = `${nodeId} ${nodeName}`.toLowerCase();
-  if (value.includes('api') || value.includes('kafka') || value.includes('topic')) return '参数';
-  if (value.includes('metric')) return '指标';
-  if (value.includes('label')) return '标签';
-  if (value.includes('report') || value.includes('rpt')) return '报表口径';
-  return '字段';
-}
-
-function endpointLabel(task: PendingTask, nodeId: string, nodeName: string, value: string | undefined) {
-  if (!value) return '';
-  const side = nodeId === task.lineageApproval?.objectId ? '当前节点' : '目标节点';
-  return `${side}${nodeUnitLabel(nodeId, nodeName)}：${value}`;
-}
-
-function lineageModeText(task: PendingTask) {
-  if (task.lineageApproval?.correctionMode === 'initialize') return '初始化血缘';
-  const hasAdd = task.lineageApproval?.changes.some(change => change.action === 'add');
-  const hasDelete = task.lineageApproval?.changes.some(change => change.action === 'delete');
-  if (hasAdd && hasDelete) return '手工新增/删除';
-  if (hasAdd) return '手工新增';
-  if (hasDelete) return '手工删除';
-  return '手工修正';
-}
-
-function PendingLineageDetail({ task }: { task: PendingTask }) {
-  const approval = task.lineageApproval;
-  const changes = approval?.changes ?? [];
-  const relationChanges = changes.filter(change => change.kind === 'relation');
-  const fieldChanges = changes.filter(change => change.kind === 'field');
-  const addCount = approval?.initStats?.add ?? relationChanges.filter(change => change.action === 'add').length;
-  const deleteCount = approval?.initStats?.delete ?? relationChanges.filter(change => change.action === 'delete').length;
-  const effectMode = approval?.effectMode === 'full_rebuild' ? '全量重建' : '增量修正';
-
-  return (
-    <section className="approval-v6__type-detail">
-      <h3>血缘变更详情</h3>
-      <div className="approval-v6__summary approval-v6__summary--typed">
-        <div><span>修正方式</span><strong>{lineageModeText(task)}</strong></div>
-        <div><span>生效方式</span><strong>{effectMode}</strong></div>
-        <div><span>新增数量</span><strong>{addCount}</strong></div>
-        <div><span>删除数量</span><strong>{deleteCount}</strong></div>
-        <div><span>端点关系</span><strong>{fieldChanges.length}</strong></div>
-        <div><span>当前节点</span><strong>{approval?.objectDisplay ?? task.assets[0] ?? '暂无对象'}</strong></div>
-      </div>
-      {approval?.effectMode === 'full_rebuild' ? (
-        <div className="approval-v6__risk-note">初始化血缘：审批通过后将覆盖当前资产已有血缘。</div>
-      ) : (
-        <div className="approval-v6__risk-note">手工新增/删除：审批通过后仅生效本次提交变更。</div>
-      )}
-      <h3>本次提交变更数据</h3>
-      <div className="approval-v6__change-list">
-        {changes.length ? changes.map(change => (
-          <article key={change.id} className="approval-v6__change-card">
-            <header>
-              <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
-              <strong>{change.sourceName} → {change.targetName}</strong>
-              <span>{change.direction === 'upstream' ? '目标节点到当前节点' : '当前节点到目标节点'}</span>
-            </header>
-            {change.kind === 'field' ? (
-              <div className="approval-v6__endpoint-config">
-                <span>{endpointLabel(task, change.targetId, change.targetName, change.targetField)}</span>
-                <span>{endpointLabel(task, change.sourceId, change.sourceName, change.sourceField)}</span>
-              </div>
-            ) : (
-              <div className="approval-v6__endpoint-config"><span>关系级变更</span></div>
-            )}
-            <p>{change.reason || '暂无修正说明'}</p>
-          </article>
-        )) : <div className="approval-v6__empty-row">暂无提交变更数据</div>}
-      </div>
-    </section>
   );
 }
 

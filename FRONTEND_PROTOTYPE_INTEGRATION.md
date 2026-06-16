@@ -27,6 +27,14 @@ Host the generated `dist/` directory. The app already has `public/_redirects` fo
 /* /index.html 200
 ```
 
+Cloudflare Pages publishing is wired through npm scripts:
+
+```bash
+npm run pages:deploy
+```
+
+The script builds the app and deploys `dist/` to the `data-asset-platform` Pages project.
+
 ## Current Main Branch
 
 The repository `main` branch is currently mostly static prototype files:
@@ -111,6 +119,7 @@ Required files for the approval integration prototype:
 - `src/features/approval-integration/ApprovalIntegrationPage.test.tsx`
 - `src/features/approval-integration/approval-integration.css`
 - `src/features/approval-integration/approvalData.ts`
+- `src/features/approval-integration/components/ApprovalDetailTables.tsx`
 - `src/features/approval-integration/components/PendingPanel.tsx`
 - `src/features/approval-integration/components/SubmittedPanel.tsx`
 
@@ -119,6 +128,39 @@ The `my` page reuses approval components, so include it if the `我的` navigati
 - `src/features/my/MyPage.tsx`
 - `src/features/my/MyPage.test.tsx`
 - `src/features/my/my-page.css`
+
+## Lineage Correction PRD Addendum
+
+The lineage correction prototype should keep graph changes behind approval and expose a full lineage ledger in the correction drawer.
+
+### Ledger Scope
+
+- Table-level lineage and field-level lineage both show the full relationship set for the current asset.
+- Rows include effective relationships, relationships currently under approval, and relationships previously excluded by approved changes.
+- The default status filter is `有效`; users can switch to all, approvaling, excluded, or draft rows.
+
+### Search And Filters
+
+- Provide one keyword search box for resource names and field names.
+- Provide filters for direction, source, and status:
+  - Direction: all, upstream, downstream.
+  - Source: all, auto-collected, manually added.
+  - Status: effective, all, approving, excluded, draft.
+
+### Row States And Actions
+
+- Effective table-level rows support `排除`; effective field-level rows support `删除`.
+- Excluded rows are visually marked with a strikethrough.
+- Excluded table-level and field-level rows support `恢复`; restore creates a draft change and only takes effect after approval.
+- Draft rows can be undone before submission.
+- When an active lineage approval exists for the same object, new edits are blocked until the active approval is withdrawn, rejected, or approved.
+
+### Approval Integration
+
+- Submitting correction drafts creates a `血缘修正` approval instance.
+- Submitted and pending approval detail drawers reuse the same change-focused detail tables.
+- Lineage approval details show change type, direction, source endpoint, target endpoint, field mapping, and reason instead of a generic asset table.
+- Pending approval details keep approval nodes and approval timeline visible, while avoiding extra judgment-page-only blocks.
 
 ## Do Not Include By Default
 
@@ -180,6 +222,8 @@ feat(lineage): add lineage prototype page
 npm test -- <changed-test-file>
 npm run build
 ```
+
+6. Before publishing, deploy from the intended integration branch or `main` after merge, not from a stale feature branch.
 
 5. Before publishing from `integration/prototype-showcase`, run:
 

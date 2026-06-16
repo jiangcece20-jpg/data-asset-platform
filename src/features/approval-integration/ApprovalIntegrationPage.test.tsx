@@ -149,25 +149,39 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     const drawer = screen.getByLabelText('工单详情');
     expect(drawer).toHaveClass('approval-v6__drawer--approval-detail');
     const infoTable = within(drawer).getByRole('table', { name: '申请信息表' });
-    expect(within(infoTable).getByText('申请资产')).toBeInTheDocument();
-    expect(within(infoTable).getByText('安全等级')).toBeInTheDocument();
-    expect(within(infoTable).getByText('命中流程')).toBeInTheDocument();
-    expect(within(infoTable).getByText('高安全等级专项审批')).toBeInTheDocument();
-    expect(within(infoTable).getByText('来源')).toBeInTheDocument();
-    expect(within(infoTable).getByText('数仓引擎 / MaxCompute')).toBeInTheDocument();
+    expect(within(infoTable).getByText('工单类型')).toBeInTheDocument();
+    expect(within(infoTable).getByText('权限申请')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人')).toBeInTheDocument();
+    expect(within(infoTable).getByText('刘数据')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人部门')).toBeInTheDocument();
+    expect(within(infoTable).getByText('数据分析部')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人直接上级')).toBeInTheDocument();
+    expect(within(infoTable).getByText('王经理')).toBeInTheDocument();
+    expect(within(infoTable).queryByText('其它信息')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('安全等级')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('命中流程')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('来源')).not.toBeInTheDocument();
     const infoRows = within(infoTable).getAllByRole('row');
     expect(infoRows[infoRows.length - 1]).toHaveTextContent('申请原因');
     expect(infoRows[infoRows.length - 1]).toHaveTextContent('需要分析 Q2 交易数据，用于季度业务复盘报告。');
 
     const assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
     expect(within(assetsTable).getByRole('columnheader', { name: '资产名称' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产负责人' })).toBeInTheDocument();
     expect(within(assetsTable).getByRole('columnheader', { name: '来源类型' })).toBeInTheDocument();
     expect(within(assetsTable).getByRole('columnheader', { name: '来源系统' })).toBeInTheDocument();
     expect(within(assetsTable).getByRole('columnheader', { name: '目录归属' })).toBeInTheDocument();
     expect(within(assetsTable).getByRole('columnheader', { name: '安全等级' })).toBeInTheDocument();
     expect(within(assetsTable).getByRole('columnheader', { name: '权限类型' })).toBeInTheDocument();
-    expect(within(assetsTable).getByText('dwd_trade_order')).toBeInTheDocument();
+    expect(within(assetsTable).getAllByText('wlyd_mc_beijing.').length).toBeGreaterThan(0);
+    const assetNameButton = within(assetsTable).getByRole('button', { name: '查看资产 wlyd_mc_beijing.dwd_trade_order' });
+    expect(assetNameButton).toHaveTextContent('dwd_trade_order');
+    expect(within(assetsTable).getAllByText('表').length).toBeGreaterThan(0);
+    expect(within(assetsTable).getByText('李四')).toBeInTheDocument();
     expect(within(assetsTable).getAllByText('MaxCompute').length).toBeGreaterThan(0);
+    await user.click(assetNameButton);
+    expect(window.location.hash).toBe('#detail?domain=asset&id=resource-table-order-detail');
     expect(screen.queryByRole('link', { name: '飞书查看' })).not.toBeInTheDocument();
   });
 
@@ -196,45 +210,167 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(within(drawer).queryByRole('button', { name: '飞书' })).not.toBeInTheDocument();
     expect(within(drawer).getByRole('button', { name: '通过' }).parentElement).toHaveClass('approval-v6__drawer-actions--sticky');
 
-    expect(within(drawer).queryByRole('table', { name: '申请信息表' })).not.toBeInTheDocument();
     expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent('权限申请');
     expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent('SUB-20260609-001-01');
     expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent('CTO 审批');
-    expect(within(drawer).getByLabelText('申请摘要')).toHaveTextContent('刘数据');
-    expect(within(drawer).getByLabelText('申请摘要')).toHaveTextContent('需要分析 Q2 交易数据，用于季度业务复盘报告。');
-    expect(within(drawer).getByRole('heading', { name: '权限申请判断' })).toBeInTheDocument();
-    expect(within(drawer).getByText('dwd_trade_order 等 2 个资产')).toBeInTheDocument();
-    expect(within(drawer).getByText('只读')).toBeInTheDocument();
-    expect(within(drawer).queryByRole('table', { name: '申请资产明细表' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText('申请摘要')).not.toBeInTheDocument();
+
+    const infoTable = within(drawer).getByRole('table', { name: '申请信息表' });
+    expect(within(infoTable).getByText('工单类型')).toBeInTheDocument();
+    expect(within(infoTable).getByText('权限申请')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人')).toBeInTheDocument();
+    expect(within(infoTable).getByText('刘数据')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人部门')).toBeInTheDocument();
+    expect(within(infoTable).getByText('数据分析部')).toBeInTheDocument();
+    expect(within(infoTable).getByText('申请人直接上级')).toBeInTheDocument();
+    expect(within(infoTable).getByText('王经理')).toBeInTheDocument();
+    expect(within(infoTable).queryByText('其它信息')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('安全等级')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('命中流程')).not.toBeInTheDocument();
+    expect(within(infoTable).queryByText('来源')).not.toBeInTheDocument();
+    const infoRows = within(infoTable).getAllByRole('row');
+    expect(infoRows[infoRows.length - 1]).toHaveTextContent('申请原因');
+    expect(infoRows[infoRows.length - 1]).toHaveTextContent('需要分析 Q2 交易数据，用于季度业务复盘报告。');
+
+    const assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产名称' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产负责人' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '来源类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '来源系统' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '目录归属' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '安全等级' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '权限类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getAllByText('wlyd_mc_beijing.').length).toBeGreaterThan(0);
+    const assetNameButton = within(assetsTable).getByRole('button', { name: '查看资产 wlyd_mc_beijing.dwd_trade_order' });
+    expect(assetNameButton).toHaveTextContent('dwd_trade_order');
+    expect(within(assetsTable).getAllByText('表').length).toBeGreaterThan(0);
+    expect(within(assetsTable).getByText('李四')).toBeInTheDocument();
+    expect(within(assetsTable).getAllByText('MaxCompute').length).toBeGreaterThan(0);
+    expect(within(drawer).queryByRole('heading', { name: '权限申请判断' })).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('heading', { name: '审批节点' })).toBeInTheDocument();
+    expect(within(drawer).getAllByText('CTO 审批').length).toBeGreaterThan(0);
+    expect(within(drawer).getByRole('heading', { name: '审批时间线' })).toBeInTheDocument();
+    expect(within(drawer).getByText('提交权限申请')).toBeInTheDocument();
+    expect(within(drawer).getByText('等待当前审批节点处理')).toBeInTheDocument();
+    await user.click(assetNameButton);
+    expect(window.location.hash).toBe('#detail?domain=asset&id=resource-table-order-detail');
   });
 
-  it('opens every pending approval type with a specialized judgment detail', async () => {
+  it('opens every pending approval type without extra judgment detail blocks', async () => {
     const user = userEvent.setup();
     render(<ApprovalIntegrationPage />);
 
     await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: /待我审批/ }));
 
-    const pendingDetailCases = [
-      ['SUB-20260609-001-01', '权限申请判断'],
-      ['SUB-20260610-008-01', '上架审批判断'],
-      ['SUB-20260610-007-01', '下架审批判断'],
-      ['SUB-20260610-006-01', '资源目录修改判断'],
-      ['SUB-20260610-009-01', '目录编辑审批判断'],
-      ['SUB-20260610-010-01', '负责人交接判断'],
-      ['SUB-20260610-005-01', '血缘变更详情'],
+    const pendingSubOrderNos = [
+      'SUB-20260609-001-01',
+      'SUB-20260610-008-01',
+      'SUB-20260610-007-01',
+      'SUB-20260610-006-01',
+      'SUB-20260610-009-01',
+      'SUB-20260610-010-01',
+      'SUB-20260610-005-01',
     ] as const;
 
-    for (const [subOrderNo, detailHeading] of pendingDetailCases) {
+    const extraHeadings = [
+      '权限申请判断',
+      '上架审批判断',
+      '下架审批判断',
+      '资源目录修改判断',
+      '目录编辑审批判断',
+      '负责人交接判断',
+      '血缘变更详情',
+      '本次提交变更数据',
+    ] as const;
+
+    for (const subOrderNo of pendingSubOrderNos) {
       await user.click(screen.getByRole('button', { name: `查看 ${subOrderNo}` }));
 
       const drawer = screen.getByLabelText('待审批详情');
-      expect(within(drawer).getByRole('heading', { name: detailHeading })).toBeInTheDocument();
       expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent(subOrderNo);
-      expect(within(drawer).queryByRole('table', { name: '申请信息表' })).not.toBeInTheDocument();
-      expect(within(drawer).queryByRole('table', { name: '申请资产明细表' })).not.toBeInTheDocument();
+      expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+      expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+      expect(within(drawer).getByRole('heading', { name: '审批节点' })).toBeInTheDocument();
+      expect(within(drawer).getByRole('heading', { name: '审批时间线' })).toBeInTheDocument();
+      expect(within(drawer).queryByLabelText('申请摘要')).not.toBeInTheDocument();
+      for (const heading of extraHeadings) {
+        expect(within(drawer).queryByRole('heading', { name: heading })).not.toBeInTheDocument();
+      }
 
       await user.click(within(drawer).getByRole('button', { name: '×' }));
     }
+  });
+
+  it('renders change-focused asset details for catalog and lineage approval types', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: /待我审批/ }));
+
+    await user.click(screen.getByRole('button', { name: '查看 SUB-20260610-006-01' }));
+    let drawer = screen.getByLabelText('待审批详情');
+    let assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByRole('columnheader', { name: '变更对象' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '对象类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '资产负责人' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '原目录' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '目标目录' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '变更说明' })).toBeInTheDocument();
+    expect(within(assetsTable).queryByRole('columnheader', { name: '来源类型' })).not.toBeInTheDocument();
+    expect(within(assetsTable).queryByRole('columnheader', { name: '安全等级' })).not.toBeInTheDocument();
+    expect(within(assetsTable).queryByRole('columnheader', { name: '权限类型' })).not.toBeInTheDocument();
+    const catalogAssetButton = within(assetsTable).getByRole('button', { name: '查看资产 wlyd_mc_beijing.dim_product_info' });
+    expect(catalogAssetButton).toHaveTextContent('dim_product_info');
+    await user.click(within(drawer).getByRole('button', { name: '×' }));
+
+    await user.click(screen.getByRole('button', { name: '查看 SUB-20260610-009-01' }));
+    drawer = screen.getByLabelText('待审批详情');
+    assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByRole('columnheader', { name: '编辑动作' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '原目录结构' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '新目录结构' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '影响资源' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '目录负责人' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '说明' })).toBeInTheDocument();
+    expect(within(assetsTable).getByText('交易域/营销活动')).toBeInTheDocument();
+    await user.click(within(drawer).getByRole('button', { name: '×' }));
+
+    await user.click(screen.getByRole('button', { name: '查看 SUB-20260610-005-01' }));
+    drawer = screen.getByLabelText('待审批详情');
+    assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByRole('columnheader', { name: '变更类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '方向' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '源端' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '目标端' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '字段映射' })).toBeInTheDocument();
+    expect(within(assetsTable).getByRole('columnheader', { name: '变更原因' })).toBeInTheDocument();
+    expect(within(assetsTable).getByText('pay_amount → gmv_amount')).toBeInTheDocument();
+    expect(within(assetsTable).getByText('dwd_order_detail')).toBeInTheDocument();
+    expect(within(assetsTable).getByText('rpt_gmv_daily')).toBeInTheDocument();
+    await user.click(within(drawer).getByRole('button', { name: '×' }));
+
+    await user.click(screen.getByRole('button', { name: '查看 SUB-20260610-006-01' }));
+    drawer = screen.getByLabelText('待审批详情');
+    assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    await user.click(within(assetsTable).getByRole('button', { name: '查看资产 wlyd_mc_beijing.dim_product_info' }));
+    expect(window.location.hash).toBe('#detail?domain=asset&id=resource-table-dim-product-info');
+  });
+
+  it('reuses the change-focused lineage table in submitted work-order detail', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: '我提交的申请' }));
+    await user.type(screen.getByPlaceholderText('搜索批次号、子单号、资产名...'), 'SUB-20260610-005-01');
+    await user.click(screen.getByRole('button', { name: /BATCH-20260610-血缘修正-approving/ }));
+    await user.click(screen.getByRole('button', { name: 'SUB-20260610-005-01' }));
+
+    const drawer = screen.getByLabelText('工单详情');
+    const assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByRole('columnheader', { name: '变更类型' })).toBeInTheDocument();
+    expect(within(assetsTable).getByText('pay_amount → gmv_amount')).toBeInTheDocument();
+    expect(within(assetsTable).getByText('补齐 GMV 统计字段映射')).toBeInTheDocument();
   });
 
   it('requires rejection comments and removes rejected pending tasks from the compact list', async () => {
@@ -321,20 +457,20 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     await user.click(screen.getByRole('button', { name: `查看 ${approval.approvalNo}` }));
 
     const drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).queryByRole('table', { name: '申请信息表' })).not.toBeInTheDocument();
-    expect(within(drawer).getByRole('heading', { name: '血缘变更详情' })).toBeInTheDocument();
-    expect(within(drawer).getByLabelText('申请摘要')).toHaveTextContent('补齐订单链路来源');
-    expect(within(drawer).getByText('本次提交变更数据')).toBeInTheDocument();
-    expect(within(drawer).getByText('手工新增')).toBeInTheDocument();
-    expect(within(drawer).getByText('增量修正')).toBeInTheDocument();
-    expect(within(drawer).getAllByText('kafka_order_topic → dwd_order_detail').length).toBeGreaterThan(0);
-    expect(within(drawer).getByText('当前节点字段：order_id')).toBeInTheDocument();
-    expect(within(drawer).getByText('目标节点参数：order_id')).toBeInTheDocument();
-    expect(within(drawer).queryByRole('table', { name: '申请资产明细表' })).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+    expect(within(drawer).queryByLabelText('申请摘要')).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '血缘变更详情' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '本次提交变更数据' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('手工新增')).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('增量修正')).not.toBeInTheDocument();
+    const assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getAllByText('kafka_order_topic').length).toBeGreaterThan(0);
+    expect(within(assetsTable).getAllByText('dwd_order_detail').length).toBeGreaterThan(0);
+    expect(within(assetsTable).getByText('order_id → order_id')).toBeInTheDocument();
     expect(within(drawer).queryByText('示例')).not.toBeInTheDocument();
   });
 
-  it('renders static lineage pending tasks with the same judgment-page structure', async () => {
+  it('renders static lineage pending tasks without judgment-page blocks', async () => {
     const user = userEvent.setup();
     render(<ApprovalIntegrationPage />);
 
@@ -342,15 +478,15 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     await user.click(screen.getByRole('button', { name: '查看 SUB-20260610-005-01' }));
 
     const drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).queryByRole('table', { name: '申请信息表' })).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
     expect(within(drawer).getByLabelText('审批元信息')).toHaveTextContent('血缘修正');
-    expect(within(drawer).getByLabelText('申请摘要')).toHaveTextContent('补齐订单明细到 GMV 日报的字段级血缘映射。');
-    expect(within(drawer).getByRole('heading', { name: '血缘变更详情' })).toBeInTheDocument();
-    expect(within(drawer).getByText('本次提交变更数据')).toBeInTheDocument();
-    expect(within(drawer).getByText('dwd_order_detail → rpt_gmv_daily')).toBeInTheDocument();
-    expect(within(drawer).getByText('当前节点报表口径：gmv_amount')).toBeInTheDocument();
-    expect(within(drawer).getByText('目标节点字段：pay_amount')).toBeInTheDocument();
-    expect(within(drawer).queryByText('权限类型')).not.toBeInTheDocument();
+    expect(within(drawer).queryByLabelText('申请摘要')).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '血缘变更详情' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '本次提交变更数据' })).not.toBeInTheDocument();
+    const assetsTable = within(drawer).getByRole('table', { name: '申请资产明细表' });
+    expect(within(assetsTable).getByText('dwd_order_detail')).toBeInTheDocument();
+    expect(within(assetsTable).getByText('rpt_gmv_daily')).toBeInTheDocument();
+    expect(within(assetsTable).getByText('pay_amount → gmv_amount')).toBeInTheDocument();
   });
 });
 
@@ -373,6 +509,13 @@ const basePendingTask: PendingTask = {
   instanceCode: 'INS-CUSTOM',
   createdAt: '2026-06-13 20:00:00',
   ticketType: '权限申请',
+  approvers: [
+    { nodeId: 'custom-node', nodeName: '测试节点', mode: 'single', approvers: [{ name: '测试审批人', openId: 'ou_test_approver' }] },
+  ],
+  timeline: [
+    { action: '提交权限申请', operator: '测试申请人', time: '2026-06-13 20:00:00', status: 'system', comment: '测试原因' },
+    { action: '测试节点', operator: '测试审批人', time: '2026-06-13 20:00:00', status: 'pending', comment: '等待当前审批节点处理' },
+  ],
 };
 
 describe('PendingPanel typed approval detail templates', () => {
@@ -382,7 +525,7 @@ describe('PendingPanel typed approval detail templates', () => {
     return user;
   }
 
-  it('renders listing, delisting, catalog, and owner handover details without generic tables', async () => {
+  it('renders listing, delisting, catalog, and owner handover details without extra judgment blocks', async () => {
     const tasks: PendingTask[] = [
       { ...basePendingTask, id: 'listing', subOrderNo: 'SUB-LISTING', ticketType: '上架审批', assets: ['rpt_finance_monthly'], reason: '口径已补齐，申请上架。' },
       { ...basePendingTask, id: 'delisting', subOrderNo: 'SUB-DELISTING', ticketType: '下架审批', permissionType: '下架', assets: ['dwd_trade_order'], securityLevel: 'S4', reason: '该表已下线，需从正式目录移除并归档。' },
@@ -394,32 +537,36 @@ describe('PendingPanel typed approval detail templates', () => {
 
     await user.click(screen.getByRole('button', { name: '查看 SUB-LISTING' }));
     let drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).getByRole('heading', { name: '上架审批判断' })).toBeInTheDocument();
-    expect(within(drawer).getByText('元数据完整性')).toBeInTheDocument();
-    expect(within(drawer).queryByRole('table')).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '上架审批判断' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('元数据完整性')).not.toBeInTheDocument();
     await user.click(within(drawer).getByRole('button', { name: '×' }));
 
     await user.click(screen.getByRole('button', { name: '查看 SUB-DELISTING' }));
     drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).getByRole('heading', { name: '下架审批判断' })).toBeInTheDocument();
-    expect(within(drawer).getByText('影响范围')).toBeInTheDocument();
-    expect(within(drawer).getByText('下游依赖')).toBeInTheDocument();
-    expect(within(drawer).queryByText('权限类型')).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '下架审批判断' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('影响范围')).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('下游依赖')).not.toBeInTheDocument();
     await user.click(within(drawer).getByRole('button', { name: '×' }));
 
     await user.click(screen.getByRole('button', { name: '查看 SUB-CATALOG' }));
     drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).getByRole('heading', { name: '资源目录修改判断' })).toBeInTheDocument();
-    expect(within(drawer).getByText('原目录')).toBeInTheDocument();
-    expect(within(drawer).getByText('目标目录')).toBeInTheDocument();
-    expect(within(drawer).queryByText('权限类型')).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '资源目录修改判断' })).not.toBeInTheDocument();
+    expect(within(drawer).getAllByText('原目录').length).toBeGreaterThan(0);
+    expect(within(drawer).getAllByText('目标目录').length).toBeGreaterThan(0);
     await user.click(within(drawer).getByRole('button', { name: '×' }));
 
     await user.click(screen.getByRole('button', { name: '查看 SUB-HANDOVER' }));
     drawer = screen.getByLabelText('待审批详情');
-    expect(within(drawer).getByRole('heading', { name: '负责人交接判断' })).toBeInTheDocument();
-    expect(within(drawer).getByText('原负责人')).toBeInTheDocument();
-    expect(within(drawer).getByText('新负责人')).toBeInTheDocument();
-    expect(within(drawer).queryByRole('table')).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请信息表' })).toBeInTheDocument();
+    expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+    expect(within(drawer).queryByRole('heading', { name: '负责人交接判断' })).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('原负责人')).not.toBeInTheDocument();
+    expect(within(drawer).queryByText('新负责人')).not.toBeInTheDocument();
   });
 });
