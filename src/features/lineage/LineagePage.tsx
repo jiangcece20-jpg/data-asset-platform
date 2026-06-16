@@ -1687,10 +1687,40 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     return `${change.action}:${change.sourceId}>${change.targetId}`;
   }
 
+  function cascadeFieldDeletePrefix(parentRelationChangeId: string) {
+    return `cascade-field-delete:${parentRelationChangeId}:`;
+  }
+
+  function isCascadeFieldDeleteForRelation(item: LineageChangeSetItem, parentRelationChangeId: string) {
+    return item.kind === 'field' && item.id.startsWith(cascadeFieldDeletePrefix(parentRelationChangeId));
+  }
+
+  function fieldDeleteDraftFromEdge(
+    edge: FieldEdge,
+    direction: 'upstream' | 'downstream',
+    parentRelationChangeId: string,
+  ): LineageFieldMappingChange {
+    const sourceNode = effectiveNodes[edge.from];
+    const targetNode = effectiveNodes[edge.to];
+    return {
+      id: `${cascadeFieldDeletePrefix(parentRelationChangeId)}${edge.from}-${edge.fromField}-${edge.to}-${edge.toField}`,
+      kind: 'field',
+      action: 'delete',
+      direction,
+      sourceId: edge.from,
+      sourceName: sourceNode?.name ?? edge.from,
+      sourceField: edge.fromField,
+      targetId: edge.to,
+      targetName: targetNode?.name ?? edge.to,
+      targetField: edge.toField,
+      reason: '表级血缘排除联动删除字段映射',
+    };
+  }
+
   function removeDraftByRelation(change: LineageRelationChange) {
     setDraftChanges(prev => prev.filter(item => {
       if (item.id === change.id) return false;
-      if (item.kind === 'field' && item.action === change.action && item.sourceId === change.sourceId && item.targetId === change.targetId) return false;
+      if (isCascadeFieldDeleteForRelation(item, change.id)) return false;
       return true;
     }));
   }
@@ -1711,9 +1741,19 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       targetName: targetNode.name,
       reason: '人工删除关系',
     };
+    const generatedFieldChanges = effectiveFieldEdges
+      .filter(edge => edge.from === sourceId && edge.to === targetId)
+      .map(edge => fieldDeleteDraftFromEdge(edge, direction, relationChange.id));
+
     setDraftChanges(prev => {
       if (prev.some(item => item.kind === 'relation' && pendingKey(item) === pendingKey(relationChange))) return prev;
-      return [...prev, relationChange];
+      const existingFieldKeys = new Set(
+        prev
+          .filter((item): item is LineageFieldMappingChange => item.kind === 'field')
+          .map(item => fieldChangeKey(item)),
+      );
+      const dedupedFieldChanges = generatedFieldChanges.filter(change => !existingFieldKeys.has(fieldChangeKey(change)));
+      return [...prev, relationChange, ...dedupedFieldChanges];
     });
     setLedgerStatusFilter('all');
   }
