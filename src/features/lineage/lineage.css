@@ -919,6 +919,17 @@
   padding: 14px 18px;
 }
 
+.lineage-editor-cascade-notice {
+  margin: 0 18px 12px;
+  border: 1px solid #91caff;
+  background: #e6f4ff;
+  color: #0958d9;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ─── Table list ──────────────────────────────── */
 .lineage-editor-table {
   width: 100%;

@@ -1147,6 +1147,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<'table' | 'field'>('table');
   const [draftChanges, setDraftChanges] = useState<LineageChangeSetItem[]>([]);
+  const [cascadeExcludeNotice, setCascadeExcludeNotice] = useState<{ parentRelationChangeId: string; fieldCount: number } | null>(null);
   const [ledgerSearch, setLedgerSearch] = useState('');
   const [ledgerDirectionFilter, setLedgerDirectionFilter] = useState<LineageLedgerDirectionFilter>('all');
   const [ledgerOriginFilter, setLedgerOriginFilter] = useState<LineageLedgerOriginFilter>('all');
@@ -1723,6 +1724,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       if (isCascadeFieldDeleteForRelation(item, change.id)) return false;
       return true;
     }));
+    setCascadeExcludeNotice(prev => prev?.parentRelationChangeId === change.id ? null : prev);
   }
 
   function markRelationDelete(sourceId: string, targetId: string, direction: 'upstream' | 'downstream') {
@@ -1753,6 +1755,9 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
           .map(item => fieldChangeKey(item)),
       );
       const dedupedFieldChanges = generatedFieldChanges.filter(change => !existingFieldKeys.has(fieldChangeKey(change)));
+      setCascadeExcludeNotice(dedupedFieldChanges.length > 0
+        ? { parentRelationChangeId: relationChange.id, fieldCount: dedupedFieldChanges.length }
+        : null);
       return [...prev, relationChange, ...dedupedFieldChanges];
     });
     setLedgerStatusFilter('all');
@@ -2026,6 +2031,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
         changes: draftChanges,
       });
       setDraftChanges([]);
+      setCascadeExcludeNotice(null);
       setLedgerStatusFilter('effective');
       setSubmitApprovalOpen(false);
       setEditorOpen(true);
@@ -2153,6 +2159,11 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       draftChanges,
     }), ledgerFilters);
 
+    function closeEditorDrawer() {
+      setEditorOpen(false);
+      setCascadeExcludeNotice(null);
+    }
+
     return (
       <div className="lineage-editor-drawer open" aria-label="血缘关系管理">
         <div className="lineage-editor-drawer__inner">
@@ -2161,7 +2172,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <h2>血缘关系管理 — {subjectNode.display}</h2>
               <p>{subjectNode.name}</p>
             </div>
-            <button type="button" onClick={() => setEditorOpen(false)}>×</button>
+            <button type="button" onClick={closeEditorDrawer}>×</button>
           </header>
           <div className="lineage-editor-drawer__body">
             {activeApproval ? (
@@ -2269,6 +2280,11 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               </table>
             )}
           </div>
+          {cascadeExcludeNotice ? (
+            <div className="lineage-editor-cascade-notice" role="status">
+              已联动排除 {cascadeExcludeNotice.fieldCount} 条字段级血缘，将随本次审批一起提交。
+            </div>
+          ) : null}
           <footer className="lineage-editor-drawer__footer">
             <div className="lineage-editor-drawer__footer-left">
               <Button onClick={openAddDialog} disabled={editorBlocked}>+ 添加血缘关系</Button>

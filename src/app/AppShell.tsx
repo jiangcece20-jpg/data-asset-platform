@@ -7,6 +7,8 @@ type AppShellProps = {
 };
 
 export function AppShell({ activeRoute, children }: AppShellProps) {
+  const isFlushPage = activeRoute === 'my' || activeRoute === 'permissions';
+
   return (
     <div className="app-shell">
       <header className="app-shell__header">
@@ -25,7 +27,7 @@ export function AppShell({ activeRoute, children }: AppShellProps) {
         </nav>
         <div className="app-shell__user">管理员</div>
       </header>
-      <main className="app-shell__main">{children}</main>
+      <main className={isFlushPage ? 'app-shell__main app-shell__main--flush' : 'app-shell__main'}>{children}</main>
     </div>
   );
 }

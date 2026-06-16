@@ -1,22 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
-import { SubmittedPanel } from '../approval-integration/components/SubmittedPanel';
-import { PendingPanel, ApprovalActionModal } from '../approval-integration/components/PendingPanel';
-import type { ActionDialog, PendingTask } from '../approval-integration/components/PendingPanel';
-import { approvalScenarioSummaries, initialBatches, initialPendingTasks } from '../approval-integration/approvalData';
-import type { ApprovalInstance } from '../approval-integration/approvalData';
+import { approvalScenarioSummaries } from '../approval-integration/approvalData';
 import {
-  approveLineageApproval,
-  lineageApprovalsToBatches,
   lineageApprovalsToMyApplyItems,
-  lineageApprovalsToPendingTasks,
-  rejectLineageApproval,
   useLineageApprovals,
 } from '../lineage/lineageApprovalStore';
 import './my-page.css';
 
-type MySection = 'favorites' | 'applies' | 'submitted' | 'pending' | 'permissions' | 'owned' | 'cart';
+type MySection = 'favorites' | 'applies' | 'permissions' | 'owned' | 'cart';
 type ApplyStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
 type AssetType = 'all' | 'table' | 'api' | 'report' | 'metric' | 'label' | 'catalog';
 type SourcePlatform = 'all' | 'warehouse_engine' | 'biz_database' | 'report_system' | 'api_service' | 'metric_platform' | 'label_system' | 'message_stream';
@@ -102,8 +94,6 @@ type CartItem = {
 const navItems: Array<{ key: MySection; label: string; icon: string }> = [
   { key: 'favorites', label: '我收藏的', icon: '☆' },
   { key: 'applies', label: '我申请的', icon: '📋' },
-  { key: 'submitted', label: '我提交的申请', icon: '📝' },
-  { key: 'pending', label: '待我审批', icon: '🔔' },
   { key: 'permissions', label: '我有权限的', icon: '🔑' },
   { key: 'owned', label: '我负责的', icon: '👤' },
   { key: 'cart', label: '申请单', icon: '🛒' },
@@ -312,7 +302,7 @@ function AppliesPanel() {
       <section className="my-page__panel">
         <button type="button" className="my-page__back-btn" onClick={() => setDetailId(null)}>← 返回列表</button>
         <span className="my-page__detail-title">{detailItem.ticketType}详情 — {detailItem.ticketId}</span>
-        <a className="my-page__detail-link" href="#my?section=submitted">查看工单视图</a>
+        <a className="my-page__detail-link" href="#permissions?section=submitted">查看工单视图</a>
         <div className="my-page__card">
           <div className="my-page__card-body">
             <div className="my-page__info-grid">
@@ -411,7 +401,7 @@ function AppliesPanel() {
         </table>
       </div>
       <div style={{ textAlign: 'center', padding: '12px 0' }}>
-        <a href="#my?section=submitted" style={{ color: 'var(--primary)', fontSize: '13px', textDecoration: 'none' }}>查看全部工单（含治理操作申请） →</a>
+        <a href="#permissions?section=submitted" style={{ color: 'var(--primary)', fontSize: '13px', textDecoration: 'none' }}>查看全部工单（含治理操作申请） →</a>
       </div>
     </section>
   );
@@ -775,14 +765,8 @@ function CartPanel({ cartCount }: { cartCount: number }) {
    Main Page
    ================================================================ */
 export function MyPage() {
-  const lineageApprovals = useLineageApprovals();
   const [activeSection, setActiveSection] = useState<MySection>(() => getMySectionFromHash());
   const [cartCount] = useState(initialCartItems.length);
-  const batches = useMemo(() => [...lineageApprovalsToBatches(), ...initialBatches], [lineageApprovals]);
-  const [tasks, setTasks] = useState(initialPendingTasks);
-  const pendingTasks = useMemo(() => [...lineageApprovalsToPendingTasks(), ...tasks], [lineageApprovals, tasks]);
-  const [actionDialog, setActionDialog] = useState<ActionDialog>(null);
-  const [toast, setToast] = useState('');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -793,31 +777,6 @@ export function MyPage() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [activeSection]);
 
-  function flash(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(''), 2500);
-  }
-
-  function handleSubmitApproval(target: PendingTask | PendingTask[], type: 'approve' | 'reject', comment: string) {
-    if (type === 'reject' && !comment.trim()) {
-      flash('拒绝时必须填写审批意见');
-      return;
-    }
-    const targets = Array.isArray(target) ? target : [target];
-    const targetIds = new Set(targets.map(task => task.id));
-    targets.filter(task => task.ticketType === '血缘修正').forEach(task => {
-      if (type === 'approve') approveLineageApproval(task.id);
-      else rejectLineageApproval(task.id, comment);
-    });
-    setTasks(prev => prev.filter(item => !targetIds.has(item.id)));
-    setActionDialog(null);
-    flash(type === 'approve' ? '已审批通过，飞书同步中...' : '已审批拒绝，飞书同步中...');
-  }
-
-  function handleSubmittedView(_instance: ApprovalInstance) {
-    // Instance detail drawer — future: open a drawer/modal showing full batch instance detail
-  }
-
   return (
     <section className="my-page">
       <aside className="my-page__sidebar">
@@ -827,7 +786,6 @@ export function MyPage() {
             <button key={item.key} type="button" className={activeSection === item.key ? 'active' : ''} onClick={() => setActiveSection(item.key)}>
               <span className="my-page__sidebar-item-icon">{item.icon}</span>{item.label}
               {item.key === 'cart' && cartCount > 0 ? <b>{cartCount}</b> : null}
-              {item.key === 'pending' && pendingTasks.length > 0 ? <b>{pendingTasks.length}</b> : null}
             </button>
           ))}
         </nav>
@@ -839,32 +797,12 @@ export function MyPage() {
             <p>管理收藏、权限资产、负责资源，并从资产视角提交和查看权限申请。</p>
           </div>
         </header>
-        {toast ? <div className="my-page__toast" role="status">{toast}</div> : null}
         {activeSection === 'favorites' ? <FavoritesPanel /> : null}
         {activeSection === 'applies' ? <AppliesPanel /> : null}
-        {activeSection === 'submitted' ? (
-          <SubmittedPanel
-            batches={batches}
-            onView={handleSubmittedView}
-          />
-        ) : null}
-        {activeSection === 'pending' ? (
-          <PendingPanel
-            tasks={pendingTasks}
-            onOpenAction={setActionDialog}
-          />
-        ) : null}
         {activeSection === 'permissions' ? <PermissionsPanel /> : null}
         {activeSection === 'owned' ? <OwnedPanel /> : null}
         {activeSection === 'cart' ? <CartPanel cartCount={cartCount} /> : null}
       </main>
-      {actionDialog ? (
-        <ApprovalActionModal
-          action={actionDialog}
-          onClose={() => setActionDialog(null)}
-          onSubmit={handleSubmitApproval}
-        />
-      ) : null}
     </section>
   );
 }

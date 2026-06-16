@@ -14,4 +14,30 @@ describe('AppShell', () => {
     expect(screen.getByText('资产检索')).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('检索内容')).toBeInTheDocument();
   });
+
+  it('removes outer padding for embedded workspace pages', () => {
+    const { rerender } = render(
+      <AppShell activeRoute="my">
+        <div>我的内容</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole('main')).toHaveClass('app-shell__main--flush');
+
+    rerender(
+      <AppShell activeRoute="permissions">
+        <div>权限中心内容</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole('main')).toHaveClass('app-shell__main--flush');
+
+    rerender(
+      <AppShell activeRoute="search">
+        <div>检索内容</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole('main')).not.toHaveClass('app-shell__main--flush');
+  });
 });

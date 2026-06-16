@@ -128,6 +128,7 @@ describe('LineagePage lineage edit approval flow', () => {
 
     expect(within(orderRawRow).getByText('待提交')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '提交修正（3 项变更）' })).toBeEnabled();
+    expect(screen.getByText('已联动排除 2 条字段级血缘，将随本次审批一起提交。')).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
     await user.selectOptions(screen.getByLabelText('状态'), 'draft');
@@ -177,8 +178,10 @@ describe('LineagePage lineage edit approval flow', () => {
 
     await user.click(within(orderRawRow).getByRole('button', { name: '排除' }));
     expect(screen.getByRole('button', { name: '提交修正（4 项变更）' })).toBeEnabled();
+    expect(screen.getByText('已联动排除 2 条字段级血缘，将随本次审批一起提交。')).toBeInTheDocument();
     await user.click(within(orderRawRow).getByRole('button', { name: '撤销' }));
     expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
+    expect(screen.queryByText('已联动排除 2 条字段级血缘，将随本次审批一起提交。')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
     await user.selectOptions(screen.getByLabelText('状态'), 'draft');

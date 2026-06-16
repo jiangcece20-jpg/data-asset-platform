@@ -23,6 +23,8 @@ describe('MyPage approval entries', () => {
 
     expect(screen.getByRole('button', { name: /我收藏的/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /我申请的/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /我提交的申请/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /待我审批/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /我有权限的/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /我负责的/ })).toBeInTheDocument();
     expect(within(screen.getByRole('navigation', { name: '我的导航' })).getByRole('button', { name: /申请单/ })).toBeInTheDocument();
@@ -50,7 +52,24 @@ describe('MyPage approval entries', () => {
 
     expect(screen.getByText(/权限申请详情/)).toBeInTheDocument();
     expect(screen.getByText(/子单审批进度/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '查看工单视图' })).toHaveAttribute('href', '#my?section=submitted');
+    expect(screen.getByRole('link', { name: '查看工单视图' })).toHaveAttribute('href', '#permissions?section=submitted');
+  });
+
+  it('falls back to favorites when old approval sections are requested', () => {
+    window.location.hash = 'my?section=submitted';
+    const { unmount } = render(<MyPage />);
+
+    expect(screen.getByRole('heading', { name: '我的' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '我提交的申请' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /我收藏的/ })).toHaveClass('active');
+
+    unmount();
+
+    window.location.hash = 'my?section=pending';
+    render(<MyPage />);
+
+    expect(screen.queryByRole('heading', { name: '待我审批' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /我收藏的/ })).toHaveClass('active');
   });
 
   it('shows all approval ticket types and multiple application statuses', async () => {

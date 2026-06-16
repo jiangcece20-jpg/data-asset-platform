@@ -96,3 +96,7 @@ button {
   min-height: 0;
   padding: 24px;
 }
+
+.app-shell__main--flush {
+  padding: 0;
+}
