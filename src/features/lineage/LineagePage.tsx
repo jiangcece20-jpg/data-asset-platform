@@ -12,6 +12,20 @@ import {
   withdrawLineageApproval,
 } from './lineageApprovalStore';
 import type { LineageChangeSetItem, LineageFieldMappingChange, LineageRelationChange } from './lineageApprovalStore';
+import {
+  buildFieldLedgerRows,
+  buildRelationLedgerRows,
+  filterLedgerRows,
+} from './lineageLedger';
+import type {
+  AnyLedgerRow,
+  FieldLedgerRow,
+  LineageLedgerDirectionFilter,
+  LineageLedgerOriginFilter,
+  LineageLedgerStatus,
+  LineageLedgerStatusFilter,
+  RelationLedgerRow,
+} from './lineageLedger';
 import './lineage.css';
 
 /* ─── Types ───────────────────────────────────── */
@@ -1133,6 +1147,10 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorTab, setEditorTab] = useState<'table' | 'field'>('table');
   const [draftChanges, setDraftChanges] = useState<LineageChangeSetItem[]>([]);
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerDirectionFilter, setLedgerDirectionFilter] = useState<LineageLedgerDirectionFilter>('all');
+  const [ledgerOriginFilter, setLedgerOriginFilter] = useState<LineageLedgerOriginFilter>('all');
+  const [ledgerStatusFilter, setLedgerStatusFilter] = useState<LineageLedgerStatusFilter>('effective');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [addDirection, setAddDirection] = useState<'' | 'upstream' | 'downstream'>('');
   const [addTargetType, setAddTargetType] = useState<'' | LineageNodeType>('');
@@ -1159,33 +1177,10 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const draggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
-  // Effective nodes DB: if centerNodeId doesn't exist in NODES_DB,
-  // dynamically create a mock lineage graph for it
-  const effectiveNodes: Record<string, LineageNodeData> = useMemo(() => {
-    const applyApprovedChanges = (base: Record<string, LineageNodeData>) => {
-      const next: Record<string, LineageNodeData> = Object.fromEntries(
-        Object.entries(base).map(([id, node]) => [id, { ...node, upstream: [...node.upstream], downstream: [...node.downstream] }]),
-      );
-      approvals
-        .filter(approval => approval.status === 'approved')
-        .flatMap(approval => approval.changes)
-        .filter((change): change is LineageRelationChange => change.kind === 'relation')
-        .forEach(change => {
-          const source = next[change.sourceId];
-          const target = next[change.targetId];
-          if (!source || !target) return;
-          if (change.action === 'add') {
-            if (!source.downstream.includes(target.id)) source.downstream.push(target.id);
-            if (!target.upstream.includes(source.id)) target.upstream.push(source.id);
-          } else {
-            source.downstream = source.downstream.filter(id => id !== target.id);
-            target.upstream = target.upstream.filter(id => id !== source.id);
-          }
-        });
-      return next;
-    };
-
-    if (NODES_DB[centerNodeId]) return applyApprovedChanges(NODES_DB);
+  // Base nodes DB: if centerNodeId doesn't exist in NODES_DB,
+  // dynamically create a mock lineage graph for it.
+  const baseNodes: Record<string, LineageNodeData> = useMemo(() => {
+    if (NODES_DB[centerNodeId]) return NODES_DB;
 
     const srcId1 = `source_${centerNodeId}_1`;
     const srcId2 = `source_${centerNodeId}_2`;
@@ -1278,23 +1273,11 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       },
     };
 
-    return applyApprovedChanges({ ...NODES_DB, ...dynamicNodes });
-  }, [centerNodeId, approvals]);
+    return { ...NODES_DB, ...dynamicNodes };
+  }, [centerNodeId]);
 
-  // Effective field edges: use static FIELD_EDGES for known nodes, generate dynamic ones otherwise
-  const effectiveFieldEdges: FieldEdge[] = useMemo(() => {
-    const approvedFieldEdges = approvals
-      .filter(approval => approval.status === 'approved')
-      .flatMap(approval => approval.changes)
-      .filter((change): change is LineageFieldMappingChange => change.kind === 'field')
-      .map(change => ({
-        from: change.sourceId,
-        fromField: change.sourceField,
-        to: change.targetId,
-        toField: change.targetField,
-      }));
-
-    if (NODES_DB[centerNodeId]) return [...FIELD_EDGES, ...approvedFieldEdges];
+  const baseFieldEdges: FieldEdge[] = useMemo(() => {
+    if (NODES_DB[centerNodeId]) return FIELD_EDGES;
 
     const srcId1 = `source_${centerNodeId}_1`;
     const tgtId1 = `target_${centerNodeId}_1`;
@@ -1305,9 +1288,48 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       { from: srcId1, fromField: 'created_at', to: centerNodeId, toField: 'created_at' },
       { from: centerNodeId, fromField: 'id', to: tgtId1, toField: 'id' },
       { from: centerNodeId, fromField: 'name', to: tgtId1, toField: 'name' },
-      ...approvedFieldEdges,
     ];
-  }, [centerNodeId, approvals]);
+  }, [centerNodeId]);
+
+  const effectiveNodes: Record<string, LineageNodeData> = useMemo(() => {
+    const next: Record<string, LineageNodeData> = Object.fromEntries(
+      Object.entries(baseNodes).map(([id, node]) => [id, { ...node, upstream: [...node.upstream], downstream: [...node.downstream] }]),
+    );
+    approvals
+      .filter(approval => approval.objectId === centerNodeId && approval.status === 'approved')
+      .flatMap(approval => approval.changes)
+      .filter((change): change is LineageRelationChange => change.kind === 'relation')
+      .forEach(change => {
+        const source = next[change.sourceId];
+        const target = next[change.targetId];
+        if (!source || !target) return;
+        if (change.action === 'delete') {
+          source.downstream = source.downstream.filter(id => id !== target.id);
+          target.upstream = target.upstream.filter(id => id !== source.id);
+        } else {
+          if (!source.downstream.includes(target.id)) source.downstream.push(target.id);
+          if (!target.upstream.includes(source.id)) target.upstream.push(source.id);
+        }
+      });
+    return next;
+  }, [approvals, baseNodes, centerNodeId]);
+
+  const effectiveFieldEdges: FieldEdge[] = useMemo(() => {
+    const edgeMap = new Map(baseFieldEdges.map(edge => [`${edge.from}.${edge.fromField}>${edge.to}.${edge.toField}`, edge]));
+    approvals
+      .filter(approval => approval.objectId === centerNodeId && approval.status === 'approved')
+      .flatMap(approval => approval.changes)
+      .filter((change): change is LineageFieldMappingChange => change.kind === 'field')
+      .forEach(change => {
+        const key = `${change.sourceId}.${change.sourceField}>${change.targetId}.${change.targetField}`;
+        if (change.action === 'delete') {
+          edgeMap.delete(key);
+        } else {
+          edgeMap.set(key, { from: change.sourceId, fromField: change.sourceField, to: change.targetId, toField: change.targetField });
+        }
+      });
+    return [...edgeMap.values()];
+  }, [approvals, baseFieldEdges, centerNodeId]);
 
   // Build visible nodes and edges
   const { nodes, edges } = useMemo(
@@ -1693,6 +1715,81 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       if (prev.some(item => item.kind === 'relation' && pendingKey(item) === pendingKey(relationChange))) return prev;
       return [...prev, relationChange];
     });
+    setLedgerStatusFilter('all');
+  }
+
+  function markRelationRestore(row: RelationLedgerRow) {
+    if (editorBlocked) return;
+    const sourceNode = effectiveNodes[row.sourceId] ?? baseNodes[row.sourceId];
+    const targetNode = effectiveNodes[row.targetId] ?? baseNodes[row.targetId];
+    const relationChange: LineageRelationChange = {
+      id: `restore-relation-${row.sourceId}-${row.targetId}-${Date.now()}`,
+      kind: 'relation',
+      action: 'restore',
+      direction: row.direction,
+      sourceId: row.sourceId,
+      sourceName: sourceNode?.name ?? row.sourceName,
+      targetId: row.targetId,
+      targetName: targetNode?.name ?? row.targetName,
+      reason: '人工恢复关系',
+    };
+    setDraftChanges(prev => {
+      if (prev.some(item => item.kind === 'relation' && pendingKey(item) === pendingKey(relationChange))) return prev;
+      return [...prev, relationChange];
+    });
+    setLedgerStatusFilter('all');
+  }
+
+  function fieldChangeKey(change: Pick<LineageFieldMappingChange, 'action' | 'sourceId' | 'sourceField' | 'targetId' | 'targetField'>) {
+    return `${change.action}:${change.sourceId}.${change.sourceField}>${change.targetId}.${change.targetField}`;
+  }
+
+  function markFieldDelete(row: FieldLedgerRow) {
+    if (editorBlocked) return;
+    const sourceNode = effectiveNodes[row.upResource];
+    const targetNode = effectiveNodes[row.downResource];
+    const fieldChange: LineageFieldMappingChange = {
+      id: `delete-field-${row.upResource}-${row.upField}-${row.downResource}-${row.downField}-${Date.now()}`,
+      kind: 'field',
+      action: 'delete',
+      direction: row.direction,
+      sourceId: row.upResource,
+      sourceName: sourceNode?.name ?? row.upResource,
+      sourceField: row.upField,
+      targetId: row.downResource,
+      targetName: targetNode?.name ?? row.downResource,
+      targetField: row.downField,
+      reason: '人工删除字段映射',
+    };
+    setDraftChanges(prev => {
+      if (prev.some(item => item.kind === 'field' && fieldChangeKey(item) === fieldChangeKey(fieldChange))) return prev;
+      return [...prev, fieldChange];
+    });
+    setLedgerStatusFilter('all');
+  }
+
+  function markFieldRestore(row: FieldLedgerRow) {
+    if (editorBlocked) return;
+    const sourceNode = effectiveNodes[row.sourceId] ?? baseNodes[row.sourceId];
+    const targetNode = effectiveNodes[row.targetId] ?? baseNodes[row.targetId];
+    const fieldChange: LineageFieldMappingChange = {
+      id: `restore-field-${row.sourceId}-${row.sourceField}-${row.targetId}-${row.targetField}-${Date.now()}`,
+      kind: 'field',
+      action: 'restore',
+      direction: row.direction,
+      sourceId: row.sourceId,
+      sourceName: sourceNode?.name ?? row.sourceName,
+      sourceField: row.sourceField,
+      targetId: row.targetId,
+      targetName: targetNode?.name ?? row.targetName,
+      targetField: row.targetField,
+      reason: '人工恢复字段映射',
+    };
+    setDraftChanges(prev => {
+      if (prev.some(item => item.kind === 'field' && fieldChangeKey(item) === fieldChangeKey(fieldChange))) return prev;
+      return [...prev, fieldChange];
+    });
+    setLedgerStatusFilter('all');
   }
 
   function toggleSelectedField(fieldName: string, checked: boolean) {
@@ -1889,6 +1986,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
         changes: draftChanges,
       });
       setDraftChanges([]);
+      setLedgerStatusFilter('effective');
       setSubmitApprovalOpen(false);
       setEditorOpen(true);
     } catch (error) {
@@ -1905,144 +2003,115 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     return `${parts.join('；')}。`;
   }
 
-  type RelationRow = {
-    key: string;
-    direction: 'upstream' | 'downstream';
-    sourceId: string;
-    targetId: string;
-    resourceName: string;
-    resourceDisplay: string;
-    resourceType: LineageNodeType;
-    origin: 'auto' | 'manual';
-    status: 'active' | 'pending-add' | 'pending-delete';
-    change?: LineageRelationChange;
-  };
-
-  type FieldRow = {
-    key: string;
-    direction: 'upstream' | 'downstream';
-    upResource: string;
-    upField: string;
-    downResource: string;
-    downField: string;
-    origin: 'auto' | 'manual';
-    status: 'active' | 'pending-add' | 'pending-delete';
-    change?: LineageFieldMappingChange;
-  };
-
-  function relationRows(): RelationRow[] {
-    // Build a set of "sourceId>targetId" pairs that were manually added via approved corrections
-    const manualRelationKeys = new Set<string>();
-    approvals
-      .filter(a => a.status === 'approved')
-      .flatMap(a => a.changes)
-      .filter((c): c is LineageRelationChange => c.kind === 'relation' && c.action === 'add')
-      .forEach(c => manualRelationKeys.add(`${c.sourceId}>${c.targetId}`));
-
-    const rows: RelationRow[] = [];
-    subjectNode.upstream.forEach(sourceId => {
-      const source = effectiveNodes[sourceId];
-      if (!source) return;
-      const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === sourceId && change.targetId === centerNodeId);
-      rows.push({
-        key: `up-${sourceId}`,
-        direction: 'upstream',
-        sourceId,
-        targetId: centerNodeId,
-        resourceName: source.name,
-        resourceDisplay: source.display,
-        resourceType: source.type,
-        origin: manualRelationKeys.has(`${sourceId}>${centerNodeId}`) ? 'manual' : 'auto',
-        status: deleteChange ? 'pending-delete' : 'active',
-        change: deleteChange,
-      });
-    });
-    subjectNode.downstream.forEach(targetId => {
-      const target = effectiveNodes[targetId];
-      if (!target) return;
-      const deleteChange = relationDraftChanges.find(change => change.action === 'delete' && change.sourceId === centerNodeId && change.targetId === targetId);
-      rows.push({
-        key: `down-${targetId}`,
-        direction: 'downstream',
-        sourceId: centerNodeId,
-        targetId,
-        resourceName: target.name,
-        resourceDisplay: target.display,
-        resourceType: target.type,
-        origin: manualRelationKeys.has(`${centerNodeId}>${targetId}`) ? 'manual' : 'auto',
-        status: deleteChange ? 'pending-delete' : 'active',
-        change: deleteChange,
-      });
-    });
-    relationDraftChanges.filter(change => change.action === 'add').forEach(change => {
-      const peerNode = change.direction === 'upstream' ? effectiveNodes[change.sourceId] : effectiveNodes[change.targetId];
-      rows.push({
-        key: change.id,
-        direction: change.direction,
-        sourceId: change.sourceId,
-        targetId: change.targetId,
-        resourceName: change.direction === 'upstream' ? change.sourceName : change.targetName,
-        resourceDisplay: peerNode?.display ?? '',
-        resourceType: peerNode?.type ?? 'table',
-        origin: 'manual',
-        status: 'pending-add',
-        change,
-      });
-    });
-    return rows;
+  function changeActionTag(change: LineageChangeSetItem) {
+    if (change.action === 'add') return <Tag tone="success">新增</Tag>;
+    if (change.action === 'restore') return <Tag tone="success">恢复</Tag>;
+    return <Tag tone="danger">删除</Tag>;
   }
 
-  function fieldRows(): FieldRow[] {
-    // Build a set of "from.fromField>to.toField" keys from approved manual corrections
-    const manualFieldKeys = new Set<string>();
-    approvals
-      .filter(a => a.status === 'approved')
-      .flatMap(a => a.changes)
-      .filter((c): c is LineageFieldMappingChange => c.kind === 'field' && c.action === 'add')
-      .forEach(c => manualFieldKeys.add(`${c.sourceId}.${c.sourceField}>${c.targetId}.${c.targetField}`));
-
-    const activeRows: FieldRow[] = effectiveFieldEdges
-      .filter(edge => edge.from === centerNodeId || edge.to === centerNodeId || subjectNode.upstream.includes(edge.from) || subjectNode.downstream.includes(edge.to))
-      .map(edge => ({
-        key: `${edge.from}-${edge.fromField}-${edge.to}-${edge.toField}`,
-        direction: (subjectNode.upstream.includes(edge.from) || edge.to === centerNodeId ? 'upstream' : 'downstream') as 'upstream' | 'downstream',
-        upResource: edge.from,
-        upField: edge.fromField,
-        downResource: edge.to,
-        downField: edge.toField,
-        origin: manualFieldKeys.has(`${edge.from}.${edge.fromField}>${edge.to}.${edge.toField}`) ? 'manual' as const : 'auto' as const,
-        status: 'active' as const,
-        change: undefined,
-      }));
-    const pendingRows: FieldRow[] = fieldDraftChanges.map(change => ({
-      key: change.id,
-      direction: change.direction,
-      upResource: change.sourceId,
-      upField: change.sourceField,
-      downResource: change.targetId,
-      downField: change.targetField,
-      origin: 'manual' as const,
-      status: change.action === 'add' ? 'pending-add' as const : 'pending-delete' as const,
-      change,
-    }));
-    return [...activeRows, ...pendingRows];
+  function renderStatusTag(status: LineageLedgerStatus) {
+    if (status === 'effective') return <Tag tone="success">有效</Tag>;
+    if (status === 'excluded') return <Tag tone="danger">已排除</Tag>;
+    if (status.startsWith('approving_')) return <Tag tone="warning">审批中</Tag>;
+    return <Tag tone="blue">待提交</Tag>;
   }
 
-  function renderStatusTag(status: 'active' | 'pending-add' | 'pending-delete') {
-    if (status === 'pending-add') return <Tag tone="success">待新增</Tag>;
-    if (status === 'pending-delete') return <Tag tone="danger">待删除</Tag>;
-    return <Tag tone="success">有效</Tag>;
+  function renderLedgerFilters() {
+    return (
+      <div className="lineage-ledger-filters">
+        <input
+          type="search"
+          value={ledgerSearch}
+          onChange={event => setLedgerSearch(event.target.value)}
+          placeholder="搜索资源名/字段名..."
+        />
+        <label>
+          <span>方向筛选</span>
+          <select value={ledgerDirectionFilter} onChange={event => setLedgerDirectionFilter(event.target.value as LineageLedgerDirectionFilter)}>
+            <option value="all">全部方向</option>
+            <option value="upstream">上游</option>
+            <option value="downstream">下游</option>
+          </select>
+        </label>
+        <label>
+          <span>来源筛选</span>
+          <select value={ledgerOriginFilter} onChange={event => setLedgerOriginFilter(event.target.value as LineageLedgerOriginFilter)}>
+            <option value="all">全部来源</option>
+            <option value="auto">自动采集</option>
+            <option value="manual">手动添加</option>
+          </select>
+        </label>
+        <label>
+          <span>状态</span>
+          <select value={ledgerStatusFilter} onChange={event => setLedgerStatusFilter(event.target.value as LineageLedgerStatusFilter)}>
+            <option value="effective">有效</option>
+            <option value="all">全部</option>
+            <option value="approving">审批中</option>
+            <option value="excluded">已排除</option>
+            <option value="draft">待提交</option>
+          </select>
+        </label>
+      </div>
+    );
   }
 
-  function renderRelationUndoButton(change?: LineageRelationChange | LineageFieldMappingChange) {
-    if (!change || change.kind !== 'relation') return null;
-    return <button type="button" className="lineage-tbl-link lineage-tbl-link--undo" onClick={() => removeDraftByRelation(change)}>撤销</button>;
+  function undoDraft(change?: LineageChangeSetItem) {
+    if (!change) return;
+    if (change.kind === 'relation') {
+      removeDraftByRelation(change);
+      return;
+    }
+    setDraftChanges(prev => prev.filter(c => c.id !== change.id));
+  }
+
+  function renderLedgerAction(row: AnyLedgerRow) {
+    if (row.status === 'effective') {
+      return row.kind === 'relation' ? (
+        <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>排除</button>
+      ) : (
+        <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markFieldDelete(row)}>删除</button>
+      );
+    }
+    if (row.status === 'excluded') {
+      return row.kind === 'relation' ? (
+        <button type="button" className="lineage-tbl-link lineage-tbl-link--restore" disabled={editorBlocked} onClick={() => markRelationRestore(row)}>恢复</button>
+      ) : (
+        <button type="button" className="lineage-tbl-link lineage-tbl-link--restore" disabled={editorBlocked} onClick={() => markFieldRestore(row)}>恢复</button>
+      );
+    }
+    if (row.status.startsWith('draft_')) {
+      return <button type="button" className="lineage-tbl-link lineage-tbl-link--undo" onClick={() => undoDraft(row.change)}>撤销</button>;
+    }
+    if (row.approval) {
+      return <button type="button" className="lineage-tbl-link" onClick={() => setApprovalDetailOpen(true)}>查看审批</button>;
+    }
+    return <span className="lineage-tbl-muted">审批中</span>;
   }
 
   function renderEditorDrawer() {
     if (!editorOpen) return null;
-    const tableRows = relationRows();
-    const fRows = fieldRows();
+    const ledgerFilters = {
+      search: ledgerSearch,
+      direction: ledgerDirectionFilter,
+      origin: ledgerOriginFilter,
+      status: ledgerStatusFilter,
+    };
+    const tableRows = filterLedgerRows(buildRelationLedgerRows({
+      centerNodeId,
+      baseNodes,
+      effectiveNodes,
+      approvals,
+      draftChanges,
+    }), ledgerFilters);
+    const fRows = filterLedgerRows(buildFieldLedgerRows({
+      centerNodeId,
+      baseNodes,
+      effectiveNodes,
+      baseFieldEdges,
+      effectiveFieldEdges,
+      approvals,
+      draftChanges,
+    }), ledgerFilters);
 
     return (
       <div className="lineage-editor-drawer open" aria-label="血缘关系管理">
@@ -2073,6 +2142,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <button type="button" role="tab" aria-selected={editorTab === 'table'} className={editorTab === 'table' ? 'active' : ''} onClick={() => setEditorTab('table')}>表级血缘</button>
               <button type="button" role="tab" aria-selected={editorTab === 'field'} className={editorTab === 'field' ? 'active' : ''} onClick={() => setEditorTab('field')}>字段级血缘</button>
             </div>
+            {renderLedgerFilters()}
 
             {editorTab === 'table' ? (
               <table className="lineage-editor-table">
@@ -2097,8 +2167,8 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                         </span>
                       </td>
                       <td className="col-name">
-                        <strong className="lineage-res-name">{row.resourceName}</strong>
-                        {row.resourceDisplay && <span className="lineage-res-display">{row.resourceDisplay}</span>}
+                        <strong className={`lineage-res-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.resourceName}</strong>
+                        {row.resourceDisplay && <span className={`lineage-res-display${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.resourceDisplay}</span>}
                       </td>
                       <td className="col-type">
                         <span className="lineage-type-badge">{typeFullLabel(row.resourceType)}</span>
@@ -2109,15 +2179,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                         </span>
                       </td>
                       <td className="col-status">{renderStatusTag(row.status)}</td>
-                      <td className="col-actions">
-                        {row.status === 'active' ? (
-                          <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>排除</button>
-                        ) : null}
-                        {row.status === 'pending-add' ? (
-                          <button type="button" className="lineage-tbl-link lineage-tbl-link--danger" disabled={editorBlocked} onClick={() => markRelationDelete(row.sourceId, row.targetId, row.direction)}>删除</button>
-                        ) : null}
-                        {renderRelationUndoButton(row.change)}
-                      </td>
+                      <td className="col-actions">{renderLedgerAction(row)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -2146,13 +2208,13 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                         </span>
                       </td>
                       <td className="col-field-up">
-                        <span className="lineage-field-res">{row.upResource}</span>
-                        <strong className="lineage-field-name">.{row.upField}</strong>
+                        <span className={`lineage-field-res${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.upResource}</span>
+                        <strong className={`lineage-field-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>.{row.upField}</strong>
                       </td>
                       <td className="col-arrow"><span className="lineage-field-arrow">→</span></td>
                       <td className="col-field-down">
-                        <span className="lineage-field-res">{row.downResource}</span>
-                        <strong className="lineage-field-name">.{row.downField}</strong>
+                        <span className={`lineage-field-res${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.downResource}</span>
+                        <strong className={`lineage-field-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>.{row.downField}</strong>
                       </td>
                       <td className="col-origin">
                         <span className={`lineage-origin-tag lineage-origin-tag--${row.origin}`}>
@@ -2160,11 +2222,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                         </span>
                       </td>
                       <td className="col-status">{renderStatusTag(row.status)}</td>
-                      <td className="col-actions">
-                        {row.change && (
-                          <button type="button" className="lineage-tbl-link lineage-tbl-link--undo" onClick={() => row.change && setDraftChanges(prev => prev.filter(c => c.id !== row.change!.id))}>撤销</button>
-                        )}
-                      </td>
+                      <td className="col-actions">{renderLedgerAction(row)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -2305,7 +2363,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <strong>变更明细核验</strong>
               {draftChanges.map(change => (
                 <div key={change.id}>
-                  <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                  {changeActionTag(change)}
                   <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
                   <em>{change.reason || '未填写'}</em>
                 </div>
@@ -2354,7 +2412,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <strong>本次提交变更数据</strong>
               {previewChanges.map(change => (
                 <div key={change.id}>
-                  <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                  {changeActionTag(change)}
                   <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
                   <em>{change.reason}</em>
                 </div>
@@ -2396,7 +2454,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
               <div className="lineage-approval-detail-changes"><strong>变更明细</strong>
                 {activeApproval.changes.map(change => (
                   <div key={change.id} className="lineage-approval-detail-change">
-                    <Tag tone={change.action === 'add' ? 'success' : 'danger'}>{change.action === 'add' ? '新增' : '删除'}</Tag>
+                    {changeActionTag(change)}
                     <span>{change.kind === 'relation' ? `${change.sourceName} → ${change.targetName}` : `${change.sourceName}.${change.sourceField} → ${change.targetName}.${change.targetField}`}</span>
                     {change.reason ? <em>{change.reason}</em> : null}
                   </div>

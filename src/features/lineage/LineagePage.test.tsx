@@ -25,11 +25,11 @@ describe('LineagePage lineage edit approval flow', () => {
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
 
-    expect(screen.getByRole('heading', { name: '血缘关系管理' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /血缘关系管理/ })).toBeInTheDocument();
     expect(screen.getByText(/本次修正提交审批后生效/)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /表级血缘/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /字段级血缘/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '重置血缘' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '初始化血缘' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '提交修正（0 项变更）' })).toBeDisabled();
   });
 
@@ -38,7 +38,7 @@ describe('LineagePage lineage edit approval flow', () => {
     render(<LineagePage />);
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
-    await user.click(screen.getByRole('button', { name: '添加血缘关系' }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
 
     expect(screen.getByLabelText('方向')).toHaveValue('');
     expect(screen.getByLabelText('目标类型')).toHaveValue('');
@@ -61,7 +61,7 @@ describe('LineagePage lineage edit approval flow', () => {
     render(<LineagePage />);
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
-    await user.click(screen.getByRole('button', { name: '添加血缘关系' }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
     await user.selectOptions(screen.getByLabelText('方向'), 'upstream');
     await user.selectOptions(screen.getByLabelText('目标类型'), 'api');
     await user.selectOptions(screen.getByLabelText('目标资源'), 'kafka_order_topic');
@@ -74,7 +74,7 @@ describe('LineagePage lineage edit approval flow', () => {
     await user.type(screen.getByLabelText('单条修正原因'), '补齐消息队列来源');
     await user.click(screen.getByRole('button', { name: '确认添加' }));
 
-    expect(screen.getByText('待新增')).toBeInTheDocument();
+    expect(screen.getByText('待提交')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '提交修正（2 项变更）' })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: '提交修正（2 项变更）' }));
@@ -86,7 +86,89 @@ describe('LineagePage lineage edit approval flow', () => {
     await user.click(screen.getByRole('button', { name: '确认提交审批' }));
 
     expect(screen.getByText(/当前对象已有血缘修正审批中/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '添加血缘关系' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /添加血缘关系/ })).toBeDisabled();
+  });
+
+  it('marks an active field-level lineage row for deletion from the operation column', async () => {
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const fieldRow = within(fieldTable).getAllByRole('row').find(row =>
+      row.textContent?.includes('ods_order_raw') &&
+      row.textContent.includes('dwd_order_detail') &&
+      row.textContent.includes('.order_id')
+    ) as HTMLElement;
+    expect(fieldRow).toBeTruthy();
+    expect(within(fieldRow).getByText('有效')).toBeInTheDocument();
+
+    await user.click(within(fieldRow).getByRole('button', { name: '删除' }));
+
+    expect(within(fieldRow).getByText('待提交')).toBeInTheDocument();
+    expect(within(fieldRow).getByRole('button', { name: '撤销' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
+  });
+
+  it('defaults to effective lineage rows and restores an excluded table relation through a draft approval change', async () => {
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+
+    expect(screen.getByPlaceholderText('搜索资源名/字段名...')).toBeInTheDocument();
+    expect(screen.getByLabelText('状态')).toHaveValue('effective');
+
+    const initialTable = document.querySelector('.lineage-editor-table') as HTMLElement;
+    const skuRow = within(initialTable).getAllByRole('row').find(row =>
+      row.textContent?.includes('dim_sku_info')
+    ) as HTMLElement;
+    expect(skuRow).toBeTruthy();
+
+    await user.click(within(skuRow).getByRole('button', { name: '排除' }));
+    expect(within(skuRow).getByText('待提交')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '提交修正（1 项变更）' }));
+    await user.type(screen.getByLabelText('修正总原因'), '排除错误维表来源');
+    await user.click(screen.getByRole('button', { name: '确认提交审批' }));
+    await user.click(screen.getByRole('button', { name: '模拟审批通过' }));
+
+    const effectiveOnlyTable = document.querySelector('.lineage-editor-table') as HTMLElement;
+    expect(within(effectiveOnlyTable).queryByText('已排除')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('状态'), 'all');
+
+    const allStatusTable = document.querySelector('.lineage-editor-table') as HTMLElement;
+    const excludedRow = within(allStatusTable).getAllByRole('row').find(row =>
+      row.textContent?.includes('dim_sku_info') &&
+      row.textContent.includes('已排除')
+    ) as HTMLElement;
+    expect(excludedRow).toBeTruthy();
+    expect(excludedRow).toHaveClass('lineage-editor-tr--excluded');
+
+    await user.click(within(excludedRow).getByRole('button', { name: '恢复' }));
+
+    expect(within(excludedRow).getByText('待提交')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
+  });
+
+  it('filters field-level lineage by field name and keeps delete available from the operation column', async () => {
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+    await user.type(screen.getByPlaceholderText('搜索资源名/字段名...'), 'create_time');
+
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const rows = within(fieldTable).getAllByRole('row').filter(row => row.querySelector('td'));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent('create_time');
+
+    await user.click(within(rows[0]).getByRole('button', { name: '删除' }));
+
+    expect(within(rows[0]).getByText('待提交')).toBeInTheDocument();
   });
 
   it('uses a clearer carrier picker for metric or label to table-like mappings', async () => {
@@ -94,7 +176,7 @@ describe('LineagePage lineage edit approval flow', () => {
     render(<LineagePage />);
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
-    await user.click(screen.getByRole('button', { name: '添加血缘关系' }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
     await user.selectOptions(screen.getByLabelText('方向'), 'upstream');
     await user.selectOptions(screen.getByLabelText('目标类型'), 'metric');
     await user.selectOptions(screen.getByLabelText('目标资源'), 'metric_gmv_daily');
@@ -110,7 +192,7 @@ describe('LineagePage lineage edit approval flow', () => {
     render(<LineagePage />);
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
-    await user.click(screen.getByRole('button', { name: '重置血缘' }));
+    await user.click(screen.getByRole('button', { name: '初始化血缘' }));
 
     expect(screen.getByRole('dialog', { name: '初始化血缘审批申请' })).toBeInTheDocument();
     expect(screen.getAllByText(/全量重建/).length).toBeGreaterThan(0);
@@ -122,7 +204,7 @@ describe('LineagePage lineage edit approval flow', () => {
     await user.click(screen.getByRole('button', { name: '确认提交审批' }));
 
     expect(screen.getByText(/当前对象已有血缘修正审批中/)).toBeInTheDocument();
-    expect(screen.getByText(/初始化血缘/)).toBeInTheDocument();
+    expect(screen.getAllByText(/初始化血缘/).length).toBeGreaterThan(0);
   });
 
   it('applies approved change sets to the visible lineage graph', async () => {
@@ -130,7 +212,7 @@ describe('LineagePage lineage edit approval flow', () => {
     render(<LineagePage />);
 
     await user.click(screen.getByRole('button', { name: /修正血缘/ }));
-    await user.click(screen.getByRole('button', { name: '添加血缘关系' }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
     await user.selectOptions(screen.getByLabelText('方向'), 'upstream');
     await user.selectOptions(screen.getByLabelText('目标类型'), 'api');
     await user.selectOptions(screen.getByLabelText('目标资源'), 'kafka_order_topic');

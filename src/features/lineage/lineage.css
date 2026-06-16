@@ -955,6 +955,23 @@
   background: #fff2e8;
 }
 
+.lineage-editor-tr--excluded td {
+  background: #fafafa;
+  color: var(--text-tertiary);
+}
+
+.lineage-editor-tr--approving-add td,
+.lineage-editor-tr--approving-exclude td,
+.lineage-editor-tr--approving-restore td {
+  background: #fffbe6;
+}
+
+.lineage-editor-tr--draft-add td,
+.lineage-editor-tr--draft-exclude td,
+.lineage-editor-tr--draft-restore td {
+  background: #f0f7ff;
+}
+
 /* Col widths */
 .lineage-editor-table .col-dir   { width: 52px; }
 .lineage-editor-table .col-type  { width: 52px; }
@@ -1010,6 +1027,56 @@
   color: #1677ff;
 }
 
+.lineage-ledger-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, max-content);
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+
+.lineage-ledger-filters input,
+.lineage-ledger-filters select {
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-secondary);
+  font-size: 12px;
+  outline: none;
+}
+
+.lineage-ledger-filters input {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.lineage-ledger-filters select {
+  min-width: 92px;
+  padding: 0 26px 0 8px;
+}
+
+.lineage-ledger-filters input:focus,
+.lineage-ledger-filters select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.12);
+}
+
+.lineage-ledger-filters label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lineage-ledger-struck {
+  color: var(--text-tertiary) !important;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 /* Field cell */
 .lineage-field-res {
   color: var(--text-tertiary);
@@ -1033,9 +1100,12 @@
 }
 .lineage-tbl-link--danger  { color: #ff4d4f; }
 .lineage-tbl-link--danger:hover { color: #d32029; }
+.lineage-tbl-link--restore { color: #52c41a; }
+.lineage-tbl-link--restore:hover { color: #389e0d; }
 .lineage-tbl-link--undo    { color: var(--text-secondary); }
 .lineage-tbl-link--undo:hover { color: var(--text-primary); }
 .lineage-tbl-link:disabled { color: var(--text-tertiary); cursor: not-allowed; }
+.lineage-tbl-muted { color: var(--text-tertiary); }
 
 .lineage-editor-drawer__footer {
   border-top: 1px solid var(--border-color);

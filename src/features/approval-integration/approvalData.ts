@@ -91,6 +91,9 @@ export type ApprovalInstance = {
   feishuUrl: string;
   status: ApprovalStatus;
   effectStatus: EffectStatus;
+  applicant: string;
+  applicantDept: string;
+  applicantManager: string;
   assets: string[];
   securityLevel: SecurityLevel;
   permissionType: string;
@@ -102,6 +105,7 @@ export type ApprovalInstance = {
   matchedRoute: string;
   reason: string;
   ticketType?: string;
+  lineageApproval?: PendingTask['lineageApproval'];
   approvers: Array<{
     nodeId: string;
     nodeName: string;
@@ -127,6 +131,7 @@ export type PendingTask = {
   id: string;
   applicant: string;
   applicantDept: string;
+  applicantManager?: string;
   nodeName: string;
   waitingHours: number;
   assets: string[];
@@ -142,6 +147,15 @@ export type PendingTask = {
   instanceCode: string;
   createdAt: string;
   ticketType?: string;
+  approvers?: ApprovalInstance['approvers'];
+  timeline?: ApprovalInstance['timeline'];
+  // 申请表单字段
+  dataTable?: string;
+  usagePeriod?: string;
+  dataScope?: string;
+  permissionJudgment?: string;
+  transactionOrder?: string;
+  expireDate?: string;
   lineageApproval?: {
     objectId?: string;
     objectName?: string;
@@ -153,7 +167,7 @@ export type PendingTask = {
     changes: Array<{
       id: string;
       kind: 'relation' | 'field';
-      action: 'add' | 'delete';
+      action: 'add' | 'delete' | 'restore';
       direction: 'upstream' | 'downstream';
       sourceId: string;
       sourceName: string;
@@ -191,6 +205,11 @@ type ApprovalScenario = {
   createdAt: string;
   effectStatus: EffectStatus;
   timelineComment?: string;
+  dataTable?: string;
+  usagePeriod?: string;
+  dataScope?: string;
+  permissionJudgment?: string;
+  transactionOrder?: string;
   lineageApproval?: PendingTask['lineageApproval'];
 };
 
@@ -198,11 +217,37 @@ function createApprovalScenario(overrides: ApprovalScenario): ApprovalScenario {
   return overrides;
 }
 
+function applicantManagerName(applicant: string) {
+  const managerByApplicant: Record<string, string> = {
+    刘数据: '王经理',
+    陈运营: '钱经理',
+    赵分析: '周经理',
+    孙产品: '李经理',
+    何数仓: '吴经理',
+    林接口: '郑经理',
+    周报表: '赵经理',
+    钱运营: '孙经理',
+  };
+  return managerByApplicant[applicant] ?? `${applicant}上级`;
+}
+
+function createApprovers(scenario: ApprovalScenario): ApprovalInstance['approvers'] {
+  return [
+    {
+      nodeId: `node-${scenario.id}`,
+      nodeName: scenario.nodeName,
+      mode: 'single',
+      approvers: [{ name: scenario.nodeName, openId: `ou_${scenario.id}` }],
+    },
+  ];
+}
+
 function createPendingTask(scenario: ApprovalScenario): PendingTask {
   return {
     id: `task-${scenario.id}`,
     applicant: scenario.applicant,
     applicantDept: scenario.applicantDept,
+    applicantManager: applicantManagerName(scenario.applicant),
     nodeName: scenario.nodeName,
     waitingHours: scenario.waitingHours,
     assets: scenario.assets,
@@ -218,6 +263,14 @@ function createPendingTask(scenario: ApprovalScenario): PendingTask {
     instanceCode: scenario.instanceCode,
     createdAt: scenario.createdAt,
     ticketType: scenario.ticketType,
+    approvers: createApprovers(scenario),
+    timeline: createTimeline(scenario),
+    dataTable: scenario.dataTable,
+    usagePeriod: scenario.usagePeriod,
+    dataScope: scenario.dataScope,
+    permissionJudgment: scenario.permissionJudgment,
+    transactionOrder: scenario.transactionOrder,
+    expireDate: scenario.expireDate,
     lineageApproval: scenario.lineageApproval,
   };
 }
@@ -290,6 +343,9 @@ function createApprovalInstance(scenario: ApprovalScenario): ApprovalInstance {
     feishuUrl: `https://example.feishu.cn/approval/${scenario.instanceCode}`,
     status: scenario.status,
     effectStatus: scenario.effectStatus,
+    applicant: scenario.applicant,
+    applicantDept: scenario.applicantDept,
+    applicantManager: applicantManagerName(scenario.applicant),
     assets: scenario.assets,
     securityLevel: scenario.securityLevel,
     permissionType: scenario.permissionType,
@@ -301,14 +357,8 @@ function createApprovalInstance(scenario: ApprovalScenario): ApprovalInstance {
     matchedRoute: scenario.matchedRoute,
     reason: scenario.reason,
     ticketType: scenario.ticketType,
-    approvers: [
-      {
-        nodeId: `node-${scenario.id}`,
-        nodeName: scenario.nodeName,
-        mode: 'single',
-        approvers: [{ name: scenario.nodeName, openId: `ou_${scenario.id}` }],
-      },
-    ],
+    lineageApproval: scenario.lineageApproval,
+    approvers: createApprovers(scenario),
     timeline: createTimeline(scenario),
   };
 }
@@ -545,7 +595,7 @@ export const initialRoles: ApprovalRole[] = [
 ];
 
 const approvalScenarios: ApprovalScenario[] = [
-  createApprovalScenario({ id: 'permission-approving', ticketType: '权限申请', status: 'approving', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'CTO 审批', waitingHours: 26, assets: ['dwd_trade_order', 'dwd_trade_payment'], securityLevel: 'S4', permissionType: '只读', expireDate: '2026-12-31', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260609-001-01', instanceCode: 'PER-INS-00931', createdAt: '2026-06-09 14:26:00', effectStatus: 'not_effective' }),
+  createApprovalScenario({ id: 'permission-approving', ticketType: '权限申请', status: 'approving', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'CTO 审批', waitingHours: 26, assets: ['dwd_trade_order', 'dwd_trade_payment'], securityLevel: 'S4', permissionType: '只读', expireDate: '2026-12-31', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260609-001-01', instanceCode: 'PER-INS-00931', createdAt: '2026-06-09 14:26:00', effectStatus: 'not_effective', dataTable: 'dwd_trade_order（交易订单宽表）', usagePeriod: '3 个月', dataScope: '全部字段', permissionJudgment: '业务分析', transactionOrder: '2026Q1-0027' }),
   createApprovalScenario({ id: 'permission-approved', ticketType: '权限申请', status: 'approved', applicant: '陈运营', applicantDept: '运营增长部', nodeName: '资源负责人审批', waitingHours: 4, assets: ['ads_user_tag'], securityLevel: 'S3', permissionType: '只读', expireDate: '2026-09-30', directory: '用户域/画像/用户标签', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '用于活动用户标签圈选和投放复盘。', subOrderNo: 'SUB-20260610-004-01', instanceCode: 'PER-INS-00988', createdAt: '2026-06-10 09:40:00', effectStatus: 'effective' }),
   createApprovalScenario({ id: 'permission-rejected', ticketType: '权限申请', status: 'rejected', applicant: '赵分析', applicantDept: '财务管理部', nodeName: '数据安全审批', waitingHours: 12, assets: ['rpt_revenue_detail'], securityLevel: 'S4', permissionType: '导出', expireDate: '2026-08-31', directory: '财务域/报表/月报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '导出营收明细用于外部对账，需审批确认范围。', subOrderNo: 'SUB-20260608-011-01', instanceCode: 'PER-INS-00941', createdAt: '2026-06-08 10:12:00', effectStatus: 'not_effective', timelineComment: '导出范围过宽，需缩小字段范围后重新申请。' }),
   createApprovalScenario({ id: 'permission-cancelled', ticketType: '权限申请', status: 'cancelled', applicant: '孙产品', applicantDept: '运营增长部', nodeName: '申请人', waitingHours: 1, assets: ['api_user_profile_query'], securityLevel: 'S2', permissionType: '读写', expireDate: '2026-07-31', directory: '用户域/API/画像服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '原计划联调用接口，后调整为离线取数。', subOrderNo: 'SUB-20260607-014-01', instanceCode: 'PER-INS-00952', createdAt: '2026-06-07 16:20:00', effectStatus: 'not_effective' }),

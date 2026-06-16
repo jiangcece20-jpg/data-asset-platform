@@ -9,7 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "pages:dev": "npm run build && wrangler pages dev dist",
     "pages:deploy": "npm run build && wrangler pages deploy dist --project-name data-asset-platform",
-    "test": "vitest run",
+    "test": "vitest run --exclude='.worktrees/**'",
     "test:watch": "vitest"
   },
   "dependencies": {
