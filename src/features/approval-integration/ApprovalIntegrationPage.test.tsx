@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ApprovalIntegrationPage } from './ApprovalIntegrationPage';
+import { ApprovalIntegrationPage, matchesCatalogConditionValue } from './ApprovalIntegrationPage';
 import { PendingPanel } from './components/PendingPanel';
 import type { PendingTask } from './approvalData';
 import { resetLineageApprovalStore, submitLineageApproval } from '../lineage/lineageApprovalStore';
@@ -122,7 +122,13 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     await user.type(screen.getByLabelText('规则名称'), '目录来源组合路由');
     await user.click(screen.getByRole('button', { name: '添加条件' }));
     await user.selectOptions(screen.getByLabelText('条件字段'), 'catalog_path');
-    await user.click(within(screen.getByLabelText('目录多选')).getByLabelText(/交易域交易域/));
+    const catalogPicker = screen.getByLabelText('目录多选');
+    await user.click(within(catalogPicker).getByLabelText('交易域'));
+    expect(within(catalogPicker).getByLabelText('交易域')).toBeChecked();
+    expect(within(catalogPicker).getByLabelText('交易域/订单')).toBeChecked();
+    expect(within(catalogPicker).getByLabelText('交易域/支付')).toBeChecked();
+    expect(within(catalogPicker).getByLabelText('交易域/API')).toBeChecked();
+    expect(within(catalogPicker).getAllByText('随父目录命中').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: '添加条件' }));
     await user.selectOptions(screen.getAllByLabelText('条件字段')[1], 'source_system');
     await user.click(screen.getByLabelText('MaxCompute'));
@@ -131,6 +137,11 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(screen.getByText('目录来源组合路由')).toBeInTheDocument();
     expect(screen.getByText(/^目录 属于 交易域（含子目录）$/)).toBeInTheDocument();
     expect(screen.getByText(/来源系统 属于 MaxCompute/)).toBeInTheDocument();
+  });
+
+  it('matches future catalog descendants for include-descendants route conditions', () => {
+    expect(matchesCatalogConditionValue({ value: ['交易域'], matchMode: 'include_descendants' }, '交易域/未来新增目录')).toBe(true);
+    expect(matchesCatalogConditionValue({ value: ['交易域/订单'], matchMode: 'include_descendants' }, '用户域/订单')).toBe(false);
   });
 
   it('shows submitted batches and opens instance drawer', async () => {

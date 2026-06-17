@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach } from 'vitest';
-import { PermissionManagementPage } from './PermissionManagementPage';
+import { PermissionManagementPage, matchesCatalogRouteCondition } from './PermissionManagementPage';
 
 describe('PermissionManagementPage', () => {
   beforeEach(() => {
@@ -235,6 +235,40 @@ describe('PermissionManagementPage', () => {
     expect(screen.queryByRole('heading', { name: '新建审批路由' })).not.toBeInTheDocument();
     expect(screen.getByText('权限申请：S5')).toBeInTheDocument();
     expect(screen.getByText(/安全等级 in S5/)).toBeInTheDocument();
+  });
+
+  it('selects catalog parent nodes as descendant-aware route conditions', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+
+    await user.click(screen.getByRole('button', { name: /审批管理/ }));
+    await user.click(screen.getByRole('tab', { name: '审批路由' }));
+    await user.click(screen.getByRole('button', { name: '+ 新建路由规则' }));
+
+    const drawer = await screen.findByRole('heading', { name: '新建审批路由' }).then(el => el.closest('aside')!);
+    await user.type(within(drawer).getByRole('textbox', { name: /规则名称/ }), '权限申请：用户域');
+    await user.selectOptions(within(drawer).getByRole('combobox', { name: /工单类型/ }), '权限申请');
+
+    expect(within(drawer).getByText('业务目录')).toBeInTheDocument();
+    await user.click(within(drawer).getByLabelText('用户域'));
+
+    expect(within(drawer).getByLabelText('用户域')).toBeChecked();
+    expect(within(drawer).getByLabelText('用户域/行为')).toBeChecked();
+    expect(within(drawer).getByLabelText('用户域/画像')).toBeChecked();
+    expect(within(drawer).getByLabelText('用户域/API')).toBeChecked();
+    expect(within(drawer).getAllByText('随父目录命中').length).toBeGreaterThan(0);
+
+    await user.selectOptions(within(drawer).getByRole('combobox', { name: /节点审批方案/ }), '权限申请-S5 多级审批');
+    await user.selectOptions(within(drawer).getByRole('combobox', { name: /拆分方式/ }), '按审批人分组');
+    await user.click(within(drawer).getByRole('button', { name: '保存' }));
+
+    expect(screen.getByText('权限申请：用户域')).toBeInTheDocument();
+    expect(screen.getByText(/目录 属于 用户域（含子目录）/)).toBeInTheDocument();
+  });
+
+  it('matches future child catalog paths when the parent condition includes descendants', () => {
+    expect(matchesCatalogRouteCondition({ catalog: '用户域', catalogIncludeDescendants: true }, '用户域/新子目录')).toBe(true);
+    expect(matchesCatalogRouteCondition({ catalog: '用户域/画像', catalogIncludeDescendants: false }, '用户域/行为')).toBe(false);
   });
 
   it('creates an approver rule with fallback strategy and shows sync monitor feedback', async () => {

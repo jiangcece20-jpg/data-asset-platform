@@ -346,6 +346,35 @@ function flattenCatalog(nodes: CatalogNode[]): Array<{ value: string; label: str
   return nodes.flatMap(node => [{ value: node.path, label: node.path }, ...(node.children ? flattenCatalog(node.children) : [])]);
 }
 
+function catalogDescendants(node: CatalogNode): string[] {
+  return node.children?.flatMap(child => [child.path, ...catalogDescendants(child)]) ?? [];
+}
+
+function hasSelectedCatalogAncestor(path: string, selected: string[]) {
+  return selected.some(value => path !== value && path.startsWith(`${value}/`));
+}
+
+function isCatalogPathChecked(path: string, selected: string[]) {
+  return selected.includes(path) || hasSelectedCatalogAncestor(path, selected);
+}
+
+function updateCatalogSelection(selected: string[], node: CatalogNode, checked: boolean) {
+  if (!checked) {
+    return selected.filter(value => value !== node.path && !value.startsWith(`${node.path}/`));
+  }
+
+  const descendants = new Set(catalogDescendants(node));
+  const withoutDescendants = selected.filter(value => !descendants.has(value));
+  const withoutAncestors = withoutDescendants.filter(value => !node.path.startsWith(`${value}/`));
+  return [...withoutAncestors, node.path];
+}
+
+export function matchesCatalogConditionValue(condition: Pick<RouteCondition, 'value' | 'matchMode'>, catalogPath: string) {
+  const values = Array.isArray(condition.value) ? condition.value : condition.value ? [condition.value] : [];
+  if (!values.length) return true;
+  return values.some(value => value === catalogPath || (condition.matchMode === 'include_descendants' && catalogPath.startsWith(`${value}/`)));
+}
+
 function flowOwnerLabel(ticketType: string) {
   if (ticketType === '权限申请') return '数据安全组';
   if (ticketType === '上架审批' || ticketType === '下架审批' || ticketType === '目录修改') return '数据治理组';
@@ -655,7 +684,21 @@ function RouteForm({ route, onChange }: { route: FlowRoute; onChange: (route: Fl
 function ConditionValueEditor({ condition, onChange }: { condition: RouteCondition; onChange: (patch: Partial<RouteCondition>) => void }) {
   if (condition.field === 'catalog_path') {
     const options = flattenCatalog(catalogTree);
-    return <div className="approval-v6__catalog-picker" aria-label="目录多选"><CatalogTree nodes={catalogTree} selected={Array.isArray(condition.value) ? condition.value : []} onToggle={(path, checked) => onChange({ ...updateMultiValue(condition, options, path, checked), matchMode: 'include_descendants' })} /><small>选择任意层级目录，默认命中该目录及其全部子目录。</small></div>;
+    const selected = Array.isArray(condition.value) ? condition.value : condition.value ? [condition.value] : [];
+    return (
+      <div className="approval-v6__catalog-picker" aria-label="目录多选">
+        <CatalogTree
+          nodes={catalogTree}
+          selected={selected}
+          onToggle={(node, checked) => {
+            const values = updateCatalogSelection(selected, node, checked);
+            const labels = values.map(item => options.find(option => option.value === item)?.label ?? item);
+            onChange({ value: values, valueLabel: labels, matchMode: 'include_descendants' });
+          }}
+        />
+        <small>选择父目录会自动覆盖当前和未来新增的子目录；选择叶子目录仅命中该目录。</small>
+      </div>
+    );
   }
   if (condition.field === 'is_cross_dept') {
     return <select value={String(condition.value || 'true')} aria-label="是否跨部门" onChange={event => onChange({ value: event.target.value, valueLabel: event.target.value === 'true' ? '是' : '否' })}><option value="true">是</option><option value="false">否</option></select>;
@@ -677,8 +720,32 @@ function ConditionValueEditor({ condition, onChange }: { condition: RouteConditi
   return <div className="approval-v6__multi-options">{options.map(option => <label key={option.value}><input type="checkbox" checked={selected.has(option.value)} onChange={event => onChange(updateMultiValue(condition, options, option.value, event.target.checked))} />{option.label}</label>)}</div>;
 }
 
-function CatalogTree({ nodes, selected, onToggle }: { nodes: CatalogNode[]; selected: string[]; onToggle: (path: string, checked: boolean) => void }) {
-  return <div className="approval-v6__catalog-tree">{nodes.map(node => <div key={node.id}><label><input type="checkbox" checked={selected.includes(node.path)} onChange={event => onToggle(node.path, event.target.checked)} />{node.label}<span>{node.path}</span></label>{node.children ? <CatalogTree nodes={node.children} selected={selected} onToggle={onToggle} /> : null}</div>)}</div>;
+function CatalogTree({ nodes, selected, onToggle }: { nodes: CatalogNode[]; selected: string[]; onToggle: (node: CatalogNode, checked: boolean) => void }) {
+  return (
+    <div className="approval-v6__catalog-tree">
+      {nodes.map(node => {
+        const checked = isCatalogPathChecked(node.path, selected);
+        const inherited = checked && !selected.includes(node.path);
+        return (
+          <div key={node.id}>
+            <label className={inherited ? 'is-inherited' : ''}>
+              <input
+                type="checkbox"
+                checked={checked}
+                aria-label={node.path}
+                onChange={event => onToggle(node, inherited ? true : event.target.checked)}
+              />
+              {node.label}
+              <span>{node.path}</span>
+              {node.children?.length ? <em>含子目录</em> : null}
+              {inherited ? <em>随父目录命中</em> : null}
+            </label>
+            {node.children ? <CatalogTree nodes={node.children} selected={selected} onToggle={onToggle} /> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function RoleForm({ role, onChange, memberName, memberOpenId, onMemberName, onMemberOpenId }: { role: ApprovalRole; onChange: (role: ApprovalRole) => void; memberName: string; memberOpenId: string; onMemberName: (value: string) => void; onMemberOpenId: (value: string) => void }) {
