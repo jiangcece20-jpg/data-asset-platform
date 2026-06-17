@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { AssetCatalogPage } from './AssetCatalogPage';
 
 describe('AssetCatalogPage', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/');
+    window.sessionStorage.clear();
+  });
+
   it('renders catalog tree and all assets by default', () => {
     render(<AssetCatalogPage />);
 
@@ -118,5 +123,35 @@ describe('AssetCatalogPage', () => {
 
     expect(screen.getByText('wlyd_mc_beijing.')).toBeInTheDocument();
     expect(screen.getByText('dwd_trade_order')).toBeInTheDocument();
+  });
+
+  it('adds an applyable asset to the application cart from the card action', async () => {
+    const user = userEvent.setup();
+    render(<AssetCatalogPage />);
+
+    const row = screen.getByRole('article', { name: /rpt_gmv_daily/ });
+    await user.click(within(row).getByRole('button', { name: '申请权限' }));
+
+    expect(window.location.hash).toBe('');
+    const dialog = screen.getByRole('dialog', { name: '加入申请单' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('已加入申请单')).toBeInTheDocument();
+    expect(within(dialog).getByText('rpt_gmv_daily')).toBeInTheDocument();
+    expect(within(dialog).getByText((_, element) => element?.textContent === '当前申请单共 1 项资产')).toBeInTheDocument();
+    expect(JSON.parse(window.sessionStorage.getItem('dap.permissionCart.v1') ?? '[]')).toEqual([
+      expect.objectContaining({ name: 'rpt_gmv_daily', display: 'GMV 日报' }),
+    ]);
+
+    await user.click(screen.getByRole('button', { name: '去申请单提交 →' }));
+    expect(window.location.hash).toBe('#my?section=cart');
+  });
+
+  it('shows disabled guidance for metrics', () => {
+    render(<AssetCatalogPage />);
+
+    const metric = screen.getByRole('article', { name: /metric_gmv_core/ });
+    const button = within(metric).getByRole('button', { name: '申请权限' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', expect.stringContaining('指标权限依赖底层表或 API'));
   });
 });

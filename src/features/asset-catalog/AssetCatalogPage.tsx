@@ -2,6 +2,8 @@ import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Tag } from '../../components/base/Tag';
+import { PermissionCartConfirmModal } from '../permission-apply/PermissionCartConfirmModal';
+import { addPermissionCartItem, getPermissionAction, getPermissionCartItems, type PermissionCartItem } from '../permission-apply/permissionApply';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
 import './asset-catalog.css';
@@ -114,9 +116,25 @@ function matchesKeyword(resource: ResourceSummary, keyword: string) {
 function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
   const dbName = resource.databaseName;
   const showDbPrefix = dbName && (resource.type === 'table' || resource.type === 'view');
+  const permissionAction = getPermissionAction(resource);
+  const queryCount = Math.floor((resource.usageCount ?? 0) * 0.35);
+  const [confirmState, setConfirmState] = useState<{ item: PermissionCartItem; cartCount: number } | null>(null);
+
+  const applyPermission = () => {
+    if (permissionAction.state !== 'applyable') return;
+    const result = addPermissionCartItem(resource);
+    if (result.status === 'blocked' || !result.item) return;
+    setConfirmState({ item: result.item, cartCount: getPermissionCartItems().length });
+  };
 
   return (
-    <article className="asset-catalog__asset-card">
+    <article className="asset-catalog__asset-card" aria-label={`${resource.name} ${resource.displayName ?? ''}`.trim()}>
+      <PermissionCartConfirmModal
+        open={Boolean(confirmState)}
+        item={confirmState?.item}
+        cartCount={confirmState?.cartCount ?? 0}
+        onClose={() => setConfirmState(null)}
+      />
       <div className="asset-catalog__asset-row asset-catalog__asset-row--top">
         <span className="asset-catalog__asset-icon" aria-hidden="true">
           {typeIcons[resource.type]}
@@ -140,6 +158,21 @@ function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
           {(resource.tags ?? []).slice(0, 2).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
+        </div>
+        <div className="asset-catalog__asset-actions">
+          <span className="asset-catalog__asset-stat" aria-label="近30天查询量">⌕ {queryCount.toLocaleString('zh-CN')}</span>
+          <span className="asset-catalog__asset-stat" aria-label="近30天浏览量">◎ {(resource.usageCount ?? 0).toLocaleString('zh-CN')}</span>
+          <span className="asset-catalog__favorite" aria-hidden="true">☆</span>
+          <button
+            type="button"
+            className={`asset-catalog__permission-button asset-catalog__permission-button--${permissionAction.state}`}
+            disabled={permissionAction.disabled}
+            title={permissionAction.reason || undefined}
+            onClick={applyPermission}
+          >
+            <span aria-hidden="true">▣</span>
+            {permissionAction.label}
+          </button>
         </div>
       </div>
 

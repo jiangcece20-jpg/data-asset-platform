@@ -15,6 +15,7 @@ const statusLabels = [
 describe('MyPage approval entries', () => {
   beforeEach(() => {
     window.history.replaceState(null, '', '/');
+    window.sessionStorage.clear();
   });
 
   it('keeps personal asset sections and opens the new application cart from hash', () => {
@@ -48,11 +49,18 @@ describe('MyPage approval entries', () => {
     expect(screen.getAllByText('dwd_trade_order').length).toBeGreaterThan(0);
 
     const row = screen.getByRole('row', { name: /PA-20260609-001-01/ });
+    expect(within(row).getByRole('button', { name: '查看详情' })).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: '撤回' })).not.toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
+
     await user.click(within(row).getByRole('button', { name: '查看详情' }));
 
     expect(screen.getByText(/权限申请详情/)).toBeInTheDocument();
     expect(screen.getByText(/子单审批进度/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '查看工单视图' })).toHaveAttribute('href', '#permissions?section=submitted');
+    expect(screen.getByRole('link', { name: '去审批工作台操作' })).toHaveAttribute('href', '#permissions?section=submitted');
+    expect(screen.queryByRole('button', { name: '撤回申请' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
   });
 
   it('falls back to favorites when old approval sections are requested', () => {
@@ -110,6 +118,34 @@ describe('MyPage approval entries', () => {
     expect(screen.getByText(/已预填「交易订单宽表」到申请单/)).toBeInTheDocument();
     const reasonBox = screen.getByPlaceholderText(/请填写申请理由/) as HTMLTextAreaElement;
     expect(reasonBox.value).toBe('月度复盘需要');
+  });
+
+  it('shows assets that were added to the temporary application cart', () => {
+    window.sessionStorage.setItem('dap.permissionCart.v1', JSON.stringify([
+      {
+        id: 'label-user-profile',
+        name: 'tag_user_profile',
+        display: '用户画像标签',
+        type: 'label',
+        typeLabel: '标签',
+        catalog: '用户域/画像/用户标签',
+        security: 'S2 内部级',
+        sourceLabel: '画像标签系统',
+        owner: '钱七',
+        matchedRoute: '标准权限申请（兜底）',
+        approvalCode: '7C468A54-PER-2024',
+        isFallback: true,
+        flowPreview: ['① 上级审批 → 王经理', '② 负责人审批（或签） → 钱七'],
+      },
+    ]));
+    window.location.hash = 'my?section=cart';
+
+    render(<MyPage />);
+
+    expect(screen.getAllByText('tag_user_profile').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('用户画像标签').length).toBeGreaterThan(0);
+    expect(screen.getByText('画像标签系统')).toBeInTheDocument();
+    expect(within(screen.getByRole('navigation', { name: '我的导航' })).getByText('5')).toBeInTheDocument();
   });
 
   it('shows a fallback notice when the reapply asset is not in the cart catalog', () => {

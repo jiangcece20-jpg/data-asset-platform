@@ -1078,9 +1078,18 @@
 }
 
 .approval-v6__catalog-tree span,
+.approval-v6__catalog-tree em,
 .approval-v6__catalog-picker small {
   color: #697386;
   font-size: 12px;
+}
+
+.approval-v6__catalog-tree em {
+  font-style: normal;
+}
+
+.approval-v6__catalog-tree label.is-inherited {
+  color: #697386;
 }
 
 .approval-v6__role-grid {

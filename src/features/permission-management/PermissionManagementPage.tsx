@@ -81,7 +81,7 @@ type PendingApproval = {
 };
 
 type TplNode = { kind: 'superior' | 'owner' | 'role' | 'person'; role?: string; person?: string };
-type ConditionField = 'objectTypes' | 'securityLevels';
+type ConditionField = 'objectTypes' | 'securityLevels' | 'catalog';
 type WorkOrderType = {
   name: string;
   code: string;
@@ -116,6 +116,7 @@ type ApprovalRouteRule = {
   securityLevels: string[];
   businessDomain: string;
   catalog: string;
+  catalogIncludeDescendants: boolean;
   sourceSystem: string;
   applicantDepartment: string;
   ownerDepartment: string;
@@ -239,10 +240,10 @@ const approvalRoles = [
 ];
 
 const workOrderTypes: WorkOrderType[] = [
-  { name: '上架申请', code: 'WORK_ORDER_PUBLISH', category: '资源治理', description: '待维护资源申请进入正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
-  { name: '下架申请', code: 'WORK_ORDER_UNPUBLISH', category: '资源治理', description: '已上架资源申请退出正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
-  { name: '目录修改', code: 'WORK_ORDER_CATALOG_CHANGE', category: '资源治理', description: '资源或资产对象申请修改目录归属', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
-  { name: '权限申请', code: 'WORK_ORDER_PERMISSION', category: '权限', description: '用户申请数据访问权限', defaultRoute: '权限申请：S1-S4 常规授权', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'securityLevels'], bindingFlowCode: 'APPROVAL_PERMISSION' },
+  { name: '上架申请', code: 'WORK_ORDER_PUBLISH', category: '资源治理', description: '待维护资源申请进入正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'catalog'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '下架申请', code: 'WORK_ORDER_UNPUBLISH', category: '资源治理', description: '已上架资源申请退出正式资产目录', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'catalog'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '目录修改', code: 'WORK_ORDER_CATALOG_CHANGE', category: '资源治理', description: '资源或资产对象申请修改目录归属', defaultRoute: '资源治理：上架/下架/目录修改', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'catalog'], bindingFlowCode: 'APPROVAL_RESOURCE_GOV' },
+  { name: '权限申请', code: 'WORK_ORDER_PERMISSION', category: '权限', description: '用户申请数据访问权限', defaultRoute: '权限申请：S1-S4 常规授权', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: ['objectTypes', 'securityLevels', 'catalog'], bindingFlowCode: 'APPROVAL_PERMISSION' },
   { name: '负责人交接', code: 'WORK_ORDER_OWNER_TRANSFER', category: '负责人', description: '当前负责人发起技术或业务负责人交接', defaultRoute: '负责人交接：接收人确认', allowWithdraw: true, allowReapply: false, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: [], bindingFlowCode: 'APPROVAL_OWNER_TRANSFER' },
   { name: '血缘修正', code: 'WORK_ORDER_LINEAGE_FIX', category: '血缘', description: '提交血缘新增、删除或字段映射修正', defaultRoute: '血缘修正：治理审批', allowWithdraw: true, allowReapply: true, status: '启用', updatedAt: '2026-06-05 09:20', used: true, applicableConditions: [], bindingFlowCode: 'APPROVAL_LINEAGE_FIX' },
 ];
@@ -274,11 +275,11 @@ const feishuApprovalNodes: Record<string, FeishuApprovalNode[]> = {
 };
 
 const approvalRouteRules: ApprovalRouteRule[] = [
-  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '对象类型 in 表/视图/API；兜底规则', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '资源治理审批', nodeScheme: '资源治理-负责人审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按资源负责人分组', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按审批人分组', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '负责人交接审批', nodeScheme: '负责人交接-接收人确认', split: '按接收人分组', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
-  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '血缘修正审批', nodeScheme: '血缘修正-治理审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '资源治理：上架/下架/目录修改', workOrderType: '上架申请', conditionSummary: '对象类型 in 表/视图/API；兜底规则', objectTypes: ['表', '视图', 'API'], securityLevels: [], businessDomain: '', catalog: '', catalogIncludeDescendants: false, sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '资源治理审批', nodeScheme: '资源治理-负责人审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S1-S4 常规授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 in S1/S2/S3/S4', objectTypes: ['表', '视图', 'API'], securityLevels: ['S1', 'S2', 'S3', 'S4'], businessDomain: '', catalog: '', catalogIncludeDescendants: false, sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按资源负责人分组', priority: 30, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '权限申请：S5 高敏授权', workOrderType: '权限申请', conditionSummary: '对象类型 in 表/视图/API；安全等级 = S5', objectTypes: ['表', '视图', 'API'], securityLevels: ['S5'], businessDomain: '', catalog: '', catalogIncludeDescendants: false, sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '权限申请审批', nodeScheme: '权限申请-S5 多级审批', split: '按审批人分组', priority: 10, isFallback: false, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '负责人交接：接收人确认', workOrderType: '负责人交接', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', catalogIncludeDescendants: false, sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '负责人交接审批', nodeScheme: '负责人交接-接收人确认', split: '按接收人分组', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
+  { name: '血缘修正：治理审批', workOrderType: '血缘修正', conditionSummary: '—', objectTypes: [], securityLevels: [], businessDomain: '', catalog: '', catalogIncludeDescendants: false, sourceSystem: '', applicantDepartment: '', ownerDepartment: '', flow: '血缘修正审批', nodeScheme: '血缘修正-治理审批', split: '不拆分', priority: 20, isFallback: true, status: '启用', updatedAt: '2026-06-05 09:40', used: true },
 ];
 
 const approverResolutionRules: ApproverRule[] = [
@@ -851,6 +852,7 @@ const emptyRouteForm: ApprovalRouteRule = {
   securityLevels: [],
   businessDomain: '',
   catalog: '',
+  catalogIncludeDescendants: false,
   sourceSystem: '',
   applicantDepartment: '',
   ownerDepartment: '',
@@ -901,13 +903,107 @@ function buildRouteConditionSummary(rule: ApprovalRouteRule) {
     rule.objectTypes.length ? `对象类型 in ${rule.objectTypes.join('/')}` : '',
     rule.securityLevels.length ? `安全等级 in ${rule.securityLevels.join('/')}` : '',
     rule.businessDomain.trim() ? `业务域 = ${rule.businessDomain.trim()}` : '',
-    rule.catalog.trim() ? `目录 = ${rule.catalog.trim()}` : '',
+    rule.catalog.trim() ? `目录 ${rule.catalogIncludeDescendants ? '属于' : '='} ${rule.catalog.trim()}${rule.catalogIncludeDescendants ? '（含子目录）' : ''}` : '',
     rule.sourceSystem.trim() ? `来源系统 = ${rule.sourceSystem.trim()}` : '',
     rule.applicantDepartment.trim() ? `申请人部门 = ${rule.applicantDepartment.trim()}` : '',
     rule.ownerDepartment.trim() ? `负责人部门 = ${rule.ownerDepartment.trim()}` : '',
     rule.isFallback ? '兜底规则' : '',
   ].filter(Boolean);
   return parts.length ? parts.join('；') : '—';
+}
+
+type CatalogTreeNode = {
+  label: string;
+  path: string;
+  children?: CatalogTreeNode[];
+};
+
+const routeCatalogTree: CatalogTreeNode[] = [
+  {
+    label: '交易域',
+    path: '交易域',
+    children: [
+      { label: '订单', path: '交易域/订单' },
+      { label: '报表', path: '交易域/报表' },
+      { label: '指标', path: '交易域/指标' },
+    ],
+  },
+  {
+    label: '用户域',
+    path: '用户域',
+    children: [
+      { label: '行为', path: '用户域/行为' },
+      { label: '画像', path: '用户域/画像' },
+      { label: 'API', path: '用户域/API' },
+    ],
+  },
+  {
+    label: '供应链',
+    path: '供应链',
+    children: [
+      { label: '库存', path: '供应链/库存' },
+    ],
+  },
+];
+
+function flattenRouteCatalog(nodes: CatalogTreeNode[], depth = 0): Array<CatalogTreeNode & { depth: number; hasChildren: boolean }> {
+  return nodes.flatMap(node => [
+    { ...node, depth, hasChildren: Boolean(node.children?.length) },
+    ...(node.children ? flattenRouteCatalog(node.children, depth + 1) : []),
+  ]);
+}
+
+function isCatalogChecked(rule: Pick<ApprovalRouteRule, 'catalog' | 'catalogIncludeDescendants'>, path: string) {
+  if (!rule.catalog) return false;
+  if (rule.catalog === path) return true;
+  return rule.catalogIncludeDescendants && path.startsWith(`${rule.catalog}/`);
+}
+
+export function matchesCatalogRouteCondition(rule: Pick<ApprovalRouteRule, 'catalog' | 'catalogIncludeDescendants'>, catalogPath: string) {
+  if (!rule.catalog) return true;
+  if (rule.catalog === catalogPath) return true;
+  return rule.catalogIncludeDescendants && catalogPath.startsWith(`${rule.catalog}/`);
+}
+
+function CatalogConditionTree({
+  value,
+  includeDescendants,
+  onChange,
+}: {
+  value: string;
+  includeDescendants: boolean;
+  onChange: (next: { value: string; includeDescendants: boolean }) => void;
+}) {
+  const nodes = flattenRouteCatalog(routeCatalogTree);
+
+  const toggle = (node: CatalogTreeNode & { hasChildren: boolean }) => {
+    if (value === node.path) {
+      onChange({ value: '', includeDescendants: false });
+      return;
+    }
+    onChange({ value: node.path, includeDescendants: node.hasChildren });
+  };
+
+  return (
+    <div className="permission-management__form-group">
+      <div className="permission-management__form-label">业务目录</div>
+      <div className="permission-management__catalog-tree" role="group" aria-label="业务目录">
+        {nodes.map(node => {
+          const checked = isCatalogChecked({ catalog: value, catalogIncludeDescendants: includeDescendants }, node.path);
+          const inherited = checked && value !== node.path;
+          return (
+            <label key={node.path} className={`permission-management__catalog-node ${inherited ? 'is-inherited' : ''}`} style={{ paddingLeft: 12 + node.depth * 22 }}>
+              <input type="checkbox" checked={checked} aria-label={node.path} onChange={() => toggle(node)} />
+              <span>{node.label}</span>
+              {node.hasChildren ? <small>含子目录</small> : null}
+              {inherited ? <em>随父目录命中</em> : null}
+            </label>
+          );
+        })}
+      </div>
+      <p className="permission-management__hint">选择父目录会自动覆盖当前和未来新增的子目录；选择叶子目录仅精确命中该目录。</p>
+    </div>
+  );
 }
 
 function fieldStatusTone(status: string) {
@@ -1384,6 +1480,17 @@ function ApprovalRoutingManagementPanel() {
                           ]}
                           value={routeForm.securityLevels}
                           onChange={vals => setRouteForm(prev => ({ ...prev, securityLevels: vals }))}
+                        />
+                      )}
+                      {currentWorkOrderType.applicableConditions.includes('catalog') && (
+                        <CatalogConditionTree
+                          value={routeForm.catalog}
+                          includeDescendants={routeForm.catalogIncludeDescendants}
+                          onChange={({ value, includeDescendants }) => setRouteForm(prev => ({
+                            ...prev,
+                            catalog: value,
+                            catalogIncludeDescendants: includeDescendants,
+                          }))}
                         />
                       )}
                     </>

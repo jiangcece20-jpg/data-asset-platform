@@ -905,6 +905,54 @@
   cursor: pointer;
 }
 
+.permission-management__catalog-tree {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.permission-management__catalog-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  border-bottom: 1px solid var(--border-color-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.permission-management__catalog-node:last-child {
+  border-bottom: 0;
+}
+
+.permission-management__catalog-node:hover {
+  background: var(--bg-hover);
+}
+
+.permission-management__catalog-node input {
+  flex: 0 0 auto;
+}
+
+.permission-management__catalog-node span {
+  font-weight: 500;
+}
+
+.permission-management__catalog-node small,
+.permission-management__catalog-node em {
+  color: var(--text-quaternary);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+}
+
+.permission-management__catalog-node.is-inherited {
+  background: #f8fafc;
+  color: var(--text-tertiary);
+}
+
 .permission-management__notice {
   margin: 12px 0;
   padding: 10px 12px;

@@ -6,11 +6,18 @@ import {
   lineageApprovalsToMyApplyItems,
   useLineageApprovals,
 } from '../lineage/lineageApprovalStore';
+import {
+  clearPermissionCart,
+  getPermissionCartItems,
+  removePermissionCartItem,
+  subscribePermissionCart,
+  type PermissionCartItem,
+} from '../permission-apply/permissionApply';
 import './my-page.css';
 
 type MySection = 'favorites' | 'applies' | 'permissions' | 'owned' | 'cart';
 type ApplyStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
-type AssetType = 'all' | 'table' | 'api' | 'report' | 'metric' | 'label' | 'catalog';
+type AssetType = 'all' | 'table' | 'view' | 'api' | 'report' | 'metric' | 'label' | 'catalog';
 type SourcePlatform = 'all' | 'warehouse_engine' | 'biz_database' | 'report_system' | 'api_service' | 'metric_platform' | 'label_system' | 'message_stream';
 type OwnedStatus = 'all' | 'listed' | 'pending' | 'unlisted';
 type OwnedRole = 'all' | 'tech' | 'biz' | 'both';
@@ -75,21 +82,7 @@ type OwnedItem = {
   updateTime: string;
 };
 
-type CartItem = {
-  id: string;
-  name: string;
-  display: string;
-  type: AssetType;
-  typeLabel: string;
-  catalog: string;
-  security: string;
-  sourceLabel: string;
-  owner: string;
-  matchedRoute: string;
-  approvalCode: string;
-  isFallback: boolean;
-  flowPreview: string[];
-};
+type CartItem = PermissionCartItem;
 
 const navItems: Array<{ key: MySection; label: string; icon: string }> = [
   { key: 'favorites', label: '我收藏的', icon: '☆' },
@@ -142,6 +135,7 @@ const initialCartItems: CartItem[] = [
 const assetTypeOptions: Array<{ value: AssetType; label: string }> = [
   { value: 'all', label: '全部类型' },
   { value: 'table', label: '表' },
+  { value: 'view', label: '视图' },
   { value: 'api', label: 'API' },
   { value: 'report', label: '报表' },
   { value: 'metric', label: '指标' },
@@ -180,16 +174,17 @@ function statusTone(s: string): 'success' | 'warning' | 'danger' | 'gray' {
   return 'gray';
 }
 
-function typeTone(t: AssetType): 'blue' | 'gray' | 'warning' | 'purple' | 'cyan' {
+function typeTone(t: string): 'blue' | 'gray' | 'warning' | 'purple' | 'cyan' {
   if (t === 'table') return 'blue';
+  if (t === 'view') return 'blue';
   if (t === 'api') return 'gray';
   if (t === 'report') return 'warning';
   if (t === 'metric') return 'purple';
   return 'cyan';
 }
 
-function typeLabel(t: AssetType): string {
-  const m: Record<string, string> = { table: '数据表', api: 'API', report: '报表', metric: '指标', label: '标签', catalog: '目录' };
+function typeLabel(t: string): string {
+  const m: Record<string, string> = { table: '数据表', view: '视图', api: 'API', report: '报表', metric: '指标', label: '标签', catalog: '目录' };
   return m[t] || t;
 }
 
@@ -327,10 +322,7 @@ function AppliesPanel() {
           </div>
         ))}
         <div className="my-page__detail-actions">
-          {detailItem.status === 'pending' ? <Button variant="danger" size="sm">撤回申请</Button> : null}
-          {detailItem.status === 'rejected' ? (
-            <Button variant="primary" size="sm" onClick={() => { window.location.hash = 'my?section=cart'; }}>重新申请</Button>
-          ) : null}
+          <a className="my-page__detail-link" href="#permissions?section=submitted">去审批工作台操作</a>
         </div>
       </section>
     );
@@ -379,19 +371,6 @@ function AppliesPanel() {
                 <td>
                   <div className="my-page__row-actions">
                     <button type="button" onClick={e => { e.stopPropagation(); setDetailId(a.id); }}>查看详情</button>
-                    {a.status === 'pending' ? <button type="button" className="danger" onClick={e => e.stopPropagation()}>撤回</button> : null}
-                    {a.status === 'rejected' ? (
-                      <button
-                        type="button"
-                        className="success"
-                        onClick={e => {
-                          e.stopPropagation();
-                          window.location.hash = 'my?section=cart';
-                        }}
-                      >
-                        重新申请
-                      </button>
-                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -588,7 +567,8 @@ function OwnedPanel() {
    Cart Panel
    ================================================================ */
 function CartPanel({ cartCount }: { cartCount: number }) {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [dynamicCartItems, setDynamicCartItems] = useState<CartItem[]>(() => getPermissionCartItems());
+  const [removedInitialIds, setRemovedInitialIds] = useState<Set<string>>(new Set());
   const [reason, setReason] = useState('需要查询金融业务线的交易数据用于月度分析报告');
   const [showIndividual, setShowIndividual] = useState(false);
   const [individualReasons, setIndividualReasons] = useState<Record<string, string>>({});
@@ -596,6 +576,14 @@ function CartPanel({ cartCount }: { cartCount: number }) {
   const [reapplyNotice, setReapplyNotice] = useState('');
 
   void cartCount;
+
+  const cartItems = useMemo(() => {
+    const dynamicIds = new Set(dynamicCartItems.map((item) => item.id));
+    const remainingInitialItems = initialCartItems.filter((item) => !removedInitialIds.has(item.id) && !dynamicIds.has(item.id));
+    return [...dynamicCartItems, ...remainingInitialItems];
+  }, [dynamicCartItems, removedInitialIds]);
+
+  useEffect(() => subscribePermissionCart(setDynamicCartItems), []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -609,7 +597,12 @@ function CartPanel({ cartCount }: { cartCount: number }) {
         window.setTimeout(() => setReapplyNotice(''), 4000);
         return;
       }
-      setCartItems(prev => prev.some(c => c.id === seed.id) ? prev : [...prev, seed]);
+      setRemovedInitialIds(prev => {
+        if (!prev.has(seed.id)) return prev;
+        const next = new Set(prev);
+        next.delete(seed.id);
+        return next;
+      });
       const seedReason = params.get('reason');
       if (seedReason) setReason(seedReason);
       setReapplyNotice(`已预填「${seed.display}」到申请单`);
@@ -620,13 +613,24 @@ function CartPanel({ cartCount }: { cartCount: number }) {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const removeItem = (id: string) => setCartItems(prev => prev.filter(c => c.id !== id));
-  const clearCart = () => setCartItems([]);
+  const removeItem = (id: string) => {
+    if (dynamicCartItems.some((item) => item.id === id)) {
+      removePermissionCartItem(id);
+      return;
+    }
+    setRemovedInitialIds(prev => new Set(prev).add(id));
+  };
+
+  const clearCart = () => {
+    clearPermissionCart();
+    setRemovedInitialIds(new Set(initialCartItems.map((item) => item.id)));
+  };
 
   const handleSubmit = () => {
     if (!reason.trim() || reason.trim().length < 10) return;
     setSubmitted(true);
-    setCartItems([]);
+    clearPermissionCart();
+    setRemovedInitialIds(new Set(initialCartItems.map((item) => item.id)));
     setReason('');
   };
 
@@ -766,7 +770,10 @@ function CartPanel({ cartCount }: { cartCount: number }) {
    ================================================================ */
 export function MyPage() {
   const [activeSection, setActiveSection] = useState<MySection>(() => getMySectionFromHash());
-  const [cartCount] = useState(initialCartItems.length);
+  const [dynamicCartCount, setDynamicCartCount] = useState(() => getPermissionCartItems().length);
+  const cartCount = initialCartItems.length + dynamicCartCount;
+
+  useEffect(() => subscribePermissionCart((items) => setDynamicCartCount(items.length)), []);
 
   useEffect(() => {
     const handleHashChange = () => {
