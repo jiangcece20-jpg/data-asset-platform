@@ -57,11 +57,12 @@ describe('PermissionManagementPage', () => {
     const user = userEvent.setup();
     render(<PermissionManagementPage />);
 
-    await user.click(screen.getByRole('tab', { name: '审批中' }));
+    await user.click(screen.getByRole('tab', { name: '部分通过审批中' }));
     expect(screen.getByText('PA-2026033100001')).toBeInTheDocument();
-    expect(screen.getByText('GA-2026033100042')).toBeInTheDocument();
+    expect(screen.queryByText('GA-2026033100042')).not.toBeInTheDocument();
     expect(screen.queryByText('PA-2026032800012')).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole('tab', { name: '全部' }));
     await user.selectOptions(screen.getByRole('combobox', { name: '工单分类' }), 'gov');
     expect(screen.getByText('GA-2026033100042')).toBeInTheDocument();
     expect(screen.queryByText('PA-2026033100001')).not.toBeInTheDocument();
@@ -77,7 +78,7 @@ describe('PermissionManagementPage', () => {
     window.history.replaceState(null, '', '/');
     render(<PermissionManagementPage />);
 
-    await user.click(screen.getByRole('tab', { name: '已拒绝' }));
+    await user.click(screen.getByRole('tab', { name: '全部拒绝/撤回' }));
 
     const row = screen.getByRole('row', { name: /PA-2026032500008/ });
     await user.click(within(row).getByRole('button', { name: '重新申请' }));
