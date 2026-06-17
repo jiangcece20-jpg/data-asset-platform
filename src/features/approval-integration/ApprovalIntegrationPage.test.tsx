@@ -151,12 +151,18 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: '我提交的申请' }));
 
     expect(screen.getByText('总批次')).toBeInTheDocument();
+    expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
+    expect(screen.getByText('部分通过，审批中')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'partial_approved_in_progress');
+    expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
+    expect(screen.queryByText('BATCH-20260610-权限申请-approved')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'all');
     expect(screen.getByText('BATCH-20260609-权限申请-approving')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'SUB-20260609-001-01' }));
+    await user.click(screen.getByRole('button', { name: 'SUB-20260611-900-01' }));
 
     expect(screen.getByRole('heading', { name: '工单详情' })).toBeInTheDocument();
     expect(screen.getByText('审批时间线')).toBeInTheDocument();
-    expect(screen.getByText('PER-INS-00931')).toBeInTheDocument();
+    expect(screen.getByText('PER-INS-AGG-001')).toBeInTheDocument();
     const drawer = screen.getByLabelText('工单详情');
     expect(drawer).toHaveClass('approval-v6__drawer--approval-detail');
     const infoTable = within(drawer).getByRole('table', { name: '申请信息表' });

@@ -670,15 +670,29 @@ export const approvalScenarioSummaries: ApprovalScenarioSummary[] = approvalScen
 
 const scenarioStatuses = ['approving', 'approved', 'rejected', 'cancelled'] as const;
 
-export const initialBatches: ApprovalBatch[] = ticketTypes.flatMap(ticketType =>
-  scenarioStatuses.map(status =>
-    createApprovalBatch(
-      ticketType,
-      approvalScenarios.filter(scenario => scenario.ticketType === ticketType && scenario.status === status),
-      `${ticketType}-${status}`,
+const aggregatePermissionBatch = createApprovalBatch(
+  '权限申请',
+  [
+    createApprovalScenario({ id: 'permission-aggregate-approved', ticketType: '权限申请', status: 'approved', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '资源负责人审批', waitingHours: 4, assets: ['dwd_trade_order'], securityLevel: 'S3', permissionType: '查询', expireDate: '2026-09-30', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_统一版', matchedRoute: '交易域数仓授权', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260611-900-01', instanceCode: 'PER-INS-AGG-001', createdAt: '2026-06-11 09:20:00', effectStatus: 'effective' }),
+    createApprovalScenario({ id: 'permission-aggregate-approving', ticketType: '权限申请', status: 'approving', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'API负责人审批', waitingHours: 6, assets: ['api_trade_query'], securityLevel: 'S3', permissionType: '调用', expireDate: '2026-09-30', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '权限申请_统一版', matchedRoute: 'API-通用审批', reason: '需要在分析工作台调用交易查询接口。', subOrderNo: 'SUB-20260611-900-02', instanceCode: 'PER-INS-AGG-002', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective' }),
+    createApprovalScenario({ id: 'permission-aggregate-rejected', ticketType: '权限申请', status: 'rejected', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '金融业务线审批', waitingHours: 3, assets: ['rpt_finance_weekly'], securityLevel: 'S4', permissionType: '查询', expireDate: '2026-09-30', directory: '财务域/报表/周报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要核对周报口径。', subOrderNo: 'SUB-20260611-900-03', instanceCode: 'PER-INS-AGG-003', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective', timelineComment: '请补充具体使用场景和查看频率。' }),
+    createApprovalScenario({ id: 'permission-aggregate-cancelled', ticketType: '权限申请', status: 'cancelled', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '申请人', waitingHours: 1, assets: ['dim_coupon_rule'], securityLevel: 'S2', permissionType: '查询', expireDate: '2026-09-30', directory: '交易域/营销/优惠券', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '优惠券规则分析需求取消，撤回该子单。', subOrderNo: 'SUB-20260611-900-04', instanceCode: 'PER-INS-AGG-004', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective' }),
+  ],
+  '权限申请-aggregate-mixed',
+);
+
+export const initialBatches: ApprovalBatch[] = [
+  aggregatePermissionBatch,
+  ...ticketTypes.flatMap(ticketType =>
+    scenarioStatuses.map(status =>
+      createApprovalBatch(
+        ticketType,
+        approvalScenarios.filter(scenario => scenario.ticketType === ticketType && scenario.status === status),
+        `${ticketType}-${status}`,
+      ),
     ),
   ),
-);
+];
 
 export function statusLabel(status: ApprovalStatus) {
   return ({ pending_submit: '待提交', approving: '审批中', approved: '已通过', rejected: '已拒绝', cancelled: '已取消', sync_error: '同步异常' } as Record<ApprovalStatus, string>)[status];
