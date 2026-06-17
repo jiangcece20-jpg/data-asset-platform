@@ -3,7 +3,8 @@ import { Tag } from '../../components/base/Tag';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
-import { addPermissionCartItem, getPermissionAction } from '../permission-apply/permissionApply';
+import { PermissionCartConfirmModal } from '../permission-apply/PermissionCartConfirmModal';
+import { addPermissionCartItem, getPermissionAction, getPermissionCartItems, type PermissionCartItem } from '../permission-apply/permissionApply';
 import './resource-discovery.css';
 
 type DiscoveryKind = 'asset' | 'resource';
@@ -200,15 +201,23 @@ function DiscoveryCard({ record }: { record: DiscoveryRecord }) {
   const showDbPrefix = dbName && (record.type === 'table' || record.type === 'view');
   const permissionAction = getPermissionAction(record);
   const queryCount = Math.floor((record.usageCount ?? 0) * 0.35);
+  const [confirmState, setConfirmState] = useState<{ item: PermissionCartItem; cartCount: number } | null>(null);
 
   const applyPermission = () => {
     if (permissionAction.state !== 'applyable') return;
-    addPermissionCartItem(record);
-    window.location.hash = 'my?section=cart';
+    const result = addPermissionCartItem(record);
+    if (result.status === 'blocked' || !result.item) return;
+    setConfirmState({ item: result.item, cartCount: getPermissionCartItems().length });
   };
 
   return (
     <article className="resource-discovery__asset-card" aria-label={`${record.name} ${record.displayName ?? ''}`.trim()}>
+      <PermissionCartConfirmModal
+        open={Boolean(confirmState)}
+        item={confirmState?.item}
+        cartCount={confirmState?.cartCount ?? 0}
+        onClose={() => setConfirmState(null)}
+      />
       <div className="resource-discovery__asset-row resource-discovery__asset-row--top">
         <span className="resource-discovery__asset-icon" aria-hidden="true">
           {typeIcons[record.type]}

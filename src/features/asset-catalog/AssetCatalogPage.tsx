@@ -2,7 +2,8 @@ import { FormEvent, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Tag } from '../../components/base/Tag';
-import { addPermissionCartItem, getPermissionAction } from '../permission-apply/permissionApply';
+import { PermissionCartConfirmModal } from '../permission-apply/PermissionCartConfirmModal';
+import { addPermissionCartItem, getPermissionAction, getPermissionCartItems, type PermissionCartItem } from '../permission-apply/permissionApply';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
 import './asset-catalog.css';
@@ -117,15 +118,23 @@ function CatalogAssetCard({ resource }: { resource: ResourceSummary }) {
   const showDbPrefix = dbName && (resource.type === 'table' || resource.type === 'view');
   const permissionAction = getPermissionAction(resource);
   const queryCount = Math.floor((resource.usageCount ?? 0) * 0.35);
+  const [confirmState, setConfirmState] = useState<{ item: PermissionCartItem; cartCount: number } | null>(null);
 
   const applyPermission = () => {
     if (permissionAction.state !== 'applyable') return;
-    addPermissionCartItem(resource);
-    window.location.hash = 'my?section=cart';
+    const result = addPermissionCartItem(resource);
+    if (result.status === 'blocked' || !result.item) return;
+    setConfirmState({ item: result.item, cartCount: getPermissionCartItems().length });
   };
 
   return (
     <article className="asset-catalog__asset-card" aria-label={`${resource.name} ${resource.displayName ?? ''}`.trim()}>
+      <PermissionCartConfirmModal
+        open={Boolean(confirmState)}
+        item={confirmState?.item}
+        cartCount={confirmState?.cartCount ?? 0}
+        onClose={() => setConfirmState(null)}
+      />
       <div className="asset-catalog__asset-row asset-catalog__asset-row--top">
         <span className="asset-catalog__asset-icon" aria-hidden="true">
           {typeIcons[resource.type]}

@@ -90,10 +90,18 @@ describe('ResourceDiscoveryPage', () => {
     const card = screen.getByRole('article', { name: /rpt_gmv_daily/ });
     await user.click(within(card).getByRole('button', { name: '申请权限' }));
 
-    expect(window.location.hash).toBe('#my?section=cart');
+    expect(window.location.hash).toBe('');
+    const dialog = screen.getByRole('dialog', { name: '加入申请单' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('已加入申请单')).toBeInTheDocument();
+    expect(within(dialog).getByText('rpt_gmv_daily')).toBeInTheDocument();
+    expect(within(dialog).getByText((_, element) => element?.textContent === '当前申请单共 1 项资产')).toBeInTheDocument();
     expect(JSON.parse(window.sessionStorage.getItem('dap.permissionCart.v1') ?? '[]')).toEqual([
       expect.objectContaining({ name: 'rpt_gmv_daily' }),
     ]);
+
+    await user.click(screen.getByRole('button', { name: '继续浏览' }));
+    expect(screen.queryByRole('dialog', { name: '加入申请单' })).not.toBeInTheDocument();
   });
 
   it('keeps metric records visible but blocks direct permission application', () => {
