@@ -322,10 +322,7 @@ function AppliesPanel() {
           </div>
         ))}
         <div className="my-page__detail-actions">
-          {detailItem.status === 'pending' ? <Button variant="danger" size="sm">撤回申请</Button> : null}
-          {detailItem.status === 'rejected' ? (
-            <Button variant="primary" size="sm" onClick={() => { window.location.hash = 'my?section=cart'; }}>重新申请</Button>
-          ) : null}
+          <a className="my-page__detail-link" href="#permissions?section=submitted">去审批工作台操作</a>
         </div>
       </section>
     );
@@ -374,19 +371,6 @@ function AppliesPanel() {
                 <td>
                   <div className="my-page__row-actions">
                     <button type="button" onClick={e => { e.stopPropagation(); setDetailId(a.id); }}>查看详情</button>
-                    {a.status === 'pending' ? <button type="button" className="danger" onClick={e => e.stopPropagation()}>撤回</button> : null}
-                    {a.status === 'rejected' ? (
-                      <button
-                        type="button"
-                        className="success"
-                        onClick={e => {
-                          e.stopPropagation();
-                          window.location.hash = 'my?section=cart';
-                        }}
-                      >
-                        重新申请
-                      </button>
-                    ) : null}
                   </div>
                 </td>
               </tr>

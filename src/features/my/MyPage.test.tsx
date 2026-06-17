@@ -49,11 +49,18 @@ describe('MyPage approval entries', () => {
     expect(screen.getAllByText('dwd_trade_order').length).toBeGreaterThan(0);
 
     const row = screen.getByRole('row', { name: /PA-20260609-001-01/ });
+    expect(within(row).getByRole('button', { name: '查看详情' })).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: '撤回' })).not.toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
+
     await user.click(within(row).getByRole('button', { name: '查看详情' }));
 
     expect(screen.getByText(/权限申请详情/)).toBeInTheDocument();
     expect(screen.getByText(/子单审批进度/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '查看工单视图' })).toHaveAttribute('href', '#permissions?section=submitted');
+    expect(screen.getByRole('link', { name: '去审批工作台操作' })).toHaveAttribute('href', '#permissions?section=submitted');
+    expect(screen.queryByRole('button', { name: '撤回申请' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
   });
 
   it('falls back to favorites when old approval sections are requested', () => {
