@@ -41,21 +41,54 @@ describe('ApplicantPermDetail', () => {
     expect(screen.getByText('权限申请')).toBeInTheDocument();
     expect(screen.getByText('BATCH-20260603-003 / FS-PERM-0003')).toBeInTheDocument();
     expect(screen.getByText('2026-03-25 16:40')).toBeInTheDocument();
-    expect(screen.getByText('部分通过')).toBeInTheDocument();
+    expect(screen.getByText('审批中')).toBeInTheDocument();
     expect(screen.getByText('用于物流系统集成')).toBeInTheDocument();
   });
 
-  it('renders the progress bar and legend based on subOrders counts', () => {
+  it('renders partial approved in-progress aggregate status', () => {
     render(
       <ApplicantPermDetail
         ticket={baseTicket}
-        subOrders={subOrders}
+        subOrders={[
+          { assetName: 'a', status: 'approved' as const, timeline: [] },
+          { assetName: 'b', status: 'pending' as const, timeline: [] },
+          { assetName: 'c', status: 'rejected' as const, timeline: [] },
+        ]}
+        actions={[]}
+      />
+    );
+    expect(screen.getByText('部分通过，审批中')).toBeInTheDocument();
+  });
+
+  it('renders final partial approved rejected-or-withdrawn aggregate status', () => {
+    render(
+      <ApplicantPermDetail
+        ticket={baseTicket}
+        subOrders={[
+          { assetName: 'a', status: 'approved' as const, timeline: [] },
+          { assetName: 'b', status: 'withdrawn' as const, timeline: [] },
+        ]}
+        actions={[]}
+      />
+    );
+    expect(screen.getByText('部分通过，部分拒绝/撤回')).toBeInTheDocument();
+  });
+
+  it('renders the progress bar and legend based on subOrders counts including withdrawn', () => {
+    render(
+      <ApplicantPermDetail
+        ticket={baseTicket}
+        subOrders={[
+          ...subOrders,
+          { assetName: 'api_logistics_cancelled', assetDisplay: '物流取消接口', status: 'withdrawn' as const, timeline: [] },
+        ]}
         actions={[<button key="w" type="button">撤回</button>]}
       />
     );
     expect(screen.getByText(/已通过 0/)).toBeInTheDocument();
     expect(screen.getByText(/已驳回 1/)).toBeInTheDocument();
     expect(screen.getByText(/审批中 1/)).toBeInTheDocument();
+    expect(screen.getByText(/已撤回 1/)).toBeInTheDocument();
   });
 
   it('renders N sub-order cards under "审批流明细"', () => {
@@ -104,6 +137,7 @@ describe('ApplicantPermDetail', () => {
         actions={[<button key="w" type="button">撤回</button>]}
       />
     );
+    expect(screen.getByText('未知')).toBeInTheDocument();
     expect(screen.getByText(/审批流明细（0 个子单）/)).toBeInTheDocument();
   });
 

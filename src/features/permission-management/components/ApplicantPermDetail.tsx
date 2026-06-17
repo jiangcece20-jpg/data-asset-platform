@@ -3,6 +3,12 @@ import { Tag } from '../../../components/base/Tag';
 import type { Ticket } from '../PermissionManagementPage';
 import type { PermSubOrder } from './permTypes';
 import { PermDetailSubOrderCard } from './PermDetailSubOrderCard';
+import {
+  aggregateStatusLabels,
+  aggregateStatusTone,
+  countChildApprovalStatuses,
+  deriveMainTicketAggregateStatus,
+} from './ticketAggregateStatus';
 
 type ApplicantPermDetailProps = {
   ticket: Ticket;
@@ -12,10 +18,9 @@ type ApplicantPermDetailProps = {
 };
 
 export function ApplicantPermDetail({ ticket, subOrders, actions, redTitle = false }: ApplicantPermDetailProps) {
-  const total = subOrders.length;
-  const approvedCount = subOrders.filter(s => s.status === 'approved').length;
-  const rejectedCount = subOrders.filter(s => s.status === 'rejected').length;
-  const pendingCount = subOrders.filter(s => s.status === 'pending').length;
+  const statusList = subOrders.map(s => s.status);
+  const counts = countChildApprovalStatuses(statusList);
+  const aggregateStatus = deriveMainTicketAggregateStatus(statusList, { mainWithdrawn: ticket.status === 'withdrawn' });
   const titleClass = redTitle
     ? 'permission-management__detail-title permission-management__detail-title--red'
     : 'permission-management__detail-title';
@@ -31,7 +36,7 @@ export function ApplicantPermDetail({ ticket, subOrders, actions, redTitle = fal
             <div><div className="permission-management__info-label">飞书定义</div><div className="permission-management__info-value">{ticket.feishuDefinition}</div></div>
             <div><div className="permission-management__info-label">批次/实例</div><div className="permission-management__info-value">{ticket.batchId ?? '单实例'} / {ticket.instanceCode}</div></div>
             <div><div className="permission-management__info-label">申请时间</div><div className="permission-management__info-value">{ticket.applyTime}</div></div>
-            <div><div className="permission-management__info-label">整体状态</div><div className="permission-management__info-value"><Tag tone="warning">部分通过</Tag></div></div>
+            <div><div className="permission-management__info-label">整体状态</div><div className="permission-management__info-value"><Tag tone={aggregateStatusTone[aggregateStatus]}>{aggregateStatusLabels[aggregateStatus]}</Tag></div></div>
           </div>
           {ticket.reason ? (
             <div className="permission-management__info-block">
@@ -72,19 +77,21 @@ export function ApplicantPermDetail({ ticket, subOrders, actions, redTitle = fal
           <div className="permission-management__info-block">
             <div className="permission-management__info-label">审批进度</div>
             <div className="permission-management__progress-bar">
-              <div className="permission-management__progress-segment green" style={{ width: total > 0 ? `${(approvedCount / total) * 100}%` : '0%' }} />
-              <div className="permission-management__progress-segment red" style={{ width: total > 0 ? `${(rejectedCount / total) * 100}%` : '0%' }} />
-              <div className="permission-management__progress-segment blue" style={{ width: total > 0 ? `${(pendingCount / total) * 100}%` : '0%' }} />
+              <div className="permission-management__progress-segment green" style={{ width: counts.total > 0 ? `${(counts.approved / counts.total) * 100}%` : '0%' }} />
+              <div className="permission-management__progress-segment red" style={{ width: counts.total > 0 ? `${(counts.rejected / counts.total) * 100}%` : '0%' }} />
+              <div className="permission-management__progress-segment blue" style={{ width: counts.total > 0 ? `${(counts.pending / counts.total) * 100}%` : '0%' }} />
+              <div className="permission-management__progress-segment gray" style={{ width: counts.total > 0 ? `${(counts.withdrawn / counts.total) * 100}%` : '0%' }} />
             </div>
             <div className="permission-management__progress-legend">
-              <span>✅ 已通过 {approvedCount}</span>
-              <span>❌ 已驳回 {rejectedCount}</span>
-              <span>⏳ 审批中 {pendingCount}</span>
+              <span>已通过 {counts.approved}</span>
+              <span>已驳回 {counts.rejected}</span>
+              <span>审批中 {counts.pending}</span>
+              <span>已撤回 {counts.withdrawn}</span>
             </div>
           </div>
         </div>
       </div>
-      <h3>审批流明细（{total} 个子单）</h3>
+      <h3>审批流明细（{counts.total} 个子单）</h3>
       {subOrders.map((order, i) => <PermDetailSubOrderCard key={i} order={order} />)}
       <div className="permission-management__detail-actions">
         {actions.map((node, i) => <span key={i}>{node}</span>)}

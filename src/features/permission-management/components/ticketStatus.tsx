@@ -1,6 +1,8 @@
 import { Tag } from '../../../components/base/Tag';
 import type { Ticket } from '../PermissionManagementPage';
 
+export { aggregateStatusLabels, aggregateStatusTone } from './ticketAggregateStatus';
+
 export const statusLabels: Record<string, string> = {
   pending: '审批中',
   approved: '已通过',
