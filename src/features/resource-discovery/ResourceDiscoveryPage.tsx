@@ -3,6 +3,7 @@ import { Tag } from '../../components/base/Tag';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { mockResources } from '../../mocks/resources';
 import type { ResourceSummary, ResourceType } from '../../types/resources';
+import { addPermissionCartItem, getPermissionAction } from '../permission-apply/permissionApply';
 import './resource-discovery.css';
 
 type DiscoveryKind = 'asset' | 'resource';
@@ -197,9 +198,17 @@ function getTreeFilterLabel(treeFilter: TreeFilter) {
 function DiscoveryCard({ record }: { record: DiscoveryRecord }) {
   const dbName = record.databaseName;
   const showDbPrefix = dbName && (record.type === 'table' || record.type === 'view');
+  const permissionAction = getPermissionAction(record);
+  const queryCount = Math.floor((record.usageCount ?? 0) * 0.35);
+
+  const applyPermission = () => {
+    if (permissionAction.state !== 'applyable') return;
+    addPermissionCartItem(record);
+    window.location.hash = 'my?section=cart';
+  };
 
   return (
-    <article className="resource-discovery__asset-card">
+    <article className="resource-discovery__asset-card" aria-label={`${record.name} ${record.displayName ?? ''}`.trim()}>
       <div className="resource-discovery__asset-row resource-discovery__asset-row--top">
         <span className="resource-discovery__asset-icon" aria-hidden="true">
           {typeIcons[record.type]}
@@ -223,6 +232,21 @@ function DiscoveryCard({ record }: { record: DiscoveryRecord }) {
           {(record.tags ?? []).slice(0, 2).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
+        </div>
+        <div className="resource-discovery__asset-actions">
+          <span className="resource-discovery__asset-stat" aria-label="近30天查询量">⌕ {queryCount.toLocaleString('zh-CN')}</span>
+          <span className="resource-discovery__asset-stat" aria-label="近30天浏览量">◎ {(record.usageCount ?? 0).toLocaleString('zh-CN')}</span>
+          <span className="resource-discovery__favorite" aria-hidden="true">☆</span>
+          <button
+            type="button"
+            className={`resource-discovery__permission-button resource-discovery__permission-button--${permissionAction.state}`}
+            disabled={permissionAction.disabled}
+            title={permissionAction.reason || undefined}
+            onClick={applyPermission}
+          >
+            <span aria-hidden="true">▣</span>
+            {permissionAction.label}
+          </button>
         </div>
       </div>
 

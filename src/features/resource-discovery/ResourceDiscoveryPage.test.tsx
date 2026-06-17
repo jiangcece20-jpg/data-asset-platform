@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { ResourceDiscoveryPage } from './ResourceDiscoveryPage';
 
 describe('ResourceDiscoveryPage', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/');
+    window.sessionStorage.clear();
+  });
+
   it('renders unified discovery pool by default', () => {
     render(<ResourceDiscoveryPage />);
 
@@ -76,5 +81,27 @@ describe('ResourceDiscoveryPage', () => {
 
     expect(screen.getByText('共 2 条')).toBeInTheDocument();
     expect(screen.getByText('api_customer_value_score')).toBeInTheDocument();
+  });
+
+  it('adds an applyable discovery record to the application cart', async () => {
+    const user = userEvent.setup();
+    render(<ResourceDiscoveryPage />);
+
+    const card = screen.getByRole('article', { name: /rpt_gmv_daily/ });
+    await user.click(within(card).getByRole('button', { name: '申请权限' }));
+
+    expect(window.location.hash).toBe('#my?section=cart');
+    expect(JSON.parse(window.sessionStorage.getItem('dap.permissionCart.v1') ?? '[]')).toEqual([
+      expect.objectContaining({ name: 'rpt_gmv_daily' }),
+    ]);
+  });
+
+  it('keeps metric records visible but blocks direct permission application', () => {
+    render(<ResourceDiscoveryPage />);
+
+    const card = screen.getByRole('article', { name: /metric_gmv_core/ });
+    const button = within(card).getByRole('button', { name: '申请权限' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', expect.stringContaining('指标权限依赖底层表或 API'));
   });
 });

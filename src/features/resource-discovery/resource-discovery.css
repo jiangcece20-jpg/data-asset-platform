@@ -397,7 +397,82 @@
   flex: 0 1 auto;
   flex-wrap: wrap;
   gap: 6px;
+  margin-left: 8px;
+}
+
+.resource-discovery__asset-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
   margin-left: auto;
+  color: #8c96a8;
+  font-size: 13px;
+}
+
+.resource-discovery__asset-stat,
+.resource-discovery__favorite {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.resource-discovery__favorite {
+  color: #8c96a8;
+  font-size: 18px;
+}
+
+.resource-discovery__permission-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 92px;
+  height: 32px;
+  border: 1px solid #d9dfe9;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.resource-discovery__permission-button--applyable {
+  border-color: #d9dfe9;
+  background: #fff;
+  color: #374151;
+}
+
+.resource-discovery__permission-button--applyable:hover {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.resource-discovery__permission-button--granted {
+  border-color: #d9f7be;
+  background: #f6ffed;
+  color: #16a34a;
+}
+
+.resource-discovery__permission-button--pending {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.resource-discovery__permission-button--blocked {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.resource-discovery__permission-button:disabled {
+  cursor: not-allowed;
 }
 
 .resource-discovery__copy-button {
@@ -481,6 +556,12 @@
   }
 
   .resource-discovery__asset-tags {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .resource-discovery__asset-actions {
+    flex-wrap: wrap;
     justify-content: flex-start;
     margin-left: 0;
   }
