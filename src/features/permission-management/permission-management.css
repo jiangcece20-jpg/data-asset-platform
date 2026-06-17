@@ -576,6 +576,7 @@
 .permission-management__progress-segment.green { background: var(--success); }
 .permission-management__progress-segment.red { background: var(--danger); }
 .permission-management__progress-segment.blue { background: var(--primary); }
+.permission-management__progress-segment.gray { background: var(--gray-400); }
 
 .permission-management__progress-legend {
   display: flex;

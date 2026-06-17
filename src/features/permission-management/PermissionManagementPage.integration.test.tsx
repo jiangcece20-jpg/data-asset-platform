@@ -10,7 +10,7 @@ describe('PermissionManagementPage integration', () => {
   it('renders ApplicantPermDetail when an applicant-side perm ticket row is opened', async () => {
     const user = userEvent.setup();
     render(<PermissionManagementPage />);
-    await user.click(screen.getByRole('tab', { name: '已拒绝' }));
+    await user.click(screen.getByRole('tab', { name: '全部拒绝/撤回' }));
     const rows = screen.getAllByRole('row');
     // Find a row containing PA- (perm ticket id pattern)
     const permRow = rows.find(row => row.textContent?.includes('PA-2026032500008'));
@@ -46,5 +46,18 @@ describe('PermissionManagementPage integration', () => {
         expect(screen.getByText('当前目录')).toBeInTheDocument();
       }
     }
+  });
+
+  it('shows aggregate status for applicant permission work orders', () => {
+    render(<PermissionManagementPage />);
+    expect(screen.getByText('部分通过，审批中')).toBeInTheDocument();
+  });
+
+  it('filters applicant permission work orders by aggregate status', async () => {
+    const user = userEvent.setup();
+    render(<PermissionManagementPage />);
+    await user.click(screen.getByRole('tab', { name: '部分通过审批中' }));
+    expect(screen.getByText('PA-2026033100001')).toBeInTheDocument();
+    expect(screen.queryByText('GA-2026033100042')).not.toBeInTheDocument();
   });
 });

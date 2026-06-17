@@ -10,6 +10,13 @@ import { ApplicantPermDetail } from './components/ApplicantPermDetail';
 import { ApplicantGovDetail } from './components/ApplicantGovDetail';
 import { ApplicantTransferDetail } from './components/ApplicantTransferDetail';
 import { toApplicantTicket } from './components/toApplicantTicket';
+import type { PermSubOrder } from './components/permTypes';
+import {
+  aggregateStatusLabels,
+  aggregateStatusTone,
+  deriveMainTicketAggregateStatus,
+  type MainTicketAggregateStatus,
+} from './components/ticketAggregateStatus';
 
 export { statusLabels, statusTone, syncTone, categoryTone, pendingStatusLabels, subOrderStatusTag };
 export { TimelineItem };
@@ -17,6 +24,7 @@ export { buildReapplyHash };
 
 type PermissionSection = 'tickets' | 'pending' | 'approval-management' | 'records';
 type TicketStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'withdrawn';
+type ApplicantTicketStatusFilter = 'all' | MainTicketAggregateStatus;
 type TicketCategory = 'all' | 'perm' | 'gov';
 type TicketType = 'all' | '权限申请' | '上架申请' | '目录修改' | '打标签' | '下架申请' | '血缘修正' | '负责人交接';
 type PendingStatusTab = 'all' | 'pending' | 'approved' | 'rejected' | 'expired';
@@ -55,14 +63,7 @@ export type Ticket = {
   transactionOrder?: string;  // 交易订单
 };
 
-type SubOrder = {
-  assetName: string;
-  assetDisplay: string;
-  assetTypeTag: string;
-  status: 'approved' | 'rejected' | 'pending' | 'withdrawn';
-  timeline: Array<{ label: string; time: string; status: 'done' | 'rejected' | 'waiting' }>;
-  rejectReason?: string;
-};
+type SubOrder = PermSubOrder;
 
 type PendingApproval = {
   id: string;
@@ -214,6 +215,28 @@ const permDetailSubOrders: SubOrder[] = [
   { assetName: 'rpt_finance_monthly, rpt_finance_weekly', assetDisplay: '', assetTypeTag: '报表 \xb7 金融', status: 'rejected', rejectReason: '请补充具体使用场景和查看频率', timeline: [{ label: '金融业务线审批人 → 赵总', time: '2026-03-31 16:45', status: 'rejected' }] },
   { assetName: 'api_trade_query', assetDisplay: '交易查询接口', assetTypeTag: 'API \xb7 金融', status: 'pending', timeline: [{ label: 'API负责人 → 孙工', time: '等待审批中...', status: 'waiting' }] },
 ];
+
+const permSubOrdersByTicketId: Record<string, PermSubOrder[]> = {
+  'PA-2026033100001': permDetailSubOrders,
+  'PA-2026032800012': [
+    { assetName: 'dim_user_profile', assetDisplay: '用户画像维表', assetTypeTag: '数据表 \xb7 用户增长', status: 'approved', timeline: [{ label: '负责人审批 → 李四', time: '2026-03-28 10:30', status: 'done' }] },
+  ],
+  'PA-2026032500008': [
+    { assetName: 'api_logistics_track', assetDisplay: '物流追踪接口', assetTypeTag: 'API \xb7 物流', status: 'rejected', rejectReason: 'S3 等级超出申请范围', timeline: [{ label: '负责人审批 → 钱七', time: '2026-03-25 18:20', status: 'rejected' }] },
+    { assetName: 'api_logistics_callback', assetDisplay: '物流回调', assetTypeTag: 'API \xb7 物流', status: 'withdrawn', timeline: [{ label: '申请人撤回', time: '2026-03-25 19:00', status: 'done' }] },
+  ],
+  'PA-2026032200003': [
+    { assetName: 'rpt_finance_monthly', assetDisplay: '金融月度报表', assetTypeTag: '报表 \xb7 金融', status: 'withdrawn', timeline: [{ label: '申请人撤回', time: '2026-03-22 11:20', status: 'done' }] },
+  ],
+};
+
+function aggregateStatusOfTicket(ticket: Ticket): MainTicketAggregateStatus | null {
+  if (ticket.category !== 'perm') return null;
+  return deriveMainTicketAggregateStatus(
+    (permSubOrdersByTicketId[ticket.id] ?? []).map(order => order.status),
+    { mainWithdrawn: ticket.status === 'withdrawn' }
+  );
+}
 
 const pendingApprovals: PendingApproval[] = [
   { id: 'PA-2026040100003-S2', category: 'perm', type: '权限申请', applicant: '王五', target: 'dwd_trade_order / dwd_trade_payment', description: '交易订单宽表、交易支付明细表 \xb7 数据表 \xb7 金融', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。', applyTime: '2026-04-01 09:30', status: 'pending', primaryAction: '通过', secondaryAction: '驳回', detailType: 'perm', detailData: { applicant: '王五', applyTime: '2026-04-01 09:30', dataTable: 'dwd_trade_order（交易订单宽表）', usagePeriod: '3 个月', dataScope: '全部字段', permissionJudgment: '业务分析', transactionOrder: '2026Q1-0027', reason: '需要分析 Q1 交易数据，用于季度业务复盘报告，预计使用 3 个月。' } },
@@ -478,7 +501,7 @@ function PermDetailSubOrderCard({ order }: { order: SubOrder }) {
 }
 
 function TicketQueryPanel() {
-  const [status, setStatus] = useState<TicketStatus>('all');
+  const [status, setStatus] = useState<ApplicantTicketStatusFilter>('all');
   const [category, setCategory] = useState<TicketCategory>('all');
   const [type, setType] = useState<TicketType>('all');
   const [keyword, setKeyword] = useState('');
@@ -490,7 +513,10 @@ function TicketQueryPanel() {
     const kw = keyword.trim().toLowerCase();
     const applicantKw = applicant.trim().toLowerCase();
     const filtered = tickets.filter((ticket) => {
-      if (status !== 'all' && ticket.status !== status) return false;
+      if (status !== 'all') {
+        const aggregateStatus = aggregateStatusOfTicket(ticket);
+        if (aggregateStatus !== status) return false;
+      }
       if (category !== 'all' && ticket.category !== category) return false;
       if (type !== 'all' && ticket.type !== type) return false;
       if (kw && !ticket.assetName.toLowerCase().includes(kw) && !ticket.assetDisplay.toLowerCase().includes(kw)) return false;
@@ -508,7 +534,7 @@ function TicketQueryPanel() {
     return (
       <ApplicantPermDetail
         ticket={detailTicket}
-        subOrders={permDetailSubOrders}
+        subOrders={permSubOrdersByTicketId[detailTicket.id] ?? []}
         actions={[<Button key="withdraw" variant="danger" size="sm">撤回所有未完成审批</Button>]}
       />
     );
@@ -552,7 +578,15 @@ function TicketQueryPanel() {
     <section className="permission-management__panel">
       <h2>我提交的申请</h2>
       <div className="permission-management__tabs" role="tablist" aria-label="工单状态">
-        {([['all', '全部'], ['pending', '审批中'], ['approved', '已通过'], ['rejected', '已拒绝'], ['withdrawn', '已撤回']] as const).map(([key, label]) => (
+        {([
+          ['all', '全部'],
+          ['in_progress', '审批中'],
+          ['partial_approved_in_progress', '部分通过审批中'],
+          ['all_approved', '全部通过'],
+          ['partial_approved_with_rejected_or_withdrawn', '部分通过部分拒绝/撤回'],
+          ['all_rejected_or_withdrawn', '全部拒绝/撤回'],
+          ['withdrawn', '已撤回'],
+        ] as const).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={status === key} className={status === key ? 'active' : ''} onClick={() => setStatus(key)}>{label}</button>
         ))}
       </div>
@@ -587,50 +621,63 @@ function TicketQueryPanel() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((ticket) => (
-              <tr key={ticket.id} style={{ cursor: 'pointer' }} onClick={() => setDetailId(ticket.id)}>
-                <td className="primary">{ticket.id}</td>
-                <td><Tag tone={categoryTone(ticket.category)}>{ticket.category === 'perm' ? '权限' : '治理'}</Tag></td>
-                <td><Tag tone={ticket.type === '权限申请' ? 'blue' : ticket.type === '上架申请' ? 'success' : ticket.type === '下架申请' ? 'danger' : 'warning'}>{ticket.type}</Tag></td>
-                <td><strong>{ticket.feishuDefinition}</strong><span>{ticket.approvalCode}</span></td>
-                <td><strong>{ticket.batchId ?? '单实例'}</strong><span>{ticket.instanceCode}</span></td>
-                <td><strong>{ticket.assetName}</strong><span>{ticket.assetDisplay}</span></td>
-                <td><Tag tone={ticket.assetType === '数据表' ? 'blue' : ticket.assetType === '报表' ? 'warning' : 'gray'}>{ticket.assetType}</Tag></td>
-                <td>{ticket.applyTime}</td>
-                <td>{ticket.applicant}</td>
-                <td><Tag tone={statusTone(ticket.status)}>{statusLabels[ticket.status]}</Tag></td>
-                <td><Tag tone={syncTone(ticket.syncMode)}>{ticket.syncText}</Tag></td>
-                <td>
-                  <div className="permission-management__row-actions">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setDetailId(ticket.id); }}>查看详情</button>
-                    {ticket.feishuUrl ? <a href={ticket.feishuUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>飞书审批单</a> : null}
-                    {ticket.status === 'pending' ? <button type="button" className="danger" onClick={(e) => { e.stopPropagation(); }}>撤回</button> : null}
-                    {ticket.status === 'rejected' ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
-                        }}
-                      >
-                        重新申请
-                      </button>
-                    ) : null}
-                    {ticket.status === 'withdrawn' ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
-                        }}
-                      >
-                        重新申请
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {rows.map((ticket) => {
+              const aggregateStatus = aggregateStatusOfTicket(ticket);
+              const isActionPending = aggregateStatus ? aggregateStatus === 'in_progress' || aggregateStatus === 'partial_approved_in_progress' : ticket.status === 'pending';
+              const isActionRejected = aggregateStatus ? aggregateStatus === 'partial_approved_with_rejected_or_withdrawn' || aggregateStatus === 'all_rejected_or_withdrawn' : ticket.status === 'rejected';
+              const isActionWithdrawn = aggregateStatus ? aggregateStatus === 'withdrawn' : ticket.status === 'withdrawn';
+
+              return (
+                <tr key={ticket.id} style={{ cursor: 'pointer' }} onClick={() => setDetailId(ticket.id)}>
+                  <td className="primary">{ticket.id}</td>
+                  <td><Tag tone={categoryTone(ticket.category)}>{ticket.category === 'perm' ? '权限' : '治理'}</Tag></td>
+                  <td><Tag tone={ticket.type === '权限申请' ? 'blue' : ticket.type === '上架申请' ? 'success' : ticket.type === '下架申请' ? 'danger' : 'warning'}>{ticket.type}</Tag></td>
+                  <td><strong>{ticket.feishuDefinition}</strong><span>{ticket.approvalCode}</span></td>
+                  <td><strong>{ticket.batchId ?? '单实例'}</strong><span>{ticket.instanceCode}</span></td>
+                  <td><strong>{ticket.assetName}</strong><span>{ticket.assetDisplay}</span></td>
+                  <td><Tag tone={ticket.assetType === '数据表' ? 'blue' : ticket.assetType === '报表' ? 'warning' : 'gray'}>{ticket.assetType}</Tag></td>
+                  <td>{ticket.applyTime}</td>
+                  <td>{ticket.applicant}</td>
+                  <td>
+                    {aggregateStatus ? (
+                      <Tag tone={aggregateStatusTone[aggregateStatus]}>{aggregateStatusLabels[aggregateStatus]}</Tag>
+                    ) : (
+                      <Tag tone={statusTone(ticket.status)}>{statusLabels[ticket.status]}</Tag>
+                    )}
+                  </td>
+                  <td><Tag tone={syncTone(ticket.syncMode)}>{ticket.syncText}</Tag></td>
+                  <td>
+                    <div className="permission-management__row-actions">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setDetailId(ticket.id); }}>查看详情</button>
+                      {ticket.feishuUrl ? <a href={ticket.feishuUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>飞书审批单</a> : null}
+                      {isActionPending ? <button type="button" className="danger" onClick={(e) => { e.stopPropagation(); }}>撤回</button> : null}
+                      {isActionRejected ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
+                          }}
+                        >
+                          重新申请
+                        </button>
+                      ) : null}
+                      {isActionWithdrawn ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.hash = buildReapplyHash(ticket.assetName, ticket.reason);
+                          }}
+                        >
+                          重新申请
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {rows.length === 0 ? <tr><td colSpan={12} className="permission-management__empty">暂无工单记录</td></tr> : null}
           </tbody>
         </table>

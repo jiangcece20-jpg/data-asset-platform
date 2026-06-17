@@ -3,6 +3,12 @@ import { Button } from '../../../components/base/Button';
 import { Tag } from '../../../components/base/Tag';
 import { ticketTypes as approvalTicketTypes } from '../approvalData';
 import type { ApprovalBatch, ApprovalInstance } from '../approvalData';
+import {
+  batchAggregateStatusLabels,
+  batchAggregateStatusTone,
+  deriveBatchAggregateStatus,
+  type BatchAggregateStatus,
+} from '../approvalAggregateStatus';
 
 type ActionDialog = { task: { id: string; applicant: string; applicantDept: string; nodeName: string; waitingHours: number; assets: string[]; securityLevel: string; permissionType: string; reason: string; subOrderNo: string; instanceCode: string; createdAt: string; directory: string; matchedFlow: string; matchedRoute: string; sourceType: string; sourceSystem: string; ticketType: string }; type: 'approve' | 'reject' } | null;
 
@@ -57,10 +63,11 @@ interface SubmittedPanelProps {
 
 export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState<'all' | BatchAggregateStatus>('all');
   const [type, setType] = useState('all');
 
   const filtered = batches.filter(batch => {
+    const aggregateStatus = deriveBatchAggregateStatus(batch);
     if (search) {
       const kw = search.toLowerCase();
       if (!batch.batchId.toLowerCase().includes(kw) &&
@@ -68,16 +75,16 @@ export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
         return false;
       }
     }
-    if (status !== 'all' && batch.status !== status) return false;
+    if (status !== 'all' && aggregateStatus !== status) return false;
     if (type !== 'all' && batch.ticketType !== type) return false;
     return true;
   });
 
   const stats = {
     total: batches.length,
-    approving: batches.filter(item => item.status === 'approving').length,
-    approved: batches.filter(item => item.status === 'approved').length,
-    rejected: batches.filter(item => item.status === 'rejected').length,
+    approving: batches.filter(item => ['in_progress', 'partial_approved_in_progress'].includes(deriveBatchAggregateStatus(item))).length,
+    approved: batches.filter(item => deriveBatchAggregateStatus(item) === 'all_approved').length,
+    rejected: batches.filter(item => ['partial_approved_with_rejected_or_cancelled', 'all_rejected_or_cancelled'].includes(deriveBatchAggregateStatus(item))).length,
   };
 
   return (
@@ -105,11 +112,13 @@ export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
           onChange={event => setSearch(event.target.value)}
           placeholder="搜索批次号、子单号、资产名..."
         />
-        <select value={status} onChange={event => setStatus(event.target.value)}>
+        <select aria-label="聚合状态筛选" value={status} onChange={event => setStatus(event.target.value as 'all' | BatchAggregateStatus)}>
           <option value="all">全部状态</option>
-          <option value="approving">审批中</option>
-          <option value="approved">已通过</option>
-          <option value="rejected">已拒绝</option>
+          <option value="in_progress">审批中</option>
+          <option value="partial_approved_in_progress">部分通过审批中</option>
+          <option value="all_approved">全部通过</option>
+          <option value="partial_approved_with_rejected_or_cancelled">部分通过部分拒绝/撤回</option>
+          <option value="all_rejected_or_cancelled">全部拒绝/撤回</option>
           <option value="cancelled">已取消</option>
         </select>
         <select value={type} onChange={event => setType(event.target.value)}>
@@ -143,6 +152,7 @@ interface BatchCardProps {
 
 export function BatchCard({ batch, defaultExpanded, onView }: BatchCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const aggregateStatus = deriveBatchAggregateStatus(batch);
 
   return (
     <article className="approval-v6__batch">
@@ -154,7 +164,7 @@ export function BatchCard({ batch, defaultExpanded, onView }: BatchCardProps) {
             {batch.ticketType} · {batch.totalAssets} 个资产 · {batch.instanceCount} 个子单 · {batch.createdAt.split(' ')[0]}
           </small>
         </div>
-        <Tag tone={toneForStatus(batch.status)}>{statusLabel[batch.status]}</Tag>
+        <Tag tone={batchAggregateStatusTone[aggregateStatus]}>{batchAggregateStatusLabels[aggregateStatus]}</Tag>
         <Tag tone={toneForStatus(batch.effectStatus)}>{effectLabel[batch.effectStatus]}</Tag>
       </button>
 
