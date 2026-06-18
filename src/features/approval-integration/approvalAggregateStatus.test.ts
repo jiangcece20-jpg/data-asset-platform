@@ -26,6 +26,8 @@ describe('deriveBatchEffectAggregateStatus', () => {
   it('prioritizes effecting over failed or not effective children', () => {
     expect(deriveBatchEffectAggregateStatus(effectInstances('effecting', 'effect_failed', 'not_effective'))).toBe('effecting');
     expect(deriveBatchEffectAggregateStatus(effectInstances('effective', 'effecting', 'effect_failed'))).toBe('partial_effective_effecting');
+    expect(deriveBatchEffectAggregateStatus(effectInstances('effective', 'effecting', 'not_effective'))).toBe('partial_effective_effecting');
+    expect(deriveBatchEffectAggregateStatus(effectInstances('effective', 'effecting', 'effect_failed', 'not_effective'))).toBe('partial_effective_effecting');
   });
 
   it('returns partial_effective_with_failed_or_not_effective when effective children coexist with failed or not effective children', () => {
