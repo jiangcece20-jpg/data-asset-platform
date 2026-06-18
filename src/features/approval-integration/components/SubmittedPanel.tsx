@@ -6,7 +6,10 @@ import type { ApprovalBatch, ApprovalInstance } from '../approvalData';
 import {
   batchAggregateStatusLabels,
   batchAggregateStatusTone,
+  batchEffectAggregateStatusLabels,
+  batchEffectAggregateStatusTone,
   deriveBatchAggregateStatus,
+  deriveBatchEffectAggregateStatus,
   type BatchAggregateStatus,
 } from '../approvalAggregateStatus';
 
@@ -153,6 +156,7 @@ interface BatchCardProps {
 export function BatchCard({ batch, defaultExpanded, onView }: BatchCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const aggregateStatus = deriveBatchAggregateStatus(batch);
+  const effectAggregateStatus = deriveBatchEffectAggregateStatus(batch.instances);
 
   return (
     <article className="approval-v6__batch">
@@ -165,7 +169,7 @@ export function BatchCard({ batch, defaultExpanded, onView }: BatchCardProps) {
           </small>
         </div>
         <Tag tone={batchAggregateStatusTone[aggregateStatus]}>{batchAggregateStatusLabels[aggregateStatus]}</Tag>
-        <Tag tone={toneForStatus(batch.effectStatus)}>{effectLabel[batch.effectStatus]}</Tag>
+        <Tag tone={batchEffectAggregateStatusTone[effectAggregateStatus]}>{batchEffectAggregateStatusLabels[effectAggregateStatus]}</Tag>
       </button>
 
       {expanded && (

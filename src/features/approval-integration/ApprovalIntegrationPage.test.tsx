@@ -153,6 +153,10 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(screen.getByText('总批次')).toBeInTheDocument();
     expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
     expect(screen.getByText('部分通过，审批中')).toBeInTheDocument();
+    expect(screen.getByText('部分生效，生效中')).toBeInTheDocument();
+    expect(screen.getAllByText('已生效').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('生效中').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('未生效').length).toBeGreaterThan(0);
     await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'partial_approved_in_progress');
     expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
     expect(screen.queryByText('BATCH-20260610-权限申请-approved')).not.toBeInTheDocument();
