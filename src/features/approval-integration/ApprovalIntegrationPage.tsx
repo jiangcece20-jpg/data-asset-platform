@@ -201,6 +201,12 @@ export function ApprovalIntegrationPage() {
   }
 
   function toggleFlowStatus(flowId: string) {
+    const target = flows.find(flow => flow.id === flowId);
+    if (!target) return;
+    if (target.status === 'disabled' && target.validateStatus !== 'passed') {
+      flash('启用前必须先校验通过');
+      return;
+    }
     setFlows(prev => prev.map(flow => flow.id === flowId ? { ...flow, status: flow.status === 'enabled' ? 'disabled' : 'enabled' } : flow));
   }
 
@@ -217,6 +223,10 @@ export function ApprovalIntegrationPage() {
   function saveNode(node: NodeMapping, isNew: boolean) {
     if (!node.feishuNodeName || !node.feishuNodeId) {
       flash('节点名称和节点 ID 不能为空');
+      return;
+    }
+    if (node.approverRuleType === 'fixed_role' && !node.fixedRoleCode) {
+      flash('选择固定角色时必须指定审批角色');
       return;
     }
     setNodeMappings(prev => isNew ? [...prev, node] : prev.map(item => item.id === node.id ? node : item));
@@ -246,6 +256,28 @@ export function ApprovalIntegrationPage() {
     setRoles(prev => isNew ? [...prev, { ...role, id: `role-${Date.now()}` }] : prev.map(item => item.id === role.id ? role : item));
     setDrawer(null);
     flash(isNew ? '角色已新增' : '角色已保存');
+  }
+
+  function toggleRole(role: ApprovalRole) {
+    if (role.enabled) {
+      const usedBy = roleUsage(role.roleCode, nodeMappings, flows);
+      if (usedBy.length) {
+        flash(`角色正在被审批节点引用：${usedBy[0]}`);
+        return;
+      }
+    }
+    setRoles(prev => prev.map(item => item.id === role.id ? { ...item, enabled: !item.enabled } : item));
+    flash(role.enabled ? '角色已停用' : '角色已启用');
+  }
+
+  function deleteRole(role: ApprovalRole) {
+    const usedBy = roleUsage(role.roleCode, nodeMappings, flows);
+    if (usedBy.length) {
+      flash(`角色正在被审批节点引用：${usedBy[0]}`);
+      return;
+    }
+    setRoles(prev => prev.filter(item => item.id !== role.id));
+    flash('角色已删除');
   }
 
   function submitApprovalAction(target: PendingTask | PendingTask[], type: 'approve' | 'reject', comment: string) {
@@ -286,15 +318,15 @@ export function ApprovalIntegrationPage() {
         {toast ? <div className="approval-v6__toast" role="status">{toast}</div> : null}
         <div className="approval-v6__content">
           {section === 'flows' ? <FlowsPanel flows={flows} routes={routes} validatingId={validatingId} onNew={() => setDrawer({ kind: 'new-flow', flow: newFlow() })} onEdit={openFlowDetail} onValidate={validateFlow} onToggle={toggleFlowStatus} /> : null}
-          {section === 'flow-detail' ? <FlowDetailPanel flow={selectedFlow} tab={detailTab} routes={routes} formMappings={formMappings} nodeMappings={nodeMappings} validatingId={validatingId} onTabChange={(tab) => openFlowDetail(selectedFlow.id, tab)} onBack={() => setSectionHash('flows')} onValidate={validateFlow} onEdit={() => setDrawer({ kind: 'edit-flow', flow: selectedFlow })} onNewMapping={() => setDrawer({ kind: 'form', mapping: newMappingFor(selectedFlow.id), isNew: true })} onEditMapping={(mapping) => setDrawer({ kind: 'form', mapping, isNew: false })} onDeleteMapping={(id) => setFormMappings(prev => prev.filter(item => item.id !== id))} onNewNode={() => setDrawer({ kind: 'node', node: newNodeFor(selectedFlow.id), isNew: true })} onEditNode={(node) => setDrawer({ kind: 'node', node, isNew: false })} onDeleteNode={(id) => setNodeMappings(prev => prev.filter(item => item.id !== id))} onToggleNode={(id) => setNodeMappings(prev => prev.map(item => item.id === id ? { ...item, enabled: !item.enabled } : item))} onNewRoute={() => setDrawer({ kind: 'route', route: newRouteFor(selectedFlow.ticketType, flows, routes, selectedFlow.id), isNew: true })} onEditRoute={(route) => setDrawer({ kind: 'route', route, isNew: false })} onDeleteRoute={(id) => setRoutes(prev => prev.filter(item => item.id !== id))} /> : null}
-          {section === 'roles' ? <RolesPanel roles={roles} onNew={() => setDrawer({ kind: 'role', role: newRole(), isNew: true })} onEdit={(role) => setDrawer({ kind: 'role', role, isNew: false })} /> : null}
+          {section === 'flow-detail' ? <FlowDetailPanel flow={selectedFlow} tab={detailTab} routes={routes} formMappings={formMappings} nodeMappings={nodeMappings} roles={roles} validatingId={validatingId} onTabChange={(tab) => openFlowDetail(selectedFlow.id, tab)} onBack={() => setSectionHash('flows')} onValidate={validateFlow} onEdit={() => setDrawer({ kind: 'edit-flow', flow: selectedFlow })} onNewMapping={() => setDrawer({ kind: 'form', mapping: newMappingFor(selectedFlow.id), isNew: true })} onEditMapping={(mapping) => setDrawer({ kind: 'form', mapping, isNew: false })} onDeleteMapping={(id) => setFormMappings(prev => prev.filter(item => item.id !== id))} onNewNode={() => setDrawer({ kind: 'node', node: newNodeFor(selectedFlow.id), isNew: true })} onEditNode={(node) => setDrawer({ kind: 'node', node, isNew: false })} onDeleteNode={(id) => setNodeMappings(prev => prev.filter(item => item.id !== id))} onToggleNode={(id) => setNodeMappings(prev => prev.map(item => item.id === id ? { ...item, enabled: !item.enabled } : item))} onNewRoute={() => setDrawer({ kind: 'route', route: newRouteFor(selectedFlow.ticketType, flows, routes, selectedFlow.id), isNew: true })} onEditRoute={(route) => setDrawer({ kind: 'route', route, isNew: false })} onDeleteRoute={(id) => setRoutes(prev => prev.filter(item => item.id !== id))} /> : null}
+          {section === 'roles' ? <RolesPanel roles={roles} onNew={() => setDrawer({ kind: 'role', role: newRole(), isNew: true })} onEdit={(role) => setDrawer({ kind: 'role', role, isNew: false })} onToggle={toggleRole} onDelete={deleteRole} /> : null}
           {section === 'submitted' ? <SubmittedPanel batches={batches} onView={(instance) => setDrawer({ kind: 'instance', instance })} /> : null}
           {section === 'pending' ? <PendingPanel tasks={pendingTasks} onOpenAction={setActionDialog} /> : null}
           {section === 'monitor' ? <MonitorPanel /> : null}
         </div>
       </main>
 
-      <DrawerHost drawer={drawer} setDrawer={setDrawer} onSaveFlow={saveFlow} onSaveMapping={saveMapping} onSaveNode={saveNode} onSaveRoute={saveRoute} onSaveRole={saveRole} />
+      <DrawerHost drawer={drawer} roles={roles} setDrawer={setDrawer} onSaveFlow={saveFlow} onSaveMapping={saveMapping} onSaveNode={saveNode} onSaveRoute={saveRoute} onSaveRole={saveRole} />
       {actionDialog ? <ApprovalActionModal action={actionDialog} onClose={() => setActionDialog(null)} onSubmit={submitApprovalAction} /> : null}
     </section>
   );
@@ -305,7 +337,7 @@ function newMappingFor(flowId: string): FormMapping {
 }
 
 function newNodeFor(flowId: string): NodeMapping {
-  return { id: `nm-${Date.now()}`, flowConfigId: flowId, feishuNodeName: '', feishuNodeId: '', approverRuleType: 'direct_manager', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: '' };
+  return { id: `nm-${Date.now()}`, flowConfigId: flowId, feishuNodeName: '', feishuNodeId: '', nodeType: 'dynamic', approverRuleType: 'direct_manager', enabled: true, description: '' };
 }
 
 function newRouteFor(ticketType: string, flows: FlowConfig[], routes: FlowRoute[], flowId?: string): FlowRoute {
@@ -398,6 +430,25 @@ function flowHealth(flow: FlowConfig) {
   if (flow.formMappingStatus !== 'complete' || flow.nodeMappingStatus !== 'complete') return { label: '待配置', className: 'warning' };
   if (flow.status === 'disabled') return { label: '已停用', className: 'muted' };
   return { label: '健康', className: 'success' };
+}
+
+function roleLabel(roleCode: string | undefined, roles: ApprovalRole[]) {
+  if (!roleCode) return '';
+  const role = roles.find(item => item.roleCode === roleCode);
+  return role ? role.roleName : roleCode;
+}
+
+function nodeTypeLabel(nodeType: NodeMapping['nodeType']) {
+  return nodeType === 'fixed' ? '固定节点' : '动态节点';
+}
+
+function roleUsage(roleCode: string, nodeMappings: NodeMapping[], flows: FlowConfig[]) {
+  return nodeMappings
+    .filter(node => node.approverRuleType === 'fixed_role' && node.fixedRoleCode === roleCode)
+    .map(node => {
+      const flow = flows.find(item => item.id === node.flowConfigId);
+      return `${flow?.name ?? '未知流程'} / ${node.feishuNodeName || node.feishuNodeId}`;
+    });
 }
 
 function primaryRouteFor(flow: FlowConfig, routes: FlowRoute[]) {
@@ -520,7 +571,7 @@ function FlowTable({ flows, routes, validatingId, onEdit, onValidate, onToggle }
   );
 }
 
-function FlowDetailPanel(props: { flow: FlowConfig; tab: DetailTab; routes: FlowRoute[]; formMappings: FormMapping[]; nodeMappings: NodeMapping[]; validatingId: string | null; onTabChange: (tab: DetailTab) => void; onBack: () => void; onValidate: (id: string) => void; onEdit: () => void; onNewMapping: () => void; onEditMapping: (mapping: FormMapping) => void; onDeleteMapping: (id: string) => void; onNewNode: () => void; onEditNode: (node: NodeMapping) => void; onDeleteNode: (id: string) => void; onToggleNode: (id: string) => void; onNewRoute: () => void; onEditRoute: (route: FlowRoute) => void; onDeleteRoute: (id: string) => void }) {
+function FlowDetailPanel(props: { flow: FlowConfig; tab: DetailTab; routes: FlowRoute[]; formMappings: FormMapping[]; nodeMappings: NodeMapping[]; roles: ApprovalRole[]; validatingId: string | null; onTabChange: (tab: DetailTab) => void; onBack: () => void; onValidate: (id: string) => void; onEdit: () => void; onNewMapping: () => void; onEditMapping: (mapping: FormMapping) => void; onDeleteMapping: (id: string) => void; onNewNode: () => void; onEditNode: (node: NodeMapping) => void; onDeleteNode: (id: string) => void; onToggleNode: (id: string) => void; onNewRoute: () => void; onEditRoute: (route: FlowRoute) => void; onDeleteRoute: (id: string) => void }) {
   const flowMappings = props.formMappings.filter(item => item.flowConfigId === props.flow.id);
   const flowNodes = props.nodeMappings.filter(item => item.flowConfigId === props.flow.id);
   const flowRoutes = props.routes.filter(item => item.flowConfigId === props.flow.id).sort((a, b) => a.priority - b.priority);
@@ -550,7 +601,7 @@ function FlowDetailPanel(props: { flow: FlowConfig; tab: DetailTab; routes: Flow
       <Tabs items={[{ key: 'basic', label: '配置详情' }, { key: 'form-mapping', label: `映射表 ${mappingLabel(props.flow.formMappingStatus)}` }, { key: 'node-mapping', label: `节点表 ${mappingLabel(props.flow.nodeMappingStatus)}` }, { key: 'route-rules', label: `路由规则 ${flowRoutes.length}` }]} activeKey={props.tab} onChange={(key) => props.onTabChange(key as DetailTab)} />
       {props.tab === 'basic' ? <BasicFlowTab flow={props.flow} validating={props.validatingId === props.flow.id} onValidate={() => props.onValidate(props.flow.id)} onEdit={props.onEdit} /> : null}
       {props.tab === 'form-mapping' ? <FormMappingTab mappings={flowMappings} onNew={props.onNewMapping} onEdit={props.onEditMapping} onDelete={props.onDeleteMapping} /> : null}
-      {props.tab === 'node-mapping' ? <NodeMappingTab nodes={flowNodes} onNew={props.onNewNode} onEdit={props.onEditNode} onDelete={props.onDeleteNode} onToggle={props.onToggleNode} /> : null}
+      {props.tab === 'node-mapping' ? <NodeMappingTab nodes={flowNodes} roles={props.roles} onNew={props.onNewNode} onEdit={props.onEditNode} onDelete={props.onDeleteNode} onToggle={props.onToggleNode} /> : null}
       {props.tab === 'route-rules' ? <RouteRulesTab routes={flowRoutes} onNew={props.onNewRoute} onEdit={props.onEditRoute} onDelete={props.onDeleteRoute} /> : null}
     </section>
   );
@@ -618,29 +669,29 @@ function FormMappingTab({ mappings, onNew, onEdit, onDelete }: { mappings: FormM
   );
 }
 
-function NodeMappingTab({ nodes, onNew, onEdit, onDelete, onToggle }: { nodes: NodeMapping[]; onNew: () => void; onEdit: (node: NodeMapping) => void; onDelete: (id: string) => void; onToggle: (id: string) => void }) {
-  return <div className="approval-v6__panel-card"><div className="approval-v6__panel-head"><div><h2>节点表</h2><p>将飞书动态审批节点映射到平台审批人解析规则。</p></div><Button size="sm" variant="primary" onClick={onNew}>新增节点映射</Button></div><div className="approval-v6__table-wrap"><table><thead><tr><th>节点名称</th><th>节点 ID</th><th>审批人规则</th><th>审批方式</th><th>缺失处理</th><th>状态</th><th>操作</th></tr></thead><tbody>{nodes.length ? nodes.map(node => <tr key={node.id}><td><strong>{node.feishuNodeName}</strong><span>{node.description}</span></td><td><code>{node.feishuNodeId}</code></td><td>{node.approverRuleType}</td><td>{node.multiApproverMode === 'countersign' ? '会签' : '单人审批'}</td><td>{node.missingAction === 'fallback' ? '使用兜底' : '阻断提交'}</td><td><Tag tone={node.enabled ? 'success' : 'gray'}>{node.enabled ? '启用' : '停用'}</Tag></td><td><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(node)}>编辑</button><button type="button" onClick={() => onToggle(node.id)}>{node.enabled ? '停用' : '启用'}</button><button type="button" className="danger" onClick={() => onDelete(node.id)}>删除</button></div></td></tr>) : <tr><td colSpan={7}><div className="approval-v6__empty-row">暂无节点映射</div></td></tr>}</tbody></table></div></div>;
+function NodeMappingTab({ nodes, roles, onNew, onEdit, onDelete, onToggle }: { nodes: NodeMapping[]; roles: ApprovalRole[]; onNew: () => void; onEdit: (node: NodeMapping) => void; onDelete: (id: string) => void; onToggle: (id: string) => void }) {
+  return <div className="approval-v6__panel-card"><div className="approval-v6__panel-head"><div><h2>节点表</h2><p>将飞书审批节点映射到平台审批人解析规则，并标识固定节点或动态节点。</p></div><Button size="sm" variant="primary" onClick={onNew}>新增节点映射</Button></div><div className="approval-v6__table-wrap"><table><thead><tr><th>节点名称</th><th>节点 ID</th><th>节点类型</th><th>审批人规则</th><th>状态</th><th>操作</th></tr></thead><tbody>{nodes.length ? nodes.map(node => <tr key={node.id}><td><strong>{node.feishuNodeName}</strong><span>{node.description}</span></td><td><code>{node.feishuNodeId}</code></td><td>{nodeTypeLabel(node.nodeType)}</td><td>{node.approverRuleType === 'fixed_role' ? `固定角色：${roleLabel(node.fixedRoleCode, roles) || '未选择'}` : node.approverRuleType}</td><td><Tag tone={node.enabled ? 'success' : 'gray'}>{node.enabled ? '启用' : '停用'}</Tag></td><td><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(node)}>编辑</button><button type="button" onClick={() => onToggle(node.id)}>{node.enabled ? '停用' : '启用'}</button><button type="button" className="danger" onClick={() => onDelete(node.id)}>删除</button></div></td></tr>) : <tr><td colSpan={6}><div className="approval-v6__empty-row">暂无节点映射</div></td></tr>}</tbody></table></div></div>;
 }
 
 function RouteRulesTab({ routes, onNew, onEdit, onDelete }: { routes: FlowRoute[]; onNew: () => void; onEdit: (route: FlowRoute) => void; onDelete: (id: string) => void }) {
-  return <div className="approval-v6__panel-card"><div className="approval-v6__panel-head"><div><h2>路由规则</h2><p>配置命中当前流程的路由条件和优先级。</p></div><Button size="sm" variant="primary" onClick={onNew}>新增路由规则</Button></div><div className="approval-v6__route-list">{routes.length ? routes.map((route, index) => <div key={route.id} className={`approval-v6__route-card ${route.isDefault ? 'default' : ''}`}><div><b>{route.isDefault ? '兜底' : `P${index + 1}`}</b><strong>{route.name}</strong><small>{route.description}</small></div><Tag tone={route.enabled ? 'success' : 'gray'}>{route.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__route-conditions">{route.conditions.length ? route.conditions.map(condition => <span key={condition.id}>{condition.fieldLabel} {condition.operatorLabel} {routeValueText(condition)}{condition.matchMode === 'include_descendants' ? '（含子目录）' : ''}</span>) : <span>无条件命中</span>}</div><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(route)}>编辑</button><button type="button" className="danger" onClick={() => onDelete(route.id)}>删除</button></div></div>) : <div className="approval-v6__empty-row">暂无路由规则</div>}</div></div>;
+  return <div className="approval-v6__panel-card"><div className="approval-v6__panel-head"><div><h2>路由规则</h2><p>配置命中当前流程的路由条件和优先级。</p></div>{routes.length ? <span className="approval-v6__hint">当前流程已配置路由规则，如需调整请编辑现有规则。</span> : <Button size="sm" variant="primary" onClick={onNew}>新增路由规则</Button>}</div><div className="approval-v6__route-list">{routes.length ? routes.map((route, index) => <div key={route.id} className={`approval-v6__route-card ${route.isDefault ? 'default' : ''}`}><div><b>{route.isDefault ? '兜底' : `P${index + 1}`}</b><strong>{route.name}</strong><small>{route.description}</small></div><Tag tone={route.enabled ? 'success' : 'gray'}>{route.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__route-conditions">{route.conditions.length ? route.conditions.map(condition => <span key={condition.id}>{condition.fieldLabel} {condition.operatorLabel} {routeValueText(condition)}{condition.matchMode === 'include_descendants' ? '（含子目录）' : ''}</span>) : <span>无条件命中</span>}</div><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(route)}>编辑</button><button type="button" className="danger" onClick={() => onDelete(route.id)}>删除</button></div></div>) : <div className="approval-v6__empty-row">暂无路由规则</div>}</div></div>;
 }
 
-function RolesPanel({ roles, onNew, onEdit }: { roles: ApprovalRole[]; onNew: () => void; onEdit: (role: ApprovalRole) => void }) {
-  return <section><div className="approval-v6__page-header"><div><h1>审批角色管理</h1><p>管理平台审批角色及其成员，固定角色类型的动态节点将从此处解析审批人。</p></div><Button variant="primary" onClick={onNew}>新增角色</Button></div><div className="approval-v6__role-grid">{roles.map(role => <article key={role.id} className="approval-v6__role-card"><header><div><strong>{role.roleName}</strong><code>{role.roleCode}</code></div><button type="button" onClick={() => onEdit(role)}>编辑</button></header><Tag tone={role.enabled ? 'success' : 'gray'}>{role.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__member-list"><span>成员列表（{role.members.length} 人）</span>{role.members.length ? role.members.map(member => <div key={member.openId}><strong>{member.name}</strong><code>{member.openId}</code><Tag tone={member.feishuBound ? 'success' : 'danger'}>{member.feishuBound ? '已绑定' : '未绑定'}</Tag></div>) : <p>暂无成员，请添加</p>}</div></article>)}</div></section>;
+function RolesPanel({ roles, onNew, onEdit, onToggle, onDelete }: { roles: ApprovalRole[]; onNew: () => void; onEdit: (role: ApprovalRole) => void; onToggle: (role: ApprovalRole) => void; onDelete: (role: ApprovalRole) => void }) {
+  return <section><div className="approval-v6__page-header"><div><h1>审批角色管理</h1><p>管理平台审批角色及其成员，固定角色类型的动态节点将从此处解析审批人。</p></div><Button variant="primary" onClick={onNew}>新增角色</Button></div><div className="approval-v6__role-grid">{roles.map(role => <article key={role.id} aria-label={`${role.roleName} ${role.roleCode}`} className="approval-v6__role-card"><header><div><strong>{role.roleName}</strong><code>{role.roleCode}</code></div><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(role)}>编辑</button><button type="button" onClick={() => onToggle(role)}>{role.enabled ? '停用' : '启用'}</button><button type="button" className="danger" onClick={() => onDelete(role)}>删除</button></div></header><Tag tone={role.enabled ? 'success' : 'gray'}>{role.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__member-list"><span>成员列表（{role.members.length} 人）</span>{role.members.length ? role.members.map(member => <div key={member.openId}><strong>{member.name}</strong><code>{member.openId}</code><Tag tone={member.feishuBound ? 'success' : 'danger'}>{member.feishuBound ? '已绑定' : '未绑定'}</Tag></div>) : <p>暂无成员，请添加</p>}</div></article>)}</div></section>;
 }
 
 function MonitorPanel() {
   return <section className="approval-v6__simple-panel"><h1>同步监控</h1><p>监控飞书审批定义、实例状态、回调事件和补偿同步。</p><div className="approval-v6__cards"><div><strong>今日回调</strong><span>128 次，失败 1 次</span><Tag tone="success">运行中</Tag></div><div><strong>补偿队列</strong><span>2 条待重试</span><Tag tone="warning">需关注</Tag></div></div></section>;
 }
 
-function DrawerHost({ drawer, setDrawer, onSaveFlow, onSaveMapping, onSaveNode, onSaveRoute, onSaveRole }: { drawer: DrawerState; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
+function DrawerHost({ drawer, roles, setDrawer, onSaveFlow, onSaveMapping, onSaveNode, onSaveRoute, onSaveRole }: { drawer: DrawerState; roles: ApprovalRole[]; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
   if (!drawer) return null;
   if (drawer.kind === 'instance') return <InstanceDrawer instance={drawer.instance} onClose={() => setDrawer(null)} />;
-  return <div className="approval-v6__drawer-mask" onClick={() => setDrawer(null)}><aside className="approval-v6__drawer" onClick={event => event.stopPropagation()}><DrawerContent drawer={drawer} setDrawer={setDrawer} onSaveFlow={onSaveFlow} onSaveMapping={onSaveMapping} onSaveNode={onSaveNode} onSaveRoute={onSaveRoute} onSaveRole={onSaveRole} /></aside></div>;
+  return <div className="approval-v6__drawer-mask" onClick={() => setDrawer(null)}><aside className="approval-v6__drawer" onClick={event => event.stopPropagation()}><DrawerContent drawer={drawer} roles={roles} setDrawer={setDrawer} onSaveFlow={onSaveFlow} onSaveMapping={onSaveMapping} onSaveNode={onSaveNode} onSaveRoute={onSaveRoute} onSaveRole={onSaveRole} /></aside></div>;
 }
 
-function DrawerContent(props: { drawer: Exclude<DrawerState, { kind: 'instance' } | null>; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
+function DrawerContent(props: { drawer: Exclude<DrawerState, { kind: 'instance' } | null>; roles: ApprovalRole[]; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
   const { drawer, setDrawer } = props;
   const [memberName, setMemberName] = useState('');
   const [memberOpenId, setMemberOpenId] = useState('');
@@ -650,7 +701,7 @@ function DrawerContent(props: { drawer: Exclude<DrawerState, { kind: 'instance' 
     return <EditableDrawer title={title} onClose={() => setDrawer(null)} onSave={() => props.onSaveFlow(drawer.flow)}><FlowForm flow={drawer.flow} onChange={(flow) => setDrawer({ ...drawer, flow })} /></EditableDrawer>;
   }
   if (drawer.kind === 'form') return <EditableDrawer title={drawer.isNew ? '新增字段映射' : '编辑字段映射'} onClose={() => setDrawer(null)} onSave={() => props.onSaveMapping(drawer.mapping, drawer.isNew)}><FormMappingForm mapping={drawer.mapping} onChange={(mapping) => setDrawer({ ...drawer, mapping })} /></EditableDrawer>;
-  if (drawer.kind === 'node') return <EditableDrawer title={drawer.isNew ? '新增节点映射' : '编辑节点映射'} onClose={() => setDrawer(null)} onSave={() => props.onSaveNode(drawer.node, drawer.isNew)}><NodeForm node={drawer.node} onChange={(node) => setDrawer({ ...drawer, node })} /></EditableDrawer>;
+  if (drawer.kind === 'node') return <EditableDrawer title={drawer.isNew ? '新增节点映射' : '编辑节点映射'} onClose={() => setDrawer(null)} onSave={() => props.onSaveNode(drawer.node, drawer.isNew)}><NodeForm node={drawer.node} roles={props.roles} onChange={(node) => setDrawer({ ...drawer, node })} /></EditableDrawer>;
   if (drawer.kind === 'route') return <EditableDrawer title={drawer.isNew ? `新增路由规则 · ${drawer.route.ticketType}` : `编辑路由规则 · ${drawer.route.ticketType}`} onClose={() => setDrawer(null)} onSave={() => props.onSaveRoute(drawer.route, drawer.isNew)}><RouteForm route={drawer.route} onChange={(route) => setDrawer({ ...drawer, route })} /></EditableDrawer>;
   return <EditableDrawer title={drawer.isNew ? '新增审批角色' : '编辑审批角色'} onClose={() => setDrawer(null)} onSave={() => props.onSaveRole(drawer.role, drawer.isNew)}><RoleForm role={drawer.role} memberName={memberName} memberOpenId={memberOpenId} onMemberName={setMemberName} onMemberOpenId={setMemberOpenId} onChange={(role) => setDrawer({ ...drawer, role })} /></EditableDrawer>;
 }
@@ -667,8 +718,8 @@ function FormMappingForm({ mapping, onChange }: { mapping: FormMapping; onChange
   return <div className="approval-v6__form"><label>平台字段名称<input value={mapping.platformField} onChange={event => onChange({ ...mapping, platformField: event.target.value })} placeholder="如：安全等级" /></label><label>飞书控件 ID<input value={mapping.feishuWidgetId} onChange={event => onChange({ ...mapping, feishuWidgetId: event.target.value })} placeholder="如：security_level" /></label><label>控件类型<select value={mapping.widgetType} onChange={event => onChange({ ...mapping, widgetType: event.target.value })}>{['input', 'textarea', 'select', 'date', 'contact', 'number'].map(type => <option key={type}>{type}</option>)}</select></label><label>转换规则<textarea value={mapping.transformRule} onChange={event => onChange({ ...mapping, transformRule: event.target.value })} /></label><label>示例值<input value={mapping.exampleValue} onChange={event => onChange({ ...mapping, exampleValue: event.target.value })} /></label><label className="checkline"><input type="checkbox" checked={mapping.required} onChange={event => onChange({ ...mapping, required: event.target.checked })} />必填</label><label className="checkline"><input type="checkbox" checked={mapping.usedInCondition} onChange={event => onChange({ ...mapping, usedInCondition: event.target.checked })} />用于飞书条件判断</label></div>;
 }
 
-function NodeForm({ node, onChange }: { node: NodeMapping; onChange: (node: NodeMapping) => void }) {
-  return <div className="approval-v6__form"><label>飞书节点名称<input value={node.feishuNodeName} onChange={event => onChange({ ...node, feishuNodeName: event.target.value })} /></label><label>飞书节点 ID<input value={node.feishuNodeId} onChange={event => onChange({ ...node, feishuNodeId: event.target.value })} /></label><label>审批人规则<select value={node.approverRuleType} onChange={event => onChange({ ...node, approverRuleType: event.target.value as NodeMapping['approverRuleType'] })}><option value="direct_manager">直属上级</option><option value="resource_owner">资源负责人</option><option value="directory_owner">目录负责人</option><option value="fixed_role">固定角色</option></select></label><label>审批方式<select value={node.multiApproverMode} onChange={event => onChange({ ...node, multiApproverMode: event.target.value as NodeMapping['multiApproverMode'] })}><option value="single">单人审批</option><option value="countersign">会签</option></select></label><label>缺失处理<select value={node.missingAction} onChange={event => onChange({ ...node, missingAction: event.target.value as NodeMapping['missingAction'] })}><option value="block">阻断提交</option><option value="fallback">使用兜底</option></select></label><label>描述<textarea value={node.description} onChange={event => onChange({ ...node, description: event.target.value })} /></label><label className="checkline"><input type="checkbox" checked={node.enabled} onChange={event => onChange({ ...node, enabled: event.target.checked })} />启用</label></div>;
+function NodeForm({ node, roles, onChange }: { node: NodeMapping; roles: ApprovalRole[]; onChange: (node: NodeMapping) => void }) {
+  return <div className="approval-v6__form"><label>飞书节点名称<input value={node.feishuNodeName} onChange={event => onChange({ ...node, feishuNodeName: event.target.value })} /></label><label>飞书节点 ID<input value={node.feishuNodeId} onChange={event => onChange({ ...node, feishuNodeId: event.target.value })} /></label><label>节点类型<select value={node.nodeType} onChange={event => onChange({ ...node, nodeType: event.target.value as NodeMapping['nodeType'] })} required><option value="dynamic">动态节点</option><option value="fixed">固定节点</option></select></label><label>审批人规则<select value={node.approverRuleType} onChange={event => { const approverRuleType = event.target.value as NodeMapping['approverRuleType']; onChange({ ...node, approverRuleType, fixedRoleCode: approverRuleType === 'fixed_role' ? node.fixedRoleCode : undefined }); }}><option value="direct_manager">直属上级</option><option value="resource_owner">资源负责人</option><option value="directory_owner">目录负责人</option><option value="fixed_role">固定角色</option></select></label>{node.approverRuleType === 'fixed_role' ? <label>固定审批角色<select value={node.fixedRoleCode ?? ''} onChange={event => onChange({ ...node, fixedRoleCode: event.target.value || undefined })}><option value="">请选择固定角色</option>{roles.map(role => <option key={role.roleCode} value={role.roleCode}>{role.roleName}</option>)}</select></label> : null}<label>描述<textarea value={node.description} onChange={event => onChange({ ...node, description: event.target.value })} /></label><label className="checkline"><input type="checkbox" checked={node.enabled} onChange={event => onChange({ ...node, enabled: event.target.checked })} />启用</label></div>;
 }
 
 function RouteForm({ route, onChange }: { route: FlowRoute; onChange: (route: FlowRoute) => void }) {

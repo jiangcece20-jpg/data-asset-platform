@@ -1,10 +1,64 @@
 import { describe, expect, it } from 'vitest';
 import {
+  batchAggregateStatusLabels,
+  deriveBatchAggregateStatus,
   batchEffectAggregateStatusLabels,
   deriveBatchEffectAggregateStatus,
 } from './approvalAggregateStatus';
+import type { ApprovalBatch, ApprovalStatus } from './approvalData';
 
 const effectInstances = (...statuses: string[]) => statuses.map(effectStatus => ({ effectStatus }));
+const batchWithStatuses = (...statuses: ApprovalStatus[]): ApprovalBatch => ({
+  id: 'batch-test',
+  batchId: 'BATCH-TEST',
+  ticketType: '权限申请',
+  totalAssets: statuses.length,
+  instanceCount: statuses.length,
+  createdAt: '2026-06-26 10:00:00',
+  status: 'approving',
+  effectStatus: 'not_effective',
+  instances: statuses.map((status, index) => ({
+    id: `instance-${index}`,
+    subOrderNo: `SUB-${index}`,
+    instanceCode: `INS-${index}`,
+    feishuUrl: '#',
+    status,
+    effectStatus: 'not_effective',
+    applicant: '刘数据',
+    applicantDept: '数据分析部',
+    applicantManager: '王经理',
+    assets: [`asset-${index}`],
+    securityLevel: 'S3',
+    permissionType: '只读',
+    expireDate: '长期',
+    directory: '交易域',
+    sourceType: 'warehouse_engine',
+    sourceSystem: 'MaxCompute',
+    matchedFlow: '权限申请_统一版',
+    matchedRoute: '标准权限申请',
+    reason: '测试',
+    approvers: [],
+    timeline: [],
+  })),
+});
+
+describe('deriveBatchAggregateStatus', () => {
+  it('returns partial rejected or withdrawn in progress when rejected and approving children coexist without approvals', () => {
+    expect(deriveBatchAggregateStatus(batchWithStatuses('rejected', 'approving'))).toBe('partial_rejected_or_cancelled_in_progress');
+    expect(deriveBatchAggregateStatus(batchWithStatuses('cancelled', 'approving'))).toBe('partial_rejected_or_cancelled_in_progress');
+  });
+
+  it('returns mixed approved in progress and rejected when all three result classes coexist', () => {
+    expect(deriveBatchAggregateStatus(batchWithStatuses('approved', 'approving', 'rejected'))).toBe('partial_approved_in_progress_with_rejected_or_cancelled');
+  });
+});
+
+describe('batchAggregateStatusLabels', () => {
+  it('keeps product copy for every approval aggregate status', () => {
+    expect(batchAggregateStatusLabels.partial_rejected_or_cancelled_in_progress).toBe('部分拒绝/撤回，审批中');
+    expect(batchAggregateStatusLabels.partial_approved_in_progress_with_rejected_or_cancelled).toBe('部分通过，部分审批中，部分拒绝/撤回');
+  });
+});
 
 describe('deriveBatchEffectAggregateStatus', () => {
   it('returns all_effective when every child is effective', () => {

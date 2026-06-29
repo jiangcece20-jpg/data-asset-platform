@@ -101,6 +101,11 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(screen.getByText('业务用途')).toBeInTheDocument();
     expect(screen.getByText('business_reason')).toBeInTheDocument();
 
+    await user.click(screen.getByText('返回流程库'));
+    await user.click(screen.getByRole('button', { name: '新增流程' }));
+    await user.type(screen.getByPlaceholderText('如：权限申请_高安全等级版'), '权限申请_空路由测试版');
+    await user.type(screen.getByPlaceholderText('飞书审批定义 Code'), '7C468A54-ROUTE-2026');
+    await user.click(screen.getByRole('button', { name: '保存' }));
     await user.click(screen.getByRole('tab', { name: /路由规则/ }));
     await user.click(screen.getByRole('button', { name: '新增路由规则' }));
     await user.type(screen.getByLabelText('规则名称'), '测试路由规则');
@@ -116,7 +121,10 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     const user = userEvent.setup();
     render(<ApprovalIntegrationPage />);
 
-    await user.click(screen.getByRole('button', { name: '权限申请_统一版' }));
+    await user.click(screen.getByRole('button', { name: '新增流程' }));
+    await user.type(screen.getByPlaceholderText('如：权限申请_高安全等级版'), '权限申请_目录路由测试版');
+    await user.type(screen.getByPlaceholderText('飞书审批定义 Code'), '7C468A54-CATALOG-2026');
+    await user.click(screen.getByRole('button', { name: '保存' }));
     await user.click(screen.getByRole('tab', { name: /路由规则/ }));
     await user.click(screen.getByRole('button', { name: '新增路由规则' }));
     await user.type(screen.getByLabelText('规则名称'), '目录来源组合路由');
@@ -139,6 +147,81 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     expect(screen.getByText(/来源系统 属于 MaxCompute/)).toBeInTheDocument();
   });
 
+  it('limits each flow to one route rule', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(screen.getByRole('button', { name: '权限申请_统一版' }));
+    await user.click(screen.getByRole('tab', { name: /路由规则/ }));
+
+    expect(screen.queryByRole('button', { name: '新增路由规则' })).not.toBeInTheDocument();
+    expect(screen.getByText('当前流程已配置路由规则，如需调整请编辑现有规则。')).toBeInTheDocument();
+  });
+
+  it('requires validation before enabling a flow', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(screen.getByRole('button', { name: '新增流程' }));
+    await user.type(screen.getByPlaceholderText('如：权限申请_高安全等级版'), '权限申请_待校验测试版');
+    await user.type(screen.getByPlaceholderText('飞书审批定义 Code'), '7C468A54-NOT-VALIDATED');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    await user.click(screen.getByText('返回流程库'));
+    const row = screen.getByRole('row', { name: /权限申请_待校验测试版/ });
+    await user.click(within(row).getByRole('button', { name: '启用' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('启用前必须先校验通过');
+    expect(within(row).getByText('已停用')).toBeInTheDocument();
+  });
+
+  it('requires a fixed approval role when node mapping uses fixed role', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(screen.getByRole('button', { name: '权限申请_统一版' }));
+    await user.click(screen.getByRole('tab', { name: /节点表/ }));
+    expect(screen.getByText('节点类型')).toBeInTheDocument();
+    expect(screen.queryByText('审批方式')).not.toBeInTheDocument();
+    expect(screen.queryByText('缺失处理')).not.toBeInTheDocument();
+    expect(screen.getAllByText('动态节点').length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: '新增节点映射' }));
+    await user.type(screen.getByLabelText('飞书节点名称'), '固定角色测试节点');
+    await user.type(screen.getByLabelText('飞书节点 ID'), 'fixed_role_test_node');
+    await user.selectOptions(screen.getByLabelText('节点类型'), 'fixed');
+    await user.selectOptions(screen.getByLabelText('审批人规则'), 'fixed_role');
+    expect(screen.queryByLabelText('审批方式')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('缺失处理')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('选择固定角色时必须指定审批角色');
+    await user.selectOptions(screen.getByLabelText('固定审批角色'), 'security_admin');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    expect(screen.getByText('固定角色测试节点')).toBeInTheDocument();
+    expect(screen.getByText('固定节点')).toBeInTheDocument();
+    expect(screen.getByText('固定角色：安全管理员')).toBeInTheDocument();
+
+    await user.click(within(screen.getByRole('row', { name: /固定角色测试节点/ })).getByRole('button', { name: '编辑' }));
+    await user.selectOptions(screen.getByLabelText('节点类型'), 'dynamic');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+    expect(within(screen.getByRole('row', { name: /固定角色测试节点/ })).getByText('动态节点')).toBeInTheDocument();
+  });
+
+  it('blocks disabling or deleting roles used by node mappings', async () => {
+    const user = userEvent.setup();
+    render(<ApprovalIntegrationPage />);
+
+    await user.click(within(screen.getByRole('navigation', { name: '飞书审批集成导航' })).getByRole('button', { name: '审批角色管理' }));
+    const roleCard = screen.getByRole('article', { name: /CTO/ });
+    await user.click(within(roleCard).getByRole('button', { name: '停用' }));
+    expect(screen.getByRole('status')).toHaveTextContent('角色正在被审批节点引用');
+
+    await user.click(within(roleCard).getByRole('button', { name: '删除' }));
+    expect(screen.getByRole('status')).toHaveTextContent('角色正在被审批节点引用');
+    expect(screen.getByText('CTO')).toBeInTheDocument();
+  });
+
   it('matches future catalog descendants for include-descendants route conditions', () => {
     expect(matchesCatalogConditionValue({ value: ['交易域'], matchMode: 'include_descendants' }, '交易域/未来新增目录')).toBe(true);
     expect(matchesCatalogConditionValue({ value: ['交易域/订单'], matchMode: 'include_descendants' }, '用户域/订单')).toBe(false);
@@ -152,12 +235,12 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
 
     expect(screen.getByText('总批次')).toBeInTheDocument();
     expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
-    expect(screen.getByText('部分通过，审批中')).toBeInTheDocument();
+    expect(screen.getByText('部分通过，部分审批中，部分拒绝/撤回')).toBeInTheDocument();
     expect(screen.getByText('部分生效，生效中')).toBeInTheDocument();
     expect(screen.getAllByText('已生效').length).toBeGreaterThan(0);
     expect(screen.getAllByText('生效中').length).toBeGreaterThan(0);
     expect(screen.getAllByText('未生效').length).toBeGreaterThan(0);
-    await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'partial_approved_in_progress');
+    await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'partial_approved_in_progress_with_rejected_or_cancelled');
     expect(screen.getByText('BATCH-20260611-权限申请-aggregate-mixed')).toBeInTheDocument();
     expect(screen.queryByText('BATCH-20260610-权限申请-approved')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByRole('combobox', { name: '聚合状态筛选' }), 'all');

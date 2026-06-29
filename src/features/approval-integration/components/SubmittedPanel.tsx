@@ -85,9 +85,9 @@ export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
 
   const stats = {
     total: batches.length,
-    approving: batches.filter(item => ['in_progress', 'partial_approved_in_progress'].includes(deriveBatchAggregateStatus(item))).length,
+    approving: batches.filter(item => ['in_progress', 'partial_approved_in_progress', 'partial_rejected_or_cancelled_in_progress', 'partial_approved_in_progress_with_rejected_or_cancelled'].includes(deriveBatchAggregateStatus(item))).length,
     approved: batches.filter(item => deriveBatchAggregateStatus(item) === 'all_approved').length,
-    rejected: batches.filter(item => ['partial_approved_with_rejected_or_cancelled', 'all_rejected_or_cancelled'].includes(deriveBatchAggregateStatus(item))).length,
+    rejected: batches.filter(item => ['partial_rejected_or_cancelled_in_progress', 'partial_approved_with_rejected_or_cancelled', 'partial_approved_in_progress_with_rejected_or_cancelled', 'all_rejected_or_cancelled'].includes(deriveBatchAggregateStatus(item))).length,
   };
 
   return (
@@ -119,8 +119,10 @@ export function SubmittedPanel({ batches, onView }: SubmittedPanelProps) {
           <option value="all">全部状态</option>
           <option value="in_progress">审批中</option>
           <option value="partial_approved_in_progress">部分通过审批中</option>
+          <option value="partial_rejected_or_cancelled_in_progress">部分拒绝/撤回审批中</option>
           <option value="all_approved">全部通过</option>
           <option value="partial_approved_with_rejected_or_cancelled">部分通过部分拒绝/撤回</option>
+          <option value="partial_approved_in_progress_with_rejected_or_cancelled">部分通过部分审批中部分拒绝/撤回</option>
           <option value="all_rejected_or_cancelled">全部拒绝/撤回</option>
           <option value="cancelled">已取消</option>
         </select>

@@ -3,8 +3,10 @@ import type { ApprovalBatch, ApprovalStatus } from './approvalData';
 export type BatchAggregateStatus =
   | 'in_progress'
   | 'partial_approved_in_progress'
+  | 'partial_rejected_or_cancelled_in_progress'
   | 'all_approved'
   | 'partial_approved_with_rejected_or_cancelled'
+  | 'partial_approved_in_progress_with_rejected_or_cancelled'
   | 'all_rejected_or_cancelled'
   | 'cancelled'
   | 'unknown';
@@ -32,8 +34,10 @@ export interface ChildEffectStatusCounts {
 export const batchAggregateStatusLabels: Record<BatchAggregateStatus, string> = {
   in_progress: '审批中',
   partial_approved_in_progress: '部分通过，审批中',
+  partial_rejected_or_cancelled_in_progress: '部分拒绝/撤回，审批中',
   all_approved: '全部通过',
   partial_approved_with_rejected_or_cancelled: '部分通过，部分拒绝/撤回',
+  partial_approved_in_progress_with_rejected_or_cancelled: '部分通过，部分审批中，部分拒绝/撤回',
   all_rejected_or_cancelled: '全部拒绝/撤回',
   cancelled: '已取消',
   unknown: '未知',
@@ -52,8 +56,10 @@ export const batchEffectAggregateStatusLabels: Record<BatchEffectAggregateStatus
 export const batchAggregateStatusTone: Record<BatchAggregateStatus, 'success' | 'warning' | 'danger' | 'gray'> = {
   in_progress: 'warning',
   partial_approved_in_progress: 'warning',
+  partial_rejected_or_cancelled_in_progress: 'warning',
   all_approved: 'success',
   partial_approved_with_rejected_or_cancelled: 'danger',
+  partial_approved_in_progress_with_rejected_or_cancelled: 'danger',
   all_rejected_or_cancelled: 'danger',
   cancelled: 'gray',
   unknown: 'gray',
@@ -91,7 +97,9 @@ export function deriveBatchAggregateStatus(batch: ApprovalBatch): BatchAggregate
 
   if (cancelled === statuses.length) return 'cancelled';
   if (approved === statuses.length) return 'all_approved';
+  if (approved > 0 && approving > 0 && rejectedOrCancelled > 0) return 'partial_approved_in_progress_with_rejected_or_cancelled';
   if (approved > 0 && approving > 0) return 'partial_approved_in_progress';
+  if (approved === 0 && approving > 0 && rejectedOrCancelled > 0) return 'partial_rejected_or_cancelled_in_progress';
   if (approved === 0 && approving > 0) return 'in_progress';
   if (approved > 0 && rejectedOrCancelled > 0) return 'partial_approved_with_rejected_or_cancelled';
   if (approved === 0 && approving === 0 && rejectedOrCancelled > 0) return 'all_rejected_or_cancelled';

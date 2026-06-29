@@ -69,9 +69,9 @@ export type NodeMapping = {
   flowConfigId: string;
   feishuNodeName: string;
   feishuNodeId: string;
+  nodeType: 'fixed' | 'dynamic';
   approverRuleType: 'direct_manager' | 'resource_owner' | 'directory_owner' | 'fixed_role';
-  multiApproverMode: 'single' | 'countersign';
-  missingAction: 'block' | 'fallback';
+  fixedRoleCode?: string;
   enabled: boolean;
   description: string;
 };
@@ -579,13 +579,13 @@ export const initialFormMappings: FormMapping[] = [
 ];
 
 export const initialNodeMappings: NodeMapping[] = [
-  { id: 'nm-001', flowConfigId: 'fc-001', feishuNodeName: '直属上级审批', feishuNodeId: 'manager_node', approverRuleType: 'direct_manager', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: '根据申请人 open_id 解析直属上级' },
-  { id: 'nm-002', flowConfigId: 'fc-001', feishuNodeName: '资源负责人审批', feishuNodeId: 'owner_node', approverRuleType: 'resource_owner', multiApproverMode: 'countersign', missingAction: 'fallback', enabled: true, description: '按资产负责人聚合审批人' },
-  { id: 'nm-003', flowConfigId: 'fc-004', feishuNodeName: 'CTO 审批', feishuNodeId: 'cto_node', approverRuleType: 'fixed_role', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: '高安全等级固定角色审批' },
-  { id: 'nm-004', flowConfigId: 'fc-006', feishuNodeName: '目录负责人审批', feishuNodeId: 'directory_owner_node', approverRuleType: 'directory_owner', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: '按目标目录解析业务负责人' },
-  { id: 'nm-005', flowConfigId: 'fc-007', feishuNodeName: '接收人确认', feishuNodeId: 'target_owner_node', approverRuleType: 'fixed_role', multiApproverMode: 'single', missingAction: 'block', enabled: true, description: 'mock 中使用固定角色代表交接接收人确认' },
-  { id: 'nm-006', flowConfigId: 'fc-008', feishuNodeName: '治理负责人审批', feishuNodeId: 'governance_owner_node', approverRuleType: 'fixed_role', multiApproverMode: 'countersign', missingAction: 'block', enabled: true, description: '血缘修正由数据治理委员会审批' },
-  { id: 'nm-007', flowConfigId: 'fc-009', feishuNodeName: '目录委员会审批', feishuNodeId: 'directory_committee_node', approverRuleType: 'fixed_role', multiApproverMode: 'countersign', missingAction: 'block', enabled: true, description: '目录结构变更由目录委员会审批' },
+  { id: 'nm-001', flowConfigId: 'fc-001', feishuNodeName: '直属上级审批', feishuNodeId: 'manager_node', nodeType: 'dynamic', approverRuleType: 'direct_manager', enabled: true, description: '根据申请人 open_id 解析直属上级' },
+  { id: 'nm-002', flowConfigId: 'fc-001', feishuNodeName: '资源负责人审批', feishuNodeId: 'owner_node', nodeType: 'dynamic', approverRuleType: 'resource_owner', enabled: true, description: '按资产负责人聚合审批人' },
+  { id: 'nm-003', flowConfigId: 'fc-004', feishuNodeName: 'CTO 审批', feishuNodeId: 'cto_node', nodeType: 'dynamic', approverRuleType: 'fixed_role', fixedRoleCode: 'cto', enabled: true, description: '高安全等级固定角色审批' },
+  { id: 'nm-004', flowConfigId: 'fc-006', feishuNodeName: '目录负责人审批', feishuNodeId: 'directory_owner_node', nodeType: 'dynamic', approverRuleType: 'directory_owner', enabled: true, description: '按目标目录解析业务负责人' },
+  { id: 'nm-005', flowConfigId: 'fc-007', feishuNodeName: '接收人确认', feishuNodeId: 'target_owner_node', nodeType: 'dynamic', approverRuleType: 'fixed_role', fixedRoleCode: 'security_admin', enabled: true, description: 'mock 中使用固定角色代表交接接收人确认' },
+  { id: 'nm-006', flowConfigId: 'fc-008', feishuNodeName: '治理负责人审批', feishuNodeId: 'governance_owner_node', nodeType: 'dynamic', approverRuleType: 'fixed_role', fixedRoleCode: 'data_governance', enabled: true, description: '血缘修正由数据治理委员会审批' },
+  { id: 'nm-007', flowConfigId: 'fc-009', feishuNodeName: '目录委员会审批', feishuNodeId: 'directory_committee_node', nodeType: 'dynamic', approverRuleType: 'fixed_role', fixedRoleCode: 'data_governance', enabled: true, description: '目录结构变更由目录委员会审批' },
 ];
 
 export const initialRoles: ApprovalRole[] = [
@@ -675,7 +675,7 @@ const aggregatePermissionBatch = createApprovalBatch(
   [
     createApprovalScenario({ id: 'permission-aggregate-approved', ticketType: '权限申请', status: 'approved', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '资源负责人审批', waitingHours: 4, assets: ['dwd_trade_order'], securityLevel: 'S3', permissionType: '查询', expireDate: '2026-09-30', directory: '交易域/订单', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_统一版', matchedRoute: '交易域数仓授权', reason: '需要分析 Q2 交易数据，用于季度业务复盘报告。', subOrderNo: 'SUB-20260611-900-01', instanceCode: 'PER-INS-AGG-001', createdAt: '2026-06-11 09:20:00', effectStatus: 'effective' }),
     createApprovalScenario({ id: 'permission-aggregate-approving', ticketType: '权限申请', status: 'approving', applicant: '刘数据', applicantDept: '数据分析部', nodeName: 'API负责人审批', waitingHours: 6, assets: ['api_trade_query'], securityLevel: 'S3', permissionType: '调用', expireDate: '2026-09-30', directory: '交易域/API/查询服务', sourceType: 'api_service', sourceSystem: 'API网关', matchedFlow: '权限申请_统一版', matchedRoute: 'API-通用审批', reason: '需要在分析工作台调用交易查询接口。', subOrderNo: 'SUB-20260611-900-02', instanceCode: 'PER-INS-AGG-002', createdAt: '2026-06-11 09:20:00', effectStatus: 'effecting' }),
-    createApprovalScenario({ id: 'permission-aggregate-rejected', ticketType: '权限申请', status: 'rejected', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '金融业务线审批', waitingHours: 3, assets: ['rpt_finance_weekly'], securityLevel: 'S4', permissionType: '查询', expireDate: '2026-09-30', directory: '财务域/报表/周报', sourceType: 'report_system', sourceSystem: '万联灵析', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要核对周报口径。', subOrderNo: 'SUB-20260611-900-03', instanceCode: 'PER-INS-AGG-003', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective', timelineComment: '请补充具体使用场景和查看频率。' }),
+    createApprovalScenario({ id: 'permission-aggregate-rejected', ticketType: '权限申请', status: 'rejected', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '金融业务线审批', waitingHours: 3, assets: ['dwd_finance_weekly_detail'], securityLevel: 'S4', permissionType: '查询', expireDate: '2026-09-30', directory: '财务域/数仓/周明细', sourceType: 'warehouse_engine', sourceSystem: 'MaxCompute', matchedFlow: '权限申请_高安全等级版', matchedRoute: '高安全等级专项审批', reason: '需要核对周度财务明细口径。', subOrderNo: 'SUB-20260611-900-03', instanceCode: 'PER-INS-AGG-003', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective', timelineComment: '请补充具体使用场景和查看频率。' }),
     createApprovalScenario({ id: 'permission-aggregate-cancelled', ticketType: '权限申请', status: 'cancelled', applicant: '刘数据', applicantDept: '数据分析部', nodeName: '申请人', waitingHours: 1, assets: ['dim_coupon_rule'], securityLevel: 'S2', permissionType: '查询', expireDate: '2026-09-30', directory: '交易域/营销/优惠券', sourceType: 'warehouse_engine', sourceSystem: 'Hive', matchedFlow: '权限申请_统一版', matchedRoute: '标准权限申请（兜底）', reason: '优惠券规则分析需求取消，撤回该子单。', subOrderNo: 'SUB-20260611-900-04', instanceCode: 'PER-INS-AGG-004', createdAt: '2026-06-11 09:20:00', effectStatus: 'not_effective' }),
   ],
   '权限申请-aggregate-mixed',
