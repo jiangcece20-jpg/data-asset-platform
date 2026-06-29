@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
-import { approvalScenarioSummaries } from '../approval-integration/approvalData';
+import { mockResources } from '../../mocks/resources';
+import { ApprovalInstanceDrawer } from '../approval-integration/components/ApprovalInstanceDrawer';
+import { approvalScenarioSummaries, initialBatches, ticketPrefixForMyPage, type ApprovalInstance } from '../approval-integration/approvalData';
 import {
   lineageApprovalsToMyApplyItems,
   useLineageApprovals,
@@ -81,6 +83,17 @@ type OwnedItem = {
   roleLabel: string;
   updateTime: string;
 };
+
+function assetDetailHash(row: Pick<ApplyRow, 'assetName' | 'assetDisplay'>) {
+  const resource = mockResources.find(item => item.name === row.assetName || item.displayName === row.assetDisplay);
+  const id = resource?.id ?? row.assetName;
+  return `#detail?domain=asset&id=${encodeURIComponent(id)}`;
+}
+
+function ticketIdForInstance(instance: ApprovalInstance) {
+  const prefix = ticketPrefixForMyPage(instance.ticketType ?? '权限申请');
+  return `${prefix}-${instance.subOrderNo.replace('SUB-', '')}`;
+}
 
 type CartItem = PermissionCartItem;
 
@@ -278,7 +291,9 @@ function AppliesPanel() {
   const [keyword, setKeyword] = useState('');
   const [ticketTypeFilter, setTicketTypeFilter] = useState('all');
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [selectedInstance, setSelectedInstance] = useState<ApprovalInstance | null>(null);
   const allApplyRows = useMemo(() => [...lineageApprovalsToMyApplyItems(), ...mockApplyRows], [lineageApprovals]);
+  const approvalInstances = useMemo(() => initialBatches.flatMap(batch => batch.instances), []);
 
   const rows = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
@@ -291,6 +306,15 @@ function AppliesPanel() {
   }, [allApplyRows, tab, keyword, ticketTypeFilter]);
 
   const detailItem = detailId ? allApplyRows.find(a => a.id === detailId) : null;
+
+  function openTicketDrawer(row: ApplyRow) {
+    const instance = approvalInstances.find(item => ticketIdForInstance(item) === row.ticketId);
+    if (instance) {
+      setSelectedInstance(instance);
+      return;
+    }
+    setDetailId(row.id);
+  }
 
   if (detailItem) {
     return (
@@ -329,6 +353,7 @@ function AppliesPanel() {
   }
 
   return (
+    <>
     <section className="my-page__panel">
       <div className="my-page__content-header">
         <div className="my-page__content-title-wrap">
@@ -359,7 +384,7 @@ function AppliesPanel() {
           <thead><tr><th>资产名称</th><th>类型</th><th>工单类型</th><th>平台/来源</th><th>申请原因</th><th>申请时间</th><th>状态</th><th>工单</th><th>操作</th></tr></thead>
           <tbody>
             {rows.map(a => (
-              <tr key={a.id} style={{ cursor: 'pointer' }} onClick={() => setDetailId(a.id)}>
+              <tr key={a.id}>
                 <td><strong>{a.assetName}</strong><span>{a.assetDisplay}</span></td>
                 <td><Tag tone={typeTone(a.type)}>{typeLabel(a.type)}</Tag></td>
                 <td><Tag tone="blue">{a.ticketType}</Tag></td>
@@ -367,10 +392,10 @@ function AppliesPanel() {
                 <td className="my-page__reason-cell">{a.reason}</td>
                 <td>{a.applyTime}</td>
                 <td><Tag tone={statusTone(a.status)}>{statusLabels[a.status]}</Tag></td>
-                <td className="primary">{a.ticketId}</td>
+                <td className="primary"><button type="button" className="my-page__ticket-link" onClick={() => openTicketDrawer(a)}>{a.ticketId}</button></td>
                 <td>
                   <div className="my-page__row-actions">
-                    <button type="button" onClick={e => { e.stopPropagation(); setDetailId(a.id); }}>查看详情</button>
+                    <button type="button" onClick={() => { window.location.hash = assetDetailHash(a); }}>资产详情</button>
                   </div>
                 </td>
               </tr>
@@ -383,6 +408,8 @@ function AppliesPanel() {
         <a href="#permissions?section=submitted" style={{ color: 'var(--primary)', fontSize: '13px', textDecoration: 'none' }}>查看全部工单（含治理操作申请） →</a>
       </div>
     </section>
+    {selectedInstance ? <ApprovalInstanceDrawer instance={selectedInstance} onClose={() => setSelectedInstance(null)} /> : null}
+    </>
   );
 }
 

@@ -267,6 +267,20 @@
   font-weight: 500;
 }
 
+.my-page__ticket-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--primary, #1677ff);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.my-page__ticket-link:hover {
+  text-decoration: underline;
+}
+
 .my-page__empty {
   text-align: center;
   padding: 40px 0;

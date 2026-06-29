@@ -39,7 +39,7 @@ import {
 import { SubmittedPanel } from './components/SubmittedPanel';
 import { PendingPanel, ApprovalActionModal } from './components/PendingPanel';
 import type { ActionDialog } from './components/PendingPanel';
-import { ApprovalDetailTables } from './components/ApprovalDetailTables';
+import { ApprovalInstanceDrawer } from './components/ApprovalInstanceDrawer';
 import {
   approveLineageApproval,
   lineageApprovalsToBatches,
@@ -687,7 +687,7 @@ function MonitorPanel() {
 
 function DrawerHost({ drawer, roles, setDrawer, onSaveFlow, onSaveMapping, onSaveNode, onSaveRoute, onSaveRole }: { drawer: DrawerState; roles: ApprovalRole[]; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
   if (!drawer) return null;
-  if (drawer.kind === 'instance') return <InstanceDrawer instance={drawer.instance} onClose={() => setDrawer(null)} />;
+  if (drawer.kind === 'instance') return <ApprovalInstanceDrawer instance={drawer.instance} onClose={() => setDrawer(null)} />;
   return <div className="approval-v6__drawer-mask" onClick={() => setDrawer(null)}><aside className="approval-v6__drawer" onClick={event => event.stopPropagation()}><DrawerContent drawer={drawer} roles={roles} setDrawer={setDrawer} onSaveFlow={onSaveFlow} onSaveMapping={onSaveMapping} onSaveNode={onSaveNode} onSaveRoute={onSaveRoute} onSaveRole={onSaveRole} /></aside></div>;
 }
 
@@ -801,47 +801,6 @@ function CatalogTree({ nodes, selected, onToggle }: { nodes: CatalogNode[]; sele
 
 function RoleForm({ role, onChange, memberName, memberOpenId, onMemberName, onMemberOpenId }: { role: ApprovalRole; onChange: (role: ApprovalRole) => void; memberName: string; memberOpenId: string; onMemberName: (value: string) => void; onMemberOpenId: (value: string) => void }) {
   return <div className="approval-v6__form"><label>角色名称<input value={role.roleName} onChange={event => onChange({ ...role, roleName: event.target.value })} placeholder="如：安全管理员" /></label><label>角色编码<input value={role.roleCode} onChange={event => onChange({ ...role, roleCode: event.target.value })} placeholder="如：security_admin" /></label><label className="checkline"><input type="checkbox" checked={role.enabled} onChange={event => onChange({ ...role, enabled: event.target.checked })} />启用状态</label><div className="approval-v6__member-editor"><strong>成员管理</strong>{role.members.map(member => <div key={member.openId}><span>{member.name}</span><code>{member.openId}</code><button type="button" onClick={() => onChange({ ...role, members: role.members.filter(item => item.openId !== member.openId) })}>移除</button></div>)}<div><input value={memberName} onChange={event => onMemberName(event.target.value)} placeholder="姓名" /><input value={memberOpenId} onChange={event => onMemberOpenId(event.target.value)} placeholder="open_id" /><button type="button" onClick={() => { if (!memberName || !memberOpenId) return; onChange({ ...role, members: [...role.members, { name: memberName, openId: memberOpenId, feishuBound: true }] }); onMemberName(''); onMemberOpenId(''); }}>添加</button></div></div></div>;
-}
-
-function InstanceDrawer({ instance, onClose }: { instance: ApprovalInstance; onClose: () => void }) {
-  const ticketType = instance.ticketType ?? '权限申请';
-
-  return (
-    <div className="approval-v6__drawer-mask" onClick={onClose}>
-      <aside className="approval-v6__drawer approval-v6__drawer--approval-detail" aria-label="工单详情" onClick={event => event.stopPropagation()}>
-        <header>
-          <h2>工单详情</h2>
-          <button type="button" onClick={onClose}>×</button>
-        </header>
-        <div className="approval-v6__instance-detail">
-          <div className="approval-v6__instance-header">
-            <Tag tone={toneForStatus(instance.status)}>{statusLabel(instance.status)}</Tag>
-            <Tag tone={toneForStatus(instance.effectStatus)}>{effectLabel(instance.effectStatus)}</Tag>
-            <code>{instance.instanceCode}</code>
-          </div>
-
-          <ApprovalDetailTables record={instance} />
-
-          <h3>审批节点</h3>
-          {instance.approvers.map(node => (
-            <div key={node.nodeId} className="approval-v6__timeline">
-              <strong>{node.nodeName}</strong>
-              <span>{node.approvers.map(item => item.name).join('、')}{node.mode === 'countersign' ? '（会签）' : ''}</span>
-            </div>
-          ))}
-
-          <h3>审批时间线</h3>
-          {instance.timeline.map((item, index) => (
-            <div key={index} className="approval-v6__timeline">
-              <strong>{item.action}</strong>
-              <span>{item.operator} · {item.time}</span>
-              {item.comment ? <em>{item.comment}</em> : null}
-            </div>
-          ))}
-        </div>
-      </aside>
-    </div>
-  );
 }
 
 function supportsInstancePermissionType(ticketType: string) {

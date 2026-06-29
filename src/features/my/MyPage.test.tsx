@@ -49,18 +49,34 @@ describe('MyPage approval entries', () => {
     expect(screen.getAllByText('dwd_trade_order').length).toBeGreaterThan(0);
 
     const row = screen.getByRole('row', { name: /PA-20260609-001-01/ });
-    expect(within(row).getByRole('button', { name: '查看详情' })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: 'PA-20260609-001-01' })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: '资产详情' })).toBeInTheDocument();
+    expect(within(row).queryByRole('button', { name: '查看详情' })).not.toBeInTheDocument();
     expect(within(row).queryByRole('button', { name: '撤回' })).not.toBeInTheDocument();
     expect(within(row).queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
 
-    await user.click(within(row).getByRole('button', { name: '查看详情' }));
+    await user.click(within(row).getByRole('button', { name: 'PA-20260609-001-01' }));
 
-    expect(screen.getByText(/权限申请详情/)).toBeInTheDocument();
-    expect(screen.getByText(/子单审批进度/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '查看工单视图' })).toHaveAttribute('href', '#permissions?section=submitted');
-    expect(screen.getByRole('link', { name: '去审批工作台操作' })).toHaveAttribute('href', '#permissions?section=submitted');
+    const drawer = screen.getByLabelText('工单详情');
+    expect(within(drawer).getByRole('heading', { name: '工单详情' })).toBeInTheDocument();
+    expect(within(drawer).getByText('PER-INS-00931')).toBeInTheDocument();
+    expect(within(drawer).getAllByText('刘数据').length).toBeGreaterThan(0);
+    expect(within(drawer).getByRole('table', { name: '申请资产明细表' })).toBeInTheDocument();
+    expect(within(drawer).getAllByText(/资源负责人审批|CTO 审批/).length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: '撤回申请' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '重新申请' })).not.toBeInTheDocument();
+  });
+
+  it('opens asset detail from the asset action in My applications', async () => {
+    const user = userEvent.setup();
+    render(<MyPage />);
+
+    await user.click(screen.getByRole('button', { name: /我申请的/ }));
+
+    const row = screen.getByRole('row', { name: /PA-20260609-001-01/ });
+    await user.click(within(row).getByRole('button', { name: '资产详情' }));
+
+    expect(window.location.hash).toBe('#detail?domain=asset&id=resource-table-order-detail');
   });
 
   it('falls back to favorites when old approval sections are requested', () => {
