@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, beforeEach, beforeAll } from 'vitest';
+import { describe, expect, it, beforeEach, beforeAll, vi } from 'vitest';
 import { LineagePage } from './LineagePage';
 import { resetLineageApprovalStore } from './lineageApprovalStore';
 
@@ -160,9 +160,9 @@ describe('LineagePage lineage edit approval flow', () => {
 
     const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
     const manualFieldRow = within(fieldTable).getAllByRole('row').find(row =>
-      row.textContent?.includes('dim_sku_info') &&
-      row.textContent.includes('dwd_order_detail') &&
-      row.textContent.includes('.sku_id')
+      row.textContent?.includes('dwd_order_detail') &&
+      row.textContent.includes('ads_order_summary') &&
+      row.textContent.includes('.order_id')
     ) as HTMLElement;
     expect(manualFieldRow).toBeTruthy();
 
@@ -189,8 +189,9 @@ describe('LineagePage lineage edit approval flow', () => {
     const draftFieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
     const draftRows = within(draftFieldTable).getAllByRole('row').filter(row => row.querySelector('td'));
     expect(draftRows).toHaveLength(1);
-    expect(draftRows[0]).toHaveTextContent('dim_sku_info');
-    expect(draftRows[0]).toHaveTextContent('.sku_id');
+    expect(draftRows[0]).toHaveTextContent('dwd_order_detail');
+    expect(draftRows[0]).toHaveTextContent('ads_order_summary');
+    expect(draftRows[0]).toHaveTextContent('.order_id');
   });
 
   it('defaults to effective lineage rows and restores an excluded table relation through a draft approval change', async () => {
@@ -252,7 +253,7 @@ describe('LineagePage lineage edit approval flow', () => {
     expect(within(rows[0]).getByText('待提交')).toBeInTheDocument();
   });
 
-  it('uses a clearer carrier picker for metric or label to table-like mappings', async () => {
+  it('adds metric lineage without carrier fields and shows it in both table and field tabs', async () => {
     const user = userEvent.setup();
     render(<LineagePage />);
 
@@ -262,10 +263,145 @@ describe('LineagePage lineage edit approval flow', () => {
     await user.selectOptions(screen.getByLabelText('目标类型'), 'metric');
     await user.selectOptions(screen.getByLabelText('目标资源'), 'metric_gmv_daily');
 
-    expect(screen.getByText('选择承载字段')).toBeInTheDocument();
-    expect(screen.getByText('指标/标签需要绑定到表、视图或 API 的一个或多个字段/参数。')).toBeInTheDocument();
-    expect(screen.getByText('当前节点字段')).toBeInTheDocument();
-    expect(screen.getByLabelText(/order_amount/)).toBeEnabled();
+    expect(screen.queryByText('选择承载字段')).not.toBeInTheDocument();
+    expect(screen.queryByText('指标/标签需要绑定到表、视图或 API 的一个或多个字段/参数。')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('单条修正原因'), '补齐指标依赖');
+    await user.click(screen.getByRole('button', { name: '确认添加' }));
+
+    await user.selectOptions(screen.getByLabelText('状态'), 'draft');
+    const table = document.querySelector('.lineage-editor-table') as HTMLElement;
+    const tableRows = within(table).getAllByRole('row').filter(row => row.querySelector('td'));
+    expect(tableRows).toHaveLength(1);
+    expect(tableRows[0]).toHaveTextContent('metric_gmv_daily');
+    expect(tableRows[0]).toHaveTextContent('GMV日指标');
+    expect(tableRows[0]).toHaveTextContent('待提交');
+
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const fieldRows = within(fieldTable).getAllByRole('row').filter(row => row.querySelector('td'));
+    expect(fieldRows).toHaveLength(1);
+    expect(fieldRows[0]).toHaveTextContent('dwd_order_detail');
+    expect(fieldRows[0]).toHaveTextContent('metric_gmv_daily');
+    expect(fieldRows[0]).toHaveTextContent('GMV日指标');
+    expect(fieldRows[0]).not.toHaveTextContent('.gmv_value');
+    expect(screen.getByRole('button', { name: '提交修正（2 项变更）' })).toBeEnabled();
+  });
+
+  it('allows label to label lineage and creates both relation and field drafts', async () => {
+    const user = userEvent.setup();
+    render(<LineagePage centerNodeId="label_user_value_tier" />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
+    await user.selectOptions(screen.getByLabelText('方向'), 'upstream');
+    await user.selectOptions(screen.getByLabelText('目标类型'), 'label');
+    await user.selectOptions(screen.getByLabelText('目标资源'), 'label_user_value_tier_peer');
+
+    expect(screen.queryByText('选择承载字段')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('单条修正原因'), '补齐标签口径依赖');
+    await user.click(screen.getByRole('button', { name: '确认添加' }));
+
+    expect(screen.getByRole('button', { name: '提交修正（2 项变更）' })).toBeEnabled();
+
+    await user.selectOptions(screen.getByLabelText('状态'), 'draft');
+    const table = document.querySelector('.lineage-editor-table') as HTMLElement;
+    expect(table).toHaveTextContent('label_user_value_tier_peer');
+
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    expect(fieldTable).toHaveTextContent('label_user_value_tier_peer');
+    expect(fieldTable).not.toHaveTextContent('.user_value_tier');
+  });
+
+  it('cascades deleting the last field-level mapping to its table-level relation', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const metricRows = within(fieldTable).getAllByRole('row').filter(row =>
+      row.textContent?.includes('dwd_order_detail') &&
+      row.textContent.includes('metric_gmv_daily')
+    );
+    expect(metricRows).toHaveLength(2);
+
+    await user.click(within(metricRows[0]).getByRole('button', { name: '删除' }));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
+
+    await user.click(within(metricRows[1]).getByRole('button', { name: '删除' }));
+    expect(confirmSpy).toHaveBeenCalledWith('删除后该表级关系下将没有字段级血缘，将同时删除表级血缘关系。是否继续？');
+    expect(screen.getByRole('button', { name: '提交修正（3 项变更）' })).toBeEnabled();
+
+    await user.click(screen.getByRole('tab', { name: /表级血缘/ }));
+    await user.selectOptions(screen.getByLabelText('状态'), 'draft');
+    const table = document.querySelector('.lineage-editor-table') as HTMLElement;
+    const relationRow = within(table).getAllByRole('row').find(row =>
+      row.textContent?.includes('metric_gmv_daily')
+    ) as HTMLElement;
+    expect(relationRow).toBeTruthy();
+    expect(relationRow).toHaveTextContent('待提交');
+
+    confirmSpy.mockRestore();
+  });
+
+  it('keeps the relation when cancelling last field-level delete cascade', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const metricRows = within(fieldTable).getAllByRole('row').filter(row =>
+      row.textContent?.includes('dwd_order_detail') &&
+      row.textContent.includes('metric_gmv_daily')
+    );
+
+    await user.click(within(metricRows[0]).getByRole('button', { name: '删除' }));
+    await user.click(within(metricRows[1]).getByRole('button', { name: '删除' }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '提交修正（1 项变更）' })).toBeEnabled();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('undoes a manually added field-level draft together with its relation when it is the last mapping', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<LineagePage />);
+
+    await user.click(screen.getByRole('button', { name: /修正血缘/ }));
+    await user.click(screen.getByRole('button', { name: /添加血缘关系/ }));
+    await user.selectOptions(screen.getByLabelText('方向'), 'upstream');
+    await user.selectOptions(screen.getByLabelText('目标类型'), 'metric');
+    await user.selectOptions(screen.getByLabelText('目标资源'), 'metric_gmv_daily');
+    await user.type(screen.getByLabelText('单条修正原因'), '补齐指标依赖');
+    await user.click(screen.getByRole('button', { name: '确认添加' }));
+
+    expect(screen.getByRole('button', { name: '提交修正（2 项变更）' })).toBeEnabled();
+
+    await user.click(screen.getByRole('tab', { name: /字段级血缘/ }));
+    await user.selectOptions(screen.getByLabelText('状态'), 'draft');
+    const fieldTable = document.querySelector('.lineage-editor-table--field') as HTMLElement;
+    const draftRow = within(fieldTable).getAllByRole('row').find(row =>
+      row.textContent?.includes('metric_gmv_daily') &&
+      row.textContent.includes('待提交')
+    ) as HTMLElement;
+
+    await user.click(within(draftRow).getByRole('button', { name: '撤销' }));
+
+    expect(confirmSpy).toHaveBeenCalledWith('撤销后该表级关系下将没有字段级血缘，将同时撤销表级血缘关系。是否继续？');
+    expect(screen.getByRole('button', { name: '提交修正（0 项变更）' })).toBeDisabled();
+
+    confirmSpy.mockRestore();
   });
 
   it('submits lineage reset as an initialization approval instead of applying it immediately', async () => {

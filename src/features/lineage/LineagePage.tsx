@@ -245,6 +245,17 @@ const NODES_DB: Record<string, LineageNodeData> = {
     upstream: ['ads_user_profile'],
     downstream: [],
   },
+  label_user_value_tier_peer: {
+    id: 'label_user_value_tier_peer', name: 'label_user_value_tier_peer', display: '用户活跃等级标签',
+    type: 'label', platform: '标签画像平台', db: '-',
+    tech_owner: '王五', biz_owner: '赵六', catalog: '用户域/标签/用户价值',
+    updated: '2026-03-22', storage: '-', partitioned: false,
+    fields: [
+      { name: 'active_tier', type: 'STRING', comment: '活跃等级结果' },
+    ],
+    upstream: [],
+    downstream: [],
+  },
   kafka_order_topic: {
     id: 'kafka_order_topic', name: 'kafka_order_topic', display: '订单消息队列',
     type: 'api', platform: 'Kafka', db: '消息集群B',
@@ -1158,7 +1169,6 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const [addTargetId, setAddTargetId] = useState('');
   const [addUpField, setAddUpField] = useState('');
   const [addDownField, setAddDownField] = useState('');
-  const [addSelectedFields, setAddSelectedFields] = useState<string[]>([]);
   const [addReason, setAddReason] = useState('');
   const [addError, setAddError] = useState('');
   const [approvalDetailOpen, setApprovalDetailOpen] = useState(false);
@@ -1643,29 +1653,20 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
   const sourceNodeForAdd = addDirection === 'upstream' ? selectedTargetNode : addDirection === 'downstream' ? subjectNode : null;
   const targetNodeForAdd = addDirection === 'upstream' ? subjectNode : addDirection === 'downstream' ? selectedTargetNode : null;
   const needsTableMapping = !!sourceNodeForAdd && !!targetNodeForAdd && isTableLikeType(sourceNodeForAdd.type) && isTableLikeType(targetNodeForAdd.type);
-  const needsEntityFieldSelection = !!sourceNodeForAdd && !!targetNodeForAdd &&
-    ((isEntityType(sourceNodeForAdd.type) && isTableLikeType(targetNodeForAdd.type)) || (isTableLikeType(sourceNodeForAdd.type) && isEntityType(targetNodeForAdd.type)));
-  const isEntityToEntityAdd = !!sourceNodeForAdd && !!targetNodeForAdd && isEntityType(sourceNodeForAdd.type) && isEntityType(targetNodeForAdd.type);
+  const needsEntitySelfMapping = !!sourceNodeForAdd && !!targetNodeForAdd &&
+    (isEntityType(sourceNodeForAdd.type) || isEntityType(targetNodeForAdd.type));
   const sourceMappingLabel = sourceNodeForAdd
     ? `${sourceNodeForAdd.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(sourceNodeForAdd.type)}`
     : '来源节点字段';
   const targetMappingLabel = targetNodeForAdd
     ? `${targetNodeForAdd.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(targetNodeForAdd.type)}`
     : '去向节点字段';
-  const carrierNodeForSelection = needsEntityFieldSelection
-    ? (sourceNodeForAdd && isTableLikeType(sourceNodeForAdd.type) ? sourceNodeForAdd : targetNodeForAdd)
-    : null;
-  const carrierSelectionLabel = carrierNodeForSelection
-    ? `${carrierNodeForSelection.id === centerNodeId ? '当前节点' : '目标节点'}${mappingUnitLabel(carrierNodeForSelection.type)}`
-    : '承载字段';
-
   function resetAddForm() {
     setAddDirection('');
     setAddTargetType('');
     setAddTargetId('');
     setAddUpField('');
     setAddDownField('');
-    setAddSelectedFields([]);
     setAddReason('');
     setAddError('');
   }
@@ -1686,6 +1687,14 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
 
   function pendingKey(change: LineageRelationChange) {
     return `${change.action}:${change.sourceId}>${change.targetId}`;
+  }
+
+  function fieldPairKey(sourceId: string, targetId: string) {
+    return `${sourceId}>${targetId}`;
+  }
+
+  function relationChangeKey(action: LineageRelationChange['action'], sourceId: string, targetId: string) {
+    return `${action}:${sourceId}>${targetId}`;
   }
 
   function cascadeFieldDeletePrefix(parentRelationChangeId: string) {
@@ -1716,6 +1725,52 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       targetField: edge.toField,
       reason: '表级血缘排除联动删除字段映射',
     };
+  }
+
+  function relationDeleteDraft(
+    sourceId: string,
+    targetId: string,
+    direction: 'upstream' | 'downstream',
+    reason = '字段级血缘删除联动删除表级关系',
+  ): LineageRelationChange | null {
+    const sourceNode = effectiveNodes[sourceId];
+    const targetNode = effectiveNodes[targetId];
+    if (!sourceNode || !targetNode) return null;
+    return {
+      id: `delete-relation-${sourceId}-${targetId}-${Date.now()}`,
+      kind: 'relation',
+      action: 'delete',
+      direction,
+      sourceId,
+      sourceName: sourceNode.name,
+      targetId,
+      targetName: targetNode.name,
+      reason,
+    };
+  }
+
+  function remainingEffectiveFieldCountAfterDelete(
+    sourceId: string,
+    targetId: string,
+    deletingFieldKey: string,
+    drafts: LineageChangeSetItem[],
+  ) {
+    const draftDeleteKeys = new Set(
+      drafts
+        .filter((item): item is LineageFieldMappingChange => item.kind === 'field' && item.action === 'delete')
+        .map(item => fieldChangeKey(item)),
+    );
+    draftDeleteKeys.add(deletingFieldKey);
+    return effectiveFieldEdges.filter(edge => {
+      if (edge.from !== sourceId || edge.to !== targetId) return false;
+      return !draftDeleteKeys.has(fieldChangeKey({
+        action: 'delete',
+        sourceId: edge.from,
+        sourceField: edge.fromField,
+        targetId: edge.to,
+        targetField: edge.toField,
+      }));
+    }).length;
   }
 
   function removeDraftByRelation(change: LineageRelationChange) {
@@ -1793,22 +1848,35 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     if (editorBlocked) return;
     const sourceNode = effectiveNodes[row.upResource];
     const targetNode = effectiveNodes[row.downResource];
+    const sourceId = row.upResource;
+    const targetId = row.downResource;
     const fieldChange: LineageFieldMappingChange = {
       id: `delete-field-${row.upResource}-${row.upField}-${row.downResource}-${row.downField}-${Date.now()}`,
       kind: 'field',
       action: 'delete',
       direction: row.direction,
-      sourceId: row.upResource,
+      sourceId,
       sourceName: sourceNode?.name ?? row.upResource,
       sourceField: row.upField,
-      targetId: row.downResource,
+      targetId,
       targetName: targetNode?.name ?? row.downResource,
       targetField: row.downField,
       reason: '人工删除字段映射',
     };
     setDraftChanges(prev => {
       if (prev.some(item => item.kind === 'field' && fieldChangeKey(item) === fieldChangeKey(fieldChange))) return prev;
-      return [...prev, fieldChange];
+      const next: LineageChangeSetItem[] = [...prev, fieldChange];
+      const relationKey = relationChangeKey('delete', sourceId, targetId);
+      const hasRelationDelete = prev.some(item => item.kind === 'relation' && pendingKey(item) === relationKey);
+      const remaining = remainingEffectiveFieldCountAfterDelete(sourceId, targetId, fieldChangeKey(fieldChange), prev);
+      if (remaining === 0 && !hasRelationDelete) {
+        if (!window.confirm('删除后该表级关系下将没有字段级血缘，将同时删除表级血缘关系。是否继续？')) {
+          return prev;
+        }
+        const relationChange = relationDeleteDraft(sourceId, targetId, row.direction);
+        if (relationChange) next.push(relationChange);
+      }
+      return next;
     });
     setLedgerStatusFilter('all');
   }
@@ -1837,12 +1905,8 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     setLedgerStatusFilter('all');
   }
 
-  function toggleSelectedField(fieldName: string, checked: boolean) {
-    setAddSelectedFields(prev => checked ? Array.from(new Set([...prev, fieldName])) : prev.filter(item => item !== fieldName));
-  }
-
   function entityField(node: LineageNodeData) {
-    return node.fields[0]?.name ?? '(指标)';
+    return node.name;
   }
 
   function submitAddRelation() {
@@ -1864,7 +1928,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       setAddError('请填写单条修正原因');
       return;
     }
-    if (!needsTableMapping && !needsEntityFieldSelection && !isEntityToEntityAdd) {
+    if (!needsTableMapping && !needsEntitySelfMapping) {
       setAddError(`${typeFullLabel(subjectNode.type)} 与 ${typeFullLabel(selectedTargetNode.type)} 暂不支持新增血缘`);
       return;
     }
@@ -1872,11 +1936,6 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
       setAddError('表级血缘必须配置字段映射');
       return;
     }
-    if (needsEntityFieldSelection && addSelectedFields.length === 0) {
-      setAddError('指标/标签与表级节点建立关系时必须选择表字段');
-      return;
-    }
-
     const changeSetId = `add-${sourceNodeForAdd.id}-${targetNodeForAdd.id}-${Date.now()}`;
     const relationChange: LineageRelationChange = {
       id: `${changeSetId}-relation`,
@@ -1905,22 +1964,19 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
         reason: addReason,
       });
     }
-    if (needsEntityFieldSelection) {
-      const tableNode = isTableLikeType(sourceNodeForAdd.type) ? sourceNodeForAdd : targetNodeForAdd;
-      addSelectedFields.forEach(fieldName => {
-        fieldChanges.push({
-          id: `${changeSetId}-field-${fieldName}`,
-          kind: 'field',
-          action: 'add',
-          direction,
-          sourceId: sourceNodeForAdd.id,
-          sourceName: sourceNodeForAdd.name,
-          sourceField: sourceNodeForAdd.id === tableNode.id ? fieldName : entityField(sourceNodeForAdd),
-          targetId: targetNodeForAdd.id,
-          targetName: targetNodeForAdd.name,
-          targetField: targetNodeForAdd.id === tableNode.id ? fieldName : entityField(targetNodeForAdd),
-          reason: addReason,
-        });
+    if (needsEntitySelfMapping) {
+      fieldChanges.push({
+        id: `${changeSetId}-field-entity`,
+        kind: 'field',
+        action: 'add',
+        direction,
+        sourceId: sourceNodeForAdd.id,
+        sourceName: sourceNodeForAdd.name,
+        sourceField: entityField(sourceNodeForAdd),
+        targetId: targetNodeForAdd.id,
+        targetName: targetNodeForAdd.name,
+        targetField: entityField(targetNodeForAdd),
+        reason: addReason,
       });
     }
     setDraftChanges(prev => [...prev, relationChange, ...fieldChanges]);
@@ -2101,10 +2157,50 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
     );
   }
 
+  function renderFieldEndpoint(row: FieldLedgerRow, side: 'source' | 'target') {
+    const nodeId = side === 'source' ? row.sourceId : row.targetId;
+    const fieldName = side === 'source' ? row.sourceField : row.targetField;
+    const node = effectiveNodes[nodeId] ?? baseNodes[nodeId];
+    const display = side === 'source' ? row.sourceDisplay : row.targetDisplay;
+    const resourceName = side === 'source' ? row.sourceName : row.targetName;
+    const showAsAsset = !fieldName || fieldName === node?.name || (node ? isEntityType(node.type) : false);
+    return (
+      <>
+        <span className={`lineage-field-res${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{resourceName}</span>
+        {display && <span className={`lineage-res-display${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{display}</span>}
+        {!showAsAsset ? <strong className={`lineage-field-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>.{fieldName}</strong> : null}
+      </>
+    );
+  }
+
   function undoDraft(change?: LineageChangeSetItem) {
     if (!change) return;
     if (change.kind === 'relation') {
       removeDraftByRelation(change);
+      return;
+    }
+    if (change.action === 'add') {
+      setDraftChanges(prev => {
+        const siblingFieldAdds = prev.filter(item =>
+          item.kind === 'field' &&
+          item.action === 'add' &&
+          item.id !== change.id &&
+          fieldPairKey(item.sourceId, item.targetId) === fieldPairKey(change.sourceId, change.targetId),
+        );
+        const relationAdd = prev.find((item): item is LineageRelationChange =>
+          item.kind === 'relation' &&
+          item.action === 'add' &&
+          item.sourceId === change.sourceId &&
+          item.targetId === change.targetId,
+        );
+        if (relationAdd && siblingFieldAdds.length === 0) {
+          if (!window.confirm('撤销后该表级关系下将没有字段级血缘，将同时撤销表级血缘关系。是否继续？')) {
+            return prev;
+          }
+          return prev.filter(item => item.id !== change.id && item.id !== relationAdd.id);
+        }
+        return prev.filter(item => item.id !== change.id);
+      });
       return;
     }
     setDraftChanges(prev => prev.filter(c => c.id !== change.id));
@@ -2259,13 +2355,11 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                         </span>
                       </td>
                       <td className="col-field-up">
-                        <span className={`lineage-field-res${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.upResource}</span>
-                        <strong className={`lineage-field-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>.{row.upField}</strong>
+                        {renderFieldEndpoint(row, 'source')}
                       </td>
                       <td className="col-arrow"><span className="lineage-field-arrow">→</span></td>
                       <td className="col-field-down">
-                        <span className={`lineage-field-res${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>{row.downResource}</span>
-                        <strong className={`lineage-field-name${row.visuallyExcluded ? ' lineage-ledger-struck' : ''}`}>.{row.downField}</strong>
+                        {renderFieldEndpoint(row, 'target')}
                       </td>
                       <td className="col-origin">
                         <span className={`lineage-origin-tag lineage-origin-tag--${row.origin}`}>
@@ -2322,7 +2416,6 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                 setAddTargetId('');
                 setAddUpField('');
                 setAddDownField('');
-                setAddSelectedFields([]);
               }}>
                 <option value="">请选择目标类型</option>
                 <option value="table">表</option>
@@ -2338,7 +2431,6 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                 setAddTargetId(event.target.value);
                 setAddUpField('');
                 setAddDownField('');
-                setAddSelectedFields([]);
               }}>
                 {!addTargetType ? <option value="">请先选择目标类型</option> : <option value="">{targetOptions.length === 0 ? '当前类型暂无可选资产' : '请选择目标资源'}</option>}
                 {targetOptions.map(node => <option key={node.id} value={node.id}>{node.display}（{node.name}）</option>)}
@@ -2362,26 +2454,7 @@ export function LineagePage({ centerNodeId: propCenterNodeId, isEmbedded = false
                 </div>
               </div>
             ) : null}
-            {needsEntityFieldSelection && carrierNodeForSelection ? (
-              <fieldset className="lineage-form__fieldset lineage-form__fieldset--carrier">
-                <legend>选择承载字段</legend>
-                <p>指标/标签需要绑定到表、视图或 API 的一个或多个字段/参数。</p>
-                <div className="lineage-form__section-label">{carrierSelectionLabel}</div>
-                <div className="lineage-form__carrier-list">
-                  {carrierNodeForSelection.fields.map(field => (
-                    <label key={field.name} className="lineage-form__checkline">
-                      <input type="checkbox" checked={addSelectedFields.includes(field.name)} onChange={event => toggleSelectedField(field.name, event.target.checked)} />
-                      <span className="lineage-form__check-main">
-                        <strong>{field.name}</strong>
-                        <em>{field.type}</em>
-                      </span>
-                      <span className="lineage-form__check-desc">{field.comment}</span>
-                    </label>
-                ))}
-                </div>
-              </fieldset>
-            ) : null}
-            {isEntityToEntityAdd ? <div className="lineage-form__note">指标/标签之间将直接建立口径依赖关系，无需配置字段或参数映射。</div> : null}
+            {needsEntitySelfMapping ? <div className="lineage-form__note">指标/标签按字段级节点处理，将同步生成表级血缘和字段级血缘，无需选择承载字段。</div> : null}
             <label htmlFor="lineage-add-reason">单条修正原因</label>
             <textarea id="lineage-add-reason" value={addReason} onChange={event => setAddReason(event.target.value)} placeholder="必填，说明这条关系的修正依据" />
           </div>
