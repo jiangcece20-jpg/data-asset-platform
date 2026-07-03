@@ -78,13 +78,13 @@ describe('ApprovalIntegrationPage flows prototype alignment', () => {
     await user.click(screen.getByRole('button', { name: '新增角色' }));
     await user.type(screen.getByPlaceholderText('如：安全管理员'), '测试审批人');
     await user.type(screen.getByPlaceholderText('如：security_admin'), 'test_approver');
-    await user.type(screen.getByPlaceholderText('姓名'), '测试同学');
-    await user.type(screen.getByPlaceholderText('open_id'), 'ou_test_001');
-    await user.click(screen.getByRole('button', { name: '添加' }));
+    expect(screen.queryByPlaceholderText('open_id')).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('输入姓名搜索成员'), '测试');
+    await user.click(screen.getByRole('option', { name: /测试同学 test@example.com/ }));
     await user.click(screen.getByRole('button', { name: '保存' }));
 
     expect(screen.getByText('测试审批人')).toBeInTheDocument();
-    expect(screen.getByText('ou_test_001')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
   it('adds form mappings and route rules in flow detail', async () => {

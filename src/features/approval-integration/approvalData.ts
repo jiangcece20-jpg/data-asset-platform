@@ -81,7 +81,7 @@ export type ApprovalRole = {
   roleCode: string;
   roleName: string;
   enabled: boolean;
-  members: Array<{ name: string; openId: string; feishuBound: boolean }>;
+  members: Array<{ name: string; openId: string; email?: string; feishuBound: boolean }>;
 };
 
 export type ApprovalInstance = {
@@ -589,8 +589,8 @@ export const initialNodeMappings: NodeMapping[] = [
 ];
 
 export const initialRoles: ApprovalRole[] = [
-  { id: 'role-001', roleCode: 'security_admin', roleName: '安全管理员', enabled: true, members: [{ name: '周安全', openId: 'ou_security_001', feishuBound: true }, { name: '吴合规', openId: 'ou_compliance_002', feishuBound: true }] },
-  { id: 'role-002', roleCode: 'cto', roleName: 'CTO', enabled: true, members: [{ name: '郑技术', openId: 'ou_cto_001', feishuBound: true }] },
+  { id: 'role-001', roleCode: 'security_admin', roleName: '安全管理员', enabled: true, members: [{ name: '周安全', openId: 'ou_security_001', email: 'security.zhou@example.com', feishuBound: true }, { name: '吴合规', openId: 'ou_compliance_002', email: 'compliance.wu@example.com', feishuBound: true }] },
+  { id: 'role-002', roleCode: 'cto', roleName: 'CTO', enabled: true, members: [{ name: '郑技术', openId: 'ou_cto_001', email: 'tech.zheng@example.com', feishuBound: true }] },
   { id: 'role-003', roleCode: 'data_governance', roleName: '数据治理委员会', enabled: false, members: [] },
 ];
 

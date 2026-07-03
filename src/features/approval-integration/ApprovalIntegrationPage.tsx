@@ -348,6 +348,15 @@ function newRole(): ApprovalRole {
   return { id: '', roleCode: '', roleName: '', enabled: true, members: [] };
 }
 
+const roleMemberDirectory: ApprovalRole['members'] = [
+  { name: '测试同学', openId: 'ou_test_001', email: 'test@example.com', feishuBound: true },
+  { name: '周安全', openId: 'ou_security_001', email: 'security.zhou@example.com', feishuBound: true },
+  { name: '吴合规', openId: 'ou_compliance_002', email: 'compliance.wu@example.com', feishuBound: true },
+  { name: '郑技术', openId: 'ou_cto_001', email: 'tech.zheng@example.com', feishuBound: true },
+  { name: '李治理', openId: 'ou_governance_001', email: 'governance.li@example.com', feishuBound: true },
+  { name: '赵总', openId: 'ou_finance_001', email: 'finance.zhao@example.com', feishuBound: true },
+];
+
 function routeValueText(condition: RouteCondition) {
   const values = Array.isArray(condition.valueLabel) ? condition.valueLabel : [condition.valueLabel || condition.value].flat();
   return values.filter(Boolean).join('、') || '未设置';
@@ -678,7 +687,7 @@ function RouteRulesTab({ routes, onNew, onEdit, onDelete }: { routes: FlowRoute[
 }
 
 function RolesPanel({ roles, onNew, onEdit, onToggle, onDelete }: { roles: ApprovalRole[]; onNew: () => void; onEdit: (role: ApprovalRole) => void; onToggle: (role: ApprovalRole) => void; onDelete: (role: ApprovalRole) => void }) {
-  return <section><div className="approval-v6__page-header"><div><h1>审批角色管理</h1><p>管理平台审批角色及其成员，固定角色类型的动态节点将从此处解析审批人。</p></div><Button variant="primary" onClick={onNew}>新增角色</Button></div><div className="approval-v6__role-grid">{roles.map(role => <article key={role.id} aria-label={`${role.roleName} ${role.roleCode}`} className="approval-v6__role-card"><header><div><strong>{role.roleName}</strong><code>{role.roleCode}</code></div><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(role)}>编辑</button><button type="button" onClick={() => onToggle(role)}>{role.enabled ? '停用' : '启用'}</button><button type="button" className="danger" onClick={() => onDelete(role)}>删除</button></div></header><Tag tone={role.enabled ? 'success' : 'gray'}>{role.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__member-list"><span>成员列表（{role.members.length} 人）</span>{role.members.length ? role.members.map(member => <div key={member.openId}><strong>{member.name}</strong><code>{member.openId}</code><Tag tone={member.feishuBound ? 'success' : 'danger'}>{member.feishuBound ? '已绑定' : '未绑定'}</Tag></div>) : <p>暂无成员，请添加</p>}</div></article>)}</div></section>;
+  return <section><div className="approval-v6__page-header"><div><h1>审批角色管理</h1><p>管理平台审批角色及其成员，固定角色类型的动态节点将从此处解析审批人。</p></div><Button variant="primary" onClick={onNew}>新增角色</Button></div><div className="approval-v6__role-grid">{roles.map(role => <article key={role.id} aria-label={`${role.roleName} ${role.roleCode}`} className="approval-v6__role-card"><header><div><strong>{role.roleName}</strong><code>{role.roleCode}</code></div><div className="approval-v6__row-actions"><button type="button" onClick={() => onEdit(role)}>编辑</button><button type="button" onClick={() => onToggle(role)}>{role.enabled ? '停用' : '启用'}</button><button type="button" className="danger" onClick={() => onDelete(role)}>删除</button></div></header><Tag tone={role.enabled ? 'success' : 'gray'}>{role.enabled ? '启用' : '停用'}</Tag><div className="approval-v6__member-list"><span>成员列表（{role.members.length} 人）</span>{role.members.length ? role.members.map(member => <div key={member.openId}><strong>{member.name}</strong><code>{member.email ?? member.openId}</code><Tag tone={member.feishuBound ? 'success' : 'danger'}>{member.feishuBound ? '已绑定' : '未绑定'}</Tag></div>) : <p>暂无成员，请添加</p>}</div></article>)}</div></section>;
 }
 
 function MonitorPanel() {
@@ -694,7 +703,6 @@ function DrawerHost({ drawer, roles, setDrawer, onSaveFlow, onSaveMapping, onSav
 function DrawerContent(props: { drawer: Exclude<DrawerState, { kind: 'instance' } | null>; roles: ApprovalRole[]; setDrawer: (drawer: DrawerState) => void; onSaveFlow: (flow: FlowConfig) => void; onSaveMapping: (mapping: FormMapping, isNew: boolean) => void; onSaveNode: (node: NodeMapping, isNew: boolean) => void; onSaveRoute: (route: FlowRoute, isNew: boolean) => void; onSaveRole: (role: ApprovalRole, isNew: boolean) => void }) {
   const { drawer, setDrawer } = props;
   const [memberName, setMemberName] = useState('');
-  const [memberOpenId, setMemberOpenId] = useState('');
 
   if (drawer.kind === 'new-flow' || drawer.kind === 'edit-flow') {
     const title = drawer.kind === 'new-flow' ? '新增流程配置' : '编辑流程信息';
@@ -703,7 +711,7 @@ function DrawerContent(props: { drawer: Exclude<DrawerState, { kind: 'instance' 
   if (drawer.kind === 'form') return <EditableDrawer title={drawer.isNew ? '新增字段映射' : '编辑字段映射'} onClose={() => setDrawer(null)} onSave={() => props.onSaveMapping(drawer.mapping, drawer.isNew)}><FormMappingForm mapping={drawer.mapping} onChange={(mapping) => setDrawer({ ...drawer, mapping })} /></EditableDrawer>;
   if (drawer.kind === 'node') return <EditableDrawer title={drawer.isNew ? '新增节点映射' : '编辑节点映射'} onClose={() => setDrawer(null)} onSave={() => props.onSaveNode(drawer.node, drawer.isNew)}><NodeForm node={drawer.node} roles={props.roles} onChange={(node) => setDrawer({ ...drawer, node })} /></EditableDrawer>;
   if (drawer.kind === 'route') return <EditableDrawer title={drawer.isNew ? `新增路由规则 · ${drawer.route.ticketType}` : `编辑路由规则 · ${drawer.route.ticketType}`} onClose={() => setDrawer(null)} onSave={() => props.onSaveRoute(drawer.route, drawer.isNew)}><RouteForm route={drawer.route} onChange={(route) => setDrawer({ ...drawer, route })} /></EditableDrawer>;
-  return <EditableDrawer title={drawer.isNew ? '新增审批角色' : '编辑审批角色'} onClose={() => setDrawer(null)} onSave={() => props.onSaveRole(drawer.role, drawer.isNew)}><RoleForm role={drawer.role} memberName={memberName} memberOpenId={memberOpenId} onMemberName={setMemberName} onMemberOpenId={setMemberOpenId} onChange={(role) => setDrawer({ ...drawer, role })} /></EditableDrawer>;
+  return <EditableDrawer title={drawer.isNew ? '新增审批角色' : '编辑审批角色'} onClose={() => setDrawer(null)} onSave={() => props.onSaveRole(drawer.role, drawer.isNew)}><RoleForm role={drawer.role} memberName={memberName} onMemberName={setMemberName} onChange={(role) => setDrawer({ ...drawer, role })} /></EditableDrawer>;
 }
 
 function EditableDrawer({ title, children, onClose, onSave }: { title: string; children: React.ReactNode; onClose: () => void; onSave: () => void }) {
@@ -799,8 +807,22 @@ function CatalogTree({ nodes, selected, onToggle }: { nodes: CatalogNode[]; sele
   );
 }
 
-function RoleForm({ role, onChange, memberName, memberOpenId, onMemberName, onMemberOpenId }: { role: ApprovalRole; onChange: (role: ApprovalRole) => void; memberName: string; memberOpenId: string; onMemberName: (value: string) => void; onMemberOpenId: (value: string) => void }) {
-  return <div className="approval-v6__form"><label>角色名称<input value={role.roleName} onChange={event => onChange({ ...role, roleName: event.target.value })} placeholder="如：安全管理员" /></label><label>角色编码<input value={role.roleCode} onChange={event => onChange({ ...role, roleCode: event.target.value })} placeholder="如：security_admin" /></label><label className="checkline"><input type="checkbox" checked={role.enabled} onChange={event => onChange({ ...role, enabled: event.target.checked })} />启用状态</label><div className="approval-v6__member-editor"><strong>成员管理</strong>{role.members.map(member => <div key={member.openId}><span>{member.name}</span><code>{member.openId}</code><button type="button" onClick={() => onChange({ ...role, members: role.members.filter(item => item.openId !== member.openId) })}>移除</button></div>)}<div><input value={memberName} onChange={event => onMemberName(event.target.value)} placeholder="姓名" /><input value={memberOpenId} onChange={event => onMemberOpenId(event.target.value)} placeholder="open_id" /><button type="button" onClick={() => { if (!memberName || !memberOpenId) return; onChange({ ...role, members: [...role.members, { name: memberName, openId: memberOpenId, feishuBound: true }] }); onMemberName(''); onMemberOpenId(''); }}>添加</button></div></div></div>;
+function RoleForm({ role, onChange, memberName, onMemberName }: { role: ApprovalRole; onChange: (role: ApprovalRole) => void; memberName: string; onMemberName: (value: string) => void }) {
+  const memberKeyword = memberName.trim().toLowerCase();
+  const matchedMembers = useMemo(() => {
+    if (!memberKeyword) return [];
+    return roleMemberDirectory
+      .filter(member => !role.members.some(item => item.openId === member.openId))
+      .filter(member => `${member.name} ${member.email ?? ''}`.toLowerCase().includes(memberKeyword))
+      .slice(0, 6);
+  }, [memberKeyword, role.members]);
+
+  function selectMember(member: ApprovalRole['members'][number]) {
+    onChange({ ...role, members: [...role.members, member] });
+    onMemberName('');
+  }
+
+  return <div className="approval-v6__form"><label>角色名称<input value={role.roleName} onChange={event => onChange({ ...role, roleName: event.target.value })} placeholder="如：安全管理员" /></label><label>角色编码<input value={role.roleCode} onChange={event => onChange({ ...role, roleCode: event.target.value })} placeholder="如：security_admin" /></label><label className="checkline"><input type="checkbox" checked={role.enabled} onChange={event => onChange({ ...role, enabled: event.target.checked })} />启用状态</label><div className="approval-v6__member-editor"><strong>成员管理</strong>{role.members.map(member => <div key={member.openId} className="approval-v6__member-row"><span>{member.name}</span><code>{member.email ?? member.openId}</code><button type="button" onClick={() => onChange({ ...role, members: role.members.filter(item => item.openId !== member.openId) })}>移除</button></div>)}<div className="approval-v6__member-search"><input value={memberName} onChange={event => onMemberName(event.target.value)} placeholder="输入姓名搜索成员" />{memberName ? <div className="approval-v6__member-options" role="listbox" aria-label="成员搜索结果">{matchedMembers.length ? matchedMembers.map(member => <button key={member.openId} type="button" role="option" aria-selected="false" onClick={() => selectMember(member)}><strong>{member.name}</strong><span>{member.email}</span></button>) : <span>没有匹配人员</span>}</div> : null}</div></div></div>;
 }
 
 function supportsInstancePermissionType(ticketType: string) {

@@ -164,6 +164,30 @@ describe('MyPage approval entries', () => {
     expect(within(screen.getByRole('navigation', { name: '我的导航' })).getByText('5')).toBeInTheDocument();
   });
 
+  it('opens an asset search modal from the cart and adds a selected asset', async () => {
+    const user = userEvent.setup();
+    window.location.hash = 'my?section=cart';
+
+    render(<MyPage />);
+
+    await user.click(screen.getByRole('button', { name: /继续添加资产/ }));
+
+    const dialog = screen.getByRole('dialog', { name: '继续添加资产' });
+    expect(within(dialog).getByPlaceholderText('搜索资产名称、中文名或目录')).toBeInTheDocument();
+
+    await user.type(within(dialog).getByPlaceholderText('搜索资产名称、中文名或目录'), '用户行为');
+    const result = within(dialog).getByRole('article', { name: /用户行为日志/ });
+    expect(within(result).getByText('dwd_user_behavior_log')).toBeInTheDocument();
+
+    await user.click(within(result).getByRole('button', { name: '加入申请单' }));
+
+    expect(screen.queryByRole('dialog', { name: '继续添加资产' })).not.toBeInTheDocument();
+    expect(screen.getByText('已添加的资产')).toBeInTheDocument();
+    expect(screen.getAllByText('5').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('wlyd_ods_user.dwd_user_behavior_log').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('用户行为日志').length).toBeGreaterThan(0);
+  });
+
   it('shows a fallback notice when the reapply asset is not in the cart catalog', () => {
     window.location.hash = 'my?section=cart&assetName=unknown_asset_xyz';
     render(<MyPage />);

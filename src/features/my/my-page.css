@@ -673,6 +673,118 @@
   border-color: var(--primary, #1677ff);
 }
 
+/* ── Asset Search Modal ── */
+.my-page__asset-search-modal {
+  width: min(1100px, calc(100vw - 80px));
+}
+
+.my-page__asset-search {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.my-page__asset-search > input {
+  border: 1px solid var(--border-color, #d9d9d9);
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 14px;
+  outline: none;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.my-page__asset-search > input:focus {
+  border-color: var(--primary, #1677ff);
+}
+
+.my-page__asset-search-results {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.my-page__asset-search-item {
+  align-items: start;
+  border: 1px solid var(--border-color-light, #e8e8e8);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.my-page__asset-search-main strong,
+.my-page__asset-search-main span,
+.my-page__asset-search-main small {
+  display: block;
+}
+
+.my-page__asset-search-main strong {
+  color: var(--text-primary, #1a1a1a);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.my-page__asset-search-main span {
+  color: var(--text-secondary, #5a5a5a);
+  font-size: 13px;
+}
+
+.my-page__asset-search-main small {
+  color: var(--text-tertiary, #999);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.my-page__asset-search-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.my-page__asset-search-meta span {
+  color: var(--text-tertiary, #999);
+  font-size: 12px;
+}
+
+.my-page__asset-search-action {
+  align-items: flex-end;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  max-width: 240px;
+}
+
+.my-page__asset-search-action small {
+  color: var(--text-tertiary, #999);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .my-page__asset-search {
+    min-width: auto;
+  }
+
+  .my-page__asset-search-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-page__asset-search-action {
+    justify-items: start;
+    max-width: none;
+  }
+
+  .my-page__asset-search-action small {
+    text-align: left;
+  }
+}
+
 /* ── Toast ── */
 .my-page__toast {
   position: fixed;

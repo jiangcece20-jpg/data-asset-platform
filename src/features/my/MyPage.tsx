@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
+import { Modal } from '../../components/feedback/Modal';
 import { mockResources } from '../../mocks/resources';
 import { ApprovalInstanceDrawer } from '../approval-integration/components/ApprovalInstanceDrawer';
 import { approvalScenarioSummaries, initialBatches, ticketPrefixForMyPage, type ApprovalInstance } from '../approval-integration/approvalData';
@@ -9,7 +10,9 @@ import {
   useLineageApprovals,
 } from '../lineage/lineageApprovalStore';
 import {
+  addPermissionCartItem,
   clearPermissionCart,
+  getPermissionAction,
   getPermissionCartItems,
   removePermissionCartItem,
   subscribePermissionCart,
@@ -601,6 +604,7 @@ function CartPanel({ cartCount }: { cartCount: number }) {
   const [individualReasons, setIndividualReasons] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [reapplyNotice, setReapplyNotice] = useState('');
+  const [assetSearchOpen, setAssetSearchOpen] = useState(false);
 
   void cartCount;
 
@@ -661,6 +665,13 @@ function CartPanel({ cartCount }: { cartCount: number }) {
     setReason('');
   };
 
+  const addAssetToCart = (resourceId: string) => {
+    const resource = mockResources.find(item => item.id === resourceId);
+    if (!resource) return;
+    const result = addPermissionCartItem(resource);
+    if (result.status === 'added' || result.status === 'exists') setAssetSearchOpen(false);
+  };
+
   if (submitted) {
     return (
       <section className="my-page__panel">
@@ -694,7 +705,9 @@ function CartPanel({ cartCount }: { cartCount: number }) {
         <div className="my-page__empty" style={{ padding: '60px 0' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🛒</div>
           <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>暂无待申请资产，去资源发现浏览</div>
+          <Button variant="primary" style={{ marginTop: '16px' }} onClick={() => setAssetSearchOpen(true)}>继续添加资产</Button>
         </div>
+        <AssetSearchModal open={assetSearchOpen} cartItems={cartItems} onClose={() => setAssetSearchOpen(false)} onAdd={addAssetToCart} />
       </section>
     );
   }
@@ -716,7 +729,7 @@ function CartPanel({ cartCount }: { cartCount: number }) {
         <div className="my-page__card-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontWeight: 600 }}>已添加的资产 <Tag tone="blue">{cartItems.length}</Tag></div>
-            <Button size="sm">+ 继续添加资产</Button>
+            <Button size="sm" onClick={() => setAssetSearchOpen(true)}>+ 继续添加资产</Button>
           </div>
         </div>
         <div style={{ padding: 0 }}>
@@ -788,7 +801,59 @@ function CartPanel({ cartCount }: { cartCount: number }) {
           ) : null}
         </div>
       </div>
+      <AssetSearchModal open={assetSearchOpen} cartItems={cartItems} onClose={() => setAssetSearchOpen(false)} onAdd={addAssetToCart} />
     </section>
+  );
+}
+
+function AssetSearchModal({ open, cartItems, onClose, onAdd }: { open: boolean; cartItems: CartItem[]; onClose: () => void; onAdd: (resourceId: string) => void }) {
+  const [keyword, setKeyword] = useState('');
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const cartNames = useMemo(() => new Set(cartItems.flatMap(item => [item.name, item.display])), [cartItems]);
+  const results = useMemo(() => {
+    const candidates = normalizedKeyword
+      ? mockResources.filter(resource => {
+          const searchable = `${resource.name} ${resource.displayName ?? ''} ${resource.catalogPath ?? ''}`.toLowerCase();
+          return searchable.includes(normalizedKeyword);
+        })
+      : mockResources;
+    return candidates.slice(0, 8);
+  }, [normalizedKeyword]);
+
+  return (
+    <Modal open={open} title="继续添加资产" onClose={onClose} className="my-page__asset-search-modal">
+      <div className="my-page__asset-search">
+        <input value={keyword} onChange={event => setKeyword(event.target.value)} placeholder="搜索资产名称、中文名或目录" autoFocus />
+        <div className="my-page__asset-search-results">
+          {results.map(resource => {
+            const action = getPermissionAction(resource);
+            const exists = cartNames.has(resource.name) || cartNames.has(resource.displayName ?? '');
+            const disabled = exists || action.disabled;
+            const buttonLabel = exists ? '已在申请单' : disabled ? '不可申请' : '加入申请单';
+            const helperText = exists ? '该资产已经在当前申请单中' : action.disabled ? action.reason : '';
+            return (
+              <article key={resource.id} aria-label={`${resource.name} ${resource.displayName ?? ''}`} className="my-page__asset-search-item">
+                <div className="my-page__asset-search-main">
+                  <strong>{resource.name}</strong>
+                  <span>{resource.displayName}</span>
+                  <small>{resource.catalogPath}</small>
+                  <div className="my-page__asset-search-meta">
+                    <Tag tone={typeTone(resource.type)}>{typeLabel(resource.type)}</Tag>
+                    <span>{resource.sourceSystem}</span>
+                    <span>{resource.owner}</span>
+                  </div>
+                </div>
+                <div className="my-page__asset-search-action">
+                  <Button size="sm" variant={disabled ? 'default' : 'primary'} disabled={disabled} onClick={() => onAdd(resource.id)}>{buttonLabel}</Button>
+                  {helperText ? <small>{helperText}</small> : null}
+                </div>
+              </article>
+            );
+          })}
+          {results.length === 0 ? <div className="my-page__empty">没有匹配资产</div> : null}
+        </div>
+      </div>
+    </Modal>
   );
 }
 
