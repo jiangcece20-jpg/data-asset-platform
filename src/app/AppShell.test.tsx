@@ -4,7 +4,7 @@ import { AppShell } from './AppShell';
 describe('AppShell', () => {
   it('renders platform navigation and active route', () => {
     render(
-      <AppShell activeRoute="search">
+      <AppShell activeRoute="search" productLine="data-asset">
         <div>检索内容</div>
       </AppShell>,
     );
@@ -17,7 +17,7 @@ describe('AppShell', () => {
 
   it('removes outer padding for embedded workspace pages', () => {
     const { rerender } = render(
-      <AppShell activeRoute="my">
+      <AppShell activeRoute="my" productLine="data-asset">
         <div>我的内容</div>
       </AppShell>,
     );
@@ -25,7 +25,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('main')).toHaveClass('app-shell__main--flush');
 
     rerender(
-      <AppShell activeRoute="permissions">
+      <AppShell activeRoute="permissions" productLine="data-asset">
         <div>权限中心内容</div>
       </AppShell>,
     );
@@ -33,7 +33,7 @@ describe('AppShell', () => {
     expect(screen.getByRole('main')).toHaveClass('app-shell__main--flush');
 
     rerender(
-      <AppShell activeRoute="search">
+      <AppShell activeRoute="search" productLine="data-asset">
         <div>检索内容</div>
       </AppShell>,
     );

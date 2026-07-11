@@ -7,7 +7,8 @@ export type AppRouteKey =
   | 'workbench'
   | 'permissions'
   | 'lineage'
-  | 'my';
+  | 'my'
+  | 'datasource';
 
 export type AppRoute = {
   key: AppRouteKey;
@@ -24,3 +25,57 @@ export const appRoutes: AppRoute[] = [
   { key: 'permissions', label: '权限中心' },
   { key: 'my', label: '我的' },
 ];
+
+/* ── 产品线 ───────────────────────────────────────────── */
+
+export type ProductLineKey = 'data-asset' | 'data-source';
+
+export type ProductLine = {
+  key: ProductLineKey;
+  name: string;
+  icon: string;
+  status: '正式' | '建设中';
+  description: string;
+};
+
+export const productLines: ProductLine[] = [
+  {
+    key: 'data-asset',
+    name: '数据资产',
+    icon: '🗃️',
+    status: '正式',
+    description: '资产检索、目录、发现、管理、查询、血缘等全链路能力',
+  },
+  {
+    key: 'data-source',
+    name: '数据之源',
+    icon: '🔌',
+    status: '正式',
+    description: '数据源接入与元数据采集管理平台',
+  },
+];
+
+export function getProductLineFromHash(hash: string): ProductLineKey {
+  const path = hash.replace('#', '').split('?')[0];
+  if (path.startsWith('datasource')) return 'data-source';
+  return 'data-asset';
+}
+
+export function getRouteFromHash(hash: string): AppRouteKey {
+  const path = hash.replace('#', '').split('?')[0];
+
+  if (path.startsWith('datasource')) return 'datasource';
+  if (path === 'detail') return 'detail';
+
+  const route = appRoutes.find((item) => item.key === path);
+  return route?.key ?? 'search';
+}
+
+export function getDataSourceIdFromHash(hash: string): string | null {
+  const path = hash.replace('#', '').split('?')[0];
+  const parts = path.split('/');
+  if (parts[0] === 'datasource' && parts[1]) {
+    return parts[1];
+  }
+  return null;
+}

@@ -100,3 +100,121 @@ button {
 .app-shell__main--flush {
   padding: 0;
 }
+
+/* ── 产品线切换器 ──────────────────────────────────── */
+
+.app-shell__header {
+  position: relative;
+}
+
+.app-shell__product-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: var(--font-size-md);
+  white-space: nowrap;
+}
+
+.app-shell__product-switcher:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-shell__product-dropdown {
+  position: absolute;
+  top: var(--header-height);
+  left: 0;
+  min-width: 240px;
+  background: var(--bg-container);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 8px;
+  z-index: 100;
+}
+
+.app-shell__product-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  text-align: left;
+}
+
+.app-shell__product-item:hover {
+  background: var(--bg-hover);
+}
+
+.app-shell__product-item--active {
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.app-shell__product-item-icon {
+  font-size: 18px;
+}
+
+.app-shell__product-item-name {
+  flex: 1;
+}
+
+.app-shell__product-item-status {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--border-color-light);
+}
+
+.app-shell__product-item--active .app-shell__product-item-status {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+/* ── Toggle 开关 (全局) ─────────────────────────────── */
+
+.ds-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #d9dfe9;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+  border: 0;
+  padding: 0;
+}
+
+.ds-toggle--on {
+  background: var(--primary);
+}
+
+.ds-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.ds-toggle--on .ds-toggle__thumb {
+  transform: translateX(16px);
+}
