@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-14",
+  "products": [
+    {
+      "key": "data-asset",
+      "name": "数据资产",
+      "icon": "🗃️",
+      "status": "正式",
+      "url": "https://data-asset-platform.pages.dev/#search",
+      "hash": "#search"
+    },
+    {
+      "key": "data-source",
+      "name": "数据之源",
+      "icon": "🔌",
+      "status": "正式",
+      "url": "https://data-asset-platform.pages.dev/#datasource",
+      "hash": "#datasource"
+    },
+    {
+      "key": "chatbi",
+      "name": "智能问数",
+      "icon": "🧠",
+      "status": "正式",
+      "url": "https://data-asset-platform.pages.dev/#ai-find",
+      "hash": "#ai-find"
+    }
+  ]
+}

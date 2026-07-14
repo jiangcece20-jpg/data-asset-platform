@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 找数 v3 原型</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px; color: #262626; background: #f0f2f5; height: 100vh; overflow: hidden;
+}
+
+/* ===== Header ===== */
+.header {
+  height: 56px; background: #001529; display: flex; align-items: center;
+  padding: 0 24px; gap: 16px; flex-shrink: 0;
+}
+.header-logo { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.header-nav { display: flex; gap: 4px; }
+.header-nav-item {
+  color: rgba(255,255,255,.65); padding: 6px 14px; border-radius: 6px;
+  font-size: 14px; cursor: pointer; transition: .2s; white-space: nowrap;
+}
+.header-nav-item:hover { color: #fff; background: rgba(255,255,255,.1); }
+.header-nav-item.active { color: #fff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.role-badge {
+  font-size: 12px; padding: 3px 10px; border-radius: 12px;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.8);
+}
+
+/* ===== 主体布局 ===== */
+.main { display: flex; height: calc(100vh - 56px); }
+
+/* ===== 左侧：对话 ===== */
+.left-panel {
+  width: 400px; min-width: 320px; background: #fff;
+  border-right: 1px solid #e8e8e8; display: flex; flex-direction: column;
+}
+.chat-header {
+  padding: 16px 20px; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.ai-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ai-icon svg { width: 18px; height: 18px; color: #fff; }
+.chat-header-info { flex: 1; }
+.chat-header-title { font-size: 15px; font-weight: 600; }
+.chat-header-sub { font-size: 12px; color: #8c8c8c; }
+.new-chat-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid #d9d9d9;
+  background: #fff; font-size: 12px; color: #595959; cursor: pointer; transition: .2s; white-space: nowrap;
+}
+.new-chat-btn:hover { border-color: #667eea; color: #667eea; }
+
+.chat-body {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.msg { display: flex; gap: 8px; }
+.msg.user { flex-direction: row-reverse; }
+.msg-avatar {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;
+}
+.msg.ai .msg-avatar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+.msg.user .msg-avatar { background: #1677ff; color: #fff; }
+.msg-content { max-width: 88%; display: flex; flex-direction: column; gap: 8px; }
+.msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.65; }
+.msg.ai .msg-bubble { background: #f7f8fa; color: #434343; border-radius: 4px 12px 12px 12px; }
+.msg.user .msg-bubble { background: #1677ff; color: #fff; border-radius: 12px 4px 12px 12px; }
+.ctx-note { font-size: 11px; color: #a08fd8; margin-bottom: 4px; }
+
+/* 推荐卡片 */
+.result-cards { display: flex; flex-direction: column; gap: 8px; }
+.result-card {
+  border: 1px solid #e8e8e8; border-radius: 10px; padding: 12px 14px;
+  background: #fff; cursor: pointer; transition: .2s;
+}
+.result-card:hover { border-color: #667eea; box-shadow: 0 2px 8px rgba(102,126,234,.12); }
+.result-card.selected { border-color: #667eea; background: #faf9ff; }
+.card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.type-tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
+.type-report { background: #f6ffed; color: #52c41a; }
+.type-dashboard { background: #f9f0ff; color: #722ed1; }
+.type-table { background: #e6f4ff; color: #1677ff; }
+.card-name { font-size: 13px; font-weight: 600; color: #262626; flex: 1; }
+.card-source { font-size: 11px; color: #8c8c8c; white-space: nowrap; }
+.card-desc { font-size: 12px; color: #595959; line-height: 1.5; margin-bottom: 6px; }
+.card-reason {
+  font-size: 11px; color: #667eea; background: rgba(102,126,234,.06);
+  padding: 4px 8px; border-radius: 4px; display: inline-block;
+}
+.card-actions { display: flex; gap: 6px; margin-top: 8px; align-items: center; }
+.card-btn { font-size: 11px; padding: 4px 10px; border-radius: 5px; cursor: pointer; transition: .2s; }
+.card-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; }
+.card-btn-primary:hover { opacity: .9; }
+.card-btn-secondary { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.card-btn-secondary:hover { border-color: #1677ff; color: #1677ff; }
+
+.perm-tag { font-size: 11px; padding: 2px 7px; border-radius: 4px; }
+.perm-ok { background: #f6ffed; color: #52c41a; }
+.perm-apply { background: #fff7e6; color: #fa8c16; cursor: pointer; }
+.perm-pending { background: #f5f5f5; color: #8c8c8c; }
+
+.guide-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.guide-tag {
+  font-size: 12px; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid #e8e8e8; color: #595959; cursor: pointer; transition: .2s; background: #fff;
+}
+.guide-tag:hover { border-color: #667eea; color: #667eea; background: #f5f3ff; }
+
+.ask-options { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.ask-option {
+  padding: 8px 14px; border-radius: 8px; border: 1px solid #e8e8e8;
+  background: #fff; cursor: pointer; font-size: 13px; color: #434343; transition: .2s;
+}
+.ask-option:hover { border-color: #667eea; background: #faf9ff; color: #667eea; }
+
+.typing { display: flex; align-items: center; gap: 4px; padding: 10px 14px; }
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: #bfbfbf; animation: bounce 1.2s infinite; }
+.typing span:nth-child(2) { animation-delay: .2s; }
+.typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+/* 上下文条 */
+.context-bar {
+  margin: 0 20px; padding: 6px 12px; border-radius: 8px 8px 0 0;
+  background: linear-gradient(135deg, rgba(102,126,234,.08), rgba(118,75,162,.08));
+  border: 1px solid rgba(102,126,234,.2); border-bottom: none;
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: #667eea; flex-shrink: 0;
+}
+.ctx-label { flex: 1; }
+.ctx-clear { cursor: pointer; color: #a3a3c2; padding: 0 4px; }
+.ctx-clear:hover { color: #ff4d4f; }
+
+.chat-footer {
+  padding: 12px 20px 16px; border-top: 1px solid #f0f0f0;
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+}
+.chat-input {
+  flex: 1; min-height: 40px; max-height: 100px; border: 1px solid #d9d9d9;
+  border-radius: 10px; padding: 9px 14px; font-size: 13px; resize: none;
+  font-family: inherit; transition: .2s; line-height: 1.5;
+}
+.chat-input:focus { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,.15); outline: none; }
+.chat-input::placeholder { color: #bfbfbf; }
+.chat-send {
+  width: 40px; height: 40px; border-radius: 10px; border: none; flex-shrink: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: .2s;
+}
+.chat-send:hover { opacity: .9; transform: scale(1.05); }
+.chat-send:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ===== 右侧工作区 ===== */
+.right-panel { flex: 1; background: #fafafa; display: flex; flex-direction: column; overflow: hidden; }
+.rpanel { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+.rpanel.show { display: flex; }
+
+/* 空状态 */
+.right-empty { align-items: center; justify-content: center; gap: 16px; padding: 40px; }
+.empty-icon {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: linear-gradient(135deg, rgba(102,126,234,.1) 0%, rgba(118,75,162,.1) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.empty-icon svg { width: 36px; height: 36px; color: #667eea; }
+.empty-title { font-size: 17px; font-weight: 600; color: #434343; }
+.empty-desc { font-size: 13px; color: #8c8c8c; text-align: center; line-height: 1.8; max-width: 420px; }
+.empty-steps { display: flex; gap: 24px; margin-top: 8px; }
+.empty-step { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 130px; }
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;
+}
+.step-text { font-size: 12px; color: #595959; text-align: center; line-height: 1.5; }
+.step-arrow { color: #d9d9d9; font-size: 18px; align-self: center; margin-top: -8px; }
+.recent-section { margin-top: 20px; width: 100%; max-width: 440px; }
+.recent-title { font-size: 12px; color: #8c8c8c; margin-bottom: 8px; }
+.recent-list { display: flex; flex-direction: column; gap: 5px; }
+.recent-item {
+  padding: 9px 14px; border-radius: 8px; background: #fff; border: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; cursor: pointer; transition: .2s;
+}
+.recent-item:hover { border-color: #667eea; background: #faf9ff; }
+.recent-icon { color: #667eea; font-size: 13px; }
+.recent-text { font-size: 13px; color: #434343; flex: 1; }
+.recent-time { font-size: 11px; color: #bfbfbf; }
+
+/* 通用面板头 */
+.panel-header {
+  padding: 14px 24px; background: #fff; border-bottom: 1px solid #e8e8e8;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.panel-header .type-tag { font-size: 12px; padding: 3px 9px; }
+.panel-name-main { font-size: 15px; font-weight: 600; color: #262626; }
+.panel-name-sub { font-size: 12px; color: #8c8c8c; }
+.panel-header-actions { margin-left: auto; display: flex; gap: 8px; }
+.header-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: .2s; }
+.header-btn-outline { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.header-btn-outline:hover { border-color: #1677ff; color: #1677ff; }
+.header-btn-grad {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none;
+}
+.header-btn-grad:hover { opacity: .9; }
+
+/* ===== Chat BI 查数面板 ===== */
+.chatbi-badge {
+  font-size: 11px; padding: 3px 9px; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(102,126,234,.12), rgba(118,75,162,.12));
+  color: #667eea; font-weight: 600;
+}
+.chatbi-title { font-size: 15px; font-weight: 600; color: #262626; flex: 1; }
+.chatbi-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.metric-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.metric-card {
+  background: #fff; border: 1px solid #e8e8e8; border-radius: 10px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.metric-card.primary { border-color: #667eea; background: linear-gradient(135deg, rgba(102,126,234,.04), rgba(118,75,162,.04)); }
+.metric-label { font-size: 12px; color: #8c8c8c; }
+.metric-value { font-size: 24px; font-weight: 700; color: #262626; line-height: 1.2; }
+.metric-value.large { font-size: 28px; }
+.metric-change { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.metric-change.up { color: #f5222d; }
+.metric-change.down { color: #52c41a; }
+.metric-change.neutral { color: #8c8c8c; }
+.metric-period { font-size: 11px; color: #bfbfbf; }
+
+.chart-wrap { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 16px; }
+.chart-title { font-size: 13px; font-weight: 600; color: #434343; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.chart-legend { display: flex; gap: 16px; margin-left: auto; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8c8c8c; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.chart-svg-wrap { width: 100%; overflow: hidden; }
+
+.dim-table-wrap { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
+.dim-table-header {
+  padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
+  font-size: 13px; font-weight: 600; color: #434343; display: flex; align-items: center; gap: 8px;
+}
+.dim-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dim-table th {
+  padding: 8px 16px; text-align: left; background: #fafafa;
+  border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #595959; white-space: nowrap;
+}
+.dim-table td { padding: 8px 16px; border-bottom: 1px solid #f5f5f5; color: #434343; }
+.dim-table tr:last-child td { border-bottom: none; }
+.dim-table tr:hover td { background: #fafafa; }
+.rank-num { font-weight: 700; color: #667eea; }
+.rank-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.rank-bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #667eea, #764ba2); }
+
+/* 来源 + 口径说明 */
+.chatbi-source-panel { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 16px; }
+.source-title { font-size: 12px; font-weight: 600; color: #8c8c8c; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.source-row { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: #595959; line-height: 1.7; }
+.source-label { color: #8c8c8c; white-space: nowrap; flex-shrink: 0; width: 60px; }
+.source-code { font-family: 'SF Mono', 'Fira Code', monospace; background: #f5f5f5; padding: 1px 6px; border-radius: 3px; color: #434343; font-size: 11px; }
+.source-link { color: #667eea; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.source-link:hover { color: #764ba2; }
+.caliber-box {
+  margin-top: 8px; padding: 8px 12px; border-radius: 6px;
+  background: linear-gradient(135deg, rgba(102,126,234,.06), rgba(118,75,162,.06));
+  border: 1px solid rgba(102,126,234,.15); font-size: 12px; color: #434343; line-height: 1.7;
+}
+.caliber-box strong { color: #667eea; }
+
+/* 对话内查数摘要 */
+.chatbi-summary {
+  background: linear-gradient(135deg, rgba(102,126,234,.06), rgba(118,75,162,.06));
+  border: 1px solid rgba(102,126,234,.2); border-radius: 10px;
+  padding: 10px 14px; cursor: pointer; transition: .2s;
+}
+.chatbi-summary:hover { border-color: #667eea; }
+.chatbi-summary-label { font-size: 11px; color: #667eea; font-weight: 600; margin-bottom: 6px; }
+.chatbi-summary-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
+.chatbi-summary-metric { display: flex; flex-direction: column; gap: 2px; }
+.chatbi-summary-metric-label { font-size: 11px; color: #8c8c8c; }
+.chatbi-summary-metric-value { font-size: 16px; font-weight: 700; color: #262626; }
+.chatbi-summary-metric-change { font-size: 11px; }
+.chatbi-summary-metric-change.up { color: #f5222d; }
+.chatbi-summary-metric-change.down { color: #52c41a; }
+.chatbi-summary-hint { font-size: 11px; color: #bfbfbf; margin-top: 6px; }
+
+/* ===== 报表/看板预览面板 ===== */
+.preview-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.preview-filter-bar {
+  display: flex; gap: 10px; align-items: center; background: #fff;
+  border: 1px solid #e8e8e8; border-radius: 10px; padding: 10px 16px; font-size: 12px; color: #595959;
+}
+.preview-filter-bar select {
+  height: 28px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 0 8px;
+  font-size: 12px; color: #434343; background: #fff; cursor: pointer;
+}
+.preview-tip { font-size: 11px; color: #bfbfbf; margin-left: auto; }
+
+/* ===== 表工作区 ===== */
+.resource-meta {
+  padding: 12px 24px; background: #fff; border-bottom: 1px solid #e8e8e8;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; flex-shrink: 0;
+}
+.meta-item { display: flex; flex-direction: column; gap: 3px; }
+.meta-label { font-size: 11px; color: #8c8c8c; }
+.meta-value { font-size: 13px; color: #434343; font-weight: 500; }
+.meta-value.green { color: #52c41a; }
+.meta-value.orange { color: #fa8c16; cursor: pointer; }
+.business-tip {
+  margin: 12px 24px 0; padding: 10px 14px; border-radius: 8px;
+  background: linear-gradient(135deg, rgba(102,126,234,.06) 0%, rgba(118,75,162,.06) 100%);
+  border: 1px solid rgba(102,126,234,.15); font-size: 13px; color: #434343; line-height: 1.6; flex-shrink: 0;
+}
+.business-tip strong { color: #667eea; }
+
+/* schema 折叠区 */
+.schema-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 8px 24px; margin-top: 12px;
+  border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+  background: #fafafa; font-size: 12px; color: #595959; transition: .2s; flex-shrink: 0;
+}
+.schema-toggle:hover { background: #f5f3ff; color: #667eea; }
+.schema-wrap { background: #fff; flex-shrink: 0; max-height: 180px; overflow: auto; display: none; }
+.schema-wrap.show { display: block; }
+.schema-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.schema-table th {
+  padding: 6px 24px; text-align: left; background: #fafafa; position: sticky; top: 0;
+  border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #595959; white-space: nowrap;
+}
+.schema-table td { padding: 6px 24px; border-bottom: 1px solid #f5f5f5; color: #434343; }
+.schema-col { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #1677ff; }
+.schema-type { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: #8c8c8c; }
+
+/* SQL 区 */
+.sql-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.sql-toolbar {
+  padding: 10px 24px; background: #fff; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.sql-title { font-size: 14px; font-weight: 600; }
+.sql-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: linear-gradient(135deg, rgba(102,126,234,.1) 0%, rgba(118,75,162,.1) 100%);
+  color: #667eea; font-weight: 500;
+}
+.sql-toolbar-actions { margin-left: auto; display: flex; gap: 8px; }
+.sql-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: .2s; }
+.sql-btn-run { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; font-weight: 500; }
+.sql-btn-run:hover { opacity: .9; }
+.sql-btn-copy { background: #fff; border: 1px solid #d9d9d9; color: #595959; }
+.sql-btn-copy:hover { border-color: #1677ff; color: #1677ff; }
+.sql-btn-workbench { background: #fff7e6; border: 1px solid #ffd591; color: #fa8c16; }
+.sql-btn-workbench:hover { background: #fff1d6; }
+
+.sql-config-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 8px 24px;
+  border-bottom: 1px solid #f0f0f0; cursor: pointer; background: #fafafa;
+  font-size: 12px; color: #595959; transition: .2s; flex-shrink: 0;
+}
+.sql-config-toggle:hover { background: #f5f3ff; color: #667eea; }
+.toggle-arrow { transition: transform .3s; font-size: 10px; display: inline-block; }
+.toggle-arrow.closed { transform: rotate(-90deg); }
+.sql-config {
+  background: #fff; border-bottom: 1px solid #e8e8e8; flex-shrink: 0;
+  overflow: hidden; transition: max-height .3s ease; max-height: 500px;
+}
+.sql-config.collapsed { max-height: 0; border-bottom: none; }
+.sql-config-inner { padding: 14px 24px 16px; display: flex; flex-direction: column; gap: 12px; }
+.config-row { display: flex; align-items: flex-start; gap: 10px; }
+.config-label { font-size: 12px; color: #8c8c8c; width: 56px; flex-shrink: 0; padding-top: 6px; font-weight: 500; }
+.config-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 20px;
+  border: 1px solid #e8e8e8; color: #595959; cursor: pointer; transition: .15s; background: #fff; user-select: none;
+}
+.chip:hover { border-color: #667eea; color: #667eea; }
+.chip.selected { background: #667eea; border-color: #667eea; color: #fff; }
+.chip.selected:hover { background: #5a6fd6; }
+.config-select {
+  height: 30px; border: 1px solid #d9d9d9; border-radius: 6px;
+  padding: 0 8px; font-size: 12px; color: #434343; background: #fff; cursor: pointer;
+}
+.config-select:focus { border-color: #667eea; outline: none; }
+.config-divider { height: 1px; background: #f0f0f0; margin: 0 -24px; }
+.config-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 2px; }
+.config-gen-btn {
+  padding: 6px 16px; border-radius: 6px; border: none; font-size: 13px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; transition: .2s; font-weight: 500;
+}
+.config-gen-btn:hover { opacity: .9; }
+.config-reset-btn {
+  padding: 6px 12px; border-radius: 6px; border: 1px solid #d9d9d9;
+  font-size: 12px; color: #8c8c8c; background: #fff; cursor: pointer; transition: .2s;
+}
+.config-reset-btn:hover { border-color: #ff4d4f; color: #ff4d4f; }
+
+.sql-editor-wrap { flex-shrink: 0; overflow: auto; background: #1e1e2e; min-height: 110px; max-height: 190px; }
+.sql-editor {
+  padding: 14px 24px; color: #cdd6f4;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px; line-height: 1.8; white-space: pre;
+}
+.kw { color: #cba6f7; }
+.fn { color: #89b4fa; }
+.str { color: #a6e3a1; }
+.cm { color: #6c7086; font-style: italic; }
+
+/* 运行结果 */
+.result-wrap { border-top: 1px solid #e8e8e8; background: #fff; flex-shrink: 0; max-height: 200px; overflow: auto; display: none; }
+.result-wrap.show { display: block; }
+.result-bar {
+  padding: 8px 24px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid #f0f0f0; background: #fff; position: sticky; top: 0;
+}
+.result-ok { font-size: 12px; color: #52c41a; }
+.result-meta-text { font-size: 12px; color: #8c8c8c; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.result-table th {
+  padding: 7px 24px; text-align: left; background: #fafafa;
+  border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #595959; white-space: nowrap;
+}
+.result-table td { padding: 7px 24px; border-bottom: 1px solid #f5f5f5; color: #434343; }
+.result-table tr:hover td { background: #fafafa; }
+
+/* SQL 对话区 */
+.sql-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #e8e8e8; min-height: 110px; }
+.sql-chat-body { flex: 1; overflow-y: auto; padding: 12px 24px; display: flex; flex-direction: column; gap: 10px; }
+.sql-msg { display: flex; gap: 8px; }
+.sql-msg.user { flex-direction: row-reverse; }
+.sql-msg-avatar {
+  width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff;
+}
+.sql-msg.ai .sql-msg-avatar { background: linear-gradient(135deg, #667eea, #764ba2); }
+.sql-msg.user .sql-msg-avatar { background: #1677ff; }
+.sql-msg-bubble { padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; max-width: 80%; }
+.sql-msg.ai .sql-msg-bubble { background: #f7f8fa; color: #434343; }
+.sql-msg.user .sql-msg-bubble { background: #1677ff; color: #fff; }
+.sql-chat-footer {
+  padding: 10px 24px 14px; border-top: 1px solid #f0f0f0;
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+.sql-input {
+  flex: 1; height: 36px; border: 1px solid #d9d9d9; border-radius: 8px;
+  padding: 0 12px; font-size: 13px; transition: .2s;
+}
+.sql-input:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 2px rgba(102,126,234,.15); }
+.sql-input::placeholder { color: #bfbfbf; }
+.sql-send {
+  width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.sql-send:hover { opacity: .9; }
+
+/* ===== 详情抽屉（复刻平台统一详情） ===== */
+.drawer-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 300; display: none;
+}
+.drawer-mask.show { display: block; }
+.drawer {
+  position: fixed; top: 0; right: -960px; width: min(940px, 94vw); height: 100vh; z-index: 301;
+  background: #f7f8fa; box-shadow: -8px 0 24px rgba(0,0,0,.12);
+  transition: right .3s ease; display: flex; flex-direction: column;
+}
+.drawer.show { right: 0; }
+.drawer-close {
+  position: absolute; top: 14px; right: 16px; cursor: pointer; color: #8c8c8c;
+  font-size: 18px; padding: 2px 6px; z-index: 2; border-radius: 6px;
+}
+.drawer-close:hover { color: #262626; background: #f0f0f0; }
+
+/* 双层头部（对齐 DetailPage detail-header） */
+.dh { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 14px 24px 10px; flex-shrink: 0; }
+.dh-l1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-right: 32px; }
+.dh-db { font-size: 15px; color: #8c8c8c; font-family: 'SF Mono','Fira Code',monospace; }
+.dh-tech { font-size: 16px; font-weight: 600; color: #262626; font-family: 'SF Mono','Fira Code',monospace; }
+.dh-cn { font-size: 14px; color: #595959; }
+.dh-copy { cursor: pointer; color: #8c8c8c; font-size: 12px; border: none; background: none; padding: 2px 4px; }
+.dh-copy:hover { color: #1677ff; }
+.dh-stats { margin-left: auto; display: flex; gap: 14px; font-size: 12px; color: #8c8c8c; }
+.dh-actions { display: flex; gap: 8px; align-items: center; }
+.dh-fav { cursor: pointer; font-size: 15px; color: #bfbfbf; border: none; background: none; }
+.dh-fav.on { color: #fa8c16; }
+.dh-l2 { display: flex; align-items: center; gap: 20px; margin-top: 10px; font-size: 12px; color: #8c8c8c; flex-wrap: wrap; }
+.dh-progress { width: 90px; height: 6px; border-radius: 3px; background: #f0f0f0; overflow: hidden; display: inline-block; vertical-align: middle; }
+.dh-progress > div { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); }
+.dh-catalog-path { color: #434343; }
+.gray-tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: #f5f5f5; color: #595959; }
+
+/* Tab 栏 */
+.d-tabs { display: flex; gap: 2px; background: #fff; padding: 0 24px; border-bottom: 1px solid #e8e8e8; flex-shrink: 0; overflow-x: auto; }
+.d-tab {
+  padding: 10px 14px; font-size: 13px; color: #595959; cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap; transition: .15s;
+}
+.d-tab:hover { color: #667eea; }
+.d-tab.active { color: #667eea; font-weight: 600; border-bottom-color: #667eea; }
+
+/* 主体：Tab 内容 + 右侧信息栏（对齐 detail-sidebar） */
+.d-body { flex: 1; display: flex; overflow: hidden; }
+.d-main { flex: 1; overflow-y: auto; padding: 16px 20px 24px 24px; }
+.d-side {
+  width: 250px; flex-shrink: 0; overflow-y: auto; padding: 16px 20px;
+  background: #fff; border-left: 1px solid #f0f0f0;
+}
+.d-side-section { margin-bottom: 18px; }
+.d-side-title { font-size: 12px; font-weight: 600; color: #8c8c8c; margin-bottom: 8px; }
+.d-side-kv { display: grid; grid-template-columns: 84px 1fr; gap: 6px 10px; font-size: 12px; }
+.d-side-kv dt { color: #8c8c8c; }
+.d-side-kv dd { color: #434343; word-break: break-all; }
+
+.d-table-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; overflow: hidden; }
+.d-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.d-table th { padding: 7px 14px; text-align: left; background: #fafafa; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #595959; white-space: nowrap; }
+.d-table td { padding: 7px 14px; border-bottom: 1px solid #f5f5f5; color: #434343; }
+.d-table tr:last-child td { border-bottom: none; }
+.d-notice {
+  padding: 8px 12px; border-radius: 8px; background: #fffbe6; border: 1px solid #ffe58f;
+  font-size: 12px; color: #8c6d1f; line-height: 1.6; margin-bottom: 12px;
+}
+.sec-tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; font-weight: 500; }
+.sec-s1, .sec-s2 { background: #f6ffed; color: #52c41a; }
+.sec-s3 { background: #fff7e6; color: #fa8c16; }
+.sec-s4, .sec-s5 { background: #fff1f0; color: #f5222d; }
+.sec-encrypt { font-size: 11px; color: #f5222d; margin-left: 4px; }
+.d-def-block { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.d-def-block h3 { font-size: 13px; font-weight: 600; color: #434343; margin-bottom: 10px; }
+.d-def-kv { display: grid; grid-template-columns: 84px 1fr; gap: 7px 12px; font-size: 12px; }
+.d-def-kv dt { color: #8c8c8c; }
+.d-def-kv dd { color: #434343; line-height: 1.6; }
+.d-notes { padding-left: 18px; font-size: 12px; color: #595959; line-height: 2; }
+.lineage-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lineage-node {
+  padding: 8px 12px; border-radius: 8px; border: 1px solid #e8e8e8; background: #fafafa;
+  font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; color: #434343;
+}
+.lineage-node.cur { border-color: #667eea; background: #f5f3ff; color: #667eea; font-weight: 600; }
+.lineage-arrow { color: #bfbfbf; }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(0,0,0,.78); color: #fff; padding: 10px 20px; border-radius: 8px;
+  font-size: 13px; z-index: 400; opacity: 0; pointer-events: none; transition: .3s;
+  max-width: 60vw;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">📊 数据资产管理平台</div>
+  <div class="header-nav">
+    <div class="header-nav-item">资产检索</div>
+    <div class="header-nav-item">资产目录</div>
+    <div class="header-nav-item">资源发现</div>
+    <div class="header-nav-item">即席查询</div>
+    <div class="header-nav-item active">AI 找数</div>
+    <div class="header-nav-item">血缘追溯</div>
+  </div>
+  <div class="header-right">
+    <div class="role-badge">👤 业务运营（演示账号）</div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- 左侧对话区 -->
+  <div class="left-panel">
+    <div class="chat-header">
+      <div class="ai-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/><path d="M9 22h6"/><path d="M12 18v4"/>
+        </svg>
+      </div>
+      <div class="chat-header-info">
+        <div class="chat-header-title">AI 找数</div>
+        <div class="chat-header-sub">先找到数据，再直接用起来</div>
+      </div>
+      <button class="new-chat-btn" onclick="newChat()">+ 新对话</button>
+    </div>
+
+    <div class="chat-body" id="chatBody"></div>
+
+    <!-- 上下文条 -->
+    <div class="context-bar" id="ctxBar" style="display:none;">
+      <span>🧠</span>
+      <span class="ctx-label" id="ctxText"></span>
+      <span class="ctx-clear" onclick="clearCtx()" title="清除上下文">✕</span>
+    </div>
+
+    <div class="chat-footer">
+      <textarea class="chat-input" id="chatInput" rows="1"
+        placeholder="描述你想找的数据，或输入业务库表名…"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="sendBtn" onclick="sendMessage()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 右侧工作区 -->
+  <div class="right-panel">
+    <!-- ① 空态 -->
+    <div class="rpanel right-empty show" id="rightEmpty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          <path d="M11 8v6m-3-3h6" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="empty-title">从左侧开始：找数 → 用数</div>
+      <div class="empty-desc">描述业务需求，AI 帮你定位数据资产。<br>报表 / 看板可直接预览，表可查看结构说明、一键带到即席查询。</div>
+      <div class="empty-steps">
+        <div class="empty-step">
+          <div class="step-num">1</div>
+          <div class="step-text">描述你想找的数据</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="empty-step">
+          <div class="step-num">2</div>
+          <div class="step-text">选择推荐的资产</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="empty-step">
+          <div class="step-num">3</div>
+          <div class="step-text">直接用数：预览报表 / 带上下文去查询</div>
+        </div>
+      </div>
+      <div class="recent-section">
+        <div class="recent-title">📋 最近找数记录</div>
+        <div class="recent-list">
+          <div class="recent-item" onclick="sendQuick('用户下单后的退款情况')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">用户下单后的退款情况</span>
+            <span class="recent-time">2 小时前</span>
+          </div>
+          <div class="recent-item" onclick="sendQuick('各城市骑手配送时效')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">各城市骑手配送时效</span>
+            <span class="recent-time">昨天</span>
+          </div>
+          <div class="recent-item" onclick="sendQuick('order 表在数仓里是哪张')">
+            <span class="recent-icon">💬</span>
+            <span class="recent-text">order 表在数仓里是哪张</span>
+            <span class="recent-time">3 天前</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② Chat BI 查数结果 -->
+    <div class="rpanel" id="chatbiPanel">
+      <div class="panel-header">
+        <span class="chatbi-badge">📊 查数结果</span>
+        <div class="chatbi-title" id="chatbiTitle"></div>
+        <button class="header-btn header-btn-outline" id="chatbiSourceBtn" onclick="toggleChatbiSource()">收起来源与口径 ↑</button>
+      </div>
+      <div class="chatbi-body" id="chatbiBody"></div>
+    </div>
+
+    <!-- ③ 报表/看板预览 -->
+    <div class="rpanel" id="previewPanel">
+      <div class="panel-header">
+        <span class="type-tag type-report" id="pvTypeTag">报表</span>
+        <div>
+          <div class="panel-name-main" id="pvName"></div>
+          <div class="panel-name-sub" id="pvSub"></div>
+        </div>
+        <div class="panel-header-actions">
+          <button class="header-btn header-btn-outline" onclick="openDrawerCurrent()">完整详情</button>
+          <button class="header-btn header-btn-grad" id="pvOpenBtn" onclick="openOrigin()">打开原报表 →</button>
+        </div>
+      </div>
+      <div class="preview-body" id="previewBody"></div>
+    </div>
+
+    <!-- ④ 表工作区 -->
+    <div class="rpanel" id="rightActive">
+      <div class="panel-header">
+        <span class="type-tag type-table" id="resTypeTag">表</span>
+        <div>
+          <div class="panel-name-main" id="resNameMain"></div>
+          <div class="panel-name-sub" id="resNameSub"></div>
+        </div>
+        <div class="panel-header-actions">
+          <button class="header-btn header-btn-outline" onclick="openDrawerCurrent()">完整详情</button>
+        </div>
+      </div>
+
+      <div class="resource-meta">
+        <div class="meta-item">
+          <span class="meta-label">负责人</span>
+          <span class="meta-value" id="metaOwner"></span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">近30天查询量</span>
+          <span class="meta-value" id="metaHeat"></span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">权限状态</span>
+          <span class="meta-value green" id="metaPerm"></span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">更新频率</span>
+          <span class="meta-value" id="metaFreq"></span>
+        </div>
+      </div>
+
+      <div class="business-tip" id="businessTip"></div>
+
+      <!-- 表结构 -->
+      <div class="schema-toggle" onclick="toggleSchema()">
+        <span>📋 表结构</span>
+        <span class="toggle-arrow" id="schemaArrow">▼</span>
+        <span style="margin-left:auto;font-size:11px;color:#bfbfbf;" id="schemaCount"></span>
+      </div>
+      <div class="schema-wrap show" id="schemaWrap">
+        <table class="schema-table">
+          <thead><tr><th>字段</th><th>类型</th><th>业务含义</th></tr></thead>
+          <tbody id="schemaTbody"></tbody>
+        </table>
+      </div>
+
+      <!-- 用数指引：查询统一在即席查询工作台完成 -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:32px;">
+        <div style="font-size:13px;color:#8c8c8c;text-align:center;line-height:1.8;">
+          需要查这张表的数据时，去即席查询工作台执行。<br>跳转会自动带上表名和字段信息。
+        </div>
+        <button class="config-gen-btn" style="padding:10px 28px;font-size:14px;" onclick="gotoWorkbench()">去即席查询工作台 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 详情抽屉（复刻平台统一详情 DetailPage 结构） -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <span class="drawer-close" onclick="closeDrawer()">✕</span>
+  <div id="drawerRoot" style="display:flex;flex-direction:column;height:100%;overflow:hidden;"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ============================================================
+// Mock 数据
+// ============================================================
+
+// ---- 表资产：schema + 专属查询配置 ----
+const TABLES = {
+  'dws_trade_channel_day': {
+    name: 'dws_trade_channel_day', cnName: '各渠道交易日汇总表',
+    source: '数仓 DWS 层', layer: 'DWS 汇总层', domain: '交易域',
+    owner: '王小明', heat: '2,341 次', perm: 'ok', freq: '每日 T+1（凌晨 3 点产出）',
+    tip: '按渠道（APP / 小程序 / H5）统计每天的 GMV、订单量、退款金额，适合做渠道趋势分析和渠道间对比。',
+    schema: [
+      { col: 'stat_date', type: 'DATE', comment: '统计日期' },
+      { col: 'channel_name', type: 'VARCHAR(32)', comment: '渠道：APP / 小程序 / H5' },
+      { col: 'city_name', type: 'VARCHAR(32)', comment: '城市名称' },
+      { col: 'region', type: 'VARCHAR(16)', comment: '大区：华东 / 华南 / 华北…' },
+      { col: 'user_type', type: 'VARCHAR(16)', comment: '用户类型：新用户 / 老用户' },
+      { col: 'category_name', type: 'VARCHAR(64)', comment: '商品一级分类' },
+      { col: 'gmv_amt', type: 'DECIMAL(18,2)', comment: 'GMV（支付成功口径，含运费，不含退款）' },
+      { col: 'order_cnt', type: 'BIGINT', comment: '支付订单量' },
+      { col: 'refund_amt', type: 'DECIMAL(18,2)', comment: '退款金额（发起退款口径）' }
+    ],
+    config: {
+      dims: ['渠道','城市','日期','周','月','用户类型','商品分类'], defaultDims: ['渠道'],
+      metrics: ['GMV','订单量','退款金额','退款率','客单价','环比'], defaultMetrics: ['GMV','订单量'],
+      filters: ['仅 APP','仅小程序','华东区','华南区','排除退款']
+    }
+  },
+  'dwd_trade_refund_detail': {
+    name: 'dwd_trade_refund_detail', cnName: '退款明细表',
+    source: '数仓 DWD 层', layer: 'DWD 明细层', domain: '交易域 / 退款',
+    owner: '王小明', heat: '1,284 次', perm: 'ok', freq: '每日 T+1（凌晨 2 点产出）',
+    tip: '包含每笔退款的完整信息，可以按渠道、退款原因、时间段等维度自由聚合分析。',
+    schema: [
+      { col: 'refund_id', type: 'BIGINT', comment: '退款单号' },
+      { col: 'order_id', type: 'BIGINT', comment: '关联订单号' },
+      { col: 'refund_reason', type: 'VARCHAR(64)', comment: '退款原因分类' },
+      { col: 'refund_amt', type: 'DECIMAL(18,2)', comment: '退款金额' },
+      { col: 'refund_time', type: 'DATETIME', comment: '退款发起时间' },
+      { col: 'channel_name', type: 'VARCHAR(32)', comment: '下单渠道' },
+      { col: 'city_name', type: 'VARCHAR(32)', comment: '收货城市' },
+      { col: 'stat_date', type: 'DATE', comment: '分区日期' }
+    ],
+    config: {
+      dims: ['渠道','城市','退款原因','日期','月'], defaultDims: ['退款原因'],
+      metrics: ['退款金额','退款笔数'], defaultMetrics: ['退款金额','退款笔数'],
+      filters: ['仅 APP','仅小程序','金额 > 100']
+    }
+  },
+  'dws_user_retention_day': {
+    name: 'dws_user_retention_day', cnName: '用户留存日汇总表',
+    source: '数仓 DWS 层', layer: 'DWS 汇总层', domain: '用户域',
+    owner: '陈五', heat: '890 次', perm: 'ok', freq: '每日 T+1（凌晨 4 点产出）',
+    tip: '包含各注册日期队列的 D1 / D7 / D30 留存率，可以按渠道、城市等维度筛选分析。',
+    schema: [
+      { col: 'reg_date', type: 'DATE', comment: '注册日期（队列）' },
+      { col: 'channel_name', type: 'VARCHAR(32)', comment: '注册渠道' },
+      { col: 'city_name', type: 'VARCHAR(32)', comment: '注册城市' },
+      { col: 'new_user_cnt', type: 'BIGINT', comment: '当日新增用户数' },
+      { col: 'd1_rate', type: 'DECIMAL(6,4)', comment: 'D1 留存率（次日活跃口径）' },
+      { col: 'd7_rate', type: 'DECIMAL(6,4)', comment: 'D7 留存率' },
+      { col: 'd30_rate', type: 'DECIMAL(6,4)', comment: 'D30 留存率' }
+    ],
+    config: {
+      dims: ['注册日期','渠道','城市','月'], defaultDims: ['注册日期'],
+      metrics: ['新增用户数','D1 留存率','D7 留存率','D30 留存率'], defaultMetrics: ['新增用户数','D7 留存率'],
+      filters: ['仅 APP','仅小程序']
+    }
+  },
+  'ods_trade_order_full': {
+    name: 'ods_trade_order_full', cnName: '订单贴源表',
+    source: '数仓 ODS 层', layer: 'ODS 贴源层', domain: '交易域',
+    owner: '王小明', heat: '320 次', perm: 'ok', freq: '每日全量同步（凌晨 1 点）',
+    tip: '直接来源于业务库 order 表，字段一一对应，适合核对业务库数据。',
+    schema: [
+      { col: 'id', type: 'BIGINT', comment: '订单 ID（业务库主键）' },
+      { col: 'user_id', type: 'BIGINT', comment: '用户 ID' },
+      { col: 'order_amt', type: 'DECIMAL(18,2)', comment: '订单金额' },
+      { col: 'order_status', type: 'TINYINT', comment: '订单状态码（同业务库）' },
+      { col: 'create_time', type: 'DATETIME', comment: '下单时间' },
+      { col: 'stat_date', type: 'DATE', comment: '同步分区日期' }
+    ],
+    config: {
+      dims: ['日期'], defaultDims: ['日期'],
+      metrics: ['订单量'], defaultMetrics: ['订单量'],
+      filters: []
+    }
+  },
+  'dwd_trade_order_detail': {
+    name: 'dwd_trade_order_detail', cnName: '订单明细表',
+    source: '数仓 DWD 层', layer: 'DWD 明细层', domain: '交易域',
+    owner: '王小明', heat: '2,890 次', perm: 'ok', freq: '每日 T+1（凌晨 2 点产出）',
+    tip: '最常用的订单明细表，在业务库 order 基础上补充了渠道、用户画像、商品分类等维度。',
+    schema: [
+      { col: 'order_id', type: 'BIGINT', comment: '订单号' },
+      { col: 'user_id', type: 'BIGINT', comment: '用户 ID' },
+      { col: 'channel_name', type: 'VARCHAR(32)', comment: '下单渠道' },
+      { col: 'city_name', type: 'VARCHAR(32)', comment: '收货城市' },
+      { col: 'user_type', type: 'VARCHAR(16)', comment: '新老用户标识' },
+      { col: 'category_name', type: 'VARCHAR(64)', comment: '商品一级分类' },
+      { col: 'gmv_amt', type: 'DECIMAL(18,2)', comment: '订单 GMV（支付口径）' },
+      { col: 'is_refund', type: 'TINYINT', comment: '是否发生退款' },
+      { col: 'stat_date', type: 'DATE', comment: '分区日期' }
+    ],
+    config: {
+      dims: ['渠道','城市','日期','用户类型','商品分类'], defaultDims: ['渠道'],
+      metrics: ['GMV','订单量','客单价'], defaultMetrics: ['GMV','订单量'],
+      filters: ['仅 APP','仅小程序','排除退款']
+    }
+  },
+  'dws_trade_order_day': {
+    name: 'dws_trade_order_day', cnName: '订单日汇总表',
+    source: '数仓 DWS 层', layer: 'DWS 汇总层', domain: '交易域',
+    owner: '王小明', heat: '1,670 次', perm: 'ok', freq: '每日 T+1（凌晨 3 点产出）',
+    tip: '按天汇总的订单数据，适合看 GMV 趋势、订单量变化等。也是「昨天 GMV」等查数问题的来源表。',
+    schema: [
+      { col: 'stat_date', type: 'DATE', comment: '统计日期' },
+      { col: 'gmv_amt', type: 'DECIMAL(18,2)', comment: '当日 GMV（支付口径，不含退款）' },
+      { col: 'order_cnt', type: 'BIGINT', comment: '当日支付订单量' },
+      { col: 'refund_amt', type: 'DECIMAL(18,2)', comment: '当日退款金额' },
+      { col: 'buyer_cnt', type: 'BIGINT', comment: '当日下单人数' }
+    ],
+    config: {
+      dims: ['日期','周','月'], defaultDims: ['日期'],
+      metrics: ['GMV','订单量','退款金额','客单价','环比'], defaultMetrics: ['GMV','订单量'],
+      filters: ['排除退款']
+    }
+  },
+  'dws_trade_city_day': {
+    name: 'dws_trade_city_day', cnName: '各城市交易日汇总表',
+    source: '数仓 DWS 层', layer: 'DWS 汇总层', domain: '交易域',
+    owner: '王小明', heat: '1,120 次', perm: 'ok', freq: '每日 T+1（凌晨 3 点产出）',
+    tip: '按城市、按天汇总的交易数据，是「GMV 按城市分布」等查数问题的来源表。',
+    schema: [
+      { col: 'stat_date', type: 'DATE', comment: '统计日期' },
+      { col: 'city_name', type: 'VARCHAR(32)', comment: '城市名称' },
+      { col: 'region', type: 'VARCHAR(16)', comment: '大区' },
+      { col: 'gmv_amt', type: 'DECIMAL(18,2)', comment: '当日 GMV（支付口径，不含退款）' },
+      { col: 'order_cnt', type: 'BIGINT', comment: '当日支付订单量' }
+    ],
+    config: {
+      dims: ['城市','日期','周','月'], defaultDims: ['城市'],
+      metrics: ['GMV','订单量','环比'], defaultMetrics: ['GMV'],
+      filters: ['华东区','华南区']
+    }
+  }
+};
+
+// ---- 找数结果 ----
+const MOCK_QUERIES = {
+  'gmv': {
+    ctxLabel: '渠道 GMV',
+    intent: '我理解你想看各渠道的 GMV 表现。优先推荐可以直接查看的报表和看板，需要自定义分析时再用表：',
+    results: [
+      { type: 'report', typeLabel: '报表', typeCls: 'type-report',
+        name: '渠道 GMV 日报', enName: 'channel_gmv_daily_report',
+        source: 'BI 平台', owner: '张三', heat: '3,210 次', perm: 'ok',
+        layer: '报表', domain: '交易域', freq: '每日 09:00 更新',
+        caliber: 'GMV = 当日支付成功订单金额，含运费，不含退款；渠道按下单端归属。',
+        desc: '按渠道（APP/小程序/H5）统计每天的 GMV、订单量、退款率，支持时间范围筛选和渠道对比。',
+        reason: '直接包含渠道 GMV 数据，点击可在右侧预览' },
+      { type: 'dashboard', typeLabel: '看板', typeCls: 'type-dashboard',
+        name: '运营大盘看板', enName: 'ops_overview_dashboard',
+        source: 'BI 平台', owner: '李四', heat: '1,890 次', perm: 'ok',
+        layer: '看板', domain: '综合', freq: '实时（10 分钟延迟）',
+        caliber: 'GMV 为支付口径；DAU 为去重活跃设备数；转化率 = 支付用户数 / 访问用户数。',
+        desc: '包含 GMV、DAU、转化率等核心经营指标，实时更新。',
+        reason: '包含 GMV 核心指标，适合整体趋势监控' },
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'dws_trade_channel_day',
+        name: 'dws_trade_channel_day',
+        source: '数仓 DWS 层', perm: 'ok',
+        desc: '按渠道、按天汇总的交易数据，包含 GMV、订单量、退款金额等字段。',
+        reason: '报表覆盖不了的自定义分析，用这张表配置查询直接出结果' }
+    ],
+    guides: ['按城市看 GMV', '本周 GMV 和上周对比', '退款分析报表', '用户留存相关报表']
+  },
+  '退款': {
+    ctxLabel: '退款分析',
+    intent: '我理解你想查看退款相关的数据。优先推荐退款分析报表，明细分析用表：',
+    results: [
+      { type: 'report', typeLabel: '报表', typeCls: 'type-report',
+        name: '退款分析日报', enName: 'refund_analysis_daily',
+        source: 'BI 平台', owner: '张三', heat: '1,560 次', perm: 'ok',
+        layer: '报表', domain: '交易域 / 退款', freq: '每日 09:00 更新',
+        caliber: '退款金额为发起退款口径（含未完成退款）；退款率 = 退款金额 / GMV。',
+        desc: '按渠道、退款原因分类统计每日退款量和退款金额，支持下钻到订单明细。',
+        reason: '直接覆盖退款分析需求，点击可在右侧预览' },
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'dwd_trade_refund_detail',
+        name: 'dwd_trade_refund_detail',
+        source: '数仓 DWD 层', perm: 'ok',
+        desc: '退款明细表，包含每笔退款的订单号、退款原因、退款金额、退款时间等字段。',
+        reason: '需要明细数据或自定义聚合时，用这张表直接查' }
+    ],
+    guides: ['退款原因分布', '退款率趋势', 'order 表在数仓里是哪张', '各渠道 GMV 表现']
+  },
+  '用户留存': {
+    ctxLabel: '用户留存',
+    intent: '我理解你想看用户留存相关的数据。找到了以下资源：',
+    results: [
+      { type: 'report', typeLabel: '报表', typeCls: 'type-report',
+        name: '用户留存分析报表', enName: 'user_retention_report',
+        source: 'BI 平台', owner: '陈五', heat: '2,100 次', perm: 'apply',
+        layer: '报表', domain: '用户域', freq: '每日 10:00 更新',
+        caliber: '留存率 = 注册日队列中第 N 天仍活跃的用户占比；活跃口径为打开 APP。',
+        desc: '按注册日期队列统计 D1/D7/D30 留存率，支持按渠道、城市等维度拆分。',
+        reason: '直接覆盖留存分析需求（需申请权限）' },
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'dws_user_retention_day',
+        name: 'dws_user_retention_day',
+        source: '数仓 DWS 层', perm: 'ok',
+        desc: '按天统计各注册队列的留存情况，包含 D1/D7/D30 留存率字段。',
+        reason: '报表权限未下来之前，可以先用这张表查' }
+    ],
+    guides: ['按渠道看留存', '近 30 天 GMV 趋势', '转化漏斗报表', '各渠道 GMV 表现']
+  },
+  '配送时效': {
+    ctxLabel: '配送时效',
+    intent: '我理解你想看配送时效相关的数据。找到了以下资源：',
+    results: [
+      { type: 'dashboard', typeLabel: '看板', typeCls: 'type-dashboard',
+        name: '配送时效监控看板', enName: 'delivery_sla_dashboard',
+        source: 'BI 平台', owner: '赵六', heat: '1,450 次', perm: 'ok',
+        layer: '看板', domain: '供应链域 / 配送', freq: '实时（5 分钟延迟）',
+        caliber: '时效达标 = 实际送达时间 ≤ 承诺送达时间；达标率按订单量加权。',
+        desc: '实时展示各城市、各时段的配送时效达标率，支持按城市、骑手类型筛选。',
+        reason: '直接覆盖配送时效监控需求，点击可在右侧预览' },
+      { type: 'report', typeLabel: '报表', typeCls: 'type-report',
+        name: '配送时效日报', enName: 'delivery_sla_daily',
+        source: 'BI 平台', owner: '赵六', heat: '980 次', perm: 'ok',
+        layer: '报表', domain: '供应链域 / 配送', freq: '每日 08:30 更新',
+        caliber: '统计口径同监控看板，按自然日汇总。',
+        desc: '按城市、骑手类型统计每日配送时效达标率和平均配送时长。',
+        reason: '需要历史趋势分析时使用' }
+    ],
+    guides: ['按城市看时效', '高峰期时效分析', '骑手类型对比', '时效与差评关联']
+  },
+  'order': {
+    ctxLabel: 'order 表映射',
+    isMapping: true,
+    intent: '根据血缘关系，业务库 <code>order</code> 表在数仓中有以下下游表，选一张直接用：',
+    results: [
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'ods_trade_order_full',
+        name: 'ods_trade_order_full', source: '数仓 ODS 层', perm: 'ok',
+        desc: '直接来源于业务库 order 表，保留原始字段，每日全量同步。',
+        reason: '与业务库 order 表字段一一对应，适合核对数据' },
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'dwd_trade_order_detail',
+        name: 'dwd_trade_order_detail', source: '数仓 DWD 层', perm: 'ok',
+        desc: '基于 ODS 层清洗加工，补充了渠道、用户画像、商品分类等维度，是最常用的订单明细表。',
+        reason: '最常用的订单明细表，字段更丰富' },
+      { type: 'table', typeLabel: '表', typeCls: 'type-table', tableKey: 'dws_trade_order_day',
+        name: 'dws_trade_order_day', source: '数仓 DWS 层', perm: 'ok',
+        desc: '基于 DWD 层按天聚合，包含每日订单量、GMV、退款量等汇总指标。',
+        reason: '需要看趋势或汇总数据时使用' }
+    ],
+    guides: ['订单 GMV 趋势', '退款相关的表', '各渠道 GMV 表现', '昨天 GMV 是多少']
+  },
+  '转化漏斗': {
+    ctxLabel: '转化漏斗',
+    intent: '我理解你想看转化漏斗相关的数据。找到了以下资源：',
+    results: [
+      { type: 'report', typeLabel: '报表', typeCls: 'type-report',
+        name: '核心转化漏斗报表', enName: 'core_conversion_funnel',
+        source: 'BI 平台', owner: '陈五', heat: '3,450 次', perm: 'ok',
+        layer: '报表', domain: '用户域 / 转化', freq: '每日 10:00 更新',
+        caliber: '各环节按用户去重；转化率 = 下一环节用户数 / 上一环节用户数。',
+        desc: '展示从曝光→点击→加购→下单→支付的完整转化漏斗，支持按渠道、时间段筛选。',
+        reason: '直接覆盖转化漏斗分析需求，点击可在右侧预览' }
+    ],
+    guides: ['按渠道看转化', '加购到支付转化', '新用户转化率', '转化与留存关联']
+  }
+};
+
+// ---- 模糊追问 ----
+const MOCK_AMBIGUOUS = {
+  '用户': { ask: '你想看的是哪方面的用户数据？',
+    options: ['用户行为 / 活跃度', '用户画像 / 标签', '用户留存 / 流失', '用户交易 / 消费'] },
+  '数据': { ask: '你想找哪个业务方向的数据？',
+    options: ['交易 / 订单 / GMV', '用户 / 留存 / 画像', '供应链 / 配送', '营销 / 活动 / 优惠券'] }
+};
+
+// ---- Chat BI 查数（含指标口径 + 来源表跳转）----
+const MOCK_CHATBI = {
+  'gmv是多少': {
+    summaryLabel: '昨天 GMV',
+    summaryMetrics: [
+      { label: 'GMV', value: '1.23 亿', change: '↑8.2%', dir: 'up' },
+      { label: '环比前日', value: '+930 万', change: '', dir: 'up' },
+      { label: '同比上周', value: '+8.2%', change: '', dir: 'up' }
+    ],
+    rightTitle: '昨天 GMV 是多少', rightContent: 'metric',
+    metrics: [
+      { label: '昨日 GMV', value: '1.23 亿', change: '↑8.2%', dir: 'up', period: '对比上周同日', primary: true },
+      { label: '环比前日', value: '+930 万', change: '↑8.2%', dir: 'up', period: '07-12 vs 07-11' },
+      { label: '同比上周', value: '+8.2%', change: '', dir: 'up', period: '07-12 vs 07-05' }
+    ],
+    source: { table: 'dws_trade_order_day', field: 'gmv_amt', time: "stat_date = 2026-07-12", via: '指标服务 API' },
+    caliber: 'GMV = 当日支付成功订单金额，含运费，<strong>不含退款</strong>。数据 T+1 更新，昨日数据已产出（今晨 3:00）。'
+  },
+  'gmv按城市': {
+    summaryLabel: '昨天 GMV 按城市分布',
+    summaryMetrics: [
+      { label: '北京', value: '3,240 万', change: '↑5.1%', dir: 'up' },
+      { label: '上海', value: '2,980 万', change: '↑3.8%', dir: 'up' },
+      { label: '广州', value: '1,870 万', change: '↓1.2%', dir: 'down' }
+    ],
+    rightTitle: '昨天 GMV 按城市分布', rightContent: 'dimension',
+    rows: [
+      { rank: 1, city: '北京', gmv: '3,240 万', pct: '26.3%', wow: '↑5.1%', dir: 'up' },
+      { rank: 2, city: '上海', gmv: '2,980 万', pct: '24.2%', wow: '↑3.8%', dir: 'up' },
+      { rank: 3, city: '广州', gmv: '1,870 万', pct: '15.2%', wow: '↓1.2%', dir: 'down' },
+      { rank: 4, city: '深圳', gmv: '1,650 万', pct: '13.4%', wow: '↑2.3%', dir: 'up' },
+      { rank: 5, city: '成都', gmv: '980 万', pct: '8.0%', wow: '↑7.6%', dir: 'up' },
+      { rank: 6, city: '杭州', gmv: '760 万', pct: '6.2%', wow: '↓0.5%', dir: 'down' },
+      { rank: 7, city: '其他', gmv: '830 万', pct: '6.7%', wow: '↑1.1%', dir: 'up' }
+    ],
+    source: { table: 'dws_trade_city_day', field: 'gmv_amt', time: "stat_date = 2026-07-12", via: '白名单表 SQL 自动执行' },
+    caliber: 'GMV = 当日支付成功订单金额（支付口径，不含退款）；城市按收货地址归属。数据 T+1 更新。'
+  },
+  'gmv排名': {
+    summaryLabel: '昨天 GMV 城市排名 TOP5',
+    summaryMetrics: [
+      { label: 'TOP1 北京', value: '3,240 万', change: '↑5.1%', dir: 'up' },
+      { label: 'TOP2 上海', value: '2,980 万', change: '↑3.8%', dir: 'up' },
+      { label: 'TOP3 广州', value: '1,870 万', change: '↓1.2%', dir: 'down' }
+    ],
+    rightTitle: 'GMV 最高的城市 TOP5', rightContent: 'rank',
+    rows: [
+      { rank: 1, city: '北京', gmv: '3,240 万', pct: '26.3%', wow: '↑5.1%', dir: 'up' },
+      { rank: 2, city: '上海', gmv: '2,980 万', pct: '24.2%', wow: '↑3.8%', dir: 'up' },
+      { rank: 3, city: '广州', gmv: '1,870 万', pct: '15.2%', wow: '↓1.2%', dir: 'down' },
+      { rank: 4, city: '深圳', gmv: '1,650 万', pct: '13.4%', wow: '↑2.3%', dir: 'up' },
+      { rank: 5, city: '成都', gmv: '980 万', pct: '8.0%', wow: '↑7.6%', dir: 'up' }
+    ],
+    source: { table: 'dws_trade_city_day', field: 'gmv_amt', time: "stat_date = 2026-07-12 · ORDER BY gmv DESC LIMIT 5", via: '白名单表 SQL 自动执行' },
+    caliber: 'GMV = 当日支付成功订单金额（支付口径，不含退款）；城市按收货地址归属，排名按 GMV 降序取前 5。数据 T+1 更新。'
+  },
+  'gmv占比': {
+    summaryLabel: '昨天各渠道 GMV 占比',
+    summaryMetrics: [
+      { label: 'APP', value: '58.4%', change: '7,180 万', dir: 'neutral' },
+      { label: '小程序', value: '31.2%', change: '3,840 万', dir: 'neutral' },
+      { label: 'H5', value: '10.4%', change: '1,280 万', dir: 'neutral' }
+    ],
+    rightTitle: '昨天各渠道 GMV 占比', rightContent: 'share',
+    rows: [
+      { name: 'APP', value: '7,180 万', pct: 58.4, wow: '↑1.2pp', dir: 'up' },
+      { name: '小程序', value: '3,840 万', pct: 31.2, wow: '↑0.4pp', dir: 'up' },
+      { name: 'H5', value: '1,280 万', pct: 10.4, wow: '↓1.6pp', dir: 'down' }
+    ],
+    source: { table: 'dws_trade_channel_day', field: 'gmv_amt', time: "stat_date = 2026-07-12", via: '白名单表 SQL 自动执行' },
+    caliber: 'GMV = 当日支付成功订单金额（支付口径，不含退款）；占比 = 各渠道 GMV / 全渠道 GMV，环比为占比的百分点变化。数据 T+1 更新。'
+  },
+  'gmv洞察': {
+    summaryLabel: '昨天 GMV 涨幅归因',
+    summaryMetrics: [
+      { label: '昨日 GMV', value: '1.23 亿', change: '↑8.2%', dir: 'up' },
+      { label: '主要动因', value: 'APP 渠道', change: '+680 万（贡献 73%）', dir: 'up' },
+      { label: '异常提示', value: '2 项', change: '1 项需关注', dir: 'down' }
+    ],
+    rightTitle: '昨天 GMV 为什么涨了', rightContent: 'insight',
+    insight: {
+      conclusion: '昨天 GMV <strong>1.23 亿</strong>，环比上周同日 <strong>+930 万（↑8.2%）</strong>。增长 73% 来自 <strong>APP 渠道</strong>（715 大促预热活动拉动），各城市普涨，基本面健康；有 1 项异常建议关注。',
+      drivers: [
+        { name: 'APP', diff: '+680 万', pct: 73 },
+        { name: '小程序', diff: '+190 万', pct: 20 },
+        { name: 'H5', diff: '+60 万', pct: 7 }
+      ],
+      anomalies: [
+        { level: 'info', text: '成都 GMV 环比 +7.6%，显著高于全国均值（+2.9%）——当地满减活动 7/10 上线，属预期内增长。' },
+        { level: 'warn', text: 'H5 渠道订单量 -3.1% 但 GMV 基本持平，客单价异常上升，建议排查是否存在大额异常订单。' }
+      ],
+      nextSteps: ['昨天 GMV 按城市分布', '各渠道 GMV 占比', '最近 30 天 GMV 趋势']
+    },
+    source: { table: 'dws_trade_channel_day', field: 'gmv_amt', time: 'stat_date = 2026-07-12 vs 2026-07-05', via: '指标服务 + 自动归因（维度贡献度分解）' },
+    caliber: 'GMV = 当日支付成功订单金额（支付口径，不含退款）。归因方法：对环比增量按渠道/城市维度做<strong>贡献度分解</strong>（各维度增量 / 总增量）；异常检测为环比波动超 ±2σ 触发。结论由规则生成，仅供参考。'
+  },
+  'gmv趋势': {
+    summaryLabel: '最近 30 天 GMV 趋势',
+    summaryMetrics: [
+      { label: '30天累计', value: '3.68 亿', change: '↑12.4%', dir: 'up' },
+      { label: '日均 GMV', value: '1,227 万', change: '', dir: 'neutral' },
+      { label: '最高单日', value: '1,580 万', change: '7月12日', dir: 'neutral' }
+    ],
+    rightTitle: '最近 30 天 GMV 趋势', rightContent: 'trend',
+    source: { table: 'dws_trade_order_day', field: 'gmv_amt', time: '近 30 天', via: '白名单表 SQL 自动执行' },
+    caliber: 'GMV = 每日支付成功订单金额（支付口径，不含退款）。同比为对比上一个 30 天周期。数据 T+1 更新。'
+  },
+  'gmv对比': {
+    summaryLabel: '本周 vs 上周 GMV 对比',
+    summaryMetrics: [
+      { label: '本周 GMV', value: '8,640 万', change: '↑9.3%', dir: 'up' },
+      { label: '上周 GMV', value: '7,905 万', change: '', dir: 'neutral' },
+      { label: '增量', value: '+735 万', change: '', dir: 'up' }
+    ],
+    rightTitle: '本周 GMV 和上周对比', rightContent: 'comparison',
+    rows: [
+      { day: '周一', cur: '1,180 万', prev: '1,050 万', diff: '+130 万', dir: 'up' },
+      { day: '周二', cur: '1,240 万', prev: '1,120 万', diff: '+120 万', dir: 'up' },
+      { day: '周三', cur: '1,320 万', prev: '1,230 万', diff: '+90 万', dir: 'up' },
+      { day: '周四', cur: '1,290 万', prev: '1,180 万', diff: '+110 万', dir: 'up' },
+      { day: '周五', cur: '1,580 万', prev: '1,420 万', diff: '+160 万', dir: 'up' },
+      { day: '周六', cur: '—', prev: '1,380 万', diff: '—', dir: 'neutral' },
+      { day: '周日（今天，未完整）', cur: '2,030 万', prev: '1,525 万', diff: '统计中', dir: 'neutral' }
+    ],
+    source: { table: 'dws_trade_order_day', field: 'gmv_amt', time: '本周 vs 上周', via: '白名单表 SQL 自动执行' },
+    caliber: 'GMV = 每日支付成功订单金额（支付口径，不含退款）。本周对比截至昨天完整数据，今日为实时数（未完整）。'
+  }
+};
+// ============================================================
+// 全局状态
+// ============================================================
+let isTyping = false;
+let askCount = 0;
+let CTX = null;                 // { kind:'find'|'chatbi'|'table', key, label }
+let chatbiHistory = [];         // 查数历史，可回看
+let currentTable = null;        // 当前表对象
+let currentAsset = null;        // 当前预览/工作区资产（用于详情抽屉）
+let schemaOpen = true;
+let _sourceVisible = true;
+
+// ============================================================
+// 上下文
+// ============================================================
+function setCtx(kind, key, label, metric) {
+  CTX = { kind, key, label, metric: metric || null };
+  const bar = document.getElementById('ctxBar');
+  bar.style.display = 'flex';
+  document.getElementById('ctxText').textContent = '当前上下文：' + label;
+}
+function clearCtx() {
+  CTX = null;
+  document.getElementById('ctxBar').style.display = 'none';
+}
+
+// ============================================================
+// 面板切换（四态互斥）
+// ============================================================
+function showPanel(id) {
+  ['rightEmpty','chatbiPanel','previewPanel','rightActive'].forEach(p =>
+    document.getElementById(p).classList.toggle('show', p === id));
+}
+
+// ============================================================
+// 左侧对话
+// ============================================================
+const WELCOME_HTML = `
+  <div class="msg ai">
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">
+        你好！告诉我你想找什么数据，我来帮你定位，并且直接用起来：<br>
+        · 报表 / 看板 → 右侧直接预览<br>
+        · 表 → 查看表结构，一键带到即席查询<br>
+        · 指标类问题（如"昨天 GMV 是多少"）→ 直接给数
+      </div>
+      <div class="guide-tags">
+        <span class="guide-tag" onclick="sendQuick('各渠道 GMV 表现')">📊 各渠道 GMV 表现</span>
+        <span class="guide-tag" onclick="sendQuick('用户留存相关报表')">👤 用户留存相关报表</span>
+        <span class="guide-tag" onclick="sendQuick('order 表在数仓里是哪张')">🔗 order 表在数仓里是哪张</span>
+        <span class="guide-tag" onclick="sendQuick('配送时效看板')">🚚 配送时效看板</span>
+        <span class="guide-tag" onclick="sendQuick('昨天 GMV 是多少')">🔢 昨天 GMV 是多少</span>
+        <span class="guide-tag" onclick="sendQuick('昨天 GMV 按城市分布')">📍 GMV 按城市分布</span>
+        <span class="guide-tag" onclick="sendQuick('最近 30 天 GMV 趋势')">📈 近 30 天 GMV 趋势</span>
+        <span class="guide-tag" onclick="sendQuick('本周 GMV 和上周对比')">⚖️ 本周 vs 上周 GMV</span>
+        <span class="guide-tag" onclick="sendQuick('GMV 最高的城市 TOP5')">🏆 GMV 城市排名 TOP5</span>
+        <span class="guide-tag" onclick="sendQuick('各渠道 GMV 占比')">🥧 各渠道 GMV 占比</span>
+        <span class="guide-tag" onclick="sendQuick('昨天的订单明细')">🧾 昨天的订单明细</span>
+        <span class="guide-tag" onclick="sendQuick('GMV 的口径是什么')">📖 GMV 的口径是什么</span>
+        <span class="guide-tag" onclick="sendQuick('昨天 GMV 为什么涨了')">💡 昨天 GMV 为什么涨了</span>
+        <span class="guide-tag" onclick="sendQuick('昨天销售额是多少')">💰 昨天销售额是多少</span>
+      </div>
+    </div>
+  </div>`;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isTyping) return;
+  input.value = ''; input.style.height = 'auto';
+  appendUserMsg(text);
+  showTyping();
+  setTimeout(() => { removeTyping(); handleQuery(text); }, 900 + Math.random() * 400);
+}
+function appendUserMsg(text) {
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-avatar">我</div><div class="msg-content"><div class="msg-bubble">${escHtml(text)}</div></div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+function showTyping() {
+  isTyping = true;
+  document.getElementById('sendBtn').disabled = true;
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typingMsg';
+  div.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-content"><div class="msg-bubble" style="padding:10px 14px;"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+function removeTyping() {
+  isTyping = false;
+  document.getElementById('sendBtn').disabled = false;
+  const el = document.getElementById('typingMsg');
+  if (el) el.remove();
+}
+function scrollChat() {
+  const body = document.getElementById('chatBody');
+  setTimeout(() => body.scrollTop = body.scrollHeight, 50);
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function newChat() {
+  document.getElementById('chatBody').innerHTML = WELCOME_HTML;
+  showPanel('rightEmpty');
+  askCount = 0;
+  clearCtx();
+  chatbiHistory = [];
+}
+
+// ============================================================
+// 召回管道：① 意图分类 → ② 槽位解析（上下文补位）→ ③ 分支执行 → ④ 兜底
+// ============================================================
+
+// ---- 指标注册表：新增指标只改这里，查数/找数/上下文自动生效 ----
+const METRICS = {
+  'GMV':  { alias: ['gmv','交易额','成交额'], find: 'gmv', detailTable: 'dwd_trade_order_detail',
+            caliber: 'GMV = 当日<strong>支付成功</strong>订单金额，含运费，<strong>不含退款</strong>。与财务口径（确认收入）存在差异。数据 T+1 更新（每日凌晨 3 点产出），来源指标服务 <code>idx_gmv</code>，负责人王小明。',
+            chatbi: { value: 'gmv是多少', dimension: 'gmv按城市', trend: 'gmv趋势', comparison: 'gmv对比', rank: 'gmv排名', share: 'gmv占比', insight: 'gmv洞察' } },
+  '营收': { alias: ['营收','确收'], find: 'gmv',
+            caliber: '营收 = <strong>确认收入</strong>口径（剔除退款、优惠券及补贴分摊），与 GMV（支付口径）存在差异，财务报表以此为准。数据 T+3 更新，来源财务域。',
+            chatbi: null },
+  '退款': { alias: ['退款','退货'], find: '退款', detailTable: 'dwd_trade_refund_detail',
+            caliber: '退款金额 = <strong>发起退款</strong>口径（含未完成退款），非退款成功口径。退款率 = 退款金额 / GMV。数据 T+1 更新。',
+            chatbi: null },
+  '留存': { alias: ['留存'], find: '用户留存',
+            caliber: '留存率 = 注册日队列中第 N 天仍<strong>活跃</strong>的用户占比，活跃口径为打开 APP。D1 为次日，自然日计算。数据 T+1 更新。',
+            chatbi: null },
+  '配送时效': { alias: ['配送时效','配送','时效'], find: '配送时效',
+            caliber: '时效达标 = 实际送达时间 ≤ 承诺送达时间；达标率按订单量加权。看板数据实时（5 分钟延迟），日报按自然日汇总。',
+            chatbi: null },
+  '转化': { alias: ['转化','漏斗'], find: '转化漏斗',
+            caliber: '各环节按用户去重；转化率 = 下一环节用户数 / 上一环节用户数。漏斗环节：曝光→点击→加购→下单→支付。数据 T+1 更新。',
+            chatbi: null }
+};
+function metricOfFindKey(key) {
+  for (const [n, m] of Object.entries(METRICS)) if (m.find === key) return n;
+  return null;
+}
+
+// ---- 模糊说法 → 多个候选指标（需用户确认）----
+const AMBIGUOUS_METRIC_TERMS = {
+  '销售额': ['GMV', '营收'],
+  '收入': ['GMV', '营收'],
+  '销售收入': ['GMV', '营收']
+};
+
+// ---- ② 槽位解析：指标 / 分析类型 / 维度 / 时间 / 资产词 ----
+function parseSlots(t) {
+  const s = { metric: null, metricText: null, ambTerm: null, analysis: null, dimension: null, time: null, assetWord: false };
+  for (const [name, m] of Object.entries(METRICS)) {
+    const hit = m.alias.find(a => t.includes(a));
+    if (hit) {
+      s.metric = name;
+      // 记录用户实际说法（如"退款率"而不只是"退款"），用于回显
+      s.metricText = t.includes(hit + '率') ? hit + '率' : hit === 'gmv' ? 'GMV' : hit;
+      break;
+    }
+  }
+  // 没有精确命中时，检查是否是"说法不准、命中多个候选指标"的情况
+  if (!s.metric) {
+    for (const term of Object.keys(AMBIGUOUS_METRIC_TERMS)) {
+      if (t.includes(term)) { s.ambTerm = term; break; }
+    }
+  }
+  if (/是多少|多少|总额/.test(t)) s.analysis = 'value';                      // I001 指标值
+  const dim = t.match(/按(城市|渠道|地区|原因)|各城市|城市分布|拆分|拆解/);
+  if (dim) { s.analysis = 'dimension'; s.dimension = dim[1] || '城市'; }      // I006 拆解
+  if (/趋势|走势|每天/.test(t)) s.analysis = 'trend';                         // I002 历史趋势
+  if (/对比|比较|同比|(本周.*上周)|(上周.*本周)/.test(t)) s.analysis = 'comparison'; // I004 对比
+  if (/top\d*|排名|最高|最低|前\d+/.test(t)) s.analysis = 'rank';             // I003 排名
+  if (/占比|比例|份额/.test(t)) s.analysis = 'share';                         // I005 占比
+  if (/为什么|原因|归因|异常|波动|分析一下|分析下|洞察/.test(t)) s.analysis = 'insight'; // I009 洞察
+  if (/明细|列表|流水/.test(t)) s.analysis = 'detail';                        // I007 明细
+  if (/什么意思|口径|定义|怎么算/.test(t)) s.analysis = 'definition';          // I008 定义（不走 SQL）
+  if (/预测|预估|未来/.test(t)) s.analysis = 'forecast';                      // 预测（暂不支持）
+  if (/昨天|昨日|今天/.test(t)) s.time = 'day';
+  else if (/近\d+天|最近|本月|上月|本周/.test(t)) s.time = 'range';
+  s.assetWord = /报表|看板|大盘|资产|相关|哪张|表现/.test(t);
+  return s;
+}
+// 是否是"裸指标名"（如只输入"GMV"）
+function isBareMetric(t, m) {
+  let r = t;
+  m.alias.forEach(a => { r = r.split(a).join(''); });
+  return r.replace(/[^一-龥a-z0-9]/g, '').length <= 2;
+}
+
+function handleQuery(text) {
+  const t = text.toLowerCase().replace(/\s/g,'');
+
+  // ── ① 表名映射（最高优先级：英文表名形态）──
+  if (/\border\b|order表/.test(t)) return showResults('order');
+  if (/^[a-z][a-z0-9_]*$/.test(t) && t.includes('_')) return showMappingNotFound(text);
+
+  // ── ② 槽位解析 + 上下文补位（只此一处）──
+  const slots = parseSlots(t);
+  // 说法不准确、命中多个候选指标 → 先确认是哪个指标
+  if (!slots.metric && slots.ambTerm) return showMetricConfirm(text, slots.ambTerm);
+  let fromCtx = false;
+  if (!slots.metric && (slots.analysis || slots.dimension) && CTX && CTX.metric) {
+    slots.metric = CTX.metric;
+    fromCtx = true;
+  }
+  const m = slots.metric ? METRICS[slots.metric] : null;
+
+  // ── ③ 分支执行 ──
+  // 定义类（I008）：不走 SQL，直接回口径
+  if (slots.analysis === 'definition' && m) return showMetricDefinition(slots.metric, fromCtx);
+  // 预测类：能力未覆盖，诚实告知
+  if (slots.analysis === 'forecast') return showForecastUnsupported();
+  // 明细类（I007）：直达明细表工作区
+  if (slots.analysis === 'detail') return showDetailIntent(t);
+
+  // 查数：指标 + (分析类型或时间词)，且没有资产词
+  if (m && (slots.analysis || slots.time) && !slots.assetWord) {
+    if (m.chatbi) {
+      const key = m.chatbi[slots.analysis || 'value'] || m.chatbi.value;
+      return showChatBI(key, fromCtx);
+    }
+    // 指标未接入直接查数 → 降级为找资产，回显识别到的完整槽位
+    const analysisLabel = { value: '数值', dimension: '按' + (slots.dimension || '维度') + '的分布', trend: '趋势', comparison: '对比', rank: '排名', share: '占比', insight: '归因洞察' }[slots.analysis] || '数据';
+    return showResults(m.find, `已识别你想查「${slots.metricText}」的${analysisLabel}，但该指标还没接入直接查数（演示），先推荐相关资产，选中表后可以配置查询：`);
+  }
+  // 只输入了指标名 → 默认给最新值（不追问）
+  if (m && m.chatbi && !slots.analysis && !slots.time && !slots.assetWord && isBareMetric(t, m)) {
+    return showChatBI(m.chatbi.value);
+  }
+  // 找资产
+  if (m) return showResults(m.find);
+  for (const key of Object.keys(MOCK_QUERIES)) {
+    if (key !== 'order' && t.includes(key)) return showResults(key);
+  }
+
+  // ── ④ 兜底：模糊追问一次 → 诚实"没找到" ──
+  if (askCount < 1) {
+    for (const [key, data] of Object.entries(MOCK_AMBIGUOUS)) {
+      if (t.includes(key)) { showAsk(data); askCount++; return; }
+    }
+  }
+  showNotFound(text);
+}
+
+// 指标确认：说法不准确，命中多个候选指标（口径不同，让用户选）
+let _pendingConfirm = null;
+function showMetricConfirm(rawText, term) {
+  _pendingConfirm = { raw: rawText, term };
+  const candidates = AMBIGUOUS_METRIC_TERMS[term];
+  const optsHtml = candidates.map(name => {
+    const m = METRICS[name];
+    const brief = m.caliber.replace(/<[^>]+>/g, '').split('。')[0];
+    const cap = m.chatbi ? '<span style="color:#52c41a;">已接入直接查数</span>' : '<span style="color:#8c8c8c;">未接入查数，可推荐相关资产</span>';
+    return `
+      <div class="ask-option" onclick="confirmMetric('${name}')" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
+        <strong>${name}</strong>
+        <span style="font-size:11px;color:#8c8c8c;line-height:1.5;">${brief} · ${cap}</span>
+      </div>`;
+  }).join('');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">「${term}」可能对应 ${candidates.length} 个指标，口径不一样，确认下你要哪个：</div>
+      <div class="ask-options">${optsHtml}</div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+function confirmMetric(name) {
+  if (!_pendingConfirm) return;
+  const q = _pendingConfirm.raw.split(_pendingConfirm.term).join(name);
+  _pendingConfirm = null;
+  sendQuick(q);
+}
+
+// 定义类回复：不走 SQL，直接给口径（I008）
+function showMetricDefinition(metric, fromCtx) {
+  const m = METRICS[metric];
+  const ctxNote = fromCtx ? `<div class="ctx-note">🧠 已沿用上下文「${metric}」</div>` : '';
+  const actions = [`<span class="guide-tag" onclick="sendQuick('${metric} 相关报表')">🔍 找 ${metric} 相关资产</span>`];
+  if (m.chatbi) actions.unshift(`<span class="guide-tag" onclick="sendQuick('昨天 ${metric} 是多少')">🔢 直接看昨天的数</span>`);
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      ${ctxNote}
+      <div class="msg-bubble">「${metric}」的指标口径如下（来自指标注册表，未执行查询）：</div>
+      <div class="caliber-box"><strong>📐 ${metric}：</strong>${m.caliber}</div>
+      <div class="guide-tags">${actions.join('')}</div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+  setCtx('chatbi', null, metric + ' · 口径咨询', metric);
+}
+
+// 预测类：能力未覆盖，诚实告知
+function showForecastUnsupported() {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">预测类问题目前还不支持（在规划中）。可以先看历史趋势自行判断走向：</div>
+      <div class="guide-tags">
+        <span class="guide-tag" onclick="sendQuick('最近 30 天 GMV 趋势')">📈 近 30 天 GMV 趋势</span>
+        <span class="guide-tag" onclick="sendQuick('本周 GMV 和上周对比')">⚖️ 本周 vs 上周 GMV</span>
+      </div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+
+// 明细类：直达明细表工作区（I007）
+function showDetailIntent(t) {
+  const tableKey = /退款/.test(t) ? 'dwd_trade_refund_detail' : 'dwd_trade_order_detail';
+  const tb = TABLES[tableKey];
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">明细类问题建议直接查明细表。已为你打开 <strong>${tb.name}</strong>（${tb.cnName}），右侧可查看表结构，查询明细请从那里去即席查询工作台。</div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+  openTableWorkspace(tableKey);
+}
+
+// 表名映射未命中
+function showMappingNotFound(text) {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">血缘映射里没找到业务库表「${escHtml(text)}」对应的数仓表（演示库只收录了 order 表）。可以确认一下表名，或直接描述业务需求。</div>
+      <div class="guide-tags">
+        <span class="guide-tag" onclick="sendQuick('order 表在数仓里是哪张')">🔗 order 表在数仓里是哪张</span>
+      </div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+
+function showNotFound(text) {
+  askCount = 0;
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">没有找到与「${escHtml(text)}」直接相关的数据资产。可以换个说法（比如带上业务域、指标名），或者从这些方向开始：</div>
+      <div class="guide-tags">
+        <span class="guide-tag" onclick="sendQuick('各渠道 GMV 表现')">📊 GMV / 交易</span>
+        <span class="guide-tag" onclick="sendQuick('用户留存相关报表')">👤 用户留存</span>
+        <span class="guide-tag" onclick="sendQuick('用户下单后的退款情况')">💸 退款分析</span>
+        <span class="guide-tag" onclick="sendQuick('配送时效看板')">🚚 配送时效</span>
+      </div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+
+function showAsk(data) {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  const optsHtml = data.options.map(o =>
+    `<div class="ask-option" onclick="sendQuick('${o}')">${o}</div>`).join('');
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${data.ask}</div>
+      <div class="ask-options">${optsHtml}</div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+
+// ============================================================
+// 找数结果卡片
+// ============================================================
+function showResults(key, noteText) {
+  askCount = 0;
+  const data = MOCK_QUERIES[key];
+  setCtx('find', key, data.ctxLabel, metricOfFindKey(key));
+
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  const cardsHtml = data.results.map((r, i) => buildCard(r, key, i)).join('');
+  const guidesHtml = data.guides.map(g =>
+    `<span class="guide-tag" onclick="sendQuick('${g}')">${g}</span>`).join('');
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${noteText || data.intent}</div>
+      <div class="result-cards">${cardsHtml}</div>
+      <div class="guide-tags" style="margin-top:4px;">${guidesHtml}</div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+}
+
+function buildCard(r, queryKey, idx) {
+  const ref = `'${queryKey}',${idx}`;
+  const permHtml = r.perm === 'ok'
+    ? `<span class="perm-tag perm-ok">✓ 已有权限</span>`
+    : r.perm === 'apply'
+    ? `<span class="perm-tag perm-apply" onclick="event.stopPropagation();applyPerm(this)">申请权限</span>`
+    : `<span class="perm-tag perm-pending">申请中</span>`;
+  const useLabel = r.type === 'report' ? '预览报表' : r.type === 'dashboard' ? '预览看板' : '打开表 · 去查询';
+  return `
+    <div class="result-card" onclick="useAsset(${ref})">
+      <div class="card-top">
+        <span class="type-tag ${r.typeCls}">${r.typeLabel}</span>
+        <span class="card-name">${r.name}</span>
+        <span class="card-source">${r.source}</span>
+      </div>
+      <div class="card-desc">${r.desc}</div>
+      <div class="card-reason">💡 ${r.reason}</div>
+      <div class="card-actions">
+        ${permHtml}
+        <button class="card-btn card-btn-primary" onclick="event.stopPropagation();useAsset(${ref})">${useLabel}</button>
+        <button class="card-btn card-btn-secondary" onclick="event.stopPropagation();openDrawerByRef(${ref})">详情</button>
+      </div>
+    </div>`;
+}
+
+function applyPerm(el) {
+  el.className = 'perm-tag perm-pending';
+  el.textContent = '申请中';
+  el.onclick = e => e.stopPropagation();
+  toast('已发起权限申请，审批通过后会通知你（演示）');
+}
+
+function getAsset(queryKey, idx) { return MOCK_QUERIES[queryKey].results[idx]; }
+
+// 「用数」统一入口：按资产类型分流
+function useAsset(queryKey, idx) {
+  const r = getAsset(queryKey, idx);
+  if (r.type === 'table') openTableWorkspace(r.tableKey);
+  else openPreview(r);
+}
+
+// ============================================================
+// 报表 / 看板：嵌入预览
+// ============================================================
+function openPreview(r) {
+  currentAsset = r;
+  currentTable = null;
+  document.getElementById('pvTypeTag').textContent = r.typeLabel;
+  document.getElementById('pvTypeTag').className = 'type-tag ' + r.typeCls;
+  document.getElementById('pvName').textContent = r.name;
+  document.getElementById('pvSub').textContent = `${r.enName} · ${r.source} · ${r.freq}`;
+  document.getElementById('pvOpenBtn').textContent = r.type === 'dashboard' ? '打开原看板 →' : '打开原报表 →';
+
+  const kpis = `
+    <div class="metric-cards">
+      <div class="metric-card primary">
+        <div class="metric-label">GMV（昨日）</div>
+        <div class="metric-value">1.23 亿</div>
+        <div class="metric-change up">↑8.2% 对比上周同日</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">订单量（昨日）</div>
+        <div class="metric-value">86.4 万</div>
+        <div class="metric-change up">↑5.6%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">退款率（昨日）</div>
+        <div class="metric-value">2.31%</div>
+        <div class="metric-change down">↓0.2pp</div>
+      </div>
+    </div>`;
+  document.getElementById('previewBody').innerHTML = `
+    <div class="preview-filter-bar">
+      <span>时间</span>
+      <select><option>近 7 天</option><option>近 30 天</option><option>本月</option></select>
+      <span>渠道</span>
+      <select><option>全部</option><option>APP</option><option>小程序</option><option>H5</option></select>
+      <span class="preview-tip">嵌入预览（演示数据），完整交互请打开原${r.typeLabel}</span>
+    </div>
+    ${kpis}
+    ${buildTrendChartHtml('📈 核心指标趋势（近 30 天）')}
+    <div class="chatbi-source-panel">
+      <div class="source-title">📐 指标口径</div>
+      <div class="caliber-box" style="margin-top:0;">${r.caliber}</div>
+    </div>`;
+  showPanel('previewPanel');
+  setCtx('find', null, '正在预览：' + r.name, CTX && CTX.metric);
+}
+
+function openOrigin() {
+  toast(`已在新页签打开「${currentAsset ? currentAsset.name : ''}」（演示：跳转 BI 平台并携带当前筛选条件）`);
+}
+
+// ============================================================
+// Chat BI 查数
+// ============================================================
+function showChatBI(key, fromCtx) {
+  askCount = 0;
+  const data = MOCK_CHATBI[key];
+  chatbiHistory.push(data);
+  const idx = chatbiHistory.length - 1;
+  // 从注册表反查该查数结果属于哪个指标，写入上下文供后续追问补位
+  let ctxMetric = null;
+  for (const [n, mm] of Object.entries(METRICS))
+    if (mm.chatbi && Object.values(mm.chatbi).includes(key)) { ctxMetric = n; break; }
+  setCtx('chatbi', key, (ctxMetric || '') + ' 查数 · ' + data.summaryLabel, ctxMetric);
+
+  const metricsHtml = data.summaryMetrics.map(m => `
+    <div class="chatbi-summary-metric">
+      <span class="chatbi-summary-metric-label">${m.label}</span>
+      <span class="chatbi-summary-metric-value">${m.value}</span>
+      ${m.change ? `<span class="chatbi-summary-metric-change ${m.dir}">${m.change}</span>` : ''}
+    </div>`).join('');
+  const ctxNote = fromCtx ? `<div class="ctx-note">🧠 已沿用上下文「GMV」理解你的追问</div>` : '';
+
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-content">
+      ${ctxNote}
+      <div class="chatbi-summary" onclick="openChatbiPanel(${idx})">
+        <div class="chatbi-summary-label">📊 ${data.summaryLabel}</div>
+        <div class="chatbi-summary-metrics">${metricsHtml}</div>
+        <div class="chatbi-summary-hint">点击查看完整图表、来源与口径 →</div>
+      </div>
+    </div>`;
+  document.getElementById('chatBody').appendChild(div);
+  scrollChat();
+  renderChatbiPanel(data);
+}
+
+// 历史摘要可回看：按索引取当时的数据
+function openChatbiPanel(idx) {
+  const data = chatbiHistory[idx];
+  if (data) renderChatbiPanel(data);
+}
+
+function renderChatbiPanel(data) {
+  _sourceVisible = true;
+  document.getElementById('chatbiTitle').textContent = data.rightTitle;
+  document.getElementById('chatbiSourceBtn').textContent = '收起来源与口径 ↑';
+  const body = document.getElementById('chatbiBody');
+  let main = '';
+  if (data.rightContent === 'metric') main = buildMetricCards(data);
+  else if (data.rightContent === 'dimension') main = buildDimTable(data);
+  else if (data.rightContent === 'trend') main = buildTrendBlock();
+  else if (data.rightContent === 'comparison') main = buildComparisonTable(data);
+  else if (data.rightContent === 'rank') main = buildRankTable(data);
+  else if (data.rightContent === 'share') main = buildShareBlock(data);
+  else if (data.rightContent === 'insight') main = buildInsightBlock(data);
+  body.innerHTML = main + buildSourcePanel(data);
+  showPanel('chatbiPanel');
+}
+
+function toggleChatbiSource() {
+  _sourceVisible = !_sourceVisible;
+  const panel = document.querySelector('#chatbiBody .chatbi-source-panel');
+  if (panel) panel.style.display = _sourceVisible ? 'block' : 'none';
+  document.getElementById('chatbiSourceBtn').textContent = _sourceVisible ? '收起来源与口径 ↑' : '查看来源与口径 ↓';
+}
+
+function buildMetricCards(data) {
+  const cards = data.metrics.map(m => `
+    <div class="metric-card ${m.primary ? 'primary' : ''}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value ${m.primary ? 'large' : ''}">${m.value}</div>
+      <div class="metric-change ${m.dir}">${m.change || ''}</div>
+      <div class="metric-period">${m.period}</div>
+    </div>`).join('');
+  return `<div class="metric-cards">${cards}</div>`;
+}
+
+function buildDimTable(data) {
+  const maxGmv = 3240;
+  const rows = data.rows.map(r => {
+    const num = parseFloat(r.gmv.replace(/[^0-9.]/g,'')) || 0;
+    const pct = Math.round(num / maxGmv * 100);
+    return `<tr>
+      <td><span class="rank-num">${r.rank}</span></td>
+      <td>${r.city}</td>
+      <td><div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}px;min-width:4px;"></div><span>${r.gmv}</span></div></td>
+      <td>${r.pct}</td>
+      <td style="color:${r.dir==='up'?'#f5222d':'#52c41a'}">${r.wow}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="dim-table-wrap">
+    <div class="dim-table-header">📍 各城市 GMV 分布 <span style="font-size:11px;color:#8c8c8c;font-weight:400;margin-left:4px;">昨天 · 共 ${data.rows.length} 个城市</span></div>
+    <table class="dim-table">
+      <thead><tr><th>#</th><th>城市</th><th>GMV</th><th>占比</th><th>环比上周</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// 排名（I003）：TOP N 榜单
+function buildRankTable(data) {
+  const medals = ['🥇','🥈','🥉'];
+  const maxGmv = parseFloat(data.rows[0].gmv.replace(/[^0-9.]/g,''));
+  const rows = data.rows.map(r => {
+    const num = parseFloat(r.gmv.replace(/[^0-9.]/g,'')) || 0;
+    const pct = Math.round(num / maxGmv * 100);
+    return `<tr>
+      <td style="font-size:15px;">${medals[r.rank-1] || '<span class="rank-num">' + r.rank + '</span>'}</td>
+      <td style="font-weight:${r.rank <= 3 ? 600 : 400};">${r.city}</td>
+      <td><div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}px;min-width:4px;"></div><span>${r.gmv}</span></div></td>
+      <td>${r.pct}</td>
+      <td style="color:${r.dir==='up'?'#f5222d':'#52c41a'}">${r.wow}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="dim-table-wrap">
+    <div class="dim-table-header">🏆 GMV 城市排名 TOP${data.rows.length} <span style="font-size:11px;color:#8c8c8c;font-weight:400;margin-left:4px;">昨天 · 按 GMV 降序</span></div>
+    <table class="dim-table">
+      <thead><tr><th>排名</th><th>城市</th><th>GMV</th><th>占全国</th><th>环比上周</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// 占比（I005）：份额条 + 结构说明
+function buildShareBlock(data) {
+  const rows = data.rows.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5;">
+      <span style="width:56px;font-size:13px;font-weight:600;color:#434343;">${r.name}</span>
+      <div style="flex:1;height:18px;background:#f5f5f5;border-radius:9px;overflow:hidden;">
+        <div style="height:100%;width:${r.pct}%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:9px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">
+          <span style="font-size:11px;color:#fff;font-weight:600;">${r.pct}%</span>
+        </div>
+      </div>
+      <span style="width:70px;font-size:12px;color:#595959;text-align:right;">${r.value}</span>
+      <span style="width:60px;font-size:11px;text-align:right;color:${r.dir==='up'?'#f5222d':'#52c41a'};">${r.wow}</span>
+    </div>`).join('');
+  return `<div class="chart-wrap">
+    <div class="chart-title">🥧 各渠道 GMV 占比 <span style="font-size:11px;color:#8c8c8c;font-weight:400;margin-left:4px;">昨天 · 合计 1.23 亿</span></div>
+    ${rows}
+    <div style="font-size:11px;color:#bfbfbf;margin-top:8px;">环比列为占比的百分点（pp）变化，对比上周同日</div>
+  </div>`;
+}
+
+// 洞察（I009）：结论 + 归因拆解 + 异常提示 + 下一步
+function buildInsightBlock(data) {
+  const ins = data.insight;
+  const drivers = ins.drivers.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f5f5f5;">
+      <span style="width:56px;font-size:13px;font-weight:600;color:#434343;">${r.name}</span>
+      <div style="flex:1;height:14px;background:#f5f5f5;border-radius:7px;overflow:hidden;">
+        <div style="height:100%;width:${r.pct}%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:7px;"></div>
+      </div>
+      <span style="width:70px;font-size:12px;color:#f5222d;text-align:right;font-weight:600;">${r.diff}</span>
+      <span style="width:80px;font-size:11px;color:#8c8c8c;text-align:right;">贡献 ${r.pct}%</span>
+    </div>`).join('');
+  const anomalies = ins.anomalies.map(a => `
+    <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 12px;border-radius:8px;margin-bottom:6px;
+      background:${a.level === 'warn' ? '#fff7e6' : '#f0f7ff'};border:1px solid ${a.level === 'warn' ? '#ffd591' : '#bfdbfe'};">
+      <span style="flex-shrink:0;">${a.level === 'warn' ? '⚠️' : 'ℹ️'}</span>
+      <span style="font-size:12px;color:#434343;line-height:1.6;">${a.text}</span>
+    </div>`).join('');
+  const steps = ins.nextSteps.map(g =>
+    `<span class="guide-tag" onclick="sendQuick('${g}')">${g}</span>`).join('');
+  return `
+    <div class="chart-wrap" style="border-color:#667eea;background:linear-gradient(135deg,rgba(102,126,234,.04),rgba(118,75,162,.04));">
+      <div class="chart-title">💡 核心结论</div>
+      <div style="font-size:13px;color:#434343;line-height:1.8;">${ins.conclusion}</div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">📊 增量归因 · 按渠道 <span style="font-size:11px;color:#8c8c8c;font-weight:400;margin-left:4px;">环比增量 +930 万的构成</span></div>
+      ${drivers}
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">🔍 异常检测</div>
+      ${anomalies}
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">👉 继续分析</div>
+      <div class="guide-tags">${steps}</div>
+    </div>`;
+}
+
+function buildTrendChartHtml(title) {
+  const vals = [820,910,880,1050,980,1120,1080,1150,1090,1200,1180,1250,1220,1300,1280,1350,1320,1400,1380,1450,1420,1480,1460,1520,1500,1550,1530,1580,1560,1580];
+  const w = 560, h = 140, pad = 20;
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const pts = vals.map((v,i) => {
+    const x = pad + i * (w - pad*2) / (vals.length-1);
+    const y = h - pad - (v - min) / (max - min) * (h - pad*2);
+    return `${x},${y}`;
+  });
+  const areaPath = `M${pts[0]} L${pts.join(' L')} L${pad + (w-pad*2)},${h-pad} L${pad},${h-pad} Z`;
+  const linePath = `M${pts.join(' L')}`;
+  const last = pts[pts.length-1].split(',');
+  return `<div class="chart-wrap">
+    <div class="chart-title">${title}
+      <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#667eea"></div>GMV（万元）</div></div>
+    </div>
+    <div class="chart-svg-wrap">
+      <svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#667eea" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#667eea" stop-opacity="0.01"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPath}" fill="url(#areaGrad)"/>
+        <path d="${linePath}" fill="none" stroke="#667eea" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#667eea"/>
+        <text x="${pad}" y="${h-4}" font-size="10" fill="#bfbfbf">6月13日</text>
+        <text x="${w-pad-28}" y="${h-4}" font-size="10" fill="#bfbfbf">7月12日</text>
+        <text x="${pad}" y="${pad+4}" font-size="10" fill="#bfbfbf">${max}</text>
+        <text x="${pad}" y="${h-pad+4}" font-size="10" fill="#bfbfbf">${min}</text>
+      </svg>
+    </div>
+  </div>`;
+}
+
+function buildTrendBlock() {
+  return buildTrendChartHtml('📈 近 30 天 GMV 趋势') + `
+    <div class="metric-cards">
+      <div class="metric-card"><div class="metric-label">30天累计</div><div class="metric-value" style="font-size:20px;">3.68 亿</div><div class="metric-change up">↑12.4% 同比</div></div>
+      <div class="metric-card"><div class="metric-label">日均 GMV</div><div class="metric-value" style="font-size:20px;">1,227 万</div><div class="metric-change neutral">近30天均值</div></div>
+      <div class="metric-card"><div class="metric-label">最高单日</div><div class="metric-value" style="font-size:20px;">1,580 万</div><div class="metric-change neutral">7月12日（昨天）</div></div>
+    </div>`;
+}
+
+function buildComparisonTable(data) {
+  const rows = data.rows.map(r => `<tr>
+    <td>${r.day}</td>
+    <td style="font-weight:600;">${r.cur}</td>
+    <td style="color:#8c8c8c;">${r.prev}</td>
+    <td style="color:${r.dir==='up'?'#f5222d':r.dir==='down'?'#52c41a':'#8c8c8c'};font-weight:500;">${r.diff}</td>
+  </tr>`).join('');
+  return `<div class="metric-cards">
+    <div class="metric-card primary"><div class="metric-label">本周 GMV（截至昨天）</div><div class="metric-value">8,640 万</div><div class="metric-change up">↑9.3% 对比上周同期</div></div>
+    <div class="metric-card"><div class="metric-label">上周同期 GMV</div><div class="metric-value">7,905 万</div><div class="metric-change neutral">周一至周五</div></div>
+    <div class="metric-card"><div class="metric-label">增量</div><div class="metric-value">+735 万</div><div class="metric-change up">↑9.3%</div></div>
+  </div>
+  <div class="dim-table-wrap">
+    <div class="dim-table-header">📅 逐日对比</div>
+    <table class="dim-table">
+      <thead><tr><th>日期</th><th>本周 GMV</th><th>上周 GMV</th><th>差值</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+// 来源 + 口径：默认展开，来源表可直接跳转到表工作区
+function buildSourcePanel(data) {
+  const s = data.source;
+  const hasTable = !!TABLES[s.table];
+  const tableHtml = hasTable
+    ? `<span class="source-code source-link" onclick="openTableWorkspace('${s.table}')" title="点击打开该表查看结构与说明">${s.table} ↗</span>`
+    : `<span class="source-code">${s.table}</span>`;
+  return `<div class="chatbi-source-panel">
+    <div class="source-title">数据来源与口径
+      ${hasTable ? `<button class="card-btn card-btn-secondary" style="margin-left:auto;" onclick="openTableWorkspace('${s.table}')">打开来源表 →</button>` : ''}
+    </div>
+    <div class="source-row"><span class="source-label">取数方式</span><span>${s.via}</span></div>
+    <div class="source-row"><span class="source-label">来源表</span>${tableHtml}</div>
+    <div class="source-row"><span class="source-label">指标字段</span><span class="source-code">${s.field}</span></div>
+    <div class="source-row"><span class="source-label">时间条件</span><span class="source-code">${s.time}</span></div>
+    <div class="caliber-box"><strong>📐 指标口径：</strong>${data.caliber}</div>
+  </div>`;
+}
+
+// ============================================================
+// 表工作区：schema + 配置（唯一数据源）+ SQL + 运行
+// ============================================================
+function openTableWorkspace(tableKey) {
+  const tb = TABLES[tableKey];
+  if (!tb) return;
+  currentTable = tb;
+  currentAsset = null;
+
+  document.getElementById('resNameMain').textContent = tb.name;
+  document.getElementById('resNameSub').textContent = `${tb.cnName} · ${tb.source} · ${tb.domain}`;
+  document.getElementById('metaOwner').textContent = tb.owner;
+  document.getElementById('metaHeat').textContent = tb.heat;
+  document.getElementById('metaFreq').textContent = tb.freq;
+  const permEl = document.getElementById('metaPerm');
+  permEl.textContent = tb.perm === 'ok' ? '已有权限' : '申请权限';
+  permEl.className = 'meta-value ' + (tb.perm === 'ok' ? 'green' : 'orange');
+  document.getElementById('businessTip').innerHTML = `💡 <strong>这张表能帮你看：</strong>${tb.tip}`;
+
+  // schema（默认展开）
+  document.getElementById('schemaCount').textContent = tb.schema.length + ' 个字段';
+  document.getElementById('schemaTbody').innerHTML = tb.schema.map(f =>
+    `<tr><td class="schema-col">${f.col}</td><td class="schema-type">${f.type}</td><td>${f.comment}</td></tr>`).join('');
+  schemaOpen = true;
+  document.getElementById('schemaWrap').classList.add('show');
+  document.getElementById('schemaArrow').classList.remove('closed');
+
+  showPanel('rightActive');
+  setCtx('table', tb.name, '正在用表：' + tb.name, CTX && CTX.metric);
+}
+
+function gotoWorkbench() {
+  const name = currentTable ? currentTable.name : '';
+  toast(`已携带表 ${name} 打开「即席查询」工作台（演示：新页签打开，表名与字段信息自动带入）`);
+}
+
+function toggleSchema() {
+  schemaOpen = !schemaOpen;
+  document.getElementById('schemaWrap').classList.toggle('show', schemaOpen);
+  document.getElementById('schemaArrow').classList.toggle('closed', !schemaOpen);
+}
+
+// ============================================================
+// 详情抽屉：复刻平台统一详情（DetailPage）
+//   结构对齐 src/features/detail/DetailPage.tsx：
+//   双层头部 + 按资产类型的 Tab 矩阵 + 右侧信息栏
+//   真实实现时可直接把统一详情组件装进 Drawer 复用
+// ============================================================
+let _drawerCtx = null;   // { kind:'table'|'asset', obj, tab }
+let _drawerFav = false;
+
+// Tab 矩阵（对齐 DetailPage tabMatrix）
+const DRAWER_TABS = {
+  table: [
+    { key: 'fields', label: '字段信息' }, { key: 'sample', label: '样例数据' },
+    { key: 'partitions', label: '分区信息' }, { key: 'lineage', label: '血缘关系' },
+    { key: 'manage', label: '使用说明' }, { key: 'ddl', label: 'DDL变更' }, { key: 'logs', label: '操作记录' }
+  ],
+  report: [
+    { key: 'definition', label: '报表定义' }, { key: 'lineage', label: '血缘关系' },
+    { key: 'manage', label: '使用说明' }, { key: 'logs', label: '操作记录' }
+  ],
+  dashboard: [
+    { key: 'definition', label: '看板定义' }, { key: 'lineage', label: '血缘关系' },
+    { key: 'manage', label: '使用说明' }, { key: 'logs', label: '操作记录' }
+  ]
+};
+
+// 字段安全等级（S1/S2 正常展示，S3+ 样例脱敏）
+function secOf(col) {
+  if (/user_id/.test(col)) return 'S3';
+  if (/(^|_)id$|order_id|refund_id/.test(col)) return 'S2';
+  if (/amt|gmv|rate/.test(col)) return 'S2';
+  return 'S1';
+}
+function isMasked(col) { return ['S3','S4','S5'].includes(secOf(col)); }
+
+// 样例数据生成（按字段类型/名称，行内确定性取值）
+const SAMPLE_POOL = {
+  channel_name: ['APP','小程序','H5'], city_name: ['北京','上海','广州'],
+  region: ['华东','华南','华北'], user_type: ['新用户','老用户','新用户'],
+  category_name: ['食品生鲜','日用百货','数码家电'], refund_reason: ['质量问题','不想要了','配送超时'],
+  order_status: ['2','4','2']
+};
+function sampleVal(f, i) {
+  if (isMasked(f.col)) return '******';
+  if (SAMPLE_POOL[f.col]) return SAMPLE_POOL[f.col][i % 3];
+  if (f.type === 'DATE') return ['2026-07-12','2026-07-11','2026-07-10'][i % 3];
+  if (f.type === 'DATETIME') return ['2026-07-12 10:23:45','2026-07-11 18:02:11','2026-07-10 09:47:30'][i % 3];
+  if (f.type.startsWith('DECIMAL')) return ['12,845.60','8,321.50','456.00'][i % 3];
+  if (f.type === 'BIGINT') return ['861234','752190','689452'][i % 3];
+  if (f.type === 'TINYINT') return ['1','0','1'][i % 3];
+  return ['示例值A','示例值B','示例值C'][i % 3];
+}
+
+// 血缘 mock：上游 → 当前 → 下游
+const LINEAGE_MAP = {
+  'dws_trade_channel_day': { up: ['dwd_trade_order_detail'], down: ['channel_gmv_daily_report（报表）','ops_overview_dashboard（看板）'] },
+  'dwd_trade_refund_detail': { up: ['ods_trade_refund_full'], down: ['refund_analysis_daily（报表）'] },
+  'dws_user_retention_day': { up: ['dwd_user_active_detail'], down: ['user_retention_report（报表）'] },
+  'ods_trade_order_full': { up: ['业务库 order 表'], down: ['dwd_trade_order_detail'] },
+  'dwd_trade_order_detail': { up: ['ods_trade_order_full'], down: ['dws_trade_order_day','dws_trade_channel_day','dws_trade_city_day'] },
+  'dws_trade_order_day': { up: ['dwd_trade_order_detail'], down: ['指标服务：GMV / 订单量'] },
+  'dws_trade_city_day': { up: ['dwd_trade_order_detail'], down: ['指标服务：城市 GMV'] }
+};
+
+function openDrawerByRef(queryKey, idx) {
+  const r = getAsset(queryKey, idx);
+  if (r.type === 'table') openUnifiedDrawer('table', TABLES[r.tableKey]);
+  else openUnifiedDrawer('asset', r);
+}
+function openDrawerCurrent() {
+  if (currentTable) openUnifiedDrawer('table', currentTable);
+  else if (currentAsset) openUnifiedDrawer('asset', currentAsset);
+}
+
+function openUnifiedDrawer(kind, obj) {
+  const type = kind === 'table' ? 'table' : obj.type;
+  const tabs = DRAWER_TABS[type] || DRAWER_TABS.report;
+  _drawerCtx = { kind, obj, type, tab: tabs[0].key };
+  _drawerFav = false;
+  renderDrawer();
+  document.getElementById('drawerMask').classList.add('show');
+  document.getElementById('drawer').classList.add('show');
+}
+function switchDrawerTab(key) {
+  if (!_drawerCtx) return;
+  _drawerCtx.tab = key;
+  renderDrawer();
+}
+function toggleDrawerFav() {
+  _drawerFav = !_drawerFav;
+  renderDrawer();
+  toast(_drawerFav ? '已收藏' : '已取消收藏');
+}
+function copyTechName() {
+  const name = _drawerCtx.kind === 'table' ? _drawerCtx.obj.name : _drawerCtx.obj.enName;
+  navigator.clipboard.writeText(name).then(() => toast('英文名已复制'));
+}
+
+function renderDrawer() {
+  const { kind, obj, type, tab } = _drawerCtx;
+  const isTable = kind === 'table';
+  const tabs = DRAWER_TABS[type] || DRAWER_TABS.report;
+
+  // ── 双层头部 ──
+  const dbPrefix = isTable ? '<span class="dh-db">dw.</span>' : '';
+  const techName = isTable ? obj.name : obj.enName;
+  const cnName = isTable ? obj.cnName : obj.name;
+  const srcTag = isTable
+    ? '<span class="type-tag type-table">数仓引擎</span><span style="font-size:12px;color:#8c8c8c;">MaxCompute</span>'
+    : `<span class="type-tag ${obj.typeCls}">报表系统</span><span style="font-size:12px;color:#8c8c8c;">BI 平台</span>`;
+  const permOk = obj.perm === 'ok';
+  const permChip = permOk
+    ? '<span class="perm-tag perm-ok">✓ 已有权限</span>'
+    : obj.perm === 'apply'
+    ? '<button class="card-btn card-btn-primary" onclick="toast(\'已加入权限申请购物车（演示）\')">申请权限</button>'
+    : '<span class="perm-tag perm-pending">申请中</span>';
+  const useBtn = isTable
+    ? `<button class="card-btn card-btn-primary" onclick="closeDrawer();openTableWorkspace('${obj.name}')">打开这张表 →</button>`
+    : `<button class="card-btn card-btn-primary" onclick="closeDrawer();toast('已打开原${obj.typeLabel}（演示）')">打开${obj.typeLabel} →</button>`;
+  const heat = obj.heat || '—';
+  const completeness = isTable ? 88 : 76;
+  const catalog = '数据资产目录 / ' + (obj.domain || '综合');
+  const tags = isTable ? ['交易数据','核心资产'] : ['经营分析'];
+
+  const headerHtml = `
+    <div class="dh">
+      <div class="dh-l1">
+        ${dbPrefix}<span class="dh-tech">${techName}</span>
+        <span class="dh-cn">${cnName}</span>
+        ${srcTag}
+        <button class="dh-copy" onclick="copyTechName()" title="复制英文名">⧉</button>
+        <span class="dh-stats"><span>🔍 ${heat}</span><span>👁 ${isTable ? '5,102' : '8,931'}</span></span>
+        <span class="dh-actions">
+          ${permChip}
+          ${useBtn}
+          <button class="dh-fav ${_drawerFav ? 'on' : ''}" onclick="toggleDrawerFav()" title="收藏">${_drawerFav ? '★' : '☆'}</button>
+        </span>
+      </div>
+      <div class="dh-l2">
+        <span>信息完善度 <span class="dh-progress"><div style="width:${completeness}%"></div></span> ${completeness}%</span>
+        <span>数据目录 <span class="dh-catalog-path">${catalog}</span></span>
+        <span>数据分类 ${tags.map(t => `<span class="gray-tag">${t}</span>`).join(' ')}</span>
+      </div>
+    </div>`;
+
+  // ── Tab 栏 ──
+  const tabsHtml = `<div class="d-tabs">${tabs.map(t =>
+    `<div class="d-tab ${t.key === tab ? 'active' : ''}" onclick="switchDrawerTab('${t.key}')">${t.label}</div>`).join('')}</div>`;
+
+  // ── Tab 内容 ──
+  let main = '';
+  if (tab === 'fields') main = buildFieldsTab(obj);
+  else if (tab === 'sample') main = buildSampleTab(obj);
+  else if (tab === 'partitions') main = buildPartitionsTab(obj);
+  else if (tab === 'lineage') main = buildLineageTab(obj, isTable);
+  else if (tab === 'manage') main = buildManageTab(obj, isTable);
+  else if (tab === 'ddl') main = buildDdlTab(obj);
+  else if (tab === 'logs') main = buildLogsTab();
+  else if (tab === 'definition') main = buildDefinitionTab(obj);
+
+  // ── 右侧信息栏（对齐 detail-sidebar 分区）──
+  const side = isTable ? `
+    ${sideSection('基本信息', [['中文名', obj.cnName], ['描述', obj.tip.slice(0, 40) + '…'], ['数据层级', obj.layer], ['是否核心', '是'], ['我的权限', permOk ? '已有权限' : '无权限']])}
+    ${sideSection('业务/管理信息', [['业务域', obj.domain], ['业务负责人', '刘七'], ['数据分类', tags.join('、')], ['技术负责人', obj.owner]])}
+    ${sideSection('技术信息', [['平台来源', 'MaxCompute'], ['库名', 'dw'], ['是否分区', '是'], ['存储格式', 'ORC'], ['生命周期', '365 天'], ['创建时间', '2025-11-20'], ['更新时间', '2026-07-12']])}
+    ${sideSection('使用统计', [['近30天查询量', obj.heat], ['近30天浏览量', '5,102 次']])}` : `
+    ${sideSection('基本信息', [['中文名', obj.name], ['描述', obj.desc.slice(0, 40) + '…'], ['所属系统', 'BI 平台'], ['更新频率', obj.freq], ['访问方式', '平台内嵌 / 原系统']])}
+    ${sideSection('业务/管理信息', [['技术负责人', obj.owner], ['业务负责人', '刘七'], ['业务域', obj.domain], ['创建时间', '2025-12-05'], ['更新时间', '2026-07-12']])}
+    ${sideSection('使用统计', [['近30天查看量', obj.heat], ['近30天浏览量', '8,931 次']])}`;
+
+  document.getElementById('drawerRoot').innerHTML = `
+    ${headerHtml}
+    ${tabsHtml}
+    <div class="d-body">
+      <div class="d-main">${main}</div>
+      <div class="d-side">${side}</div>
+    </div>`;
+}
+
+function sideSection(title, kvs) {
+  return `<div class="d-side-section">
+    <div class="d-side-title">${title}</div>
+    <dl class="d-side-kv">${kvs.map(([k, v]) => `<dt>${k}</dt><dd>${v || '—'}</dd>`).join('')}</dl>
+  </div>`;
+}
+
+// ---- 各 Tab 内容 ----
+function buildFieldsTab(tb) {
+  const rows = tb.schema.map((f, i) => {
+    const sec = secOf(f.col);
+    const enc = isMasked(f.col) ? '<span class="sec-encrypt">需加密</span>' : '';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="schema-col">${f.col}</td>
+      <td class="schema-type">${f.type}</td>
+      <td>${f.comment}</td>
+      <td><span class="sec-tag sec-${sec.toLowerCase()}">${sec}</span>${enc}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="d-notice">安全等级规则：S1 公开级 / S2 内部级 → 正常展示；S3 秘密级 / S4 绝密级 / S5 核心级 → 标记加密，样例脱敏。</div>
+    <div class="d-table-card"><table class="d-table">
+      <thead><tr><th>序号</th><th>字段名</th><th>类型</th><th>注释</th><th>安全等级</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function buildSampleTab(tb) {
+  const head = tb.schema.map(f =>
+    `<th>${f.col}${isMasked(f.col) ? ' 🔒' : ''}</th>`).join('');
+  const rows = [0,1,2].map(i =>
+    '<tr>' + tb.schema.map(f => `<td>${sampleVal(f, i)}</td>`).join('') + '</tr>').join('');
+  return `<div class="d-table-card" style="overflow-x:auto;"><table class="d-table">
+    <thead><tr>${head}</tr></thead><tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function buildPartitionsTab(tb) {
+  const rows = ['2026-07-12','2026-07-11','2026-07-10'].map((d, i) => `<tr>
+    <td>stat_date</td><td>${d}</td><td>${['8,612,340','8,459,102','8,390,876'][i]}</td>
+    <td>${['1.2 GB','1.2 GB','1.1 GB'][i]}</td><td>${d} 0${3 - (i === 2 ? 1 : 0)}:00</td><td>${d} 0${3 - (i === 2 ? 1 : 0)}:15</td>
+  </tr>`).join('');
+  return `<div class="d-table-card"><table class="d-table">
+    <thead><tr><th>分区键</th><th>分区值</th><th>数据量(行数)</th><th>存储大小</th><th>创建时间</th><th>最近更新时间</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function buildLineageTab(obj, isTable) {
+  const name = isTable ? obj.name : obj.enName;
+  const lin = LINEAGE_MAP[name] || { up: ['—'], down: ['—'] };
+  const node = (n, cur) => `<span class="lineage-node ${cur ? 'cur' : ''}">${n}</span>`;
+  return `<div class="d-def-block">
+    <h3>血缘链路（简化视图）</h3>
+    <div class="lineage-flow">
+      ${lin.up.map(n => node(n)).join('')}
+      <span class="lineage-arrow">→</span>
+      ${node(name, true)}
+      <span class="lineage-arrow">→</span>
+      ${lin.down.map(n => node(n)).join('')}
+    </div>
+    <div style="margin-top:12px;">
+      <button class="card-btn card-btn-secondary" onclick="toast('已跳转到血缘追溯模块，定位到该节点（演示）')">在血缘追溯中查看完整链路 →</button>
+    </div>
+  </div>`;
+}
+
+function buildManageTab(obj, isTable) {
+  const caliber = isTable ? '' : `<div class="d-def-block"><h3>📐 指标口径</h3><div class="caliber-box" style="margin-top:0;">${obj.caliber}</div></div>`;
+  return `
+    <div class="d-def-block"><h3>使用说明</h3><div class="caliber-box" style="margin-top:0;">${isTable ? obj.tip : obj.desc}</div></div>
+    ${caliber}
+    <div class="d-def-block"><h3>使用提醒</h3>
+      <ul class="d-notes">
+        <li>${isTable ? '查询请务必带上 stat_date 分区条件，避免全表扫描。' : '数据以每日更新后的版本为准，跨日对比注意口径一致。'}</li>
+        <li>${isTable ? 'GMV 为支付口径，与财务口径（确收）存在差异，对外披露前请与财务对齐。' : '如需导出明细数据，请走底层表权限申请。'}</li>
+        <li>遇到数据异常请先查看当日产出状态，再联系负责人 ${obj.owner}。</li>
+      </ul>
+    </div>`;
+}
+
+function buildDdlTab(tb) {
+  return `<div class="d-table-card"><table class="d-table">
+    <thead><tr><th>变更时间</th><th>变更类型</th><th>变更内容</th><th>操作人</th></tr></thead>
+    <tbody>
+      <tr><td>2026-06-18</td><td>ADD COLUMN</td><td>新增 <code>${tb.schema[tb.schema.length-1].col}</code> 字段</td><td>${tb.owner}</td></tr>
+      <tr><td>2026-03-02</td><td>MODIFY COMMENT</td><td>更新 gmv_amt 字段注释（明确不含退款）</td><td>${tb.owner}</td></tr>
+      <tr><td>2025-11-20</td><td>CREATE TABLE</td><td>建表</td><td>${tb.owner}</td></tr>
+    </tbody>
+  </table></div>`;
+}
+
+function buildLogsTab() {
+  return `<div class="d-table-card"><table class="d-table">
+    <thead><tr><th>时间</th><th>操作</th><th>操作人</th></tr></thead>
+    <tbody>
+      <tr><td>2026-07-13 10:24</td><td>查看详情</td><td>你</td></tr>
+      <tr><td>2026-07-12 16:02</td><td>权限审批通过</td><td>系统</td></tr>
+      <tr><td>2026-07-10 09:15</td><td>被 AI 找数推荐并使用</td><td>业务运营-小李</td></tr>
+    </tbody>
+  </table></div>`;
+}
+
+function buildDefinitionTab(r) {
+  return `
+    <div class="d-def-block"><h3>${r.typeLabel}概览</h3>
+      <dl class="d-def-kv">
+        <dt>英文标识</dt><dd><code>${r.enName}</code></dd>
+        <dt>所属系统</dt><dd>BI 平台</dd>
+        <dt>更新频率</dt><dd>${r.freq}</dd>
+        <dt>访问链接</dt><dd><span class="source-link" onclick="toast('已打开原${r.typeLabel}（演示）')">bi.example.com/${r.enName} ↗</span></dd>
+        <dt>内容说明</dt><dd>${r.desc}</dd>
+      </dl>
+    </div>
+    <div class="d-def-block"><h3>📐 指标口径</h3><div class="caliber-box" style="margin-top:0;">${r.caliber}</div></div>`;
+}
+
+function closeDrawer() {
+  document.getElementById('drawerMask').classList.remove('show');
+  document.getElementById('drawer').classList.remove('show');
+}
+
+// ============================================================
+// Toast
+// ============================================================
+let _toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ============================================================
+// 初始化
+// ============================================================
+document.getElementById('chatBody').innerHTML = WELCOME_HTML;
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AssetCatalogPage } from '../features/asset-catalog/AssetCatalogPage';
 import { AssetSearchPage } from '../features/asset-search/AssetSearchPage';
+import { AIFindDataPage } from '../features/ai-find/AIFindDataPage';
 import { ApprovalIntegrationPage } from '../features/approval-integration/ApprovalIntegrationPage';
 import { DetailPage } from '../features/detail/DetailPage';
 import { LineagePage } from '../features/lineage/LineagePage';
@@ -51,6 +52,8 @@ export function App() {
         <ApprovalIntegrationPage />
       ) : activeRoute === 'workbench' ? (
         <ProductPage route={activeRoute} />
+      ) : activeRoute === 'ai-find' ? (
+        <AIFindDataPage />
       ) : activeRoute === 'my' ? (
         <MyPage />
       ) : activeRoute === 'lineage' ? (

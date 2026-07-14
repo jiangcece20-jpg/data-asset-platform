@@ -5,6 +5,7 @@ export type AppRouteKey =
   | 'discovery'
   | 'management'
   | 'workbench'
+  | 'ai-find'
   | 'permissions'
   | 'lineage'
   | 'my'
@@ -65,6 +66,7 @@ export const productLines: ProductLine[] = [
 export function getProductLineFromHash(hash: string): ProductLineKey {
   const path = hash.replace('#', '').split('?')[0];
   if (path.startsWith('datasource')) return 'data-source';
+  if (path.startsWith('ai-find')) return 'chatbi';
   return 'data-asset';
 }
 
@@ -73,6 +75,7 @@ export function getRouteFromHash(hash: string): AppRouteKey {
 
   if (path.startsWith('datasource')) return 'datasource';
   if (path === 'detail') return 'detail';
+  if (path === 'ai-find') return 'ai-find';
 
   const route = appRoutes.find((item) => item.key === path);
   return route?.key ?? 'search';

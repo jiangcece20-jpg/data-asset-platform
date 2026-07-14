@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
+import { ProductSwitcher } from '../components/product-switcher/ProductSwitcher';
 import { appRoutes, type AppRouteKey, type ProductLineKey } from './routes';
-import { getSystemHref, SystemSwitcher } from './SystemSwitcher';
 
 type AppShellProps = {
   activeRoute: AppRouteKey;
@@ -14,8 +14,10 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
   return (
     <div className="app-shell">
       <header className="app-shell__header">
-        <SystemSwitcher currentSystem={productLine} />
-        <div className="app-shell__logo">{productLine === 'data-source' ? '数据之源' : '数据资产管理平台'}</div>
+        <ProductSwitcher currentSystem={productLine} />
+        <div className="app-shell__logo">
+          {productLine === 'data-source' ? '数据之源' : productLine === 'chatbi' ? '智能问数' : '数据资产管理平台'}
+        </div>
         {productLine === 'data-asset' && (
           <nav className="app-shell__nav" aria-label="主导航">
             {appRoutes.map((route) => (
@@ -28,9 +30,6 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
                 {route.label}
               </a>
             ))}
-            <a className="app-shell__nav-item" href={getSystemHref('chatbi')}>
-              ChatBI
-            </a>
           </nav>
         )}
         {productLine === 'data-source' && (
@@ -42,8 +41,16 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
             >
               数据源管理
             </a>
-            <a className="app-shell__nav-item" href={getSystemHref('chatbi')}>
-              ChatBI
+          </nav>
+        )}
+        {productLine === 'chatbi' && (
+          <nav className="app-shell__nav" aria-label="智能问数导航">
+            <a
+              className={activeRoute === 'ai-find' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#ai-find"
+              aria-current={activeRoute === 'ai-find' ? 'page' : undefined}
+            >
+              AI 找数
             </a>
           </nav>
         )}
