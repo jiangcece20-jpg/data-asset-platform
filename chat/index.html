@@ -16,7 +16,31 @@ body {
   height: 56px; background: #001529; display: flex; align-items: center;
   padding: 0 24px; gap: 16px; flex-shrink: 0;
 }
-.header-logo { color: #fff; font-size: 16px; font-weight: 600; white-space: nowrap; }
+.platform-switcher {
+  color: rgba(255,255,255,.85); font-size: 16px; font-weight: 600; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 6px;
+  cursor: pointer; position: relative; transition: .2s;
+}
+.platform-switcher:hover { background: rgba(255,255,255,.1); color: #fff; }
+.platform-caret { font-size: 12px; color: rgba(255,255,255,.72); }
+.platform-menu {
+  display: none; position: absolute; top: 56px; left: 24px; z-index: 1000;
+  width: 280px; padding: 8px; background: #fff; border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16);
+}
+.platform-menu.show { display: block; }
+.platform-option {
+  width: 100%; border: none; background: transparent; display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 8px; cursor: pointer; color: #262626; font-size: 15px;
+  text-align: left; transition: .2s;
+}
+.platform-option:hover { background: #f5f7fb; }
+.platform-option.active { background: #e6f4ff; color: #1677ff; font-weight: 600; }
+.platform-option-name { flex: 1; }
+.platform-option-status {
+  font-size: 12px; color: #8c8c8c; padding: 2px 8px; border-radius: 6px; background: #f0f0f0;
+}
+.platform-option.active .platform-option-status { color: #1677ff; background: #d9ecff; }
 .header-nav { display: flex; gap: 4px; }
 .header-nav-item {
   color: rgba(255,255,255,.65); padding: 6px 14px; border-radius: 6px;
@@ -558,7 +582,23 @@ body {
 <body>
 <!-- Header -->
 <div class="header">
-  <div class="header-logo">📊 智能问数</div>
+  <div class="platform-switcher" onclick="togglePlatformMenu(event)">
+    <span>🧠</span>
+    <span>智能问数</span>
+    <span class="platform-caret">▾</span>
+  </div>
+  <div class="platform-menu" id="platformMenu">
+    <button class="platform-option" type="button" onclick="goDataAssetPlatform()">
+      <span>🗃️</span>
+      <span class="platform-option-name">数据资产</span>
+      <span class="platform-option-status">正式</span>
+    </button>
+    <button class="platform-option active" type="button" onclick="togglePlatformMenu(event)">
+      <span>🧠</span>
+      <span class="platform-option-name">智能问数</span>
+      <span class="platform-option-status">正式</span>
+    </button>
+  </div>
   <div class="header-nav">
     <div class="header-nav-item active">AI 找数</div>
   </div>
@@ -1168,6 +1208,25 @@ let currentTable = null;        // 当前表对象
 let currentAsset = null;        // 当前预览/工作区资产（用于详情抽屉）
 let schemaOpen = true;
 let _sourceVisible = true;
+
+// ============================================================
+// 平台切换
+// ============================================================
+function togglePlatformMenu(event) {
+  if (event) event.stopPropagation();
+  document.getElementById('platformMenu').classList.toggle('show');
+}
+function closePlatformMenu() {
+  document.getElementById('platformMenu').classList.remove('show');
+}
+function goDataAssetPlatform() {
+  const target = location.hostname.includes('data-asset-platform-chatbi.pages.dev')
+    || location.protocol === 'file:'
+    ? 'https://data-asset-platform.pages.dev'
+    : '../index.html';
+  location.href = target;
+}
+document.addEventListener('click', closePlatformMenu);
 
 // ============================================================
 // 上下文

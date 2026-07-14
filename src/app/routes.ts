@@ -28,7 +28,7 @@ export const appRoutes: AppRoute[] = [
 
 /* ── 产品线 ───────────────────────────────────────────── */
 
-export type ProductLineKey = 'data-asset' | 'data-source';
+export type ProductLineKey = 'data-asset' | 'data-source' | 'chatbi';
 
 export type ProductLine = {
   key: ProductLineKey;
@@ -52,6 +52,13 @@ export const productLines: ProductLine[] = [
     icon: '🔌',
     status: '正式',
     description: '数据源接入与元数据采集管理平台',
+  },
+  {
+    key: 'chatbi',
+    name: '智能问数',
+    icon: '🧠',
+    status: '正式',
+    description: 'ChatBI 问数与指标分析原型',
   },
 ];
 

@@ -1,5 +1,6 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { appRoutes, productLines, type AppRouteKey, type ProductLineKey } from './routes';
+import { type ReactNode } from 'react';
+import { appRoutes, type AppRouteKey, type ProductLineKey } from './routes';
+import { getSystemHref, SystemSwitcher } from './SystemSwitcher';
 
 type AppShellProps = {
   activeRoute: AppRouteKey;
@@ -9,48 +10,11 @@ type AppShellProps = {
 
 export function AppShell({ activeRoute, productLine, children }: AppShellProps) {
   const isFlushPage = activeRoute === 'my' || activeRoute === 'permissions';
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const currentProduct = productLines.find((p) => p.key === productLine) ?? productLines[0];
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleProductSelect = (key: ProductLineKey) => {
-    setDropdownOpen(false);
-    if (key === productLine) return;
-    if (key === 'data-asset') {
-      window.location.hash = 'search';
-    } else if (key === 'data-source') {
-      window.location.hash = 'datasource';
-    }
-  };
 
   return (
     <div className="app-shell">
       <header className="app-shell__header">
-        <div
-          className="app-shell__product-switcher"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          ref={containerRef}
-        >
-          <span aria-hidden="true">{currentProduct.icon}</span>
-          <span>{currentProduct.name}</span>
-          <span aria-hidden="true">▾</span>
-        </div>
-        {dropdownOpen && (
-          <div className="app-shell__product-dropdown">
-            {productLines.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className={`app-shell__product-item ${p.key === productLine ? 'app-shell__product-item--active' : ''}`}
-                onClick={() => handleProductSelect(p.key)}
-              >
-                <span className="app-shell__product-item-icon">{p.icon}</span>
-                <span className="app-shell__product-item-name">{p.name}</span>
-                <span className="app-shell__product-item-status">{p.status}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <SystemSwitcher currentSystem={productLine} />
         <div className="app-shell__logo">{productLine === 'data-source' ? '数据之源' : '数据资产管理平台'}</div>
         {productLine === 'data-asset' && (
           <nav className="app-shell__nav" aria-label="主导航">
@@ -64,6 +28,9 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
                 {route.label}
               </a>
             ))}
+            <a className="app-shell__nav-item" href={getSystemHref('chatbi')}>
+              ChatBI
+            </a>
           </nav>
         )}
         {productLine === 'data-source' && (
@@ -74,6 +41,9 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
               aria-current={activeRoute === 'datasource' ? 'page' : undefined}
             >
               数据源管理
+            </a>
+            <a className="app-shell__nav-item" href={getSystemHref('chatbi')}>
+              ChatBI
             </a>
           </nav>
         )}
