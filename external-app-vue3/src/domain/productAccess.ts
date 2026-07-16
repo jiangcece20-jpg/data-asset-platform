@@ -1,4 +1,5 @@
 import type { AcquisitionOption, AvailabilityStatus, StandardProductType } from '@/types/domain'
+import type { ServiceStatus } from '@/types/reverseFlow'
 
 export type ProductActionKey =
   | 'view'
@@ -24,12 +25,23 @@ export interface ProductActionContext {
   hasAccess: boolean
   hasOpenListingRequest: boolean
   enterpriseAuthenticated: boolean
+  serviceStatus?: ServiceStatus
 }
 
 export function resolveProductActions(context: ProductActionContext): {
   primary: ProductAction
   secondary?: ProductAction
 } {
+  const service = context.serviceStatus ?? 'normal'
+
+  // Service-level blocks override everything, even existing access
+  if (service === 'suspended') {
+    return { primary: { key: 'unavailable', label: '服务风险处置中', disabled: true } }
+  }
+  if (service === 'terminated') {
+    return { primary: { key: 'unavailable', label: '服务已终止', disabled: true } }
+  }
+
   if (context.hasAccess) return { primary: { key: 'view', label: '立即查看' } }
   if (context.availability === 'candidate') {
     return {

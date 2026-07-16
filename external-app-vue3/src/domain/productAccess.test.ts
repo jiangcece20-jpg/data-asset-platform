@@ -7,7 +7,13 @@ const base: ProductActionContext = {
   acquisitions: ['space_purchase'],
   hasAccess: false,
   hasOpenListingRequest: false,
-  enterpriseAuthenticated: false
+  enterpriseAuthenticated: false,
+  serviceStatus: 'normal',
+}
+
+const ownedProduct: ProductActionContext = {
+  ...base,
+  hasAccess: true,
 }
 
 describe('resolveProductActions', () => {
@@ -49,5 +55,37 @@ describe('resolveProductActions', () => {
   it('blocks paused and delisted products', () => {
     expect(resolveProductActions({ ...base, availability: 'paused' }).primary.key).toBe('unavailable')
     expect(resolveProductActions({ ...base, availability: 'delisted' }).primary.key).toBe('unavailable')
+  })
+
+  it('allows historical access when sales are paused but service remains normal', () => {
+    expect(resolveProductActions({
+      ...ownedProduct,
+      availability: 'paused',
+      serviceStatus: 'normal',
+    }).primary.key).toBe('view')
+  })
+
+  it('blocks historical access when compliance handling suspends service', () => {
+    expect(resolveProductActions({
+      ...ownedProduct,
+      availability: 'paused',
+      serviceStatus: 'suspended',
+    }).primary).toMatchObject({ key: 'unavailable', label: '服务风险处置中' })
+  })
+
+  it('keeps access during a degraded quality incident', () => {
+    expect(resolveProductActions({
+      ...ownedProduct,
+      availability: 'paused',
+      serviceStatus: 'degraded',
+    }).primary.key).toBe('view')
+  })
+
+  it('blocks access when service is terminated', () => {
+    expect(resolveProductActions({
+      ...ownedProduct,
+      availability: 'delisted',
+      serviceStatus: 'terminated',
+    }).primary.key).toBe('unavailable')
   })
 })
