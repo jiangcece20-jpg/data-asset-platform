@@ -1,6 +1,8 @@
 // 核心领域模型 —— 对应设计规格 6.2 节
 // Product / ProductEnhancement / UserContext / Entitlement / Order / TrialApplication / DemandLead / ApprovalRecord
 
+import type { ServiceStatus, EntitlementStatus } from './reverseFlow'
+
 // ---------------------------------------------------------------------------
 // 新增类型原语（Task 1 先定义，Task 2 完成替换）
 // ---------------------------------------------------------------------------
@@ -98,20 +100,10 @@ export interface DashboardDetail {
 }
 
 // ---------------------------------------------------------------------------
-// 旧模型（Task 2 将完成收口替换）
+// 收口后的商品模型
 // ---------------------------------------------------------------------------
-export type ProductType =
-  | 'report' // 行业报告
-  | 'dashboard' // 交互报表
-  | 'dataset' // 数据集
-  | 'api' // API
-  | 'pq_pir' // PQ/PIR
-  | 'joint_analysis' // 联合分析
-  | 'solution' // 解决方案
-
-export type ProductSource = 'app_self' | 'space_self' | 'space_third_party'
-
-export type DealChannel = 'app_payment' | 'space_purchase' | 'inquiry'
+export type ProductType = StandardProductType
+export type DealChannel = 'app_payment' | 'space_purchase'
 
 export type ProductStatus =
   | 'draft'
@@ -124,7 +116,7 @@ export type ProductStatus =
 
 export type TrialMode = 'unsupported' | 'self_service' | 'apply'
 
-export type PriceModel = 'member_free' | 'member_discount' | 'item_only' | 'quote'
+export type PriceModel = 'free' | 'member_free' | 'member_discount' | 'item_only' | 'quote'
 
 export interface ProductPrice {
   model: PriceModel
@@ -135,13 +127,10 @@ export interface ProductPrice {
 }
 
 export interface ProductTypeDetail {
-  report?: { catalogChapters: string[]; samplePages: number; methodology: string; version: string; license: string }
-  dashboard?: { metrics: string[]; dimensions: string[]; timeRange: string; updateCycle: string; exportRule: string }
-  dataset?: { granularity: string; coverage: string; dictionaryFields: string[]; sampleRows: number; qualityScore: string; joinKey: string }
-  api?: { params: string[]; sampleResponse: string; errorCodes: string[]; sla: string; billing: string }
-  pq_pir?: { verifyFields: string[]; returnForm: string; hitRate: string; privacyMechanism: string }
-  joint_analysis?: { template: string; participantFields: string[]; output: string; disclosureLimit: string; cycle: string }
-  solution?: { scenario: string; components: string[]; scope: string; cases: string[] }
+  dataset?: DatasetDetail
+  api?: ApiDetail
+  report?: ReportDetail
+  dashboard?: DashboardDetail
 }
 
 export interface Product {
@@ -149,16 +138,17 @@ export interface Product {
   name: string
   subtitle: string
   type: ProductType
-  source: ProductSource
+  origin: ProductOrigin
   dealChannel: DealChannel
+  availability: AvailabilityStatus
+  acquisitions: AcquisitionOption[]
+  entitlementPolicy?: EntitlementPolicy
   scenarios: string[]
   provider: string
   coverage: string
   updateFrequency: string
   qualityPromise: string
   complianceNote: string
-  trialPolicy: string
-  trialMode: TrialMode
   price: ProductPrice
   status: ProductStatus
   tags: string[]
@@ -166,11 +156,14 @@ export interface Product {
   valueProposition: string
   deliveryMethod: string
   memberIncluded: boolean
-  spaceProductNo?: string // 空间商品编号（只读，来自可信空间）
+  spaceProductNo?: string
   spaceSyncedAt?: string
   updatedAt: string
   typeDetail: ProductTypeDetail
   favorite?: boolean
+  serviceStatus: ServiceStatus
+  salesReviewOwner?: string
+  salesReviewAt?: string
 }
 
 export interface ProductEnhancement {
@@ -229,10 +222,13 @@ export interface Entitlement {
   source: EntitlementSource
   type: EntitlementType
   productId?: string
+  productVersion?: string
   enterpriseId?: string
+  ownerId: string
   validFrom: string
-  validTo: string
-  status: 'active' | 'expired'
+  validTo?: string
+  status: EntitlementStatus
+  reverseWorkOrderId?: string
 }
 
 export type OrderChannel = 'app' | 'space'
@@ -256,6 +252,7 @@ export interface Order {
   id: string
   channel: OrderChannel
   ownerType: OrderOwnerType
+  ownerId: string
   productId: string
   productName: string
   amount: number
@@ -274,6 +271,7 @@ export interface TrialApplication {
   productName: string
   mode: TrialMode
   enterpriseId?: string
+  ownerId: string
   status: TrialStatus
   quota: number
   usedQuota: number
@@ -341,4 +339,39 @@ export interface AnswerSession {
   paywalled: boolean
   unlockedProductId?: string
   createdAt: string
+}
+
+// ---------------------------------------------------------------------------
+// 求上架模型
+// ---------------------------------------------------------------------------
+export type ListingRequestStatus = 'submitted' | 'evaluating' | 'preparing' | 'published' | 'unsupported'
+
+export interface ListingRequestPayload {
+  productId: string
+  productName: string
+  userId: string
+  scenario: string
+  requestedScope: string
+  timeRange: string
+  updateFrequency: string
+  expectedAvailableAt: string
+  note: string
+}
+
+export interface ListingRequest {
+  id: string
+  productId: string
+  productName: string
+  userId: string
+  scenario: string
+  requestedScope: string
+  timeRange: string
+  updateFrequency: string
+  expectedAvailableAt: string
+  note: string
+  status: ListingRequestStatus
+  feedbackMessage: string
+  alternativeProductIds: string[]
+  createdAt: string
+  updatedAt: string
 }
