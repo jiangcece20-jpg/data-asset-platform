@@ -1,0 +1,462 @@
+import type { Product } from '@/types/domain'
+
+export const seedProducts: Product[] = [
+  // ── 自有看板 ──────────────────────────────────────────
+  {
+    id: 'prod-freight-index',
+    name: '全国货运价格指数',
+    subtitle: '周度更新的全国公路货运价格趋势看板',
+    type: 'dashboard',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['member', 'item_purchase'],
+    entitlementPolicy: { kind: 'term', months: 12 },
+    scenarios: ['物流成本分析', '运价趋势研判'],
+    provider: 'APP 自营内容',
+    coverage: '全国 31 省份 · 12 大枢纽城市对',
+    updateFrequency: '每周一更新',
+    qualityPromise: '数据来源于平台真实交易样本，月度校准',
+    complianceNote: '已脱敏，仅展示指数与趋势，不含企业级明细',
+    price: { model: 'member_discount', itemPrice: 299, memberDiscount: 0, unit: '元/12个月' },
+    status: 'published',
+    tags: ['热门', '会员免费'],
+    description: '覆盖全国主要城市对的公路货运价格指数，支持按线路、车型、时间维度下钻分析价格走势。',
+    valueProposition: '帮助物流企业和货主实时掌握运价波动，辅助采购与报价决策。',
+    deliveryMethod: 'APP 在线看板，支持导出会员专享',
+    memberIncluded: true,
+    updatedAt: '2026-07-10',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dashboard: {
+        timeRange: '近 3 年，按周粒度',
+        updateCycle: '每周一 09:00',
+        metrics: [
+          { name: '货运价格指数', definition: '基于平台真实交易样本计算的综合性运价指数', formula: '加权均值 = Σ(线路单价 × 权重)', dimensions: ['省份', '城市对', '车型'], preview: 'visible' },
+          { name: '环比涨跌幅', definition: '本周指数与上周指数的变化百分比', formula: '(本周 - 上周) / 上周 × 100%', dimensions: ['省份', '车型'], preview: 'masked' },
+          { name: '同比涨跌幅', definition: '本周指数与去年同期指数的变化百分比', formula: '(本周 - 去年同期) / 去年同期 × 100%', dimensions: ['省份', '车型'], preview: 'masked' }
+        ],
+        panels: [
+          { id: 'panel-trend', title: '全国运价趋势', chartType: 'line', preview: 'visible', summary: '近 12 周运价指数走势' },
+          { id: 'panel-region', title: '区域热力图', chartType: 'bar', preview: 'masked', summary: '各省份运价对比' },
+          { id: 'panel-detail', title: '线路明细', chartType: 'number', preview: 'masked', summary: 'TOP 20 线路单价' }
+        ],
+        exportRule: '会员可导出近 12 个月数据，单品购买不支持导出'
+      }
+    }
+  },
+  {
+    id: 'prod-cold-chain-dashboard',
+    name: '冷链物流温控合规看板',
+    subtitle: '冷链运输温控合规监测交互看板',
+    type: 'dashboard',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'paused',
+    acquisitions: ['member', 'item_purchase'],
+    entitlementPolicy: { kind: 'term', months: 12 },
+    scenarios: ['物流成本分析'],
+    provider: 'APP 自营内容',
+    coverage: '重点冷链通道 42 条',
+    updateFrequency: '每日更新',
+    qualityPromise: '接入温控设备采样数据，异常自动标注',
+    complianceNote: '已脱敏企业信息',
+    price: { model: 'member_discount', itemPrice: 99, memberDiscount: 0.7, unit: '元/月' },
+    status: 'paused',
+    tags: ['冷链'],
+    description: '监测冷链运输过程中的温控合规情况，支持按通道、企业、时间维度分析异常率。',
+    valueProposition: '帮助冷链企业及时发现温控异常，降低货损与合规风险。',
+    deliveryMethod: 'APP 在线看板',
+    memberIncluded: true,
+    updatedAt: '2026-06-28',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dashboard: {
+        timeRange: '近 12 个月',
+        updateCycle: '每日 06:00',
+        metrics: [
+          { name: '温控合规率', definition: '温控达标运输次数占比', formula: '达标次数 / 总次数 × 100%', dimensions: ['通道', '企业', '时间'], preview: 'visible' },
+          { name: '异常事件数', definition: '温控异常事件统计', formula: 'COUNT(异常标记 = true)', dimensions: ['通道', '企业'], preview: 'masked' }
+        ],
+        panels: [
+          { id: 'panel-compliance', title: '合规率趋势', chartType: 'line', preview: 'visible', summary: '近 30 天合规率走势' },
+          { id: 'panel-alerts', title: '异常告警', chartType: 'bar', preview: 'masked', summary: '各通道异常次数' }
+        ],
+        exportRule: '暂不支持导出'
+      }
+    }
+  },
+  {
+    id: 'prod-port-dashboard-free',
+    name: '港口吞吐量免费看板',
+    subtitle: '全国主要港口吞吐量趋势免费看板',
+    type: 'dashboard',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['free'],
+    scenarios: ['港口运营分析'],
+    provider: 'APP 自营内容',
+    coverage: '全国 25 个主要港口',
+    updateFrequency: '每周更新',
+    qualityPromise: '基于公开数据整理',
+    complianceNote: '公开数据，无敏感信息',
+    price: { model: 'free' },
+    status: 'published',
+    tags: ['免费'],
+    description: '全国主要港口货物吞吐量趋势看板，免费查看完整内容。',
+    valueProposition: '快速了解港口运营趋势，辅助物流规划。',
+    deliveryMethod: 'APP 在线看板',
+    memberIncluded: false,
+    updatedAt: '2026-07-12',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dashboard: {
+        timeRange: '近 24 个月',
+        updateCycle: '每周五 18:00',
+        metrics: [
+          { name: '吞吐量', definition: '港口货物吞吐量（万吨）', formula: 'SUM(货物重量)', dimensions: ['港口', '时间'], preview: 'visible' },
+          { name: '同比增长', definition: '同比变化百分比', formula: '(本期 - 去年同期) / 去年同期 × 100%', dimensions: ['港口'], preview: 'visible' }
+        ],
+        panels: [
+          { id: 'panel-throughput', title: '吞吐量趋势', chartType: 'line', preview: 'visible', summary: '近 12 个月吞吐量走势' },
+          { id: 'panel-ranking', title: '港口排名', chartType: 'bar', preview: 'visible', summary: 'TOP 10 港口吞吐量' }
+        ],
+        exportRule: '免费看板不支持导出'
+      }
+    }
+  },
+  // ── 行业报告 ──────────────────────────────────────────
+  {
+    id: 'prod-logistics-monthly',
+    name: '中国公路物流行业月报',
+    subtitle: '公路物流行业趋势与政策解读月报',
+    type: 'report',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['member', 'item_purchase'],
+    entitlementPolicy: { kind: 'report_version', version: 'V2026-07' },
+    scenarios: ['行业研究', '企业采购决策'],
+    provider: 'APP 自营内容',
+    coverage: '全国公路物流行业，含 8 个细分赛道',
+    updateFrequency: '每月 5 日发布',
+    qualityPromise: '由行业研究团队撰写，交叉验证三方数据源',
+    complianceNote: '公开发布内容，不含企业敏感信息',
+    price: { model: 'member_discount', itemPrice: 199, memberDiscount: 0.6, unit: '元/篇' },
+    status: 'published',
+    tags: ['行业研究', '企业采购'],
+    description: '系统梳理公路物流行业月度运行情况、政策动态与代表企业动向，含数据图表与专家解读。',
+    valueProposition: '为企业战略规划和采购决策提供权威、及时的行业洞察。',
+    deliveryMethod: 'APP 阅读器在线阅读，会员可合规下载 PDF',
+    memberIncluded: true,
+    updatedAt: '2026-07-05',
+    serviceStatus: 'normal',
+    typeDetail: {
+      report: {
+        author: '平台行业研究院',
+        publishedAt: '2026-07-05',
+        version: 'V2026-07',
+        audience: '物流企业管理层、供应链负责人、行业研究人员',
+        catalog: [
+          { title: '行业运行总览', previewable: true },
+          { title: '细分赛道动态', previewable: true },
+          { title: '政策与监管', previewable: false },
+          { title: '代表企业追踪', previewable: false },
+          { title: '下月展望', previewable: false }
+        ],
+        blocks: [
+          { id: 'block-overview', title: '行业运行总览', kind: 'text', content: '2026年6月，全国公路物流运行总体平稳，货运量同比增长3.2%，行业景气指数维持在荣枯线以上。', preview: 'visible' },
+          { id: 'block-freight-volume', title: '货运量数据', kind: 'metric', content: '6月公路货运量达到 35.8 亿吨，同比增长 3.2%；其中快递物流增长 8.7%，大宗物资增长 1.1%。', preview: 'masked' },
+          { id: 'block-chart', title: '运价指数走势', kind: 'chart', content: '近 12 个月运价指数走势图，显示 6 月指数为 108.6，环比下降 0.8%。', preview: 'masked' },
+          { id: 'block-policy', title: '政策与监管', kind: 'text', content: '交通运输部发布《关于进一步规范公路货运市场秩序的通知》，重点整治超载超限、非法改装等行为。', preview: 'locked' },
+          { id: 'block-enterprise', title: '代表企业追踪', kind: 'text', content: '本月重点追踪 10 家头部物流企业，其中 3 家完成新一轮融资，2 家拓展了区域网络。', preview: 'locked' },
+          { id: 'block-outlook', title: '下月展望', kind: 'text', content: '预计 7 月货运量将保持平稳增长，运价指数有望企稳回升，需关注夏季高温对运力供给的影响。', preview: 'locked' }
+        ],
+        license: '企业内部使用，禁止对外转售'
+      }
+    }
+  },
+  {
+    id: 'prod-industry-brief-free',
+    name: '物流行业政策速递（免费）',
+    subtitle: '每月物流政策动态免费摘要',
+    type: 'report',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['free'],
+    scenarios: ['行业研究'],
+    provider: 'APP 自营内容',
+    coverage: '全国物流政策动态',
+    updateFrequency: '每月更新',
+    qualityPromise: '基于公开政策文件整理',
+    complianceNote: '公开内容',
+    price: { model: 'free' },
+    status: 'published',
+    tags: ['免费', '政策'],
+    description: '每月汇总物流行业最新政策动态，免费阅读。',
+    valueProposition: '快速了解政策变化，把握行业方向。',
+    deliveryMethod: 'APP 在线阅读',
+    memberIncluded: false,
+    updatedAt: '2026-07-03',
+    serviceStatus: 'normal',
+    typeDetail: {
+      report: {
+        author: '平台内容编辑组',
+        publishedAt: '2026-07-03',
+        version: 'V2026-07',
+        audience: '所有用户',
+        catalog: [
+          { title: '本月政策概览', previewable: true },
+          { title: '地方政策动态', previewable: true }
+        ],
+        blocks: [
+          { id: 'block-overview', title: '本月政策概览', kind: 'text', content: '2026年6月，国家及地方共发布物流相关政策 12 项，涉及降本增效、绿色物流、安全监管等方面。', preview: 'visible' },
+          { id: 'block-local', title: '地方政策动态', kind: 'text', content: '广东、浙江、四川等省份发布了支持物流枢纽建设的配套政策，提供土地、税收等优惠。', preview: 'visible' }
+        ],
+        license: '免费内容，可分享引用'
+      }
+    }
+  },
+  // ── API ────────────────────────────────────────────────
+  {
+    id: 'prod-qualification-api',
+    name: '道路运输从业人员资格核验 API',
+    subtitle: '从业资格证信息实时核验 API',
+    type: 'api',
+    origin: 'trusted_space',
+    dealChannel: 'space_purchase',
+    availability: 'published',
+    acquisitions: ['space_purchase'],
+    scenarios: ['司机合规核验', '承运商准入审核'],
+    provider: '可信数据空间 · 交通运输认证机构',
+    coverage: '全国从业资格证持证人员',
+    updateFrequency: '证照变更后 T+1 同步',
+    qualityPromise: '权威机构数据源，命中率 99.2%',
+    complianceNote: '核验结果仅返回是否有效，不返回证件原始影像',
+    price: { model: 'quote', quoteNote: '按调用量阶梯计费，详见空间报价' },
+    status: 'published',
+    tags: ['合规核验', '空间商品'],
+    description: '输入身份证号与证件编号即可核验从业资格证的有效性与准驾类型，适用于司机准入与承运商审核场景。',
+    valueProposition: '将线下人工核验流程缩短至秒级响应，降低合规风险。',
+    deliveryMethod: '可信空间接口调用，订单与交付状态回传 APP',
+    memberIncluded: false,
+    spaceProductNo: 'SPACE-API-20415',
+    spaceSyncedAt: '2026-07-09 08:30',
+    updatedAt: '2026-07-09',
+    serviceStatus: 'normal',
+    typeDetail: {
+      api: {
+        method: 'POST',
+        pathExample: '/api/v1/qualification/verify',
+        version: 'v1.2.0',
+        authentication: 'API Key（通过可信空间获取）',
+        parameters: [
+          { name: 'idCardNo', location: 'body', dataType: 'string', required: true, description: '身份证号', example: '110101199001010011' },
+          { name: 'certificateNo', location: 'body', dataType: 'string', required: true, description: '从业资格证编号', example: 'CERT-A2-001' },
+          { name: 'vehicleClass', location: 'body', dataType: 'string', required: false, description: '准驾车型（可选筛选条件）', example: 'A2' }
+        ],
+        responseFields: [
+          { name: 'requestId', dataType: 'string', description: '请求唯一标识' },
+          { name: 'valid', dataType: 'boolean', description: '证件是否有效' },
+          { name: 'vehicleClass', dataType: 'string', description: '准驾类型' },
+          { name: 'expireAt', dataType: 'string', description: '证件到期日期' }
+        ],
+        sandbox: {
+          editableParameters: ['idCardNo', 'certificateNo', 'vehicleClass'],
+          fixedResponse: {
+            requestId: 'sandbox-demo-001',
+            valid: true,
+            vehicleClass: 'A2',
+            expireAt: '2028-05-01'
+          },
+          simulatedLatencyMs: 200
+        },
+        errorCodes: [
+          { code: '40001', message: '参数缺失' },
+          { code: '40401', message: '证件不存在' },
+          { code: '50001', message: '服务繁忙' }
+        ],
+        sla: '99.9% 可用性 · 平均响应 180ms',
+        rateLimit: '100 次/分钟（默认），可按需扩容',
+        billing: '按调用次数阶梯计费'
+      }
+    }
+  },
+  {
+    id: 'prod-privacy-verify',
+    name: '企业资质隐私核验 API',
+    subtitle: '基于 PIR 的企业资质匹配核验 API',
+    type: 'api',
+    origin: 'trusted_space',
+    dealChannel: 'space_purchase',
+    availability: 'published',
+    acquisitions: ['space_purchase'],
+    scenarios: ['供应商准入', '资质比对'],
+    provider: '可信数据空间 · 平台自营',
+    coverage: '全国企业资质信息库',
+    updateFrequency: '实时核验',
+    qualityPromise: '隐私信息检索机制，查询方与数据方互不感知明细',
+    complianceNote: '仅返回匹配结果（命中/不命中），不返回原始记录',
+    price: { model: 'quote', quoteNote: '按核验次数报价' },
+    status: 'published',
+    tags: ['隐私核验'],
+    description: '基于隐私信息检索（PIR）技术，在不暴露查询内容与数据库明细的前提下完成企业资质核验。',
+    valueProposition: '在保护双方隐私的同时完成资质比对，适用于敏感场景准入核验。',
+    deliveryMethod: '可信空间核验服务',
+    memberIncluded: false,
+    spaceProductNo: 'SPACE-PIR-40217',
+    spaceSyncedAt: '2026-07-06 10:00',
+    updatedAt: '2026-07-06',
+    serviceStatus: 'normal',
+    typeDetail: {
+      api: {
+        method: 'POST',
+        pathExample: '/api/v1/privacy-verify/check',
+        version: 'v1.0.0',
+        authentication: 'API Key（通过可信空间获取）',
+        parameters: [
+          { name: 'creditCode', location: 'body', dataType: 'string', required: true, description: '统一社会信用代码', example: '91110108MA01ABCDEF' },
+          { name: 'qualificationType', location: 'body', dataType: 'string', required: true, description: '资质类别', example: '道路运输经营许可' },
+          { name: 'validUntil', location: 'body', dataType: 'string', required: false, description: '要求有效期至', example: '2027-12-31' }
+        ],
+        responseFields: [
+          { name: 'requestId', dataType: 'string', description: '请求唯一标识' },
+          { name: 'hit', dataType: 'boolean', description: '是否命中匹配资质' },
+          { name: 'validRange', dataType: 'string', description: '有效期区间（命中时返回）' }
+        ],
+        sandbox: {
+          editableParameters: ['creditCode', 'qualificationType', 'validUntil'],
+          fixedResponse: {
+            requestId: 'sandbox-pir-001',
+            hit: true,
+            validRange: '2024-01-01 ~ 2028-12-31'
+          },
+          simulatedLatencyMs: 300
+        },
+        errorCodes: [
+          { code: '40001', message: '参数缺失' },
+          { code: '40301', message: '未授权访问' },
+          { code: '50001', message: '服务繁忙' }
+        ],
+        sla: '99.5% 可用性 · 平均响应 250ms',
+        rateLimit: '50 次/分钟（默认）',
+        billing: '按核验次数报价'
+      }
+    }
+  },
+  // ── 数据集 ──────────────────────────────────────────────
+  {
+    id: 'prod-enterprise-activity',
+    name: '企业物流活跃度数据集',
+    subtitle: '企业维度物流活跃指标数据集',
+    type: 'dataset',
+    origin: 'trusted_space',
+    dealChannel: 'space_purchase',
+    availability: 'published',
+    acquisitions: ['space_purchase'],
+    scenarios: ['企业画像', '风险评估'],
+    provider: '可信数据空间 · 平台自营',
+    coverage: '覆盖 260 万家活跃物流相关企业',
+    updateFrequency: '每月更新',
+    qualityPromise: '完整性 97%，字段级质量校验',
+    complianceNote: '企业维度脱敏样本，正式使用需企业认证与空间订单',
+    price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
+    status: 'published',
+    tags: ['数据集', '空间商品'],
+    description: '包含企业物流发单频次、履约稳定性、区域覆盖等活跃度指标，可用于企业画像与合作评估。',
+    valueProposition: '快速识别活跃、稳定的合作伙伴企业，辅助商务决策。',
+    deliveryMethod: '可信空间订单交付，支持 API 或批量文件形式',
+    memberIncluded: false,
+    spaceProductNo: 'SPACE-DS-10893',
+    spaceSyncedAt: '2026-07-08 21:10',
+    updatedAt: '2026-07-08',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dataset: {
+        granularity: '企业 × 月',
+        timeRange: '2024-01 至 2026-06',
+        rowCount: 2600000,
+        classification: '企业画像数据（L2）',
+        qualityUpdatedAt: '2026-07-01',
+        fields: [
+          { name: 'enterprise_id', dataType: 'string', meaning: '企业唯一标识（脱敏哈希）', description: '不可逆哈希值，用于跨数据集关联', primaryKey: true, nullable: false, sensitivity: 'L2' },
+          { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false },
+          { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false },
+          { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true },
+          { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false }
+        ],
+        sampleColumns: ['enterprise_id', 'order_frequency', 'fulfillment_rate', 'coverage_region', 'activity_level'],
+        sampleRows: [
+          { enterprise_id: 'ENT-8A12', order_frequency: 156, fulfillment_rate: 0.94, coverage_region: '广东,浙江,江苏', activity_level: 'A' },
+          { enterprise_id: 'ENT-2C31', order_frequency: 89, fulfillment_rate: 0.87, coverage_region: '上海,江苏,安徽', activity_level: 'B' },
+          { enterprise_id: 'ENT-5F90', order_frequency: 42, fulfillment_rate: 0.76, coverage_region: '四川,重庆', activity_level: 'C' },
+          { enterprise_id: 'ENT-1D47', order_frequency: 203, fulfillment_rate: 0.91, coverage_region: '北京,河北,山东', activity_level: 'A' },
+          { enterprise_id: 'ENT-9E33', order_frequency: 28, fulfillment_rate: 0.68, coverage_region: '湖北,湖南', activity_level: 'D' }
+        ],
+        sampleGeneratedAt: '2026-07-01',
+        profiling: {
+          completeness: '97.2%',
+          uniqueness: '企业ID唯一性 100%',
+          nullRate: '2.8%（主要在 coverage_region 字段）',
+          distribution: '活跃等级 A:15% B:28% C:38% D:19%',
+          anomalies: '0.3% 记录存在发单频次异常波动（已标注）',
+          conclusion: '数据质量优良，适合企业画像与风险评估场景',
+          updatedAt: '2026-07-01'
+        }
+      }
+    }
+  },
+  {
+    id: 'prod-driver-credit-candidate',
+    name: '司机信用评分数据集（可申请上架）',
+    subtitle: '司机维度信用与安全驾驶评分',
+    type: 'dataset',
+    origin: 'asset_platform',
+    dealChannel: 'space_purchase',
+    availability: 'candidate',
+    acquisitions: ['space_purchase'],
+    scenarios: ['风险评估', '司机准入'],
+    provider: '资产平台 · 平台自营',
+    coverage: '试点区域 5 省',
+    updateFrequency: '待定',
+    qualityPromise: '待完成质量评估',
+    complianceNote: '出域审批进行中',
+    price: { model: 'quote', quoteNote: '待定价' },
+    status: 'draft',
+    tags: ['筹备中'],
+    description: '尚在资产商品化与出域审批阶段的司机信用评分数据集，可提交求上架需求。',
+    valueProposition: '未来可用于司机准入与风险定价。',
+    deliveryMethod: '待发布',
+    memberIncluded: false,
+    updatedAt: '2026-07-11',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dataset: {
+        granularity: '司机 × 月',
+        timeRange: '待定',
+        rowCount: 0,
+        classification: '个人信息数据（L3）',
+        qualityUpdatedAt: '',
+        fields: [
+          { name: 'driver_id', dataType: 'string', meaning: '司机唯一标识（脱敏哈希）', description: '不可逆哈希值', primaryKey: true, nullable: false, sensitivity: 'L3' },
+          { name: 'safety_score', dataType: 'integer', meaning: '安全驾驶评分', description: '0-100 分，基于驾驶行为综合评定', primaryKey: false, nullable: false, sensitivity: 'L2' },
+          { name: 'violation_count', dataType: 'integer', meaning: '违规次数', description: '近 12 个月违规次数', primaryKey: false, nullable: false }
+        ],
+        sampleColumns: [],
+        sampleRows: [],
+        sampleGeneratedAt: '',
+        profiling: {
+          completeness: '资料准备中',
+          uniqueness: '资料准备中',
+          nullRate: '资料准备中',
+          distribution: '资料准备中',
+          anomalies: '资料准备中',
+          conclusion: '资料准备中，上架审核通过后提供脱敏样例与探查报告',
+          updatedAt: ''
+        }
+      }
+    }
+  }
+]

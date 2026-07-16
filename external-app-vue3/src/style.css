@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f4f6fb;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 手机壳滚动条隐藏但可滚动 */
+.phone-scroll::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+.tag-chip {
+  @apply inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600;
+}
+
+.status-dot {
+  @apply inline-block h-1.5 w-1.5 rounded-full;
+}
