@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-07-23T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="ai-find-requirements" name="ai-find-requirements">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="AI 找数需求全景" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=22;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="25" width="1520" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="从业务问题出发，理解意图、发现资产或执行查询，返回可信结果并衔接用数与治理动作" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1520" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-container" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#2563EB;strokeWidth=2;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="360" height="470" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-title" value="六类用户意图" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#1E40AF;" vertex="1" parent="1">
+          <mxGeometry x="60" y="135" width="320" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-find" value="找 · MVP&#xa;找表、指标、报表、看板、API&#xa;技术映射与替代资产" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-understand" value="懂 · MVP&#xa;查定义、口径、字段、负责人&#xa;更新时间、质量与权限状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="230" y="180" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-query" value="查 · MVP&#xa;查指标值、明细、趋势、维度&#xa;对比、排名与占比" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="305" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-analyze" value="析 · 增强&#xa;异常发现、原因归因、关联分析&#xa;预测与自动总结" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#D97706;strokeWidth=2;fontColor=#9A3412;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="230" y="305" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-use" value="用 · MVP&#xa;预览、申请权限、进入查询&#xa;收藏、分享与核心动作" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="intent-govern" value="治 · 后续&#xa;纠错、补充说明、修正口径&#xa;修正血缘与报告质量问题" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=2;fontColor=#475569;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="230" y="430" width="150" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-container" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#7C3AED;strokeWidth=2;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="120" width="650" height="470" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-title" value="AI 找数核心能力" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#6D28D9;" vertex="1" parent="1">
+          <mxGeometry x="490" y="135" width="610" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-conversation" value="对话理解&#xa;问题改写与意图识别&#xa;指标、时间、维度、动作与资产类型解析&#xa;多轮补位、歧义确认与会话管理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="180" width="295" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-retrieval" value="智能检索与路由&#xa;全文、语义与知识图谱联合召回&#xa;按角色、权限、质量、热度与状态排序&#xa;命中解释、动作路由与诚实降级" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="805" y="180" width="295" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-analysis" value="查数与分析&#xa;指标匹配、口径确认与查询执行&#xa;数值、明细、趋势、维度、对比、排名、占比&#xa;图表、摘要及可信信息展示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="325" width="295" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="capability-loop" value="可信与用数闭环&#xa;推荐资产并支持预览、详情与血缘追溯&#xa;权限申请、即席查询、收藏、分享与反馈&#xa;错误、口径、血缘与质量问题回流治理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="805" y="325" width="295" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="control-strip" value="贯穿式对话控制&#xa;上下文补位 · 意图切换 · 歧义确认 · 权限与安全拦截 · 能力边界说明 · 未命中与诚实降级 · 失败重试与改问引导 · 新建会话与清除上下文" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F3E8FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;fontStyle=1;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="475" width="610" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-container" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#16A34A;strokeWidth=2;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="120" width="370" height="470" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-title" value="可信结果与业务价值" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#15803D;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="135" width="330" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-assets" value="资产结果&#xa;表、指标、报表、看板、API 及推荐理由" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFDF5;strokeColor=#16A34A;strokeWidth=2;fontColor=#14532D;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="180" width="330" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-answer" value="可信答案&#xa;数字、图表、口径、来源、更新时间与质量状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFDF5;strokeColor=#16A34A;strokeWidth=2;fontColor=#14532D;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="280" width="330" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-insight" value="分析结论&#xa;趋势、对比、排名、占比、归因与异常提示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFDF5;strokeColor=#16A34A;strokeWidth=2;fontColor=#14532D;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="380" width="330" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="result-action" value="行动闭环&#xa;预览、申请权限、打开详情、进入查询、收藏、分享与反馈" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFDF5;strokeColor=#16A34A;strokeWidth=2;fontColor=#14532D;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="480" width="330" height="82" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-container" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=2;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="650" width="1520" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-title" value="可信数据与 AI 底座" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#334155;" vertex="1" parent="1">
+          <mxGeometry x="60" y="665" width="1480" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-metadata" value="资产目录与元数据" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="705" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-standard" value="数据标准" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="355" y="705" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-semantic" value="指标与语义层" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="705" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-graph" value="知识图谱与血缘" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="945" y="705" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-quality" value="数据质量与时效" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="705" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-security" value="权限与安全" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="770" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-search" value="检索引擎" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="355" y="770" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-query" value="查询与 BI 引擎" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="770" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-model" value="大模型与 Agent" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="945" y="770" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="foundation-evaluation" value="评测与运营" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#94A3B8;strokeWidth=2;fontColor=#334155;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="770" width="270" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="phasing-card" value="建设节奏&#xa;MVP：找、懂、查、用；资产推荐与技术映射；核心查数；多轮与歧义确认；可信信息；预览、详情、申请与查询衔接；诚实降级&#xa;后续增强：归因、异常、预测、关联分析；更多指标与数据源；分享、订阅、个性化；治理闭环" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#D97706;strokeWidth=2;fontColor=#9A3412;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="865" width="920" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="metrics-card" value="管理层成功指标&#xa;找数成功率 · 首次提问命中率 · 零结果率 · 平均找数与拿数时长&#xa;业务自助用数率 · 可信信息覆盖率 · 用数转化率 · 单次找数成本" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#ECFDF5;strokeColor=#16A34A;strokeWidth=2;fontColor=#14532D;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="990" y="865" width="570" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-intent-capability" value="业务问题" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;strokeWidth=2;strokeColor=#2563EB;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;fontColor=#1E40AF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="intent-container" target="capability-container" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-capability-result" value="可信结果" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;strokeWidth=2;strokeColor=#16A34A;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;fontColor=#15803D;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="capability-container" target="result-container" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-foundation-capability" value="可信支撑" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=0;strokeWidth=2;strokeColor=#94A3B8;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;fontColor=#475569;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="foundation-container" target="capability-container" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
