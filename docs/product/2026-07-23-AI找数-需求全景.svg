@@ -49,11 +49,11 @@
   <text class="section-title" x="60" y="160" fill="#1E40AF">六类用户意图</text>
 
   <rect x="60" y="180" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
-  <text class="intent-text body" x="72" y="204">
+  <text class="intent-text" x="72" y="204" font-size="13">
     <tspan class="card-title" x="72" dy="0">找 · MVP</tspan>
-    <tspan x="72" dy="25">找表、指标、报表、</tspan>
-    <tspan x="72" dy="20">看板、API</tspan>
-    <tspan x="72" dy="20">技术映射与替代资产</tspan>
+    <tspan x="72" dy="22">找表、指标、报表、</tspan>
+    <tspan x="72" dy="16">看板、API</tspan>
+    <tspan x="72" dy="16">技术映射与替代资产</tspan>
   </text>
 
   <rect x="230" y="180" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
@@ -66,27 +66,28 @@
   </text>
 
   <rect x="60" y="305" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
-  <text class="intent-text body" x="72" y="329">
+  <text class="intent-text" x="72" y="329" font-size="13">
     <tspan class="card-title" x="72" dy="0">查 · MVP</tspan>
-    <tspan x="72" dy="25">查指标值、明细、趋势、</tspan>
-    <tspan x="72" dy="20">维度</tspan>
-    <tspan x="72" dy="20">对比、排名与占比</tspan>
+    <tspan x="72" dy="22">查指标值、明细、</tspan>
+    <tspan x="72" dy="16">趋势、维度</tspan>
+    <tspan x="72" dy="16">对比、排名与占比</tspan>
   </text>
 
   <rect x="230" y="305" width="150" height="105" rx="12" fill="#FFF7ED" stroke="#D97706" stroke-width="2"/>
-  <text class="orange-text body" x="242" y="329">
+  <text class="orange-text" x="242" y="329" font-size="13">
     <tspan class="card-title" x="242" dy="0">析 · 增强</tspan>
-    <tspan x="242" dy="25">异常发现、原因归因、</tspan>
-    <tspan x="242" dy="20">关联分析</tspan>
-    <tspan x="242" dy="20">预测与自动总结</tspan>
+    <tspan x="242" dy="22">异常发现、</tspan>
+    <tspan x="242" dy="16">原因归因、关联分析</tspan>
+    <tspan x="242" dy="16">预测与自动总结</tspan>
   </text>
 
   <rect x="60" y="430" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
-  <text class="intent-text body" x="72" y="454">
+  <text class="intent-text" x="72" y="454" font-size="13">
     <tspan class="card-title" x="72" dy="0">用 · MVP</tspan>
-    <tspan x="72" dy="25">预览、申请权限、</tspan>
-    <tspan x="72" dy="20">进入查询</tspan>
-    <tspan x="72" dy="20">收藏、分享与核心动作</tspan>
+    <tspan x="72" dy="22">预览、申请权限、</tspan>
+    <tspan x="72" dy="16">进入查询</tspan>
+    <tspan x="72" dy="16">收藏、分享</tspan>
+    <tspan x="72" dy="16">与核心动作</tspan>
   </text>
 
   <rect x="230" y="430" width="150" height="105" rx="12" fill="#F8FAFC" stroke="#94A3B8" stroke-width="2"/>
@@ -138,7 +139,7 @@
   <rect x="490" y="475" width="610" height="90" rx="12" fill="#F3E8FF" stroke="#7C3AED" stroke-width="2"/>
   <text class="purple-text body" x="505" y="499">
     <tspan class="card-title" x="505" dy="0">贯穿式对话控制</tspan>
-    <tspan x="505" dy="25">上下文补位 · 意图切换 · 歧义确认 · 权限与安全拦截 · 能力边界说明</tspan>
+    <tspan x="505" dy="25">上下文补位 · 意图切换 · 歧义确认 · 权限与安全拦截 · 能力边界说明 ·</tspan>
     <tspan x="505" dy="22">未命中与诚实降级 · 失败重试与改问引导 · 新建会话与清除上下文</tspan>
   </text>
 

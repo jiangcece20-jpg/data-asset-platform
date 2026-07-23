@@ -17,22 +17,22 @@
         <mxCell id="intent-title" value="六类用户意图" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#1E40AF;" vertex="1" parent="1">
           <mxGeometry x="60" y="135" width="320" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-find" value="找 · MVP&#xa;找表、指标、报表、看板、API&#xa;技术映射与替代资产" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-find" value="找 · MVP&#xa;找表、指标、报表、&#xa;看板、API&#xa;技术映射与替代资产" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="180" width="150" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-understand" value="懂 · MVP&#xa;查定义、口径、字段、负责人&#xa;更新时间、质量与权限状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-understand" value="懂 · MVP&#xa;查定义、口径、&#xa;字段、负责人&#xa;更新时间、质量&#xa;与权限状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="230" y="180" width="150" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-query" value="查 · MVP&#xa;查指标值、明细、趋势、维度&#xa;对比、排名与占比" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-query" value="查 · MVP&#xa;查指标值、明细、&#xa;趋势、维度&#xa;对比、排名与占比" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="305" width="150" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-analyze" value="析 · 增强&#xa;异常发现、原因归因、关联分析&#xa;预测与自动总结" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#D97706;strokeWidth=2;fontColor=#9A3412;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-analyze" value="析 · 增强&#xa;异常发现、&#xa;原因归因、关联分析&#xa;预测与自动总结" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7ED;strokeColor=#D97706;strokeWidth=2;fontColor=#9A3412;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="230" y="305" width="150" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-use" value="用 · MVP&#xa;预览、申请权限、进入查询&#xa;收藏、分享与核心动作" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-use" value="用 · MVP&#xa;预览、申请权限、&#xa;进入查询&#xa;收藏、分享&#xa;与核心动作" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;fontColor=#1E3A8A;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="430" width="150" height="105" as="geometry"/>
         </mxCell>
-        <mxCell id="intent-govern" value="治 · 后续&#xa;纠错、补充说明、修正口径&#xa;修正血缘与报告质量问题" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=2;fontColor=#475569;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=8;" vertex="1" parent="1">
+        <mxCell id="intent-govern" value="治 · 后续&#xa;纠错、补充说明、&#xa;修正口径&#xa;修正血缘与&#xa;报告质量问题" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=2;fontColor=#475569;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=13;shadow=1;spacing=8;" vertex="1" parent="1">
           <mxGeometry x="230" y="430" width="150" height="105" as="geometry"/>
         </mxCell>
         <mxCell id="capability-container" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#7C3AED;strokeWidth=2;shadow=1;" vertex="1" parent="1">
