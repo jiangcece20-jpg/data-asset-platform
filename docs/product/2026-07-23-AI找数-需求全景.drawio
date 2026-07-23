@@ -41,16 +41,16 @@
         <mxCell id="capability-title" value="AI 找数核心能力" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=20;fontStyle=1;fontColor=#6D28D9;" vertex="1" parent="1">
           <mxGeometry x="490" y="135" width="610" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="capability-conversation" value="对话理解&#xa;问题改写与意图识别&#xa;指标、时间、维度、动作与资产类型解析&#xa;多轮补位、歧义确认与会话管理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+        <mxCell id="capability-conversation" value="✦ AI 对话理解&#xa;问题改写与意图识别&#xa;指标、时间、维度、动作与资产类型解析&#xa;多轮补位、歧义确认与会话管理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="490" y="180" width="295" height="125" as="geometry"/>
         </mxCell>
-        <mxCell id="capability-retrieval" value="智能检索与路由&#xa;全文、语义与知识图谱联合召回&#xa;按角色、权限、质量、热度与状态排序&#xa;命中解释、动作路由与诚实降级" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+        <mxCell id="capability-retrieval" value="✦ AI 智能检索与路由&#xa;全文、语义与知识图谱联合召回&#xa;按角色、权限、质量、热度与状态排序&#xa;命中解释、动作路由与诚实降级" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="805" y="180" width="295" height="125" as="geometry"/>
         </mxCell>
-        <mxCell id="capability-analysis" value="查数与分析&#xa;指标匹配、口径确认与查询执行&#xa;数值、明细、趋势、维度、对比、排名、占比&#xa;图表、摘要及可信信息展示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+        <mxCell id="capability-analysis" value="✦ AI 查数与分析&#xa;指标匹配、口径确认与查询执行&#xa;数值、明细、趋势、维度、对比、排名、占比&#xa;图表、摘要及可信信息展示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="490" y="325" width="295" height="125" as="geometry"/>
         </mxCell>
-        <mxCell id="capability-loop" value="可信与用数闭环&#xa;推荐资产并支持预览、详情与血缘追溯&#xa;权限申请、即席查询、收藏、分享与反馈&#xa;错误、口径、血缘与质量问题回流治理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
+        <mxCell id="capability-loop" value="✦ AI 可信与用数闭环&#xa;推荐资产并支持预览、详情与血缘追溯&#xa;权限申请、即席查询、收藏、分享与反馈&#xa;错误、口径、血缘与质量问题回流治理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;shadow=1;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="805" y="325" width="295" height="125" as="geometry"/>
         </mxCell>
         <mxCell id="control-strip" value="贯穿式对话控制&#xa;上下文补位 · 意图切换 · 歧义确认 · 权限与安全拦截 · 能力边界说明 · 未命中与诚实降级 · 失败重试与改问引导 · 新建会话与清除上下文" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F3E8FF;strokeColor=#7C3AED;strokeWidth=2;fontColor=#4C1D95;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=14;fontStyle=1;shadow=1;spacing=10;" vertex="1" parent="1">
