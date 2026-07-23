@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563EB"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16A34A"/>
+    </marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8"/>
+    </marker>
+    <style>
+      text { font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .title { font-size: 22px; font-weight: 700; fill: #0F172A; }
+      .subtitle { font-size: 15px; fill: #475569; }
+      .section-title { font-size: 20px; font-weight: 700; }
+      .card-title { font-size: 15px; font-weight: 700; }
+      .body { font-size: 14px; }
+      .body-15 { font-size: 15px; }
+      .intent-text { fill: #1E3A8A; }
+      .purple-text { fill: #4C1D95; }
+      .green-text { fill: #14532D; }
+      .orange-text { fill: #9A3412; }
+      .gray-text { fill: #334155; }
+      .later-text { fill: #475569; }
+      .edge-label { font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#FFFFFF"/>
+
+  <text class="title" x="40" y="52">AI 找数需求全景</text>
+  <text class="subtitle" x="40" y="81">从业务问题出发，理解意图、发现资产或执行查询，返回可信结果并衔接用数与治理动作</text>
+
+  <!-- Main flow arrows -->
+  <path d="M 400 355 H 470" fill="none" stroke="#2563EB" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <rect x="403" y="334" width="64" height="22" rx="5" fill="#FFFFFF"/>
+  <text class="edge-label" x="435" y="350" text-anchor="middle" fill="#1E40AF">业务问题</text>
+  <path d="M 1120 355 H 1190" fill="none" stroke="#16A34A" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <rect x="1123" y="334" width="64" height="22" rx="5" fill="#FFFFFF"/>
+  <text class="edge-label" x="1155" y="350" text-anchor="middle" fill="#15803D">可信结果</text>
+  <path d="M 795 650 V 590" fill="none" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow-gray)"/>
+  <rect x="805" y="604" width="64" height="22" rx="5" fill="#FFFFFF"/>
+  <text class="edge-label" x="837" y="620" text-anchor="middle" fill="#475569">可信支撑</text>
+
+  <!-- Intent container -->
+  <rect x="40" y="120" width="360" height="470" rx="16" fill="#FFFFFF" stroke="#2563EB" stroke-width="2"/>
+  <text class="section-title" x="60" y="160" fill="#1E40AF">六类用户意图</text>
+
+  <rect x="60" y="180" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+  <text class="intent-text body" x="72" y="204">
+    <tspan class="card-title" x="72" dy="0">找 · MVP</tspan>
+    <tspan x="72" dy="25">找表、指标、报表、</tspan>
+    <tspan x="72" dy="20">看板、API</tspan>
+    <tspan x="72" dy="20">技术映射与替代资产</tspan>
+  </text>
+
+  <rect x="230" y="180" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+  <text class="intent-text" x="242" y="204" font-size="13">
+    <tspan class="card-title" x="242" dy="0">懂 · MVP</tspan>
+    <tspan x="242" dy="22">查定义、口径、</tspan>
+    <tspan x="242" dy="16">字段、负责人</tspan>
+    <tspan x="242" dy="16">更新时间、质量</tspan>
+    <tspan x="242" dy="16">与权限状态</tspan>
+  </text>
+
+  <rect x="60" y="305" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+  <text class="intent-text body" x="72" y="329">
+    <tspan class="card-title" x="72" dy="0">查 · MVP</tspan>
+    <tspan x="72" dy="25">查指标值、明细、趋势、</tspan>
+    <tspan x="72" dy="20">维度</tspan>
+    <tspan x="72" dy="20">对比、排名与占比</tspan>
+  </text>
+
+  <rect x="230" y="305" width="150" height="105" rx="12" fill="#FFF7ED" stroke="#D97706" stroke-width="2"/>
+  <text class="orange-text body" x="242" y="329">
+    <tspan class="card-title" x="242" dy="0">析 · 增强</tspan>
+    <tspan x="242" dy="25">异常发现、原因归因、</tspan>
+    <tspan x="242" dy="20">关联分析</tspan>
+    <tspan x="242" dy="20">预测与自动总结</tspan>
+  </text>
+
+  <rect x="60" y="430" width="150" height="105" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+  <text class="intent-text body" x="72" y="454">
+    <tspan class="card-title" x="72" dy="0">用 · MVP</tspan>
+    <tspan x="72" dy="25">预览、申请权限、</tspan>
+    <tspan x="72" dy="20">进入查询</tspan>
+    <tspan x="72" dy="20">收藏、分享与核心动作</tspan>
+  </text>
+
+  <rect x="230" y="430" width="150" height="105" rx="12" fill="#F8FAFC" stroke="#94A3B8" stroke-width="2"/>
+  <text class="later-text" x="242" y="454" font-size="13">
+    <tspan class="card-title" x="242" dy="0">治 · 后续</tspan>
+    <tspan x="242" dy="22">纠错、补充说明、</tspan>
+    <tspan x="242" dy="16">修正口径</tspan>
+    <tspan x="242" dy="16">修正血缘与</tspan>
+    <tspan x="242" dy="16">报告质量问题</tspan>
+  </text>
+
+  <!-- AI capability container -->
+  <rect x="470" y="120" width="650" height="470" rx="16" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="section-title" x="490" y="160" fill="#6D28D9">AI 找数核心能力</text>
+
+  <rect x="490" y="180" width="295" height="125" rx="12" fill="#FAF5FF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="purple-text body" x="505" y="205">
+    <tspan class="card-title" x="505" dy="0">✦ AI 对话理解</tspan>
+    <tspan x="505" dy="26">问题改写与意图识别</tspan>
+    <tspan x="505" dy="22">指标、时间、维度、动作与资产类型解析</tspan>
+    <tspan x="505" dy="22">多轮补位、歧义确认与会话管理</tspan>
+  </text>
+
+  <rect x="805" y="180" width="295" height="125" rx="12" fill="#FAF5FF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="purple-text body" x="820" y="205">
+    <tspan class="card-title" x="820" dy="0">✦ AI 智能检索与路由</tspan>
+    <tspan x="820" dy="26">全文、语义与知识图谱联合召回</tspan>
+    <tspan x="820" dy="22">按角色、权限、质量、热度与状态排序</tspan>
+    <tspan x="820" dy="22">命中解释、动作路由与诚实降级</tspan>
+  </text>
+
+  <rect x="490" y="325" width="295" height="125" rx="12" fill="#FAF5FF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="purple-text body" x="505" y="350">
+    <tspan class="card-title" x="505" dy="0">✦ AI 查数与分析</tspan>
+    <tspan x="505" dy="26">指标匹配、口径确认与查询执行</tspan>
+    <tspan x="505" dy="20">数值、明细、趋势、维度、对比、</tspan>
+    <tspan x="505" dy="20">排名、占比</tspan>
+    <tspan x="505" dy="20">图表、摘要及可信信息展示</tspan>
+  </text>
+
+  <rect x="805" y="325" width="295" height="125" rx="12" fill="#FAF5FF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="purple-text body" x="820" y="350">
+    <tspan class="card-title" x="820" dy="0">✦ AI 可信与用数闭环</tspan>
+    <tspan x="820" dy="26">推荐资产并支持预览、详情与血缘追溯</tspan>
+    <tspan x="820" dy="22">权限申请、即席查询、收藏、分享与反馈</tspan>
+    <tspan x="820" dy="22">错误、口径、血缘与质量问题回流治理</tspan>
+  </text>
+
+  <rect x="490" y="475" width="610" height="90" rx="12" fill="#F3E8FF" stroke="#7C3AED" stroke-width="2"/>
+  <text class="purple-text body" x="505" y="499">
+    <tspan class="card-title" x="505" dy="0">贯穿式对话控制</tspan>
+    <tspan x="505" dy="25">上下文补位 · 意图切换 · 歧义确认 · 权限与安全拦截 · 能力边界说明</tspan>
+    <tspan x="505" dy="22">未命中与诚实降级 · 失败重试与改问引导 · 新建会话与清除上下文</tspan>
+  </text>
+
+  <!-- Results container -->
+  <rect x="1190" y="120" width="370" height="470" rx="16" fill="#FFFFFF" stroke="#16A34A" stroke-width="2"/>
+  <text class="section-title" x="1210" y="160" fill="#15803D">可信结果与业务价值</text>
+
+  <rect x="1210" y="180" width="330" height="82" rx="12" fill="#ECFDF5" stroke="#16A34A" stroke-width="2"/>
+  <text class="green-text body-15" x="1225" y="207">
+    <tspan class="card-title" x="1225" dy="0">资产结果</tspan>
+    <tspan x="1225" dy="28">表、指标、报表、看板、API 及推荐理由</tspan>
+  </text>
+
+  <rect x="1210" y="280" width="330" height="82" rx="12" fill="#ECFDF5" stroke="#16A34A" stroke-width="2"/>
+  <text class="green-text body-15" x="1225" y="307">
+    <tspan class="card-title" x="1225" dy="0">可信答案</tspan>
+    <tspan x="1225" dy="25">数字、图表、口径、来源、更新时间</tspan>
+    <tspan x="1225" dy="20">与质量状态</tspan>
+  </text>
+
+  <rect x="1210" y="380" width="330" height="82" rx="12" fill="#ECFDF5" stroke="#16A34A" stroke-width="2"/>
+  <text class="green-text body-15" x="1225" y="407">
+    <tspan class="card-title" x="1225" dy="0">分析结论</tspan>
+    <tspan x="1225" dy="28">趋势、对比、排名、占比、归因与异常提示</tspan>
+  </text>
+
+  <rect x="1210" y="480" width="330" height="82" rx="12" fill="#ECFDF5" stroke="#16A34A" stroke-width="2"/>
+  <text class="green-text body-15" x="1225" y="507">
+    <tspan class="card-title" x="1225" dy="0">行动闭环</tspan>
+    <tspan x="1225" dy="28">预览、申请权限、打开详情、进入查询、</tspan>
+    <tspan x="1225" dy="22">收藏、分享与反馈</tspan>
+  </text>
+
+  <!-- Trusted foundations -->
+  <rect x="40" y="650" width="1520" height="190" rx="16" fill="#F8FAFC" stroke="#94A3B8" stroke-width="2"/>
+  <text class="section-title" x="60" y="689" fill="#334155">可信数据与 AI 底座</text>
+
+  <rect x="60" y="705" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="195" y="733" text-anchor="middle">资产目录与元数据</text>
+  <rect x="355" y="705" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="490" y="733" text-anchor="middle">数据标准</text>
+  <rect x="650" y="705" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="785" y="733" text-anchor="middle">指标与语义层</text>
+  <rect x="945" y="705" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="1080" y="733" text-anchor="middle">知识图谱与血缘</text>
+  <rect x="1240" y="705" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="1375" y="733" text-anchor="middle">数据质量与时效</text>
+
+  <rect x="60" y="770" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="195" y="798" text-anchor="middle">权限与安全</text>
+  <rect x="355" y="770" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="490" y="798" text-anchor="middle">检索引擎</text>
+  <rect x="650" y="770" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="785" y="798" text-anchor="middle">查询与 BI 引擎</text>
+  <rect x="945" y="770" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="1080" y="798" text-anchor="middle">大模型与 Agent</text>
+  <rect x="1240" y="770" width="270" height="45" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2"/>
+  <text class="gray-text body" x="1375" y="798" text-anchor="middle">评测与运营</text>
+
+  <!-- Delivery phases and management metrics -->
+  <rect x="40" y="865" width="920" height="90" rx="12" fill="#FFF7ED" stroke="#D97706" stroke-width="2"/>
+  <text class="orange-text body" x="55" y="889">
+    <tspan class="card-title" x="55" dy="0">建设节奏</tspan>
+    <tspan x="55" dy="24">MVP：找、懂、查、用；资产推荐与技术映射；核心查数；多轮与歧义确认；可信信息；预览、详情、申请与查询衔接；诚实降级</tspan>
+    <tspan x="55" dy="22">后续增强：归因、异常、预测、关联分析；更多指标与数据源；分享、订阅、个性化；治理闭环</tspan>
+  </text>
+
+  <rect x="990" y="865" width="570" height="90" rx="12" fill="#ECFDF5" stroke="#16A34A" stroke-width="2"/>
+  <text class="green-text body" x="1005" y="889">
+    <tspan class="card-title" x="1005" dy="0">管理层成功指标</tspan>
+    <tspan x="1005" dy="24">找数成功率 · 首次提问命中率 · 零结果率 · 平均找数与拿数时长</tspan>
+    <tspan x="1005" dy="22">业务自助用数率 · 可信信息覆盖率 · 用数转化率 · 单次找数成本</tspan>
+  </text>
+</svg>
