@@ -163,11 +163,11 @@ Use an inner content area of `x=cardX+12`, `y=cardY+58`, `w=326`. Use a 4 px ver
 10 functions: 27 px
 ```
 
-Use `fontSize=13`, `spacingLeft=10`, vertical center alignment, and pure text. Feature cell IDs must start with `feature-`.
+Use `fontSize=13`, `spacingLeft=10`, vertical center alignment, and pure text. Ordinary feature cell IDs start with `feature-`; the nine AI feature cell IDs start with `ai-` as defined in Step 3.
 
 - [ ] **Step 3: Apply the exact AI treatment**
 
-Give the following nine feature cells IDs beginning with `ai-`, prefix their visible value with `✦ AI `, and apply:
+Give the following nine feature cells IDs beginning with `ai-` and apply:
 
 ```text
 fillColor=#FAF5FF
@@ -184,15 +184,15 @@ Required AI IDs and labels:
 ai-ingest-metadata        → ✦ AI 元数据智能补全与采集诊断
 ai-manage-classify       → ✦ AI 智能分类与标签推荐
 ai-discovery-semantic    → ✦ AI 语义检索与智能推荐
-ai-discovery-find        → ✦ AI AI 找数
+ai-discovery-find        → ✦ AI 找数
 ai-govern-sensitive      → ✦ AI 敏感识别
 ai-govern-standard       → ✦ AI 标准推荐与口径消歧
 ai-govern-quality        → ✦ AI 质量异常解释
-ai-operate-summary       → ✦ AI AI 运营摘要与治理建议
-ai-foundation-routing    → ✦ AI AI 模型路由与评测
+ai-operate-summary       → ✦ AI 运营摘要与治理建议
+ai-foundation-routing    → ✦ AI 模型路由与评测
 ```
 
-The duplicated “AI” in the last three visible labels is intentional because `✦ AI` is the marker and `AI 找数` / `AI 运营摘要与治理建议` / `AI 模型路由与评测` are the approved function names.
+For approved function names that already begin with `AI`, add only the `✦` symbol before the original name. For all other AI functions, add the full `✦ AI` marker before the original name. This keeps every AI row visibly marked while avoiding duplicated text such as `AI AI 找数`.
 
 - [ ] **Step 4: Add title, legend, and footer**
 
