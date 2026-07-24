@@ -12,7 +12,7 @@
         <mxCell id="subtitle" value="8 大能力域 · 64 项二级能力 · AI 能力横向嵌入全链路" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;fontColor=#64748B;" vertex="1" parent="1">
           <mxGeometry x="40" y="65" width="900" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="legend-ai" value="✦ AI  AI 直接参与理解、推荐、生成、分析、诊断或评测" style="rounded=1;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=1.5;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;fontStyle=1;fontColor=#5B21B6;" vertex="1" parent="1">
+        <mxCell id="legend-ai" value="✦ AI  直接参与理解、推荐、生成、分析、诊断或评测" style="rounded=1;html=0;whiteSpace=wrap;align=center;verticalAlign=middle;fillColor=#FAF5FF;strokeColor=#7C3AED;strokeWidth=1.5;fontFamily=system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif;fontSize=15;fontStyle=1;fontColor=#5B21B6;" vertex="1" parent="1">
           <mxGeometry x="1020" y="38" width="540" height="42" as="geometry"/>
         </mxCell>
 

@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#FFFFFF"/>
+
+  <text id="title" x="40" y="43" dominant-baseline="middle" fill="#1E3A5F" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="20" font-weight="700"><tspan>数据资产平台能力全景</tspan></text>
+  <text id="subtitle" x="40" y="80" dominant-baseline="middle" fill="#64748B" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15"><tspan>8 大能力域 · 64 项二级能力 · AI 能力横向嵌入全链路</tspan></text>
+  <rect id="legend-ai" x="1020" y="38" width="540" height="42" rx="8" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+  <text x="1290" y="59" dominant-baseline="middle" text-anchor="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>✦ AI  直接参与理解、推荐、生成、分析、诊断或评测</tspan></text>
+
+  <rect x="42" y="133" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-ingest" x="40" y="130" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-ingest" x="40" y="130" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="56" y="153" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产接入</tspan></text>
+  <g id="feature-ingest-source">
+    <rect x="52" y="188" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="207" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据源管理</tspan></text>
+  </g>
+  <g id="feature-ingest-metadata">
+    <rect x="52" y="230" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="249" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>元数据采集</tspan></text>
+  </g>
+  <g id="feature-ingest-scan">
+    <rect x="52" y="272" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="291" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>自动扫描</tspan></text>
+  </g>
+  <g id="feature-ingest-register">
+    <rect x="52" y="314" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="333" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>资产注册</tspan></text>
+  </g>
+  <g id="feature-ingest-sync">
+    <rect x="52" y="356" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="375" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>同步记录</tspan></text>
+  </g>
+  <g id="feature-ingest-change">
+    <rect x="52" y="398" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="417" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>采集任务与变更发现</tspan></text>
+  </g>
+  <g id="ai-ingest-metadata">
+    <rect x="52" y="440" width="326" height="38" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="62" y="459" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 元数据智能补全与采集诊断</tspan></text>
+  </g>
+
+  <rect x="432" y="133" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-manage" x="430" y="130" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-manage" x="430" y="130" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="446" y="153" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产管理</tspan></text>
+  <g id="feature-manage-catalog">
+    <rect x="442" y="188" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="205" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>资产目录</tspan></text>
+  </g>
+  <g id="feature-manage-classification">
+    <rect x="442" y="226" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="243" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>分类分级</tspan></text>
+  </g>
+  <g id="feature-manage-tag">
+    <rect x="442" y="264" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="281" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>标签管理</tspan></text>
+  </g>
+  <g id="feature-manage-owner">
+    <rect x="442" y="302" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="319" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>负责人管理</tspan></text>
+  </g>
+  <g id="feature-manage-lifecycle">
+    <rect x="442" y="340" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="357" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>生命周期与上下架</tspan></text>
+  </g>
+  <g id="feature-manage-version">
+    <rect x="442" y="378" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="395" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>版本管理</tspan></text>
+  </g>
+  <g id="feature-manage-group">
+    <rect x="442" y="416" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="433" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>资产分组与专题</tspan></text>
+  </g>
+  <g id="ai-manage-classify">
+    <rect x="442" y="454" width="326" height="34" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="452" y="471" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 智能分类与标签推荐</tspan></text>
+  </g>
+
+  <rect x="822" y="133" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-discovery" x="820" y="130" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-discovery" x="820" y="130" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="836" y="153" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产发现</tspan></text>
+  <g id="feature-discovery-search">
+    <rect x="832" y="188" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="207" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>全局搜索</tspan></text>
+  </g>
+  <g id="feature-discovery-catalog">
+    <rect x="832" y="230" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="249" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>目录浏览</tspan></text>
+  </g>
+  <g id="feature-discovery-resource">
+    <rect x="832" y="272" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="291" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>资源发现</tspan></text>
+  </g>
+  <g id="feature-discovery-detail">
+    <rect x="832" y="314" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="333" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>资产详情</tspan></text>
+  </g>
+  <g id="feature-discovery-recent">
+    <rect x="832" y="356" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="375" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>专题与最近浏览</tspan></text>
+  </g>
+  <g id="ai-discovery-semantic">
+    <rect x="832" y="398" width="326" height="38" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="842" y="417" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 语义检索与智能推荐</tspan></text>
+  </g>
+  <g id="ai-discovery-find">
+    <rect x="832" y="440" width="326" height="38" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="842" y="459" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 找数</tspan></text>
+  </g>
+
+  <rect x="1212" y="133" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-govern" x="1210" y="130" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-govern" x="1210" y="130" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="1226" y="153" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>数据治理</tspan></text>
+  <g id="feature-govern-standard">
+    <rect x="1222" y="188" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="205" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据标准</tspan></text>
+  </g>
+  <g id="feature-govern-quality">
+    <rect x="1222" y="226" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="243" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据质量</tspan></text>
+  </g>
+  <g id="feature-govern-lineage">
+    <rect x="1222" y="264" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="281" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据血缘</tspan></text>
+  </g>
+  <g id="feature-govern-impact">
+    <rect x="1222" y="302" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="319" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>影响分析</tspan></text>
+  </g>
+  <g id="ai-govern-sensitive">
+    <rect x="1222" y="340" width="326" height="34" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="1232" y="357" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 敏感识别</tspan></text>
+  </g>
+  <g id="feature-govern-remediation">
+    <rect x="1222" y="378" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="395" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>问题整改</tspan></text>
+  </g>
+  <g id="ai-govern-standard">
+    <rect x="1222" y="416" width="326" height="34" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="1232" y="433" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 标准推荐与口径消歧</tspan></text>
+  </g>
+  <g id="ai-govern-quality">
+    <rect x="1222" y="454" width="326" height="34" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="1232" y="471" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 质量异常解释</tspan></text>
+  </g>
+
+  <rect x="42" y="543" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-use" x="40" y="540" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-use" x="40" y="540" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="56" y="563" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产使用</tspan></text>
+  <g id="feature-use-apply">
+    <rect x="52" y="598" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="613" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>权限申请</tspan></text>
+  </g>
+  <g id="feature-use-approval">
+    <rect x="52" y="632" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="647" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>审批</tspan></text>
+  </g>
+  <g id="feature-use-subscribe">
+    <rect x="52" y="666" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="681" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>订阅</tspan></text>
+  </g>
+  <g id="feature-use-favorite">
+    <rect x="52" y="700" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="715" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>收藏</tspan></text>
+  </g>
+  <g id="feature-use-download">
+    <rect x="52" y="734" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="749" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>下载</tspan></text>
+  </g>
+  <g id="feature-use-api">
+    <rect x="52" y="768" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="783" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>API 调用</tspan></text>
+  </g>
+  <g id="feature-use-guide">
+    <rect x="52" y="802" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="817" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>使用指引</tspan></text>
+  </g>
+  <g id="feature-use-query">
+    <rect x="52" y="836" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="851" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>即席查询</tspan></text>
+  </g>
+  <g id="feature-use-preview">
+    <rect x="52" y="870" width="326" height="30" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="62" y="885" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>报表与看板预览</tspan></text>
+  </g>
+
+  <rect x="432" y="543" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-operate" x="430" y="540" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-operate" x="430" y="540" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="446" y="563" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产运营</tspan></text>
+  <g id="feature-operate-heat">
+    <rect x="442" y="598" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="617" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>热度与使用次数</tspan></text>
+  </g>
+  <g id="feature-operate-review">
+    <rect x="442" y="640" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="659" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>用户评价</tspan></text>
+  </g>
+  <g id="feature-operate-health">
+    <rect x="442" y="682" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="701" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>健康度</tspan></text>
+  </g>
+  <g id="feature-operate-value">
+    <rect x="442" y="724" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="743" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>价值评估</tspan></text>
+  </g>
+  <g id="feature-operate-roi">
+    <rect x="442" y="766" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="785" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>运营报表与 ROI</tspan></text>
+  </g>
+  <g id="feature-operate-low-activity">
+    <rect x="442" y="808" width="326" height="38" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="452" y="827" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>低活跃资产治理</tspan></text>
+  </g>
+  <g id="ai-operate-summary">
+    <rect x="442" y="850" width="326" height="38" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="452" y="869" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 运营摘要与治理建议</tspan></text>
+  </g>
+
+  <rect x="822" y="543" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-service" x="820" y="540" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-service" x="820" y="540" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="836" y="563" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>资产服务化</tspan></text>
+  <g id="feature-service-product">
+    <rect x="832" y="598" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="615" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据产品</tspan></text>
+  </g>
+  <g id="feature-service-metric">
+    <rect x="832" y="636" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="653" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>指标服务</tspan></text>
+  </g>
+  <g id="feature-service-api">
+    <rect x="832" y="674" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="691" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>API 服务</tspan></text>
+  </g>
+  <g id="feature-service-market">
+    <rect x="832" y="712" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="729" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>数据市场</tspan></text>
+  </g>
+  <g id="feature-service-listing">
+    <rect x="832" y="750" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="767" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>上下架管理</tspan></text>
+  </g>
+  <g id="feature-service-auth-version">
+    <rect x="832" y="788" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="805" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>服务授权与版本</tspan></text>
+  </g>
+  <g id="feature-service-statistics">
+    <rect x="832" y="826" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="843" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>调用统计</tspan></text>
+  </g>
+  <g id="feature-service-delivery">
+    <rect x="832" y="864" width="326" height="34" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="842" y="881" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>交付与履约</tspan></text>
+  </g>
+
+  <rect x="1212" y="543" width="350" height="390" rx="10" fill="#000000" opacity="0.08"/>
+  <rect id="card-foundation" x="1210" y="540" width="350" height="390" rx="10" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+  <rect id="module-foundation" x="1210" y="540" width="350" height="46" rx="8" fill="#005D7B"/>
+  <text x="1226" y="563" dominant-baseline="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15" font-weight="700"><tspan>平台底座</tspan></text>
+  <g id="feature-foundation-org">
+    <rect x="1222" y="598" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="611.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>组织用户</tspan></text>
+  </g>
+  <g id="feature-foundation-role">
+    <rect x="1222" y="629" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="642.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>角色权限</tspan></text>
+  </g>
+  <g id="feature-foundation-audit">
+    <rect x="1222" y="660" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="673.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>审计日志</tspan></text>
+  </g>
+  <g id="feature-foundation-message">
+    <rect x="1222" y="691" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="704.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>消息通知</tspan></text>
+  </g>
+  <g id="feature-foundation-integration">
+    <rect x="1222" y="722" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="735.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>系统与审批集成</tspan></text>
+  </g>
+  <g id="feature-foundation-private">
+    <rect x="1222" y="753" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="766.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>私有化部署</tspan></text>
+  </g>
+  <g id="feature-foundation-license">
+    <rect x="1222" y="784" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="797.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>License 与模块授权</tspan></text>
+  </g>
+  <g id="feature-foundation-api">
+    <rect x="1222" y="815" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="828.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>开放 API 与 Webhook</tspan></text>
+  </g>
+  <g id="feature-foundation-tenant">
+    <rect x="1222" y="846" width="326" height="27" rx="7" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="1232" y="859.5" dominant-baseline="middle" fill="#334155" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13"><tspan>多租户与运维监控</tspan></text>
+  </g>
+  <g id="ai-foundation-routing">
+    <rect x="1222" y="877" width="326" height="27" rx="7" fill="#FAF5FF" stroke="#7C3AED" stroke-width="1.5"/>
+    <text x="1232" y="890.5" dominant-baseline="middle" fill="#5B21B6" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="13" font-weight="700"><tspan>✦ AI 模型路由与评测</tspan></text>
+  </g>
+
+  <text id="footer" x="800" y="965" dominant-baseline="middle" text-anchor="middle" fill="#64748B" font-family="system-ui, -apple-system, PingFang SC, Microsoft YaHei, sans-serif" font-size="15"><tspan>AI 不是孤立模块，而是横向嵌入资产接入、管理、发现、治理、运营和平台底座</tspan></text>
+</svg>
