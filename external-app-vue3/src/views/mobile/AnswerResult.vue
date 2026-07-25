@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
@@ -15,23 +15,36 @@ const question = computed(() => String(route.query.q || ''))
 const mode = computed(() => (String(route.query.mode || 'auto') as 'auto' | 'answer' | 'search'))
 const sessionId = ref('')
 
+// 顶部搜索框：预填当前问题，可继续改词/追问/换问题
+const queryInput = ref('')
+
 function runAsk() {
   const session = ai.ask(question.value, mode.value)
   sessionId.value = session.id
 }
 
-onMounted(runAsk)
+// 问题变化即重跑（首次进入 + 顶部再次搜索都走这里）
+watch(question, (q) => {
+  queryInput.value = q
+  runAsk()
+}, { immediate: true })
+
+function submitSearch() {
+  const q = queryInput.value.trim()
+  if (!q || q === question.value) return
+  router.push({ path: '/app/answer', query: { q } })
+}
 
 const session = computed(() => ai.byId(sessionId.value))
 const hasAnswer = computed(() => !!session.value?.answerText)
-const candidateProducts = computed(() =>
-  (session.value?.sources || []).map((s) => (s.productId ? catalog.byId(s.productId) : undefined)).filter(Boolean)
-)
 
 const primarySourceProduct = computed(() => {
   const pid = session.value?.unlockedProductId || session.value?.sources[0]?.productId
   return pid ? catalog.byId(pid) : undefined
 })
+
+// 全文搜索结果（百度式：AI 摘要之下接全文结果列表）
+const fullResults = computed(() => (question.value ? catalog.search(question.value) : []))
 
 const canUnlock = computed(() => {
   const p = primarySourceProduct.value
@@ -57,12 +70,19 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
 
 <template>
   <div class="min-h-full bg-slate-50 pb-8">
-    <MobileHeader title="问答案" />
+    <MobileHeader title="找数结果" />
 
-    <div class="px-4 pt-3">
-      <div class="rounded-2xl bg-white p-3.5 shadow-card">
-        <div class="text-[11px] text-slate-400">你的问题</div>
-        <div class="mt-0.5 text-[15px] font-medium text-slate-900">{{ question }}</div>
+    <!-- 顶部搜索框：结果页保留，可继续查找/追问 -->
+    <div class="sticky top-12 z-10 bg-slate-50 px-4 pt-3 pb-2">
+      <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-card">
+        <span class="text-slate-400">🔍</span>
+        <input
+          v-model="queryInput"
+          placeholder="继续提问或修改关键词"
+          class="flex-1 bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
+          @keydown.enter.prevent="submitSearch"
+        />
+        <button class="rounded-full bg-brand-500 px-4 py-1.5 text-[13px] font-medium text-white" @click="submitSearch">搜索</button>
       </div>
     </div>
 
@@ -70,17 +90,23 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       ✅ 已解锁，为你重新生成完整回答
     </div>
 
+    <!-- ① AI 摘要 -->
     <template v-if="hasAnswer">
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
         <div class="mb-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-          <span>🤖 AI 回答</span>
+          <span>🤖 AI 摘要</span>
           <span v-if="session?.paywalled" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">部分内容需购买解锁</span>
           <span v-else class="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-600">已解锁完整回答</span>
         </div>
         <p class="text-[14px] leading-relaxed text-slate-700">{{ session?.answerText }}</p>
 
+        <div v-if="session?.paywalled" class="mt-2 flex items-center gap-1.5 text-[12px] text-emerald-600">
+          <span>✓</span><span>免费已含：趋势方向与公开摘要</span>
+        </div>
+
         <div v-if="session?.paywalled" class="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
-          <div class="text-[12px] text-slate-400">🔒 精确数值、完整图表与细分维度已锁定</div>
+          <div class="text-[12px] font-medium text-slate-500">🔒 需解锁 · 付费数据的精确口径</div>
+          <div class="mt-0.5 text-[11px] text-slate-400">精确数值、完整图表、区域 / 车型细分，以及以下追问</div>
           <div v-if="session?.lockedFollowUps?.length" class="mt-2 space-y-1">
             <div v-for="f in session.lockedFollowUps" :key="f" class="flex items-center gap-1.5 text-[12px] text-slate-400">
               <span>🔒</span>
@@ -112,34 +138,27 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       </div>
     </template>
 
-    <template v-else>
-      <div class="mx-4 mt-3 rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center">
-        <div class="text-3xl">🤔</div>
-        <div class="mt-2 text-[13px] font-medium text-slate-600">暂无可靠依据生成结论</div>
-        <div class="mt-1 text-[12px] leading-relaxed text-slate-400">未拼凑答案，为你推荐相关商品，或提交需求由运营跟进</div>
+    <!-- ② 全文搜索结果列表（AI 无结论时不显示提示块，直接给结果） -->
+    <div class="mx-4 mt-4">
+      <div class="mb-1.5 flex items-center justify-between">
+        <div class="text-[11px] font-medium text-slate-400">🔍 全文搜索结果 · 共 {{ fullResults.length }} 个</div>
+        <button class="text-[11px] text-brand-600" @click="router.push({ path: '/app/search', query: { q: question } })">高级筛选 ›</button>
       </div>
 
-      <div v-if="candidateProducts.length" class="mx-4 mt-3 space-y-2.5">
-        <ProductCard v-for="p in candidateProducts" :key="p!.id" :product="p!" />
+      <div v-if="fullResults.length" class="space-y-2.5">
+        <ProductCard v-for="p in fullResults" :key="p.id" :product="p" />
       </div>
 
-      <div class="mx-4 mt-3">
+      <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center">
+        <div class="text-[13px] font-medium text-slate-600">没有匹配的商品</div>
+        <div class="mt-1 text-[12px] text-slate-400">换个关键词试试，或提交需求由运营跟进</div>
         <button
-          class="w-full rounded-full border border-brand-500 py-2.5 text-[13px] font-medium text-brand-600"
+          class="mt-3 w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white"
           @click="router.push({ path: '/app/demand', query: { q: question } })"
         >
-          没找到？提交需求
+          提交需求
         </button>
       </div>
-    </template>
-
-    <div class="mx-4 mt-3">
-      <button
-        class="w-full rounded-full bg-slate-100 py-2.5 text-[13px] font-medium text-slate-600"
-        @click="router.push({ path: '/app/search', query: { q: question } })"
-      >
-        🔍 切换到"找数据"看更多商品
-      </button>
     </div>
   </div>
 </template>

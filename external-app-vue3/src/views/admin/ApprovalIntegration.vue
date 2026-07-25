@@ -7,6 +7,10 @@ import { useApprovalStore } from '@/stores/approval'
 import { useOrderStore } from '@/stores/orders'
 import { useCatalogStore } from '@/stores/catalog'
 import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
+import { useDemandStore } from '@/stores/demand'
+import { useSupplyTaskStore } from '@/stores/supplyTasks'
+import { useRefundStore } from '@/stores/refunds'
+import { useIntegrationStore } from '@/stores/integration'
 import { typeMeta } from '@/utils/productMeta'
 
 const router = useRouter()
@@ -14,6 +18,17 @@ const approval = useApprovalStore()
 const orders = useOrderStore()
 const catalog = useCatalogStore()
 const woStore = useReverseWorkOrderStore()
+const demand = useDemandStore()
+const supply = useSupplyTaskStore()
+
+const openDemands = computed(() =>
+  demand.list.filter((d) => ['new', 'assigned', 'reopened'].includes(d.status))
+)
+const openSupplyTasks = computed(() => supply.openTasks)
+const refunds = useRefundStore()
+const openRefunds = computed(() => refunds.list.filter((r) => r.status === 'reviewing' || r.status === 'processing'))
+const integration = useIntegrationStore()
+const deadLetterCount = computed(() => integration.deadLetters.length)
 
 const reasonDraft = reactive<Record<string, string>>({})
 
@@ -68,7 +83,7 @@ function decide(id: string, conclusion: 'approved' | 'rejected') {
       <table class="w-full text-left text-[13px]">
         <thead class="text-xs text-slate-400"><tr><th class="py-1.5">商品</th><th class="py-1.5">空间编号</th><th class="py-1.5">最近同步</th></tr></thead>
         <tbody>
-          <tr v-for="p in catalog.products.filter((x) => x.source !== 'app_self')" :key="p.id" class="border-t border-slate-100">
+          <tr v-for="p in catalog.products.filter((x) => x.origin === 'trusted_space')" :key="p.id" class="border-t border-slate-100">
             <td class="py-1.5 text-slate-700">{{ p.name }}</td>
             <td class="py-1.5 text-slate-500">{{ p.spaceProductNo }}</td>
             <td class="py-1.5 text-slate-400">{{ p.spaceSyncedAt }}</td>
@@ -87,6 +102,40 @@ function decide(id: string, conclusion: 'approved' | 'rejected') {
         <div><span class="text-slate-400">待处理</span><span class="ml-1 font-semibold text-slate-700">{{ openWOs.length }}</span></div>
         <div><span class="text-slate-400">S1</span><span class="ml-1 font-semibold text-red-600">{{ s1Count }}</span></div>
         <div v-if="overdueS1S2 > 0"><span class="text-slate-400">超时 S1/S2</span><span class="ml-1 font-semibold text-red-600">{{ overdueS1S2 }}</span></div>
+      </div>
+    </div>
+
+    <!-- Demand-supply card -->
+    <div data-testid="demand-supply-card" class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+      <div class="mb-2 flex items-center justify-between">
+        <div class="text-[13px] font-medium text-slate-700">需求供给</div>
+        <button data-testid="demand-supply-link" class="text-[12px] text-blue-600 hover:underline" @click="router.push('/admin/approval/demand-supply')">查看全部</button>
+      </div>
+      <div class="flex gap-4 text-[13px]">
+        <div><span class="text-slate-400">待处理需求</span><span class="ml-1 font-semibold text-slate-700">{{ openDemands.length }}</span></div>
+        <div><span class="text-slate-400">进行中供给任务</span><span class="ml-1 font-semibold text-blue-600">{{ openSupplyTasks.length }}</span></div>
+      </div>
+    </div>
+
+    <!-- After-sales card -->
+    <div data-testid="after-sales-card" class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+      <div class="mb-2 flex items-center justify-between">
+        <div class="text-[13px] font-medium text-slate-700">交易售后</div>
+        <button data-testid="after-sales-link" class="text-[12px] text-blue-600 hover:underline" @click="router.push('/admin/approval/after-sales')">查看全部</button>
+      </div>
+      <div class="flex gap-4 text-[13px]">
+        <div><span class="text-slate-400">处理中退款</span><span class="ml-1 font-semibold text-slate-700">{{ openRefunds.length }}</span></div>
+      </div>
+    </div>
+
+    <!-- Integration governance card -->
+    <div data-testid="integration-card" class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+      <div class="mb-2 flex items-center justify-between">
+        <div class="text-[13px] font-medium text-slate-700">集成治理</div>
+        <button data-testid="integration-link" class="text-[12px] text-blue-600 hover:underline" @click="router.push('/admin/approval/integration')">查看全部</button>
+      </div>
+      <div class="flex gap-4 text-[13px]">
+        <div><span class="text-slate-400">死信事件</span><span class="ml-1 font-semibold" :class="deadLetterCount ? 'text-red-600' : 'text-slate-700'">{{ deadLetterCount }}</span></div>
       </div>
     </div>
 

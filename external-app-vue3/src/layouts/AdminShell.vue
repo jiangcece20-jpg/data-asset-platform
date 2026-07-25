@@ -8,6 +8,7 @@ const nav = [
   { path: '/admin/products', label: '商品中心', icon: '🗂️', badge: '重点' },
   { path: '/admin/content', label: '内容中心', icon: '📰' },
   { path: '/admin/commerce', label: '商业化中心', icon: '💰', badge: '重点' },
+  { path: '/admin/orders', label: '订单中心', icon: '🧾' },
   { path: '/admin/enterprise', label: '企业权益', icon: '🏢', badge: '重点' },
   { path: '/admin/trials-leads', label: '试用与线索', icon: '📝', badge: '重点' },
   { path: '/admin/operations', label: '运营配置', icon: '⚙️' },

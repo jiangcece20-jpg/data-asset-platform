@@ -89,6 +89,9 @@ export interface ReportDetail {
   catalog: Array<{ title: string; previewable: boolean }>
   blocks: ReportContentBlock[]
   license: string
+  // 数据源绑定：真实报告文件/在线阅读地址，及在资产/BI 平台的报表编号
+  sourceUrl?: string
+  boundAssetId?: string
 }
 
 export interface DashboardDetail {
@@ -97,6 +100,9 @@ export interface DashboardDetail {
   metrics: Array<{ name: string; definition: string; formula: string; dimensions: string[]; preview: PreviewMode }>
   panels: Array<{ id: string; title: string; chartType: 'line' | 'bar' | 'number'; preview: PreviewMode; summary: string }>
   exportRule: string
+  // 数据源绑定：BI 看板嵌入地址，及在资产/BI 平台的看板编号
+  sourceUrl?: string
+  boundAssetId?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +235,7 @@ export interface Entitlement {
   validTo?: string
   status: EntitlementStatus
   reverseWorkOrderId?: string
+  refundId?: string
 }
 
 export type OrderChannel = 'app' | 'space'
@@ -261,6 +268,11 @@ export interface Order {
   paidAt?: string
   contractStatus?: 'quoting' | 'contract_signed' | 'payment_confirmed' | 'not_required'
   note?: string
+  // 交易售后（§9）新增字段
+  idempotencyKey?: string
+  entitlementGranted?: boolean
+  entitlementGrantAttempts?: number
+  entitlementPendingManual?: boolean
 }
 
 export type TrialStatus = 'not_applied' | 'pending' | 'approved' | 'rejected' | 'exhausted' | 'expired'
@@ -279,7 +291,24 @@ export interface TrialApplication {
   decidedAt?: string
 }
 
-export type DemandStatus = 'new' | 'assigned' | 'recommended' | 'custom_required' | 'not_supported' | 'closed'
+export type DemandStatus =
+  | 'new'
+  | 'assigned'
+  | 'aggregated'
+  | 'recommended'
+  | 'custom_required'
+  | 'not_supported'
+  | 'closed'
+  | 'withdrawn'
+  | 'reopened'
+
+export type DemandSource =
+  | 'search_miss'
+  | 'inquiry'
+  | 'listing_request'
+  | 'trial_feedback'
+  | 'recommend_mismatch'
+  | 'post_delist_alt'
 
 export interface DemandLead {
   id: string
@@ -296,6 +325,14 @@ export interface DemandLead {
   recommendedProductIds: string[]
   feedbackMessage: string
   createdAt: string
+  // 需求回流闭环（§7）新增字段
+  ownerId: string
+  source: DemandSource
+  supplyTaskId?: string
+  mergedIntoId?: string
+  reopenedFromId?: string
+  priorConclusion?: string
+  subscribed: boolean
 }
 
 export interface ApprovalChecklistItem {

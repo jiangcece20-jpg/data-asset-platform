@@ -1,9 +1,11 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import ServiceStatusNotice from './ServiceStatusNotice.vue'
+import type { AvailabilityStatus } from '@/types/domain'
+import type { ServiceStatus } from '@/types/reverseFlow'
 
 describe('ServiceStatusNotice', () => {
-  function mountNotice(props: Partial<{ availability: string; serviceStatus: string; hasAccess: boolean }> = {}) {
+  function mountNotice(props: Partial<{ availability: AvailabilityStatus; serviceStatus: ServiceStatus; hasAccess: boolean }> = {}) {
     return mount(ServiceStatusNotice, {
       props: {
         availability: 'published',

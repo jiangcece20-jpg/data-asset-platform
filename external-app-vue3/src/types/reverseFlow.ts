@@ -6,6 +6,8 @@ export type DeliveryStatus = 'pending' | 'delivering' | 'succeeded' | 'failed' |
 export type RefundStatus = 'not_requested' | 'reviewing' | 'processing' | 'succeeded' | 'failed' | 'rejected'
 export type ReverseSeverity = 'S1' | 'S2' | 'S3'
 export type ProductReverseAction = 'pause' | 'delist' | 'recall'
+// 售后 / 集成子系统的工单动作（§9、§10、§13）
+export type AfterSalesAction = 'refund' | 'batch_refund' | 'contract_termination' | 'reconcile' | 'manual_repair'
 export type ReverseReasonCode =
   | 'commercial_adjustment'
   | 'quality_issue'
@@ -60,7 +62,7 @@ export interface TreatmentPlan {
 export interface ExecutionTask {
   id: string
   workOrderId: string
-  type: 'stop_new_sales' | 'remove_references' | 'decide_customer_treatment' | 'notify_customers' | 'reconcile_state'
+  type: 'stop_new_sales' | 'remove_references' | 'decide_customer_treatment' | 'notify_customers' | 'reconcile_state' | 'process_refund' | 'revoke_entitlement' | 'reclaim_seats' | 'reconcile_payment' | 'manual_repair'
   title: string
   system: 'app' | 'asset_platform' | 'trusted_space' | 'finance' | 'manual'
   assigneeRole: 'product_ops' | 'compliance' | 'customer_ops' | 'system_executor'
@@ -113,9 +115,9 @@ export interface ProductReverseAuditEntry {
 
 export interface ReverseWorkOrder {
   id: string
-  subjectType: 'product'
+  subjectType: 'product' | 'supply_task' | 'order' | 'contract' | 'config' | 'integration'
   subjectId: string
-  action: ProductReverseAction
+  action: ProductReverseAction | AfterSalesAction
   reason: ReverseReasonCode
   reasonDetail: string
   severity: ReverseSeverity

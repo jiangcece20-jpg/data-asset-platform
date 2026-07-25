@@ -11,6 +11,14 @@ import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
 import { useUserStore } from '@/stores/user'
 import { typeMeta, originMeta, dealChannelMeta } from '@/utils/productMeta'
 import type { ProductReverseAction, ReverseReasonCode } from '@/types/reverseFlow'
+import type { AcquisitionOption, PriceModel } from '@/types/domain'
+
+const PRICE_MODELS: { value: PriceModel; label: string }[] = [
+  { value: 'free', label: '免费' },
+  { value: 'member_free', label: '会员免费' },
+  { value: 'member_discount', label: '会员折扣' },
+  { value: 'item_only', label: '仅单品购买' }
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -53,8 +61,23 @@ const enhForm = reactive({
 const appForm = reactive({
   name: '',
   subtitle: '',
-  description: '',
+  // 基础信息（对应 App「基础信息」区）
+  coverage: '',
+  updateFrequency: '',
+  deliveryMethod: '',
+  provider: '',
+  scenarios: '',
+  // 说明书（对应 App「商品说明书」区）
   valueProposition: '',
+  description: '',
+  qualityPromise: '',
+  complianceNote: '',
+  // 价格与获取方式
+  priceModel: 'item_only' as PriceModel,
+  memberIncluded: false,
+  acquiFree: false,
+  acquiMember: false,
+  acquiItem: false,
   itemPrice: 0,
   memberDiscount: 0.6
 })
@@ -73,8 +96,20 @@ function syncFormFromStore() {
 
   appForm.name = p.name
   appForm.subtitle = p.subtitle
-  appForm.description = p.description
+  appForm.coverage = p.coverage
+  appForm.updateFrequency = p.updateFrequency
+  appForm.deliveryMethod = p.deliveryMethod
+  appForm.provider = p.provider
+  appForm.scenarios = (p.scenarios || []).join('、')
   appForm.valueProposition = p.valueProposition
+  appForm.description = p.description
+  appForm.qualityPromise = p.qualityPromise
+  appForm.complianceNote = p.complianceNote
+  appForm.priceModel = p.price.model
+  appForm.memberIncluded = p.memberIncluded
+  appForm.acquiFree = p.acquisitions.includes('free')
+  appForm.acquiMember = p.acquisitions.includes('member')
+  appForm.acquiItem = p.acquisitions.includes('item_purchase')
   appForm.itemPrice = p.price.itemPrice || 0
   appForm.memberDiscount = p.price.memberDiscount || 0.6
 }
@@ -96,10 +131,32 @@ function saveAppProduct() {
   catalog.updateProduct(id.value, {
     name: appForm.name,
     subtitle: appForm.subtitle,
-    description: appForm.description,
+    coverage: appForm.coverage,
+    updateFrequency: appForm.updateFrequency,
+    deliveryMethod: appForm.deliveryMethod,
+    provider: appForm.provider,
+    scenarios: appForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
     valueProposition: appForm.valueProposition,
-    price: { ...product.value!.price, itemPrice: Number(appForm.itemPrice), memberDiscount: Number(appForm.memberDiscount) }
+    description: appForm.description,
+    qualityPromise: appForm.qualityPromise,
+    complianceNote: appForm.complianceNote,
+    memberIncluded: appForm.memberIncluded,
+    acquisitions: buildAcquisitions(),
+    price: {
+      ...product.value!.price,
+      model: appForm.priceModel,
+      itemPrice: Number(appForm.itemPrice),
+      memberDiscount: Number(appForm.memberDiscount)
+    }
   })
+}
+
+function buildAcquisitions(): AcquisitionOption[] {
+  const list: AcquisitionOption[] = []
+  if (appForm.acquiFree) list.push('free')
+  if (appForm.acquiMember) list.push('member')
+  if (appForm.acquiItem) list.push('item_purchase')
+  return list
 }
 
 function submitForApproval() {
@@ -232,21 +289,63 @@ function closeModal() {
             <div><dt class="text-slate-400">名称</dt><dd class="text-slate-700">{{ product.name }}</dd></div>
             <div><dt class="text-slate-400">类型</dt><dd class="text-slate-700">{{ typeMeta[product.type].label }}</dd></div>
             <div><dt class="text-slate-400">提供方</dt><dd class="text-slate-700">{{ product.provider }}</dd></div>
+            <div><dt class="text-slate-400">覆盖范围</dt><dd class="text-slate-700">{{ product.coverage }}</dd></div>
+            <div><dt class="text-slate-400">更新频率</dt><dd class="text-slate-700">{{ product.updateFrequency }}</dd></div>
+            <div><dt class="text-slate-400">交付方式</dt><dd class="text-slate-700">{{ product.deliveryMethod }}</dd></div>
+            <div><dt class="text-slate-400">适用场景</dt><dd class="text-slate-700">{{ product.scenarios.join('、') }}</dd></div>
+            <div><dt class="text-slate-400">质量/服务承诺</dt><dd class="text-slate-700">{{ product.qualityPromise }}</dd></div>
+            <div><dt class="text-slate-400">合规声明</dt><dd class="text-slate-700">{{ product.complianceNote }}</dd></div>
             <div><dt class="text-slate-400">空间价格</dt><dd class="text-slate-700">{{ product.price.quoteNote }}</dd></div>
             <div><dt class="text-slate-400">空间商品编号</dt><dd class="text-slate-700">{{ product.spaceProductNo }}</dd></div>
             <div><dt class="text-slate-400">同步时间</dt><dd class="text-slate-700">{{ product.spaceSyncedAt }}</dd></div>
           </dl>
         </template>
         <template v-else>
-          <div class="space-y-2.5 text-[13px]">
+          <div class="space-y-3 text-[13px]">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="appForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">副标题</span><input v-model="appForm.subtitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+
+            <!-- 基础信息（对应 App「基础信息」区） -->
+            <div class="mt-1 flex items-center gap-2">
+              <span class="text-xs font-medium text-slate-500">基础信息</span>
+              <span class="text-[10px] text-slate-300">· 后续可由资产平台自动同步</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="appForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="appForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="appForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="appForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+            </div>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="appForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+
+            <!-- 商品说明书（对应 App「商品说明书」区） -->
+            <div class="mt-1 text-xs font-medium text-slate-500">商品说明书</div>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="appForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="appForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="appForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="appForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+
+            <!-- 价格与获取方式（对应 App 购买入口） -->
+            <div class="mt-1 text-xs font-medium text-slate-500">价格与获取方式</div>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">价格模式</span>
+              <select v-model="appForm.priceModel" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5">
+                <option v-for="m in PRICE_MODELS" :key="m.value" :value="m.value">{{ m.label }}</option>
+              </select>
+            </label>
+            <div>
+              <span class="mb-1 block text-xs text-slate-400">获取方式（App 展示的购买入口）</span>
+              <div class="flex flex-wrap gap-3 text-xs text-slate-600">
+                <label class="flex items-center gap-1.5"><input v-model="appForm.acquiFree" type="checkbox" />免费</label>
+                <label class="flex items-center gap-1.5"><input v-model="appForm.acquiMember" type="checkbox" />会员</label>
+                <label class="flex items-center gap-1.5"><input v-model="appForm.acquiItem" type="checkbox" />单品购买</label>
+                <label class="flex items-center gap-1.5"><input v-model="appForm.memberIncluded" type="checkbox" />会员权益包含</label>
+              </div>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <label class="block"><span class="mb-1 block text-xs text-slate-400">单品价格 ¥</span><input v-model.number="appForm.itemPrice" type="number" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
               <label class="block"><span class="mb-1 block text-xs text-slate-400">会员折扣</span><input v-model.number="appForm.memberDiscount" type="number" step="0.1" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
             </div>
+            <p class="text-[10px] text-slate-300">提示：数据集 / API 为空间商品，走可信空间报价，不在此编辑。</p>
             <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveAppProduct">保存商品信息</button>
           </div>
         </template>

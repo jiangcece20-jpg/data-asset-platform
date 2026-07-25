@@ -5,6 +5,8 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import EmptyState from '@/components/mobile/EmptyState.vue'
+import DemandProgress from '@/components/mobile/DemandProgress.vue'
+import { useSupplyTaskStore } from '@/stores/supplyTasks'
 import { useUserStore } from '@/stores/user'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useOrderStore } from '@/stores/orders'
@@ -29,6 +31,10 @@ const tabs = ['权益', 'APP订单', '空间订单', '试用与需求', '求上�
 const initialTab = (route.query.tab as string) || '权益'
 const validTabs = ['权益', 'APP订单', '空间订单', '试用与需求', '求上架', '服务通知', '收藏']
 const tab = ref<(typeof tabs)[number]>(validTabs.includes(initialTab) ? initialTab as any : '权益')
+
+const supply = useSupplyTaskStore()
+const myDemands = computed(() => demand.byOwner(user.context.currentMemberId))
+const myCallbacks = computed(() => supply.callbacksForCustomer(user.context.currentMemberId))
 
 const itemEntitlements = computed(() => entitlements.list.filter((e) => e.type === 'item'))
 const favorites = computed(() => catalog.products.filter((p) => p.favorite))
@@ -138,17 +144,13 @@ const deliveredNotices = computed(() =>
           <div class="mt-1 text-[11px] text-slate-400">额度 {{ t.usedQuota }}/{{ t.quota }} · 申请于 {{ t.appliedAt }}</div>
         </div>
       </div>
-      <div v-if="demand.list.length">
-        <div class="mb-1.5 text-xs font-medium text-slate-400">需求线索</div>
-        <div v-for="d in demand.list" :key="d.id" class="mb-2 rounded-2xl border border-slate-100 bg-white p-3.5">
-          <div class="flex items-center justify-between">
-            <span class="line-clamp-1 text-[13px] font-medium text-slate-800">{{ d.question || d.objectDesc || '需求单' }}</span>
-            <StatusBadge dict="demand" :value="d.status" />
-          </div>
-          <div v-if="d.feedbackMessage" class="mt-1 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500">{{ d.feedbackMessage }}</div>
+      <div v-if="myDemands.length">
+        <div class="mb-1.5 text-xs font-medium text-slate-400">我的需求</div>
+        <div class="space-y-2">
+          <DemandProgress :demands="myDemands" :callbacks="myCallbacks" @view="(id) => router.push('/app/mine')" />
         </div>
       </div>
-      <EmptyState v-if="!trials.list.length && !demand.list.length" icon="📝" title="暂无试用或需求记录" />
+      <EmptyState v-if="!trials.list.length && !myDemands.length" icon="📝" title="暂无试用或需求记录" />
     </div>
 
     <!-- 求上架 -->

@@ -64,10 +64,76 @@ const dictionaries: Record<string, Record<string, Meta>> = {
   demand: {
     new: { label: '待处理', tone: 'amber' },
     assigned: { label: '已分派', tone: 'blue' },
+    aggregated: { label: '处理中', tone: 'blue' },
     recommended: { label: '已推荐现有商品', tone: 'green' },
     custom_required: { label: '需要定制', tone: 'purple' },
     not_supported: { label: '暂不支持', tone: 'slate' },
-    closed: { label: '已关闭', tone: 'slate' }
+    closed: { label: '已关闭', tone: 'slate' },
+    withdrawn: { label: '已撤回', tone: 'slate' },
+    reopened: { label: '已重开', tone: 'amber' }
+  },
+  supplyTask: {
+    evaluating: { label: '评估中', tone: 'amber' },
+    planned: { label: '已规划', tone: 'blue' },
+    in_production: { label: '加工中', tone: 'blue' },
+    published: { label: '已发布', tone: 'green' },
+    cancelled: { label: '已取消', tone: 'slate' }
+  },
+  supplyDecision: {
+    recommend_existing: { label: '推荐现有', tone: 'green' },
+    link_preparing: { label: '关联准备中', tone: 'blue' },
+    initiate_product: { label: '商品立项', tone: 'purple' },
+    custom_project: { label: '定制项目', tone: 'purple' },
+    unsupported: { label: '暂不支持', tone: 'slate' }
+  },
+  callbackStatus: {
+    pending: { label: '待回告', tone: 'amber' },
+    delivered: { label: '已送达', tone: 'green' },
+    failed: { label: '发送失败', tone: 'red' },
+    manual_confirmed: { label: '手动确认', tone: 'blue' }
+  },
+  callbackOutcome: {
+    none: { label: '未反馈', tone: 'slate' },
+    viewed: { label: '已查看', tone: 'blue' },
+    trialed: { label: '已试用', tone: 'blue' },
+    purchased: { label: '已购买', tone: 'green' },
+    abandoned: { label: '已放弃', tone: 'slate' }
+  },
+  refund: {
+    not_requested: { label: '未申请', tone: 'slate' },
+    reviewing: { label: '退款审核中', tone: 'amber' },
+    processing: { label: '退款执行中', tone: 'blue' },
+    succeeded: { label: '退款成功', tone: 'green' },
+    failed: { label: '退款失败', tone: 'red' },
+    rejected: { label: '退款驳回', tone: 'red' }
+  },
+  refundScope: {
+    full: { label: '全额', tone: 'green' },
+    partial: { label: '部分', tone: 'amber' },
+    none: { label: '不退款', tone: 'slate' }
+  },
+  contractStatus: {
+    active: { label: '生效中', tone: 'green' },
+    terminating: { label: '终止处理中', tone: 'amber' },
+    terminated: { label: '已终止', tone: 'slate' }
+  },
+  configVersion: {
+    draft: { label: '草稿', tone: 'slate' },
+    reviewing: { label: '审核中', tone: 'amber' },
+    published: { label: '已发布', tone: 'green' },
+    rolled_back: { label: '已回滚', tone: 'red' },
+    superseded: { label: '已被替代', tone: 'slate' }
+  },
+  reviewRequirement: {
+    single_confirm: { label: '单人二次确认', tone: 'blue' },
+    two_person: { label: '双人审核', tone: 'purple' }
+  },
+  connectorEvent: {
+    received: { label: '已接收', tone: 'slate' },
+    processed: { label: '已处理', tone: 'green' },
+    retrying: { label: '重试中', tone: 'amber' },
+    dead_letter: { label: '死信', tone: 'red' },
+    repaired: { label: '已修正', tone: 'blue' }
   },
   approval: {
     approved: { label: '审批通过', tone: 'green' },

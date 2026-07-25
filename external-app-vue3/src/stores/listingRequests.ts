@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import type { ListingRequest, ListingRequestPayload, ListingRequestStatus } from '@/types/domain'
 import { genId, now } from '@/utils/id'
 import { useCatalogStore } from './catalog'
+import { useDemandStore } from './demand'
 
 const OPEN_STATUSES: ListingRequestStatus[] = ['submitted', 'evaluating', 'preparing']
 
@@ -63,6 +64,21 @@ export const useListingRequestStore = defineStore('listingRequests', {
         catalog.updateAvailability(request.productId, 'published')
       } else if (status === 'preparing') {
         catalog.updateAvailability(request.productId, 'preparing')
+      }
+
+      // 求上架进入终态时桥接为需求记录，纳入需求回流聚合（§7.1）。
+      if (status === 'published' || status === 'unsupported') {
+        useDemandStore().bridgeFromListing({
+          productId: request.productId,
+          productName: request.productName,
+          ownerId: request.userId,
+          objectDesc: request.requestedScope,
+          region: '',
+          timeRange: request.timeRange,
+          updateFreq: request.updateFrequency,
+          scenario: request.scenario,
+          expectedDelivery: request.expectedAvailableAt
+        })
       }
     }
   }

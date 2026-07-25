@@ -26,7 +26,7 @@ const contentProducts = computed(() => catalog.products.filter((p) => p.type ===
             {{ p.type === 'report' ? `版本 ${p.typeDetail.report?.version} · ${p.typeDetail.report?.blocks.length || 0} 个内容区块` : `更新周期 ${p.typeDetail.dashboard?.updateCycle}` }}
           </div>
         </div>
-        <button class="rounded-lg bg-slate-100 px-3 py-1.5 text-[12px] text-slate-600" @click="router.push(`/admin/products/${p.id}`)">编辑内容 ›</button>
+        <button class="rounded-lg bg-slate-100 px-3 py-1.5 text-[12px] text-slate-600" @click="router.push(`/admin/content/${p.id}`)">编辑内容 ›</button>
       </div>
     </div>
   </div>

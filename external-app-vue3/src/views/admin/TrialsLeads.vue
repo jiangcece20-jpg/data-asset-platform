@@ -16,7 +16,17 @@ const listingRequests = useListingRequestStore()
 const feedbackDraft = reactive<Record<string, string>>({})
 const altProductDraft = ref('')
 
+const DEMAND_ACTION_LABEL: Partial<Record<DemandStatus, string>> = {
+  assigned: '分派',
+  recommended: '推荐现有商品',
+  custom_required: '需要定制',
+  not_supported: '暂不支持',
+  closed: '关闭'
+}
+
 function updateLead(id: string, status: DemandStatus) {
+  const destructive = status === 'not_supported' || status === 'closed'
+  if (destructive && !window.confirm(`确认将该需求置为「${DEMAND_ACTION_LABEL[status]}」？该结果会作为反馈通知用户，且不便撤回。`)) return
   demand.updateStatus(id, status, feedbackDraft[id] || defaultFeedback(status))
 }
 
@@ -24,10 +34,13 @@ function defaultFeedback(status: DemandStatus) {
   const map: Record<DemandStatus, string> = {
     new: '',
     assigned: '需求已分派至商品运营跟进',
+    aggregated: '需求已归入供给任务，正在处理',
     recommended: '已为你推荐相关现有商品，请查看详情',
     custom_required: '该需求需要定制加工，商务将与你联系',
     not_supported: '暂不支持该需求，感谢反馈',
-    closed: '需求已关闭'
+    closed: '需求已关闭',
+    withdrawn: '需求已撤回',
+    reopened: '需求已重新打开'
   }
   return map[status]
 }
@@ -40,6 +53,7 @@ function advanceListing(id: string, status: ListingRequestStatus) {
     published: '已上架可信空间，可前往购买',
     unsupported: '当前资产暂不满足出域与商品化条件'
   }
+  if (status === 'unsupported' && !window.confirm('确认标记为「暂不支持」？该结果会作为反馈通知用户。')) return
   const altIds = status === 'unsupported' && altProductDraft.value
     ? altProductDraft.value.split(',').map((s) => s.trim()).filter(Boolean)
     : []
@@ -88,12 +102,13 @@ function advanceListing(id: string, status: ListingRequestStatus) {
           浏览过：{{ d.browsedProductIds.map((id) => catalog.byId(id)?.name).filter(Boolean).join('、') }}
         </div>
         <textarea v-model="feedbackDraft[d.id]" :placeholder="d.feedbackMessage || '给用户的反馈信息（留空使用默认文案）'" rows="1" class="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px]" />
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          <button class="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] text-blue-600" @click="updateLead(d.id, 'assigned')">分派</button>
-          <button class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] text-emerald-600" @click="updateLead(d.id, 'recommended')">推荐现有商品</button>
-          <button class="rounded-full bg-purple-50 px-2.5 py-1 text-[11px] text-purple-600" @click="updateLead(d.id, 'custom_required')">需要定制</button>
-          <button class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500" @click="updateLead(d.id, 'not_supported')">暂不支持</button>
-          <button class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500" @click="updateLead(d.id, 'closed')">关闭</button>
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+          <span class="mr-1 text-[11px] text-slate-400">处置：</span>
+          <button class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700 transition hover:bg-blue-100" @click="updateLead(d.id, 'assigned')">分派</button>
+          <button class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-100" @click="updateLead(d.id, 'recommended')">推荐现有商品</button>
+          <button class="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] font-medium text-purple-700 transition hover:bg-purple-100" @click="updateLead(d.id, 'custom_required')">需要定制</button>
+          <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 transition hover:bg-red-100" @click="updateLead(d.id, 'not_supported')">暂不支持</button>
+          <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 transition hover:bg-red-100" @click="updateLead(d.id, 'closed')">关闭</button>
         </div>
       </div>
       <div v-if="!demand.list.length" class="py-3 text-center text-[12px] text-slate-400">暂无需求线索</div>
@@ -117,11 +132,12 @@ function advanceListing(id: string, status: ListingRequestStatus) {
           placeholder="暂不支持时填写替代商品 ID（逗号分隔）"
           class="mt-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px]"
         />
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          <button v-if="r.status === 'submitted'" class="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] text-amber-600" @click="advanceListing(r.id, 'evaluating')">开始评估</button>
-          <button v-if="r.status === 'evaluating'" class="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] text-blue-600" @click="advanceListing(r.id, 'preparing')">进入上架准备</button>
-          <button v-if="r.status === 'preparing' || r.status === 'evaluating'" class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] text-emerald-600" @click="advanceListing(r.id, 'published')">标记已上架</button>
-          <button v-if="r.status === 'submitted' || r.status === 'evaluating'" class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500" @click="advanceListing(r.id, 'unsupported')">暂不支持</button>
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+          <span class="mr-1 text-[11px] text-slate-400">处置：</span>
+          <button v-if="r.status === 'submitted'" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-700 transition hover:bg-amber-100" @click="advanceListing(r.id, 'evaluating')">开始评估</button>
+          <button v-if="r.status === 'evaluating'" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700 transition hover:bg-blue-100" @click="advanceListing(r.id, 'preparing')">进入上架准备</button>
+          <button v-if="r.status === 'preparing' || r.status === 'evaluating'" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-100" @click="advanceListing(r.id, 'published')">标记已上架</button>
+          <button v-if="r.status === 'submitted' || r.status === 'evaluating'" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-medium text-red-600 transition hover:bg-red-100" @click="advanceListing(r.id, 'unsupported')">暂不支持</button>
         </div>
       </div>
       <div v-if="!listingRequests.list.length" class="py-3 text-center text-[12px] text-slate-400">暂无求上架请求</div>

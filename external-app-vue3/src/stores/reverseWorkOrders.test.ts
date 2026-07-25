@@ -643,4 +643,35 @@ describe('useReverseWorkOrderStore', () => {
       expect(stored?.customerIds).not.toContain('mem-999')
     })
   })
+
+  describe('createWorkOrder (subject-agnostic)', () => {
+    it('creates an order work order with a custom after-sales task template', () => {
+      const store = useReverseWorkOrderStore()
+      const result = store.createWorkOrder({
+        ...createInput({ subjectId: 'order-1' }),
+        subjectType: 'order',
+        taskTemplate: ['process_refund', 'revoke_entitlement', 'notify_customers', 'reconcile_payment'],
+      })
+      expect(result.workOrder.subjectType).toBe('order')
+      const types = store.tasksFor(result.workOrder.id).map((t) => t.type).sort()
+      expect(types).toEqual(['notify_customers', 'process_refund', 'reconcile_payment', 'revoke_entitlement'])
+    })
+
+    it('createProductWorkOrder still produces the product 5-task set', () => {
+      const store = useReverseWorkOrderStore()
+      const result = store.createProductWorkOrder(createInput())
+      expect(result.workOrder.subjectType).toBe('product')
+      expect(store.tasksFor(result.workOrder.id)).toHaveLength(5)
+    })
+
+    it('contract work order with no customers does not throw on missing notify task', () => {
+      const store = useReverseWorkOrderStore()
+      const result = store.createWorkOrder({
+        ...createInput({ subjectId: 'contract-1', impact: makeImpact('contract-1', []) }),
+        subjectType: 'contract',
+        taskTemplate: ['reclaim_seats', 'reconcile_state'],
+      })
+      expect(store.tasksFor(result.workOrder.id).map((t) => t.type).sort()).toEqual(['reclaim_seats', 'reconcile_state'])
+    })
+  })
 })

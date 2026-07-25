@@ -13,7 +13,7 @@ function select(key: string) {
 </script>
 
 <template>
-  <div class="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2">
+  <div class="sticky top-12 z-10 flex gap-1 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2">
     <button
       v-for="tab in tabs"
       :key="tab.key"

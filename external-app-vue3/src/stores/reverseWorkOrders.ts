@@ -63,6 +63,40 @@ const TASK_TITLES: Record<ExecutionTask['type'], string> = {
   decide_customer_treatment: '确定客户处置方案',
   notify_customers: '通知受影响客户',
   reconcile_state: '跨系统状态核验',
+  process_refund: '执行退款',
+  revoke_entitlement: '撤销权益',
+  reclaim_seats: '回收企业席位',
+  reconcile_payment: '支付对账',
+  manual_repair: '人工修正',
+}
+
+// 各 subject 的默认执行任务模板；product 保持原五步不变。
+const PRODUCT_TASK_TEMPLATE: ExecutionTask['type'][] = [
+  'stop_new_sales',
+  'remove_references',
+  'decide_customer_treatment',
+  'notify_customers',
+  'reconcile_state',
+]
+
+function taskMeta(type: ExecutionTask['type']): Pick<ExecutionTask, 'system' | 'assigneeRole'> {
+  switch (type) {
+    case 'notify_customers':
+      return { system: 'app', assigneeRole: 'customer_ops' }
+    case 'reconcile_state':
+    case 'reconcile_payment':
+      return { system: 'asset_platform', assigneeRole: 'system_executor' }
+    case 'process_refund':
+      return { system: 'finance', assigneeRole: 'system_executor' }
+    case 'revoke_entitlement':
+      return { system: 'app', assigneeRole: 'system_executor' }
+    case 'reclaim_seats':
+      return { system: 'app', assigneeRole: 'product_ops' }
+    case 'manual_repair':
+      return { system: 'manual', assigneeRole: 'system_executor' }
+    default:
+      return { system: 'manual', assigneeRole: 'product_ops' }
+  }
 }
 
 // ── Input contracts ──────────────────────────────────────────────
@@ -80,6 +114,13 @@ interface CreateProductWorkOrderInput {
   reviewAt: string
   customerNoticeContent: string
   parentWorkOrderId?: string
+}
+
+// 泛化输入：售后（order/contract）等子系统复用同一工单模型。
+interface CreateWorkOrderInput extends Omit<CreateProductWorkOrderInput, 'action'> {
+  action: ReverseWorkOrder['action']
+  subjectType?: ReverseWorkOrder['subjectType']
+  taskTemplate?: ExecutionTask['type'][]
 }
 
 interface CreateResult {
@@ -131,6 +172,10 @@ export const useReverseWorkOrderStore = defineStore('reverseWorkOrders', {
 
   actions: {
     createProductWorkOrder(input: CreateProductWorkOrderInput): CreateResult {
+      return this.createWorkOrder({ ...input, subjectType: 'product' })
+    },
+
+    createWorkOrder(input: CreateWorkOrderInput): CreateResult {
       const createdAt = new Date().toISOString()
       const { acknowledgeDueAt, planDueAt } = deadlines(input.severity, createdAt)
 
@@ -155,7 +200,7 @@ export const useReverseWorkOrderStore = defineStore('reverseWorkOrders', {
 
       const workOrder: ReverseWorkOrder = {
         id: workOrderId,
-        subjectType: 'product',
+        subjectType: input.subjectType ?? 'product',
         subjectId: input.subjectId,
         action: input.action,
         reason: input.reason,
@@ -183,20 +228,13 @@ export const useReverseWorkOrderStore = defineStore('reverseWorkOrders', {
         summary: input.treatmentSummary,
       }
 
-      const taskTypes: ExecutionTask['type'][] = [
-        'stop_new_sales',
-        'remove_references',
-        'decide_customer_treatment',
-        'notify_customers',
-        'reconcile_state',
-      ]
+      const taskTypes: ExecutionTask['type'][] = input.taskTemplate ?? PRODUCT_TASK_TEMPLATE
       const tasks: ExecutionTask[] = taskTypes.map((type) => ({
         id: genId('task'),
         workOrderId,
         type,
         title: TASK_TITLES[type],
-        system: type === 'reconcile_state' ? 'asset_platform' : type === 'notify_customers' ? 'app' : 'manual',
-        assigneeRole: type === 'notify_customers' ? 'customer_ops' : type === 'reconcile_state' ? 'system_executor' : 'product_ops',
+        ...taskMeta(type),
       }))
 
       // Notices: one per affected customer
@@ -237,11 +275,13 @@ export const useReverseWorkOrderStore = defineStore('reverseWorkOrders', {
         })
       }
 
-      // Pre-complete notify_customers if no customers
+      // Pre-complete notify_customers if no customers (only when the template includes it)
       if (input.impact.customerIds.length === 0) {
-        const notifyTask = tasks.find((t) => t.type === 'notify_customers')!
-        notifyTask.completedAt = createdAt
-        notifyTask.completedBy = 'system'
+        const notifyTask = tasks.find((t) => t.type === 'notify_customers')
+        if (notifyTask) {
+          notifyTask.completedAt = createdAt
+          notifyTask.completedBy = 'system'
+        }
       }
 
       const timelineEntry: ReverseTimelineEntry = {

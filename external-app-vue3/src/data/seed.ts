@@ -98,7 +98,85 @@ export const seedOrders: Order[] = [
 
 export const seedTrials: TrialApplication[] = []
 
-export const seedDemands: DemandLead[] = []
+// 需求回流演示：四条对象/地域/时间一致的相似需求（跨来源），可聚合为一个供给任务。
+export const seedDemands: DemandLead[] = [
+  {
+    id: 'demand-seed-1',
+    question: '想要长三角港口吞吐量月度数据',
+    filters: ['港口', '吞吐量'],
+    browsedProductIds: [],
+    objectDesc: '港口吞吐量',
+    region: '长三角',
+    timeRange: '近12个月',
+    updateFreq: '每月',
+    scenario: '产能与运力评估',
+    expectedDelivery: '2026-09',
+    status: 'new',
+    recommendedProductIds: [],
+    feedbackMessage: '',
+    createdAt: '2026-07-15 10:20',
+    ownerId: 'mem-1',
+    source: 'search_miss',
+    subscribed: true
+  },
+  {
+    id: 'demand-seed-2',
+    question: '港口吞吐量数据有吗',
+    filters: ['港口'],
+    browsedProductIds: [],
+    objectDesc: '港口吞吐量',
+    region: '长三角',
+    timeRange: '近12个月',
+    updateFreq: '每月',
+    scenario: '供应链选址',
+    expectedDelivery: '2026-09',
+    status: 'new',
+    recommendedProductIds: [],
+    feedbackMessage: '',
+    createdAt: '2026-07-16 14:05',
+    ownerId: 'mem-2',
+    source: 'search_miss',
+    subscribed: true
+  },
+  {
+    id: 'demand-seed-3',
+    question: '求上架：长三角港口吞吐量数据集',
+    filters: [],
+    browsedProductIds: ['prod-port-throughput-candidate'],
+    objectDesc: '港口吞吐量',
+    region: '长三角',
+    timeRange: '近12个月',
+    updateFreq: '每月',
+    scenario: '临港产业研究',
+    expectedDelivery: '2026-09',
+    status: 'new',
+    recommendedProductIds: [],
+    feedbackMessage: '',
+    createdAt: '2026-07-16 16:40',
+    ownerId: 'mem-3',
+    source: 'listing_request',
+    subscribed: true
+  },
+  {
+    id: 'demand-seed-4',
+    question: '试用后反馈：需要更细的港口吞吐量口径',
+    filters: [],
+    browsedProductIds: [],
+    objectDesc: '港口吞吐量',
+    region: '长三角',
+    timeRange: '近12个月',
+    updateFreq: '每月',
+    scenario: '口岸运营',
+    expectedDelivery: '2026-09',
+    status: 'not_supported',
+    recommendedProductIds: [],
+    feedbackMessage: '暂无该口径供给',
+    createdAt: '2026-07-14 09:10',
+    ownerId: 'mem-1',
+    source: 'trial_feedback',
+    subscribed: true
+  }
+]
 
 export const seedApprovals: ApprovalRecord[] = [
   {

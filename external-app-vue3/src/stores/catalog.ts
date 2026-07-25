@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { seedProducts, seedEnhancements } from '@/data/seed'
+import { mockProducts } from '@/data/mockProducts'
 import type { Product, ProductEnhancement, ProductStatus, AvailabilityStatus } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import { now } from '@/utils/id'
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
-    products: seedProducts.map((p) => ({ ...p })) as Product[],
+    products: [...seedProducts, ...mockProducts].map((p) => ({ ...p })) as Product[],
     enhancements: seedEnhancements.map((e) => ({ ...e })) as ProductEnhancement[]
   }),
   getters: {
@@ -46,7 +47,18 @@ export const useCatalogStore = defineStore('catalog', {
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
-        return haystack.includes(q)
+        // 整句子串命中（保留原行为）
+        if (haystack.includes(q)) return true
+        // 通用类目词：避免"…数据集/…API/…看板"把整个类目都匹配出来，只按主题词命中
+        const GENERIC = new Set(['数据集', 'api', '看板', '月报', '指数', '接口', '查询', '数据', '服务', '产品', '如何', '多少', '有没有'])
+        // 中文无分词：3-gram 重叠模糊匹配，使自然语气问句也能命中
+        for (let i = 0; i + 3 <= q.length; i++) {
+          const gram = q.slice(i, i + 3)
+          if (/\s/.test(gram) || GENERIC.has(gram)) continue
+          if (haystack.includes(gram)) return true
+        }
+        // 空格分词命中（如 "资格核验 API"），同样跳过通用类目词
+        return q.split(/[\s,，、]+/).some((t) => t.length >= 2 && !GENERIC.has(t) && haystack.includes(t))
       })
     },
     toggleFavorite(productId: string) {

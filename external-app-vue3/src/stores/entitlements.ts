@@ -127,6 +127,50 @@ export const useEntitlementStore = defineStore('entitlements', {
           e.status = 'active'
           e.reverseWorkOrderId = undefined
         })
+    },
+
+    // ── 退款排序（§9.3）：先冻结，退款成功后才撤销；失败恢复。────
+    freezeForRefund(entitlementId: string, refundId: string) {
+      const ent = this.list.find((e) => e.id === entitlementId)
+      if (ent && ent.status === 'active') {
+        ent.status = 'frozen'
+        ent.refundId = refundId
+      }
+    },
+    revokeByRefund(refundId: string) {
+      this.list
+        .filter((e) => e.refundId === refundId)
+        .forEach((e) => {
+          e.status = 'revoked'
+        })
+    },
+    // 退款失败/驳回恢复；若存在独立合规冻结（reverseWorkOrderId），保持冻结。
+    restoreForRefund(refundId: string) {
+      this.list
+        .filter((e) => e.refundId === refundId && e.status === 'frozen')
+        .forEach((e) => {
+          if (e.reverseWorkOrderId) return
+          e.status = 'active'
+          e.refundId = undefined
+        })
+    },
+    // 企业合同终止批量收回席位（§9.4）
+    reclaimSeatsByContract(productId: string, enterpriseId: string) {
+      this.list
+        .filter((e) => e.type === 'seat' && e.productId === productId && e.enterpriseId === enterpriseId && (e.status === 'active' || e.status === 'frozen'))
+        .forEach((e) => {
+          e.status = 'revoked'
+        })
+    },
+    reclaimSingleSeat(entitlementId: string) {
+      const ent = this.list.find((e) => e.id === entitlementId && e.type === 'seat')
+      if (ent) ent.status = 'revoked'
+    },
+    // 迁移优先：先授予替代权益并验证可用，再撤销原权益（§10.3）
+    migrateThenRevoke(oldEntitlementId: string, replacement: Entitlement) {
+      this.list.push({ ...replacement, status: 'active' })
+      const old = this.list.find((e) => e.id === oldEntitlementId)
+      if (old) old.status = 'revoked'
     }
   }
 })

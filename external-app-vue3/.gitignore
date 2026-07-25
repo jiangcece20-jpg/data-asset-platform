@@ -3,3 +3,6 @@ dist
 dist_old_*
 preview
 *.local
+
+vite.config.*.timestamp-*.mjs
+vitest.config.*.timestamp-*.mjs

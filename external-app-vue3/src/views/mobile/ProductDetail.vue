@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import ProductSummaryCard from '@/components/mobile/product-detail/ProductSummaryCard.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
+import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
 import DatasetDetail from '@/components/mobile/product-detail/DatasetDetail.vue'
@@ -82,6 +83,8 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
+// 第一个 tab（基本信息/概览）：在此并入「商品说明书」，避免单独一张卡把 tab 挤到下面
+const isOverviewTab = computed(() => currentTabs.value.length > 0 && activeTab.value === currentTabs.value[0].key)
 
 watch(id, () => {
   const p = product.value
@@ -125,8 +128,17 @@ function handleAction(key: ProductActionKey) {
       <button class="text-lg" :class="product.favorite ? 'text-amber-400' : 'text-slate-200'" @click="toggleFav">★</button>
     </MobileHeader>
 
+    <!-- 精简 Hero：徽标 + 名称 + 一句话 -->
     <div class="px-4 pt-3">
-      <ProductSummaryCard :product="product" :title="title" />
+      <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+        <div class="mb-2 flex flex-wrap items-center gap-1.5">
+          <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
+          <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
+          <StatusBadge dict="availability" :value="product.availability" />
+        </div>
+        <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
+        <div class="mt-1 text-[13px] text-slate-500">{{ product.subtitle }}</div>
+      </div>
     </div>
 
     <!-- Service status notice -->
@@ -134,22 +146,38 @@ function handleAction(key: ProductActionKey) {
       <ServiceStatusNotice :availability="product.availability" :service-status="product.serviceStatus" :has-access="owned" />
     </div>
 
-    <!-- 商品说明书 -->
-    <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-      <div class="mb-2 text-[13px] font-semibold text-slate-800">商品说明书</div>
-      <dl class="space-y-2 text-[13px] leading-relaxed">
-        <div><dt class="text-slate-400">价值主张</dt><dd class="text-slate-700">{{ product.valueProposition }}</dd></div>
-        <div><dt class="text-slate-400">详细描述</dt><dd class="text-slate-700">{{ product.description }}</dd></div>
-        <div><dt class="text-slate-400">质量/服务承诺</dt><dd class="text-slate-700">{{ product.qualityPromise }}</dd></div>
-        <div><dt class="text-slate-400">合规声明</dt><dd class="text-slate-700">{{ product.complianceNote }}</dd></div>
-      </dl>
-    </div>
-
-    <!-- Tab 导航 -->
-    <ProductDetailTabs v-model="activeTab" :tabs="currentTabs" />
+    <!-- Tab 导航（紧跟摘要卡，吸附在头部下方） -->
+    <ProductDetailTabs v-model="activeTab" :tabs="currentTabs" class="mt-3" />
 
     <!-- Tab 内容 -->
     <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+      <!-- 概览页：基础信息 + 商品说明书（从 hero 下沉至此） -->
+      <div v-if="isOverviewTab" class="mb-4 space-y-4 border-b border-slate-100 pb-4">
+        <div>
+          <div class="mb-2 text-[13px] font-semibold text-slate-800">基础信息</div>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-2 text-[12px] text-slate-500">
+            <div>来源：{{ originMeta[product.origin] }}</div>
+            <div>覆盖范围：{{ product.coverage }}</div>
+            <div>更新频率：{{ product.updateFrequency }}</div>
+            <div>交付方式：{{ product.deliveryMethod }}</div>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <span v-for="s in product.scenarios" :key="s" class="tag-chip">{{ s }}</span>
+          </div>
+          <div v-if="product.spaceProductNo" class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
+            空间商品编号 {{ product.spaceProductNo }}（只读，来自可信空间，同步于 {{ product.spaceSyncedAt }}）
+          </div>
+        </div>
+
+        <div class="space-y-2 text-[13px] leading-relaxed">
+          <div class="text-[13px] font-semibold text-slate-800">商品说明书</div>
+          <div><span class="text-slate-400">价值主张：</span><span class="text-slate-700">{{ product.valueProposition }}</span></div>
+          <div><span class="text-slate-400">详细描述：</span><span class="text-slate-700">{{ product.description }}</span></div>
+          <div><span class="text-slate-400">质量/服务承诺：</span><span class="text-slate-700">{{ product.qualityPromise }}</span></div>
+          <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
+        </div>
+      </div>
+
       <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" />
       <ApiDetail v-else-if="product.type === 'api'" :product="product" :active-tab="activeTab as any" />
       <ReportDetail v-else-if="product.type === 'report'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />

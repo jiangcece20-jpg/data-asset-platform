@@ -11,6 +11,7 @@ const router = createRouter({
     // ---------------- 移动端：综合 APP 找数模块 ----------------
     { path: '/app/home', name: 'app-home', component: () => import('@/views/mobile/AppHome.vue'), meta: { title: '综合APP首页' } },
     { path: '/app/discover', name: 'discover-home', component: () => import('@/views/mobile/DiscoverHome.vue'), meta: { title: '找数' } },
+    { path: '/app/ai-find', name: 'ai-find', component: () => import('@/views/mobile/AIFindData.vue'), meta: { title: 'AI找数' } },
     { path: '/app/answer', name: 'answer-result', component: () => import('@/views/mobile/AnswerResult.vue'), meta: { title: '问答案' } },
     { path: '/app/search', name: 'search-result', component: () => import('@/views/mobile/SearchResult.vue'), meta: { title: '找数据' } },
     { path: '/app/product/:id', name: 'product-detail', component: () => import('@/views/mobile/ProductDetail.vue'), meta: { title: '商品详情' } },
@@ -29,13 +30,20 @@ const router = createRouter({
     { path: '/admin/products', name: 'admin-products', component: () => import('@/views/admin/ProductCenter.vue'), meta: { title: '商品中心' } },
     { path: '/admin/products/:id', name: 'admin-product-edit', component: () => import('@/views/admin/ProductEdit.vue'), meta: { title: '商品编辑' } },
     { path: '/admin/content', name: 'admin-content', component: () => import('@/views/admin/ContentCenter.vue'), meta: { title: '内容中心' } },
+    { path: '/admin/content/:id', name: 'admin-content-edit', component: () => import('@/views/admin/ContentEdit.vue'), meta: { title: '内容编辑' } },
     { path: '/admin/commerce', name: 'admin-commerce', component: () => import('@/views/admin/CommerceCenter.vue'), meta: { title: '商业化中心' } },
+    { path: '/admin/orders', name: 'admin-orders', component: () => import('@/views/admin/OrderCenter.vue'), meta: { title: '订单中心' } },
     { path: '/admin/enterprise', name: 'admin-enterprise', component: () => import('@/views/admin/EnterpriseBenefits.vue'), meta: { title: '企业权益' } },
     { path: '/admin/trials-leads', name: 'admin-trials-leads', component: () => import('@/views/admin/TrialsLeads.vue'), meta: { title: '试用与线索' } },
     { path: '/admin/operations', name: 'admin-operations', component: () => import('@/views/admin/OperationsConfig.vue'), meta: { title: '运营配置' } },
     { path: '/admin/approval', name: 'admin-approval', component: () => import('@/views/admin/ApprovalIntegration.vue'), meta: { title: '审批与集成' } },
     { path: '/admin/approval/reverse-work-orders', name: 'admin-reverse-work-orders', component: () => import('@/views/admin/ReverseWorkOrderList.vue'), meta: { title: '逆向工单' } },
-    { path: '/admin/approval/reverse-work-orders/:id', name: 'admin-reverse-work-order-detail', component: () => import('@/views/admin/ReverseWorkOrderDetail.vue'), meta: { title: '逆向工单详情' } }
+    { path: '/admin/approval/reverse-work-orders/:id', name: 'admin-reverse-work-order-detail', component: () => import('@/views/admin/ReverseWorkOrderDetail.vue'), meta: { title: '逆向工单详情' } },
+    { path: '/admin/approval/demand-supply', name: 'admin-demand-supply', component: () => import('@/views/admin/DemandSupplyList.vue'), meta: { title: '需求供给' } },
+    { path: '/admin/approval/demand-supply/:id', name: 'admin-demand-supply-detail', component: () => import('@/views/admin/DemandSupplyDetail.vue'), meta: { title: '需求供给详情' } },
+    { path: '/admin/approval/after-sales', name: 'admin-after-sales', component: () => import('@/views/admin/AfterSalesList.vue'), meta: { title: '交易售后' } },
+    { path: '/admin/approval/after-sales/:id', name: 'admin-after-sales-detail', component: () => import('@/views/admin/AfterSalesDetail.vue'), meta: { title: '交易售后详情' } },
+    { path: '/admin/approval/integration', name: 'admin-integration-governance', component: () => import('@/views/admin/IntegrationGovernance.vue'), meta: { title: '集成治理' } }
   ]
 })
 
