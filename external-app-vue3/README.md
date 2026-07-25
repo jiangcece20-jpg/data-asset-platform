@@ -140,3 +140,41 @@ npm run dev
   - 首次失败后最多重试 3 次，超过进入死信队列
   - 人工修正写入更高处理版本并开集成工单；随后重放的旧版本事件被判为 `stale_dropped`
   - 重复 `idempotencyKey` 幂等丢弃；无效签名拒绝；同步超时不被误判为下架
+
+## 部署（Cloudflare Pages）
+
+本工程已部署在 Cloudflare Pages，项目名 `external-app`。使用 Vue Router 的 hash 路由，访问地址务必带 `#` 路径：
+
+- 固定生产地址（始终指向最新一次部署）：
+  - 移动端 APP：<https://external-app.pages.dev/#/app/home>
+  - 运营后台：<https://external-app.pages.dev/#/admin>
+- 每次部署还会生成一个带哈希前缀的临时地址，如 `https://<hash>.external-app.pages.dev`。
+
+### 方式一：命令行手动发布（一次性）
+
+```bash
+cd external-app-vue3
+npm run build                 # 产物输出到 dist/
+npx wrangler login            # 首次需浏览器授权一次
+npx wrangler pages deploy dist --project-name external-app
+```
+
+首次若项目不存在，`deploy` 会提示新建，选择 Create a new project、生产分支填 `main` 即可。之后再发布不会重复询问。
+
+> 注意：`deploy` 上传的是当前 `dist/` 目录，务必先 `npm run build` 以免发布到旧构建。
+
+### 方式二：连接仓库自动发布（推荐，push 即部署）
+
+在 Cloudflare Dashboard → Workers & Pages → Create → Pages → 连接 GitHub 仓库 `data-asset-platform`，构建设置：
+
+- Root directory（根目录）：`external-app-vue3`
+- Build command：`npm run build`
+- Build output directory：`dist`
+
+配置后，向 `main` 推送即触发 Cloudflare 自动构建并发布，无需手动 `wrangler`。
+
+### 常见问题
+
+- **打开是「无法访问/连接被拒」**：多为本地没启动服务或访问了错误端口；线上直接用上面的 `*.pages.dev` 地址即可。
+- **`npm run dev` 报 esbuild 版本不匹配**：删除依赖重装即可对齐版本——`rm -rf node_modules package-lock.json && npm install`。
+- **页面白屏、路由 404**：确认地址带了 `#`（hash 路由），如 `/#/app/home` 而非 `/app/home`。
