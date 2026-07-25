@@ -33,6 +33,63 @@ const product = computed(() => catalog.byId(id.value))
 const isSpaceProduct = computed(() => product.value?.dealChannel === 'space_purchase')
 const record = computed(() => approval.byProduct(id.value))
 
+// --- 数据探查配置（仅数据集） ---
+const PROFILING_SCOPES = [
+  { value: 'sample', label: '脱敏样本（推荐）' },
+  { value: 'recent_30d', label: '近 30 天分区' },
+  { value: 'recent_12m', label: '近 12 个月' },
+  { value: 'full', label: '全量数据' }
+] as const
+
+const datasetFields = computed(() => {
+  const d = product.value?.typeDetail.dataset
+  if (!d) return []
+  const stats = d.fieldProfiling ?? []
+  return d.fields.map((f) => ({
+    name: f.name,
+    meaning: f.meaning,
+    dataType: f.dataType,
+    // 主键与 L2/L3 视为敏感，界面上给出警示但不强制禁用，由运营判断
+    sensitive: f.primaryKey || f.sensitivity === 'L2' || f.sensitivity === 'L3',
+    sensitivityLabel: f.primaryKey ? '主键' : (f.sensitivity ?? ''),
+    hasStat: stats.some((s) => s.fieldName === f.name)
+  }))
+})
+
+const profilingSelection = ref<string[]>([])
+const profilingScope = ref<string>('sample')
+const profilingOptions = reactive({ topValues: true, extremes: true, anomalies: true })
+const profilingSaved = ref(false)
+
+/** 只有已产出探查结果的字段可被勾选 */
+const selectableFields = computed(() => datasetFields.value.filter((f) => f.hasStat))
+const allSelectableChecked = computed(
+  () => selectableFields.value.length > 0 && selectableFields.value.every((f) => profilingSelection.value.includes(f.name))
+)
+const someSelectableChecked = computed(
+  () => profilingSelection.value.length > 0 && !allSelectableChecked.value
+)
+
+function toggleSelectAll() {
+  profilingSelection.value = allSelectableChecked.value ? [] : selectableFields.value.map((f) => f.name)
+}
+
+watch(
+  product,
+  (p) => {
+    profilingSelection.value = (p?.typeDetail.dataset?.fields ?? [])
+      .filter((f) => f.profilingEnabled)
+      .map((f) => f.name)
+    profilingSaved.value = false
+  },
+  { immediate: true }
+)
+
+function saveProfilingFields() {
+  catalog.setProfilingFields(id.value, profilingSelection.value)
+  profilingSaved.value = true
+}
+
 // --- Reverse-flow modal state ---
 const modalOpen = ref(false)
 const modalAction = ref<ProductReverseAction>('pause')
@@ -299,6 +356,26 @@ function closeModal() {
             <div><dt class="text-slate-400">空间商品编号</dt><dd class="text-slate-700">{{ product.spaceProductNo }}</dd></div>
             <div><dt class="text-slate-400">同步时间</dt><dd class="text-slate-700">{{ product.spaceSyncedAt }}</dd></div>
           </dl>
+
+          <!-- 增强信息紧随主数据：左侧只读来自空间，右侧可编辑由 APP 维护 -->
+          <div class="mt-4 border-t border-slate-100 pt-3">
+            <div class="mb-2 flex items-center gap-2">
+              <span class="text-[13px] font-medium text-slate-700">APP 展示增强信息</span>
+              <span class="text-[10px] text-slate-300">· 只影响 App 展示，不回写空间主数据</span>
+            </div>
+            <div class="space-y-2.5 text-[13px]">
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="enhForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="enhForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="enhForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="enhForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="enhForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+              <div class="flex items-center gap-4">
+                <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1" />排序权重</label>
+                <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.recommendSlot" type="checkbox" />进入推荐位</label>
+              </div>
+              <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveEnhancement">保存增强信息</button>
+            </div>
+          </div>
         </template>
         <template v-else>
           <div class="space-y-3 text-[13px]">
@@ -347,24 +424,114 @@ function closeModal() {
             </div>
             <p class="text-[10px] text-slate-300">提示：数据集 / API 为空间商品，走可信空间报价，不在此编辑。</p>
             <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveAppProduct">保存商品信息</button>
+
+            <!-- 增强信息与商品信息同卡维护 -->
+            <div class="mt-2 border-t border-slate-100 pt-3">
+              <div class="mb-2 flex items-center gap-2">
+                <span class="text-[13px] font-medium text-slate-700">APP 展示增强信息</span>
+                <span class="text-[10px] text-slate-300">· 只影响 App 展示排序与推荐</span>
+              </div>
+              <div class="space-y-2.5">
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="enhForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="enhForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="enhForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="enhForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="enhForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
+                <div class="flex items-center gap-4">
+                  <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1" />排序权重</label>
+                  <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.recommendSlot" type="checkbox" />进入推荐位</label>
+                </div>
+                <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveEnhancement">保存增强信息</button>
+              </div>
+            </div>
           </div>
         </template>
       </div>
 
-      <!-- APP 增强信息（空间商品必填，APP自营也可用于优化展示） -->
-      <div class="rounded-xl border border-slate-200 bg-white p-4">
-        <div class="mb-3 text-[13px] font-medium text-slate-700">APP 展示增强信息</div>
-        <div class="space-y-2.5 text-[13px]">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="enhForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="enhForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="enhForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="enhForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="enhForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5" /></label>
-          <div class="flex items-center gap-4">
-            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1" />排序权重</label>
-            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.recommendSlot" type="checkbox" />进入推荐位</label>
+      <!-- 数据探查配置（仅数据集类型）：字段列表 + 勾选字段 + 勾选探查范围 -->
+      <div v-if="datasetFields.length" class="rounded-xl border border-slate-200 bg-white p-4">
+        <div class="mb-1 flex items-center gap-2">
+          <span class="text-[13px] font-medium text-slate-700">数据探查配置</span>
+          <span class="text-[10px] text-slate-300">· 勾选的字段将作为 App「探查报告」的可切换维度</span>
+        </div>
+        <p class="mb-3 text-[11px] text-amber-600">
+          敏感字段（主键、L2/L3）默认不开放；开放后外部可见该字段空值率、唯一值数与 TOP 值分布。
+        </p>
+
+        <!-- 探查范围 -->
+        <div class="mb-3 rounded-lg bg-slate-50 px-3 py-2.5">
+          <div class="mb-1.5 text-[12px] font-medium text-slate-600">探查范围</div>
+          <div class="flex flex-wrap gap-x-4 gap-y-2">
+            <label v-for="s in PROFILING_SCOPES" :key="s.value" class="flex items-center gap-1.5 text-[12px] text-slate-600">
+              <input v-model="profilingScope" type="radio" :value="s.value" name="profiling-scope" />
+              {{ s.label }}
+            </label>
           </div>
-          <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveEnhancement">保存增强信息</button>
+          <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-t border-slate-200 pt-2">
+            <label class="flex items-center gap-1.5 text-[12px] text-slate-600">
+              <input v-model="profilingOptions.topValues" type="checkbox" />TOP 值分布
+            </label>
+            <label class="flex items-center gap-1.5 text-[12px] text-slate-600">
+              <input v-model="profilingOptions.extremes" type="checkbox" />极值与均值
+            </label>
+            <label class="flex items-center gap-1.5 text-[12px] text-slate-600">
+              <input v-model="profilingOptions.anomalies" type="checkbox" />异常提示
+            </label>
+          </div>
+        </div>
+
+        <!-- 字段列表 -->
+        <table class="w-full text-left text-[12px]">
+          <thead class="bg-slate-50 text-slate-400">
+            <tr>
+              <th class="w-9 px-2 py-2">
+                <input
+                  type="checkbox"
+                  :checked="allSelectableChecked"
+                  :indeterminate.prop="someSelectableChecked"
+                  @change="toggleSelectAll"
+                />
+              </th>
+              <th class="px-2 py-2 font-medium">字段名</th>
+              <th class="px-2 py-2 font-medium">业务含义</th>
+              <th class="px-2 py-2 font-medium">类型</th>
+              <th class="px-2 py-2 font-medium">敏感级</th>
+              <th class="px-2 py-2 font-medium">探查结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="f in datasetFields"
+              :key="f.name"
+              class="border-t border-slate-100"
+              :class="f.sensitive ? 'bg-amber-50/40' : ''"
+            >
+              <td class="px-2 py-2">
+                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" />
+              </td>
+              <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
+              <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
+              <td class="px-2 py-2 text-slate-500">{{ f.dataType }}</td>
+              <td class="px-2 py-2">
+                <span v-if="f.sensitive" class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700">
+                  {{ f.sensitivityLabel }}
+                </span>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+              <td class="px-2 py-2">
+                <span v-if="f.hasStat" class="text-emerald-600">已产出</span>
+                <span v-else class="text-slate-300">未产出</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="saveProfilingFields">
+            保存探查配置
+          </button>
+          <span class="text-[11px] text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
+          <span v-if="profilingSaved" class="text-[12px] text-emerald-600">已保存，App 端探查维度已更新</span>
         </div>
       </div>
     </div>

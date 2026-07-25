@@ -80,6 +80,18 @@ export const useCatalogStore = defineStore('catalog', {
         p.updatedAt = now()
       }
     },
+    /**
+     * 配置数据集哪些字段对外开放单字段探查。
+     * 未在 fieldNames 中的字段会被关闭，前台探查维度随之消失。
+     */
+    setProfilingFields(productId: string, fieldNames: string[]) {
+      const p = this.products.find((x) => x.id === productId)
+      const dataset = p?.typeDetail.dataset
+      if (!p || !dataset) return
+      const allow = new Set(fieldNames)
+      dataset.fields = dataset.fields.map((f) => ({ ...f, profilingEnabled: allow.has(f.name) }))
+      p.updatedAt = now()
+    },
     updateProduct(productId: string, patch: Partial<Product>) {
       const idx = this.products.findIndex((x) => x.id === productId)
       if (idx >= 0) {

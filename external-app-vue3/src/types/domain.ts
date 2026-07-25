@@ -23,6 +23,26 @@ export interface DatasetField {
   primaryKey: boolean
   nullable: boolean
   sensitivity?: 'L1' | 'L2' | 'L3'
+  /** 后台开关：该字段是否对外开放单字段数据探查（默认关闭，敏感字段不应开启） */
+  profilingEnabled?: boolean
+}
+
+/** 单字段数据探查结果（对外版，数值已做区间化/脱敏处理） */
+export interface FieldProfiling {
+  fieldName: string
+  /** 空值率，如 "0.8%" */
+  nullRate: string
+  /** 唯一值数量 */
+  distinctCount: number
+  /** 数值型/日期型字段的极值与均值，非数值字段可缺省 */
+  min?: string
+  max?: string
+  avg?: string
+  /** TOP 值分布，percent 为 0-100 的占比，用于条形图 */
+  topValues: Array<{ value: string; count: number; percent: number }>
+  /** 异常提示，无异常可缺省 */
+  anomalies?: string
+  updatedAt: string
 }
 
 export interface DatasetDetail {
@@ -44,6 +64,8 @@ export interface DatasetDetail {
     conclusion: string
     updatedAt: string
   }
+  /** 单字段探查结果集；仅 fields 中 profilingEnabled 的字段会在前台出现 */
+  fieldProfiling?: FieldProfiling[]
 }
 
 export interface ApiParameter {
@@ -79,6 +101,8 @@ export interface ReportContentBlock {
   kind: 'text' | 'metric' | 'chart' | 'pdf_page'
   content: string
   preview: PreviewMode
+  /** 所在页码，用于目录与阅读器定位 */
+  page?: number
 }
 
 export interface ReportDetail {
@@ -86,7 +110,9 @@ export interface ReportDetail {
   publishedAt: string
   version: string
   audience: string
-  catalog: Array<{ title: string; previewable: boolean }>
+  catalog: Array<{ title: string; previewable: boolean; page?: number }>
+  /** 报告总页数 */
+  pageCount?: number
   blocks: ReportContentBlock[]
   license: string
   // 数据源绑定：真实报告文件/在线阅读地址，及在资产/BI 平台的报表编号

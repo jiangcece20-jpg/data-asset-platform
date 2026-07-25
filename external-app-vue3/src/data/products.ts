@@ -158,20 +158,21 @@ export const seedProducts: Product[] = [
         publishedAt: '2026-07-05',
         version: 'V2026-07',
         audience: '物流企业管理层、供应链负责人、行业研究人员',
+        pageCount: 28,
         catalog: [
-          { title: '行业运行总览', previewable: true },
-          { title: '细分赛道动态', previewable: true },
-          { title: '政策与监管', previewable: false },
-          { title: '代表企业追踪', previewable: false },
-          { title: '下月展望', previewable: false }
+          { title: '行业运行总览', previewable: true, page: 2 },
+          { title: '细分赛道动态', previewable: true, page: 8 },
+          { title: '政策与监管', previewable: false, page: 14 },
+          { title: '代表企业追踪', previewable: false, page: 19 },
+          { title: '下月展望', previewable: false, page: 25 }
         ],
         blocks: [
-          { id: 'block-overview', title: '行业运行总览', kind: 'text', content: '2026年6月，全国公路物流运行总体平稳，货运量同比增长3.2%，行业景气指数维持在荣枯线以上。', preview: 'visible' },
-          { id: 'block-freight-volume', title: '货运量数据', kind: 'metric', content: '6月公路货运量达到 35.8 亿吨，同比增长 3.2%；其中快递物流增长 8.7%，大宗物资增长 1.1%。', preview: 'masked' },
-          { id: 'block-chart', title: '运价指数走势', kind: 'chart', content: '近 12 个月运价指数走势图，显示 6 月指数为 108.6，环比下降 0.8%。', preview: 'masked' },
-          { id: 'block-policy', title: '政策与监管', kind: 'text', content: '交通运输部发布《关于进一步规范公路货运市场秩序的通知》，重点整治超载超限、非法改装等行为。', preview: 'locked' },
-          { id: 'block-enterprise', title: '代表企业追踪', kind: 'text', content: '本月重点追踪 10 家头部物流企业，其中 3 家完成新一轮融资，2 家拓展了区域网络。', preview: 'locked' },
-          { id: 'block-outlook', title: '下月展望', kind: 'text', content: '预计 7 月货运量将保持平稳增长，运价指数有望企稳回升，需关注夏季高温对运力供给的影响。', preview: 'locked' }
+          { id: 'block-overview', title: '行业运行总览', kind: 'text', content: '2026年6月，全国公路物流运行总体平稳，货运量同比增长3.2%，行业景气指数维持在荣枯线以上。', preview: 'visible', page: 2 },
+          { id: 'block-freight-volume', title: '货运量数据', kind: 'metric', content: '6月公路货运量达到 35.8 亿吨，同比增长 3.2%；其中快递物流增长 8.7%，大宗物资增长 1.1%。', preview: 'masked', page: 8 },
+          { id: 'block-chart', title: '运价指数走势', kind: 'chart', content: '近 12 个月运价指数走势图，显示 6 月指数为 108.6，环比下降 0.8%。', preview: 'masked', page: 11 },
+          { id: 'block-policy', title: '政策与监管', kind: 'text', content: '交通运输部发布《关于进一步规范公路货运市场秩序的通知》，重点整治超载超限、非法改装等行为。', preview: 'locked', page: 14 },
+          { id: 'block-enterprise', title: '代表企业追踪', kind: 'text', content: '本月重点追踪 10 家头部物流企业，其中 3 家完成新一轮融资，2 家拓展了区域网络。', preview: 'locked', page: 19 },
+          { id: 'block-outlook', title: '下月展望', kind: 'text', content: '预计 7 月货运量将保持平稳增长，运价指数有望企稳回升，需关注夏季高温对运力供给的影响。', preview: 'locked', page: 25 }
         ],
         license: '企业内部使用，禁止对外转售'
       }
@@ -207,13 +208,14 @@ export const seedProducts: Product[] = [
         publishedAt: '2026-07-03',
         version: 'V2026-07',
         audience: '所有用户',
+        pageCount: 6,
         catalog: [
-          { title: '本月政策概览', previewable: true },
-          { title: '地方政策动态', previewable: true }
+          { title: '本月政策概览', previewable: true, page: 1 },
+          { title: '地方政策动态', previewable: true, page: 4 }
         ],
         blocks: [
-          { id: 'block-overview', title: '本月政策概览', kind: 'text', content: '2026年6月，国家及地方共发布物流相关政策 12 项，涉及降本增效、绿色物流、安全监管等方面。', preview: 'visible' },
-          { id: 'block-local', title: '地方政策动态', kind: 'text', content: '广东、浙江、四川等省份发布了支持物流枢纽建设的配套政策，提供土地、税收等优惠。', preview: 'visible' }
+          { id: 'block-overview', title: '本月政策概览', kind: 'text', content: '2026年6月，国家及地方共发布物流相关政策 12 项，涉及降本增效、绿色物流、安全监管等方面。', preview: 'visible', page: 1 },
+          { id: 'block-local', title: '地方政策动态', kind: 'text', content: '广东、浙江、四川等省份发布了支持物流枢纽建设的配套政策，提供土地、税收等优惠。', preview: 'visible', page: 4 }
         ],
         license: '免费内容，可分享引用'
       }
@@ -382,10 +384,10 @@ export const seedProducts: Product[] = [
         qualityUpdatedAt: '2026-07-01',
         fields: [
           { name: 'enterprise_id', dataType: 'string', meaning: '企业唯一标识（脱敏哈希）', description: '不可逆哈希值，用于跨数据集关联', primaryKey: true, nullable: false, sensitivity: 'L2' },
-          { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false },
-          { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false },
-          { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true },
-          { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false }
+          { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false, profilingEnabled: true },
+          { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false, profilingEnabled: true },
+          { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true, profilingEnabled: true },
+          { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false, profilingEnabled: true }
         ],
         sampleColumns: ['enterprise_id', 'order_frequency', 'fulfillment_rate', 'coverage_region', 'activity_level'],
         sampleRows: [
@@ -404,7 +406,66 @@ export const seedProducts: Product[] = [
           anomalies: '0.3% 记录存在发单频次异常波动（已标注）',
           conclusion: '数据质量优良，适合企业画像与风险评估场景',
           updatedAt: '2026-07-01'
-        }
+        },
+        fieldProfiling: [
+          {
+            fieldName: 'order_frequency',
+            nullRate: '0%',
+            distinctCount: 412,
+            min: '1',
+            max: '2,180',
+            avg: '76.4',
+            topValues: [
+              { value: '1-20 次', count: 894000, percent: 34 },
+              { value: '21-60 次', count: 754000, percent: 29 },
+              { value: '61-150 次', count: 546000, percent: 21 },
+              { value: '150 次以上', count: 406000, percent: 16 }
+            ],
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'fulfillment_rate',
+            nullRate: '0%',
+            distinctCount: 96,
+            min: '0.41',
+            max: '1.00',
+            avg: '0.86',
+            topValues: [
+              { value: '0.90 - 1.00', count: 1092000, percent: 42 },
+              { value: '0.80 - 0.90', count: 806000, percent: 31 },
+              { value: '0.70 - 0.80', count: 468000, percent: 18 },
+              { value: '0.70 以下', count: 234000, percent: 9 }
+            ],
+            anomalies: '0.3% 记录履约率低于 0.5，多为当月订单量过少导致',
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'coverage_region',
+            nullRate: '2.8%',
+            distinctCount: 31,
+            topValues: [
+              { value: '广东', count: 468000, percent: 18 },
+              { value: '江苏', count: 390000, percent: 15 },
+              { value: '浙江', count: 338000, percent: 13 },
+              { value: '山东', count: 260000, percent: 10 },
+              { value: '其他省份', count: 1144000, percent: 44 }
+            ],
+            anomalies: '空值集中在注册未满 3 个月的新企业',
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'activity_level',
+            nullRate: '0%',
+            distinctCount: 4,
+            topValues: [
+              { value: 'C', count: 988000, percent: 38 },
+              { value: 'B', count: 728000, percent: 28 },
+              { value: 'D', count: 494000, percent: 19 },
+              { value: 'A', count: 390000, percent: 15 }
+            ],
+            updatedAt: '2026-07-01'
+          }
+        ]
       }
     }
   },

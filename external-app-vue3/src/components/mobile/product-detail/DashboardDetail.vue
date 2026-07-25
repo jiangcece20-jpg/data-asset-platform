@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import ContentGate from './ContentGate.vue'
+import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 
 const props = defineProps<{
   product: Product
@@ -10,16 +11,24 @@ const props = defineProps<{
 }>()
 
 const detail = computed(() => props.product.typeDetail.dashboard)
+
+const basicItems = computed<InfoItem[]>(() => {
+  const d = detail.value
+  if (!d) return []
+  return [
+    { label: '时间范围', value: d.timeRange },
+    { label: '更新周期', value: d.updateCycle },
+    { label: '指标数量', value: d.metrics.length ? `${d.metrics.length} 个` : '—' },
+    { label: '图表面板', value: d.panels.length ? `${d.panels.length} 个` : '—' },
+    { label: '导出规则', value: d.exportRule, full: true }
+  ]
+})
 </script>
 
 <template>
   <div v-if="detail">
     <!-- 基本信息 -->
-    <div v-if="activeTab === 'overview'" class="space-y-3 text-[13px] text-slate-700">
-      <div><span class="text-slate-400">时间范围：</span>{{ detail.timeRange }}</div>
-      <div><span class="text-slate-400">更新周期：</span>{{ detail.updateCycle }}</div>
-      <div><span class="text-slate-400">导出规则：</span>{{ detail.exportRule }}</div>
-    </div>
+    <InfoGrid v-if="activeTab === 'overview'" :items="basicItems" />
 
     <!-- 看板预览 -->
     <div v-else-if="activeTab === 'preview'" class="space-y-3">

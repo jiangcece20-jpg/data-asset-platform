@@ -5,6 +5,7 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
+import InfoGrid, { type InfoItem } from '@/components/mobile/product-detail/InfoGrid.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
 import DatasetDetail from '@/components/mobile/product-detail/DatasetDetail.vue'
 import ApiDetail from '@/components/mobile/product-detail/ApiDetail.vue'
@@ -68,10 +69,9 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
-    { key: 'overview', label: '基本信息' },
+    { key: 'overview', label: '报告介绍' },
     { key: 'catalog', label: '目录' },
-    { key: 'reader', label: '在线阅读' },
-    { key: 'license', label: '授权' }
+    { key: 'reader', label: '在线阅读' }
   ],
   dashboard: [
     { key: 'overview', label: '基本信息' },
@@ -80,6 +80,20 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'updates', label: '更新与导出' }
   ]
 }
+
+/** 概览页公共基础信息，按两列信息表展示 */
+const baseInfoItems = computed<InfoItem[]>(() => {
+  const p = product.value
+  if (!p) return []
+  return [
+    { label: '供应方', value: p.provider },
+    { label: '更新频率', value: p.updateFrequency },
+    { label: '覆盖范围', value: p.coverage },
+    { label: '交付方式', value: p.deliveryMethod },
+    { label: '来源', value: originMeta[p.origin] },
+    { label: '更新时间', value: p.updatedAt }
+  ]
+})
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
@@ -108,6 +122,13 @@ function goMember() {
 function goItem() {
   router.push(`/app/checkout/item/${id.value}`)
 }
+/** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
+function handleUnlock() {
+  const primary = actions.value?.primary?.key
+  if (primary) return handleAction(primary)
+  goItem()
+}
+
 function handleAction(key: ProductActionKey) {
   switch (key) {
     case 'view': router.push('/app/mine'); break
@@ -155,12 +176,7 @@ function handleAction(key: ProductActionKey) {
       <div v-if="isOverviewTab" class="mb-4 space-y-4 border-b border-slate-100 pb-4">
         <div>
           <div class="mb-2 text-[13px] font-semibold text-slate-800">基础信息</div>
-          <div class="grid grid-cols-2 gap-x-3 gap-y-2 text-[12px] text-slate-500">
-            <div>来源：{{ originMeta[product.origin] }}</div>
-            <div>覆盖范围：{{ product.coverage }}</div>
-            <div>更新频率：{{ product.updateFrequency }}</div>
-            <div>交付方式：{{ product.deliveryMethod }}</div>
-          </div>
+          <InfoGrid :items="baseInfoItems" />
           <div class="mt-2 flex flex-wrap gap-1.5">
             <span v-for="s in product.scenarios" :key="s" class="tag-chip">{{ s }}</span>
           </div>
@@ -180,7 +196,13 @@ function handleAction(key: ProductActionKey) {
 
       <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" />
       <ApiDetail v-else-if="product.type === 'api'" :product="product" :active-tab="activeTab as any" />
-      <ReportDetail v-else-if="product.type === 'report'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
+      <ReportDetail
+        v-else-if="product.type === 'report'"
+        :product="product"
+        :active-tab="activeTab as any"
+        :unlocked="contentUnlocked"
+        @unlock="handleUnlock"
+      />
       <DashboardDetail v-else-if="product.type === 'dashboard'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
       <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
     </div>

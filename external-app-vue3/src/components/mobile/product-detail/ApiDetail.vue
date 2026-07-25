@@ -1,10 +1,23 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
+import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 
 const props = defineProps<{ product: Product; activeTab: 'basic' | 'docs' | 'sandbox' | 'sla' }>()
 
 const detail = computed(() => props.product.typeDetail.api)
+
+const basicItems = computed<InfoItem[]>(() => {
+  const d = detail.value
+  if (!d) return []
+  return [
+    { label: '请求方法', value: d.method },
+    { label: '接口版本', value: d.version },
+    { label: '认证方式', value: d.authentication },
+    { label: '调用限制', value: d.rateLimit },
+    { label: '路径示例', value: d.pathExample, full: true }
+  ]
+})
 
 // 本地沙箱状态
 const paramValues = reactive<Record<string, string>>({})
@@ -38,12 +51,7 @@ function simulateFail() {
 <template>
   <div v-if="detail">
     <!-- 基本信息 -->
-    <div v-if="activeTab === 'basic'" class="space-y-3 text-[13px] text-slate-700">
-      <div><span class="text-slate-400">请求方法：</span>{{ detail.method }}</div>
-      <div><span class="text-slate-400">路径示例：</span><code class="rounded bg-slate-50 px-1.5 py-0.5 font-mono text-[12px]">{{ detail.pathExample }}</code></div>
-      <div><span class="text-slate-400">版本：</span>{{ detail.version }}</div>
-      <div><span class="text-slate-400">认证方式：</span>{{ detail.authentication }}</div>
-    </div>
+    <InfoGrid v-if="activeTab === 'basic'" :items="basicItems" />
 
     <!-- 接口文档 -->
     <div v-else-if="activeTab === 'docs'" class="space-y-4">

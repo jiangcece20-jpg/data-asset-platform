@@ -1,50 +1,66 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Product } from '@/types/domain'
+import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+import ScrollTable, { type ScrollColumn } from './ScrollTable.vue'
+import FieldProfilingPanel from './FieldProfilingPanel.vue'
 
 const props = defineProps<{ product: Product; activeTab: 'basic' | 'fields' | 'samples' | 'profiling' }>()
 
 const detail = computed(() => props.product.typeDetail.dataset)
+
+const fieldColumns: ScrollColumn[] = [
+  { key: 'name', label: '字段名', mono: true },
+  { key: 'dataType', label: '类型' },
+  { key: 'meaning', label: '业务含义' },
+  { key: 'description', label: '描述' },
+  { key: 'primaryKey', label: '主键', align: 'center' },
+  { key: 'nullable', label: '可空', align: 'center' },
+  { key: 'sensitivity', label: '敏感等级', align: 'center' }
+]
+
+const fieldRows = computed(() =>
+  (detail.value?.fields ?? []).map((f) => ({
+    name: f.name,
+    dataType: f.dataType,
+    meaning: f.meaning,
+    description: f.description,
+    primaryKey: f.primaryKey ? '🔑' : '',
+    nullable: f.nullable ? '✓' : '✗',
+    sensitivity: f.sensitivity ?? '—'
+  }))
+)
+
+const sampleColumns = computed<ScrollColumn[]>(() =>
+  (detail.value?.sampleColumns ?? []).map((col) => ({ key: col, label: col }))
+)
+
+const basicItems = computed<InfoItem[]>(() => {
+  const d = detail.value
+  if (!d) return []
+  return [
+    { label: '数据粒度', value: d.granularity },
+    { label: '时间范围', value: d.timeRange },
+    { label: '数据行数', value: d.rowCount },
+    { label: '分类分级', value: d.classification },
+    { label: '质量更新时间', value: d.qualityUpdatedAt },
+    { label: '样本生成时间', value: d.sampleGeneratedAt }
+  ]
+})
 </script>
 
 <template>
   <div v-if="detail">
     <!-- 基本信息 -->
-    <div v-if="activeTab === 'basic'" class="space-y-3 text-[13px] text-slate-700">
-      <div><span class="text-slate-400">粒度：</span>{{ detail.granularity }}</div>
-      <div><span class="text-slate-400">时间范围：</span>{{ detail.timeRange }}</div>
-      <div><span class="text-slate-400">行数：</span>{{ detail.rowCount.toLocaleString() }}</div>
-      <div><span class="text-slate-400">分类分级：</span>{{ detail.classification }}</div>
-      <div><span class="text-slate-400">质量更新时间：</span>{{ detail.qualityUpdatedAt || '—' }}</div>
-    </div>
+    <InfoGrid v-if="activeTab === 'basic'" :items="basicItems" />
 
-    <!-- 字段信息 -->
-    <div v-else-if="activeTab === 'fields'" class="overflow-x-auto">
-      <table class="w-full text-left text-[12px]">
-        <thead class="bg-slate-50 text-slate-400">
-          <tr>
-            <th class="px-3 py-2 font-medium">字段名</th>
-            <th class="px-3 py-2 font-medium">类型</th>
-            <th class="px-3 py-2 font-medium">业务含义</th>
-            <th class="px-3 py-2 font-medium">描述</th>
-            <th class="px-3 py-2 font-medium">主键</th>
-            <th class="px-3 py-2 font-medium">可空</th>
-            <th class="px-3 py-2 font-medium">敏感等级</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="field in detail.fields" :key="field.name" class="border-t border-slate-100">
-            <td class="px-3 py-2 font-mono text-slate-800">{{ field.name }}</td>
-            <td class="px-3 py-2 text-slate-500">{{ field.dataType }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ field.meaning }}</td>
-            <td class="px-3 py-2 text-slate-500">{{ field.description }}</td>
-            <td class="px-3 py-2 text-center">{{ field.primaryKey ? '🔑' : '' }}</td>
-            <td class="px-3 py-2 text-center">{{ field.nullable ? '✓' : '✗' }}</td>
-            <td class="px-3 py-2 text-center">{{ field.sensitivity || '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- 字段信息：横向滑动，首列字段名吸附 -->
+    <ScrollTable
+      v-else-if="activeTab === 'fields'"
+      :columns="fieldColumns"
+      :rows="fieldRows"
+      sticky-first
+    />
 
     <!-- 样例数据 -->
     <div v-else-if="activeTab === 'samples'">
@@ -52,39 +68,18 @@ const detail = computed(() => props.product.typeDetail.dataset)
         <div class="mb-2 rounded-lg bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700">
           脱敏样例 · 生成于 {{ detail.sampleGeneratedAt }} · 仅供评估，不可用于生产
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-[12px]">
-            <thead class="bg-slate-50 text-slate-400">
-              <tr>
-                <th v-for="col in detail.sampleColumns" :key="col" class="px-3 py-2 font-medium">{{ col }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, idx) in detail.sampleRows" :key="idx" class="border-t border-slate-100">
-                <td v-for="col in detail.sampleColumns" :key="col" class="px-3 py-2 text-slate-600">{{ row[col] ?? '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ScrollTable :columns="sampleColumns" :rows="detail.sampleRows" sticky-first />
       </template>
       <div v-else class="py-8 text-center text-[13px] text-slate-400">
         上架审核通过后提供脱敏样例
       </div>
     </div>
 
-    <!-- 探查报告 -->
-    <div v-else-if="activeTab === 'profiling'" class="space-y-2 text-[13px] text-slate-700">
-      <template v-if="product.availability === 'published'">
-        <div><span class="text-slate-400">完整率：</span>{{ detail.profiling.completeness }}</div>
-        <div><span class="text-slate-400">唯一性：</span>{{ detail.profiling.uniqueness }}</div>
-        <div><span class="text-slate-400">空值率：</span>{{ detail.profiling.nullRate }}</div>
-        <div><span class="text-slate-400">分布：</span>{{ detail.profiling.distribution }}</div>
-        <div><span class="text-slate-400">异常：</span>{{ detail.profiling.anomalies }}</div>
-        <div><span class="text-slate-400">结论：</span>{{ detail.profiling.conclusion }}</div>
-        <div><span class="text-slate-400">更新时间：</span>{{ detail.profiling.updatedAt || '—' }}</div>
-      </template>
+    <!-- 探查报告：整表概览 + 按字段维度切换 -->
+    <template v-else-if="activeTab === 'profiling'">
+      <FieldProfilingPanel v-if="product.availability === 'published'" :detail="detail" />
       <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
-    </div>
+    </template>
   </div>
   <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
 </template>

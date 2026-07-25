@@ -14,56 +14,178 @@ import type {
 
 // ── 各类型最小可用 typeDetail 桩 ──────────────────────────
 const datasetDetail = (): DatasetDetail => ({
-  granularity: '企业级',
+  granularity: '线路 × 日',
   timeRange: '近 12 个月',
   rowCount: 120000,
-  classification: 'L2',
+  classification: '行情数据（L1）',
   qualityUpdatedAt: '2026-07-01',
-  fields: [],
-  sampleColumns: [],
-  sampleRows: [],
+  fields: [
+    { name: 'stat_date', dataType: 'date', meaning: '统计日期', description: '数据统计自然日', primaryKey: true, nullable: false },
+    { name: 'route_code', dataType: 'string', meaning: '线路编码', description: '起讫城市对编码，如 SH-GZ', primaryKey: true, nullable: false },
+    { name: 'vehicle_type', dataType: 'string', meaning: '车型', description: '整车/零担/冷链等车型分类', primaryKey: false, nullable: false, profilingEnabled: true },
+    { name: 'price_index', dataType: 'decimal', meaning: '价格指数', description: '以基期为 100 的相对价格指数', primaryKey: false, nullable: false, profilingEnabled: true },
+    { name: 'yoy_rate', dataType: 'decimal', meaning: '同比涨跌幅', description: '与去年同期对比的变化率', primaryKey: false, nullable: true, profilingEnabled: true }
+  ],
+  sampleColumns: ['stat_date', 'route_code', 'vehicle_type', 'price_index', 'yoy_rate'],
+  sampleRows: [
+    { stat_date: '2026-06-28', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.8, yoy_rate: 0.032 },
+    { stat_date: '2026-06-28', route_code: 'BJ-CD', vehicle_type: '零担', price_index: 103.2, yoy_rate: 0.018 },
+    { stat_date: '2026-06-28', route_code: 'HZ-WH', vehicle_type: '冷链', price_index: 111.5, yoy_rate: 0.061 },
+    { stat_date: '2026-06-27', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.4, yoy_rate: 0.029 },
+    { stat_date: '2026-06-27', route_code: 'SZ-XA', vehicle_type: '整车', price_index: 99.7, yoy_rate: -0.008 }
+  ],
   sampleGeneratedAt: '2026-07-01',
   profiling: {
     completeness: '99.2%',
-    uniqueness: '98.5%',
-    nullRate: '0.8%',
-    distribution: '分布正常',
+    uniqueness: '线路 × 日期组合唯一性 100%',
+    nullRate: '0.8%（集中在 yoy_rate 字段）',
+    distribution: '价格指数集中在 95-115 区间',
     anomalies: '未发现异常',
-    conclusion: '数据质量良好',
+    conclusion: '数据质量良好，适合运价趋势研判',
     updatedAt: '2026-07-01'
-  }
+  },
+  fieldProfiling: [
+    {
+      fieldName: 'vehicle_type',
+      nullRate: '0%',
+      distinctCount: 6,
+      topValues: [
+        { value: '整车', count: 54000, percent: 45 },
+        { value: '零担', count: 33600, percent: 28 },
+        { value: '冷链', count: 19200, percent: 16 },
+        { value: '其他', count: 13200, percent: 11 }
+      ],
+      updatedAt: '2026-07-01'
+    },
+    {
+      fieldName: 'price_index',
+      nullRate: '0%',
+      distinctCount: 842,
+      min: '88.4',
+      max: '126.9',
+      avg: '104.6',
+      topValues: [
+        { value: '100 - 110', count: 62400, percent: 52 },
+        { value: '110 - 120', count: 28800, percent: 24 },
+        { value: '90 - 100', count: 21600, percent: 18 },
+        { value: '其他区间', count: 7200, percent: 6 }
+      ],
+      updatedAt: '2026-07-01'
+    },
+    {
+      fieldName: 'yoy_rate',
+      nullRate: '0.8%',
+      distinctCount: 516,
+      min: '-0.142',
+      max: '0.208',
+      avg: '0.026',
+      topValues: [
+        { value: '0 ~ 5%', count: 50400, percent: 42 },
+        { value: '5% ~ 10%', count: 26400, percent: 22 },
+        { value: '-5% ~ 0', count: 25200, percent: 21 },
+        { value: '其他', count: 18000, percent: 15 }
+      ],
+      anomalies: '空值多为新开线路缺少去年同期基数',
+      updatedAt: '2026-07-01'
+    }
+  ]
 })
 
 const apiDetail = (): ApiDetail => ({
   method: 'GET',
-  pathExample: '/api/v1/query',
+  pathExample: '/api/v1/freight/price-index',
   version: 'v1',
-  authentication: 'API Key',
-  parameters: [],
-  responseFields: [],
-  sandbox: { editableParameters: [], fixedResponse: {}, simulatedLatencyMs: 200 },
-  errorCodes: [],
-  sla: '99.9% 可用性',
+  authentication: 'API Key（Header: X-Api-Key）',
+  parameters: [
+    { name: 'route_code', location: 'query', dataType: 'string', required: true, description: '线路编码，如 SH-GZ', example: 'SH-GZ' },
+    { name: 'vehicle_type', location: 'query', dataType: 'string', required: false, description: '车型，缺省返回全部', example: '整车' },
+    { name: 'stat_date', location: 'query', dataType: 'date', required: false, description: '统计日期，缺省取最新', example: '2026-06-28' }
+  ],
+  responseFields: [
+    { name: 'price_index', dataType: 'decimal', description: '价格指数' },
+    { name: 'mom_rate', dataType: 'decimal', description: '环比涨跌幅' },
+    { name: 'yoy_rate', dataType: 'decimal', description: '同比涨跌幅' },
+    { name: 'stat_date', dataType: 'date', description: '数据统计日期' }
+  ],
+  sandbox: {
+    editableParameters: ['route_code', 'vehicle_type'],
+    fixedResponse: { price_index: 106.8, mom_rate: 0.004, yoy_rate: 0.032, stat_date: '2026-06-28' },
+    simulatedLatencyMs: 200
+  },
+  errorCodes: [
+    { code: '400', message: '参数错误：route_code 缺失或格式不正确' },
+    { code: '401', message: '认证失败：API Key 无效或已过期' },
+    { code: '429', message: '触发限流：超出 100 QPS' },
+    { code: '500', message: '服务内部错误，请稍后重试' }
+  ],
+  sla: '99.9% 可用性 · P95 < 300ms',
   rateLimit: '100 QPS',
-  billing: '按调用次数计费'
+  billing: '按调用次数计费，¥1.1 / 次'
 })
 
 const reportDetail = (): ReportDetail => ({
-  author: '万联物流研究院',
-  publishedAt: '2026-07-01',
+  author: '万联物流数据研究院',
+  publishedAt: '2026-07-05',
   version: 'V2026-07',
-  audience: '行业研究 / 企业决策',
-  catalog: [],
-  blocks: [],
-  license: '企业商用授权'
+  audience: '物流企业管理层、供应链负责人、行业研究人员',
+  pageCount: 28,
+  license: '单篇购买带水印，企业内部使用，禁止对外转售',
+  catalog: [
+    { title: '核心摘要', previewable: true, page: 2 },
+    { title: '市场供需与运价', previewable: false, page: 8 },
+    { title: '重点区域观察', previewable: false, page: 17 },
+    { title: '趋势展望', previewable: false, page: 25 }
+  ],
+  blocks: [
+    {
+      id: 'blk-summary',
+      title: '核心摘要',
+      kind: 'chart',
+      content: '本月公路物流市场延续平稳恢复态势，重点线路运价指数环比温和上行。',
+      preview: 'visible',
+      page: 2
+    },
+    {
+      id: 'blk-supply-demand',
+      title: '市场供需与运价',
+      kind: 'text',
+      content: '分车型、分线路的供需缺口测算与运价传导路径分析。',
+      preview: 'masked',
+      page: 8
+    },
+    {
+      id: 'blk-region',
+      title: '重点区域观察',
+      kind: 'text',
+      content: '长三角、珠三角、成渝三大区域的运力与货量结构对比。',
+      preview: 'masked',
+      page: 17
+    },
+    {
+      id: 'blk-outlook',
+      title: '趋势展望',
+      kind: 'text',
+      content: '下季度运价走势预判与风险提示。',
+      preview: 'locked',
+      page: 25
+    }
+  ]
 })
 
 const dashboardDetail = (): DashboardDetail => ({
   timeRange: '近 12 个月',
   updateCycle: '每周更新',
-  metrics: [],
-  panels: [],
-  exportRule: '会员可导出'
+  exportRule: '会员可导出 Excel，非会员仅在线查看',
+  metrics: [
+    { name: '景气指数', definition: '综合运量、运价、运力的合成指数', formula: '加权合成（运量40% 运价35% 运力25%）', dimensions: ['时间', '区域'], preview: 'visible' },
+    { name: '运力供需比', definition: '可用运力与货量需求之比', formula: '可用运力 / 货量需求', dimensions: ['时间', '区域', '车型'], preview: 'masked' },
+    { name: '重点线路运价', definition: 'TOP 20 线路的加权平均运价', formula: 'Σ(线路运价×货量) / Σ货量', dimensions: ['时间', '线路'], preview: 'masked' }
+  ],
+  panels: [
+    { id: 'panel-trend', title: '景气指数走势', chartType: 'line', preview: 'visible', summary: '近 12 个月景气指数维持在荣枯线以上，6 月为 52.4' },
+    { id: 'panel-region', title: '区域运力供需对比', chartType: 'bar', preview: 'masked', summary: '华东运力偏紧，西南相对宽松' },
+    { id: 'panel-kpi', title: '本周核心指标', chartType: 'number', preview: 'masked', summary: '货量环比 +2.1%，运价环比 +0.4%' }
+  ]
 })
 
 function typeDetailFor(type: ProductType): ProductTypeDetail {
