@@ -138,9 +138,19 @@ async function refreshEnterpriseBinding() {
     bindingStatus.value = 'unbound'
     return
   }
+  const enterpriseId = user.context.currentEnterpriseId
+  const operatorMemberId = user.context.currentMemberId
+  const enterpriseContextGeneration = user.enterpriseContextGeneration
   try {
-    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(user.context.currentEnterpriseId)
-    if (binding.appEnterpriseId !== user.context.currentEnterpriseId) {
+    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(enterpriseId)
+    if (
+      user.enterpriseContextGeneration !== enterpriseContextGeneration
+      || user.context.enterpriseAuthStatus !== 'authenticated'
+      || user.context.currentEnterpriseId !== enterpriseId
+      || user.context.currentMemberId !== operatorMemberId
+      || !user.enterpriseMemberFor(enterpriseId, operatorMemberId)
+      || binding.appEnterpriseId !== enterpriseId
+    ) {
       bindingStatus.value = 'failed'
       return
     }

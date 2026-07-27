@@ -44,6 +44,8 @@ export interface SpacePurchaseIntent {
   returnUrl: string
   idempotencyKey: string
   correlationId: string
+  authorizationGeneration: number
+  enterpriseContextGeneration: number
   status: PurchaseIntentStatus
   createdAt: string
   returnedAt?: string

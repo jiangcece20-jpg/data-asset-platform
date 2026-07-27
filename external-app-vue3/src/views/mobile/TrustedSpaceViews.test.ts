@@ -74,7 +74,7 @@ async function mountSpaceBridgeWithIntent(options: { linkNow?: string; renderNow
     enterpriseAuthStatus: user.context.enterpriseAuthStatus,
     returnUrl: '/app/product/prod-qualification-api'
   }, adapter)
-  if (options.linkNow) await useTrustedSpacePurchaseStore().createLink(intent.id, adapter)
+  if (options.linkNow || options.redirected) await useTrustedSpacePurchaseStore().createLink(intent.id, adapter)
   if (options.redirected) useTrustedSpacePurchaseStore().markRedirected(intent.id)
   const router = createRouter({
     history: createMemoryHistory(),

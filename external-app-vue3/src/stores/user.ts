@@ -20,7 +20,8 @@ export const useUserStore = defineStore('user', {
       role: 'member'
     } as UserContext,
     enterprise: { ...seedEnterprise, members: seedEnterprise.members.map((m) => ({ ...m })) } as Enterprise,
-    enterpriseAuthPending: false
+    enterpriseAuthPending: false,
+    enterpriseContextGeneration: 0
   }),
   getters: {
     isEnterpriseAuthenticated(state): boolean {
@@ -58,11 +59,10 @@ export const useUserStore = defineStore('user', {
       this.enterprise.status = 'active'
     },
     setEnterpriseContext(enterpriseId: string | undefined) {
-      if (this.context.currentEnterpriseId !== enterpriseId) {
-        useApiUsageBillsStore().clearBills()
-        useSpaceOrderStore().clearMirrors()
-        useTrustedSpacePurchaseStore().clearIntents()
-      }
+      this.enterpriseContextGeneration += 1
+      useApiUsageBillsStore().clearBills()
+      useSpaceOrderStore().clearMirrors()
+      useTrustedSpacePurchaseStore().invalidateAuthorization()
       this.context.currentEnterpriseId = enterpriseId
     },
     clearEnterpriseContext() {
@@ -96,7 +96,9 @@ export const useUserStore = defineStore('user', {
       if (!m || !m.seatAssigned) return
       m.seatAssigned = false
       m.status = 'revoked'
+      this.enterpriseContextGeneration += 1
       useApiUsageBillsStore().invalidateAuthorization()
+      useTrustedSpacePurchaseStore().invalidateAuthorization()
       this.enterprise.seatsUsed = Math.max(0, this.enterprise.seatsUsed - 1)
       if (this.enterprise.status === 'seats_full') this.enterprise.status = 'active'
     },

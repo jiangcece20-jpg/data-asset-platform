@@ -77,7 +77,13 @@ describe('SpaceBridge direct-entry guard', () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
     useTrustedSpaceCatalogStore().snapshots = [{ ...seedTrustedProductSnapshots[0] }]
-    useTrustedSpacePurchaseStore().intents = [{
+    const purchases = useTrustedSpacePurchaseStore()
+    purchases.bindings = [{
+      appEnterpriseId: 'ent-wanlian-logistics',
+      spaceEnterpriseId: 'space-ent-wanlian',
+      status: 'active'
+    }]
+    purchases.intents = [{
       id: 'intent-qualification-001',
       appEnterpriseId: 'ent-wanlian-logistics',
       spaceEnterpriseId: 'space-ent-wanlian',
@@ -87,6 +93,8 @@ describe('SpaceBridge direct-entry guard', () => {
       returnUrl: '/app/product/prod-qualification-api',
       idempotencyKey: 'intent-key-1',
       correlationId: 'intent-correlation-1',
+      authorizationGeneration: purchases.authorizationGeneration,
+      enterpriseContextGeneration: user.enterpriseContextGeneration,
       status: 'redirected',
       createdAt: '2026-07-27T09:00:00.000Z',
       expiresAt: '2026-07-27T10:30:00.000Z'

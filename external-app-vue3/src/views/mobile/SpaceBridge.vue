@@ -66,7 +66,7 @@ async function createLink() {
   connecting.value = true
   connectionError.value = ''
   try {
-    await purchase.createLink(intent.value.id, undefined, currentTime())
+    await purchase.createLink(intent.value.id, undefined, currentTime)
   } catch (error) {
     connectionError.value = error instanceof Error ? error.message : '可信空间连接失败'
   } finally {
