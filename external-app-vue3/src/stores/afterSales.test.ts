@@ -6,6 +6,7 @@ import { useRefundStore } from './refunds'
 import { useEntitlementStore } from './entitlements'
 import { useContractStore } from './contracts'
 import { useOrderStore } from './orders'
+import { useUserStore } from './user'
 import type { Entitlement, Order } from '@/types/domain'
 import type { EnterpriseContract } from '@/types/afterSales'
 
@@ -93,6 +94,30 @@ describe('afterSales orchestrator', () => {
       && item.enterpriseId === 'ent-wanlian-logistics'
     )).toHaveLength(1)
     expect(entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal')).toHaveLength(personalBefore)
+  })
+
+  it('payment reconciliation grants a stale personal report to its order owner after the current member changes', () => {
+    const orders = useOrderStore()
+    orders.list = [order({
+      id: 'personal-stale',
+      ownerType: 'personal',
+      ownerId: 'mem-1',
+      productId: 'prod-logistics-monthly',
+      productName: '中国公路物流行业月报',
+      status: 'paid',
+      entitlementGranted: false
+    })]
+    const entitlements = useEntitlementStore()
+    const ownerBefore = entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal' && item.ownerId === 'mem-1').length
+    const currentBefore = entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal' && item.ownerId === 'mem-2').length
+    useUserStore().context.currentMemberId = 'mem-2'
+    const after = useAfterSalesStore()
+
+    after.reconcilePayment('personal-stale', 'space_success_app_stale', 'op-1')
+    after.reconcilePayment('personal-stale', 'space_success_app_stale', 'op-1')
+
+    expect(entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal' && item.ownerId === 'mem-1')).toHaveLength(ownerBefore + 1)
+    expect(entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal' && item.ownerId === 'mem-2')).toHaveLength(currentBefore)
   })
 
   it('contract termination opens a contract work order and requires two-layer notice', () => {

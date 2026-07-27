@@ -70,8 +70,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         status: 'active'
       })
     },
-    grantItem(product: Product) {
-      const user = useUserStore()
+    grantItem(product: Product, ownerMemberId: string) {
       const isReport = product.type === 'report'
       const isDashboard = product.type === 'dashboard'
       const months = isDashboard && product.entitlementPolicy?.kind === 'term'
@@ -81,7 +80,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         id: genId('ent'),
         source: 'personal',
         type: 'item',
-        ownerId: user.context.currentMemberId,
+        ownerId: ownerMemberId,
         productId: product.id,
         productVersion: isReport ? product.typeDetail.report?.version : undefined,
         validFrom: now(),

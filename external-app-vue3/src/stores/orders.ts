@@ -104,7 +104,7 @@ export const useOrderStore = defineStore('orders', {
         paidAt: now()
       }
       this.list.push(order)
-      entitlements.grantItem(product)
+      entitlements.grantItem(product, user.context.currentMemberId)
       return order
     },
     // APP 自营报告可按个人或已认证企业购买；可信空间商品不走此入口。
@@ -254,7 +254,7 @@ export const useOrderStore = defineStore('orders', {
         const product = catalog.byId(order.productId)
         if (product) {
           if (order.ownerType === 'enterprise') entitlements.grantEnterpriseSeat(product.id, order.ownerId)
-          else entitlements.grantItem(product)
+          else entitlements.grantItem(product, order.ownerId)
         }
         return { granted: true, needsWorkOrder: false }
       }
