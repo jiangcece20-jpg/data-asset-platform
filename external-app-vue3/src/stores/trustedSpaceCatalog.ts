@@ -17,7 +17,12 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
     cursor: undefined as string | undefined,
     syncing: false,
     lastSuccessAt: undefined as string | undefined,
-    error: ''
+    error: '',
+    requestGeneration: 0,
+    latestSyncGeneration: 0,
+    latestStatusGeneration: 0,
+    activeRequestCount: 0,
+    productRequestGenerations: {} as Record<string, number>
   }),
   getters: {
     byProductId(state) {
@@ -26,27 +31,35 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
   },
   actions: {
     async syncAll(adapter: TrustedSpaceAdapter = trustedSpaceAdapter): Promise<void> {
-      this.syncing = true
-      this.error = ''
+      const generation = this.beginRequest()
+      this.latestSyncGeneration = generation
       this.cursor = undefined
 
       try {
         let cursor: string | undefined
         do {
           const response = await adapter.syncProducts(cursor)
-          response.items.forEach((snapshot) => this.upsertSnapshot(snapshot))
+          if (generation !== this.latestSyncGeneration) return
+          response.items.forEach((snapshot) => {
+            if (!this.isCurrentSyncProduct(snapshot.appProductId, generation)) return
+            if (this.upsertSnapshot(snapshot)) this.recordSuccess(snapshot.syncedAt)
+          })
           cursor = response.nextCursor
           this.cursor = cursor
         } while (cursor)
-
-        this.lastSuccessAt = this.snapshots.reduce<string | undefined>((latest, snapshot) => {
-          return !latest || snapshot.syncedAt > latest ? snapshot.syncedAt : latest
-        }, undefined)
       } catch (error) {
-        this.markSnapshotsSyncFailed()
-        this.error = error instanceof Error ? error.message : '空间商品同步失败'
+        if (generation === this.latestSyncGeneration) {
+          this.snapshots.forEach((snapshot) => {
+            if (this.isCurrentSyncProduct(snapshot.appProductId, generation)) {
+              snapshot.syncState = 'sync_failed'
+            }
+          })
+        }
+        if (generation === this.latestStatusGeneration) {
+          this.error = error instanceof Error ? error.message : '空间商品同步失败'
+        }
       } finally {
-        this.syncing = false
+        this.finishRequest()
       }
     },
     async refreshProduct(appProductId: string, adapter: TrustedSpaceAdapter = trustedSpaceAdapter): Promise<void> {
@@ -54,21 +67,32 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
       const spaceProductNo = current?.spaceProductNo ?? useCatalogStore().byId(appProductId)?.spaceProductNo
       if (!spaceProductNo) return
 
-      this.syncing = true
-      this.error = ''
+      const generation = this.beginRequest()
+      this.productRequestGenerations[appProductId] = generation
       try {
         const snapshot = await adapter.getProduct(spaceProductNo)
+        if (!this.isCurrentProductRequest(appProductId, generation)) return
         if (!snapshot) {
-          if (current) current.syncState = 'unavailable'
+          const active = this.byProductId(appProductId)
+          if (active) active.syncState = 'unavailable'
           return
         }
-        this.upsertSnapshot(snapshot)
-        this.lastSuccessAt = snapshot.syncedAt
+        if (snapshot.appProductId !== appProductId) {
+          const active = this.byProductId(appProductId)
+          if (active) active.syncState = 'unavailable'
+          return
+        }
+        if (this.upsertSnapshot(snapshot)) this.recordSuccess(snapshot.syncedAt)
       } catch (error) {
-        if (current) current.syncState = 'sync_failed'
-        this.error = error instanceof Error ? error.message : '空间商品刷新失败'
+        if (this.isCurrentProductRequest(appProductId, generation)) {
+          const active = this.byProductId(appProductId)
+          if (active) active.syncState = 'sync_failed'
+          if (generation === this.latestStatusGeneration) {
+            this.error = error instanceof Error ? error.message : '空间商品刷新失败'
+          }
+        }
       } finally {
-        this.syncing = false
+        this.finishRequest()
       }
     },
     purchaseCheck(
@@ -87,15 +111,49 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
     },
     upsertSnapshot(snapshot: TrustedProductSnapshot) {
       const index = this.snapshots.findIndex((item) => item.appProductId === snapshot.appProductId)
-      if (index >= 0 && this.snapshots[index].version > snapshot.version) return
+      if (index >= 0 && this.snapshots[index].version > snapshot.version) return false
+      const current = index >= 0 ? this.snapshots[index] : undefined
+      if (
+        current
+        && current.version === snapshot.version
+        && (
+          snapshot.spaceUpdatedAt < current.spaceUpdatedAt
+          || snapshot.syncedAt < current.syncedAt
+        )
+      ) return false
 
-      const next = { ...snapshot, price: { ...snapshot.price } }
+      const next = current
+        && current.version === snapshot.version
+        && current.spaceUpdatedAt === snapshot.spaceUpdatedAt
+        ? { ...current, syncedAt: snapshot.syncedAt, syncState: snapshot.syncState }
+        : { ...snapshot, price: { ...snapshot.price } }
       if (index >= 0) this.snapshots[index] = next
       else this.snapshots.push(next)
       useCatalogStore().applyTrustedSnapshot(next)
+      return true
     },
-    markSnapshotsSyncFailed() {
-      this.snapshots.forEach((snapshot) => { snapshot.syncState = 'sync_failed' })
+    beginRequest() {
+      const generation = ++this.requestGeneration
+      this.latestStatusGeneration = generation
+      this.activeRequestCount += 1
+      this.syncing = true
+      this.error = ''
+      return generation
+    },
+    finishRequest() {
+      this.activeRequestCount = Math.max(0, this.activeRequestCount - 1)
+      this.syncing = this.activeRequestCount > 0
+    },
+    isCurrentSyncProduct(appProductId: string, generation: number) {
+      return generation === this.latestSyncGeneration
+        && (this.productRequestGenerations[appProductId] ?? 0) <= generation
+    },
+    isCurrentProductRequest(appProductId: string, generation: number) {
+      return this.productRequestGenerations[appProductId] === generation
+        && this.latestSyncGeneration <= generation
+    },
+    recordSuccess(syncedAt: string) {
+      if (!this.lastSuccessAt || syncedAt > this.lastSuccessAt) this.lastSuccessAt = syncedAt
     }
   }
 })
