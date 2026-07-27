@@ -46,6 +46,7 @@ export interface SpacePurchaseIntent {
   correlationId: string
   status: PurchaseIntentStatus
   createdAt: string
+  returnedAt?: string
   expiresAt: string
   purchaseUrl?: string
   purchaseLinkExpiresAt?: string

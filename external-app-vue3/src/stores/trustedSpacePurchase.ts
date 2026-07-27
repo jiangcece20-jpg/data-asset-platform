@@ -106,7 +106,10 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
     },
     markReturned(intentId: string) {
       const intent = this.byId(intentId)
-      if (intent && intent.status === 'redirected') intent.status = 'returned_pending_sync'
+      if (intent && intent.status === 'redirected') {
+        intent.status = 'returned_pending_sync'
+        intent.returnedAt = new Date().toISOString()
+      }
     },
     linkOrder(intentId: string) {
       const intent = this.byId(intentId)

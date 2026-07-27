@@ -1,13 +1,21 @@
 import { defineStore } from 'pinia'
 import { canApplySpaceOrderEvent, mapSpaceOrderStatus } from '@/domain/trustedSpacePolicy'
 import { trustedSpaceAdapter, type TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
-import type { PipelineDecision } from '@/types/configGovernance'
+import type { ConnectorEvent, PipelineDecision } from '@/types/configGovernance'
 import type { UserContext } from '@/types/domain'
-import type { SpaceOrderEvent, SpaceOrderMirror } from '@/types/trustedSpace'
+import type { SpaceOrderEvent, SpaceOrderMirror, SpacePurchaseIntent } from '@/types/trustedSpace'
 import { useIntegrationStore } from './integration'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
 import { useUserStore } from './user'
+
+export const LONG_UNLINKED_SPACE_ORDER_DELAY_MS = 15 * 60 * 1000
+
+export function isLongUnlinkedSpacePurchase(intent: SpacePurchaseIntent, now: Date): boolean {
+  if (intent.status !== 'returned_pending_sync') return false
+  const returnedAt = new Date(intent.returnedAt ?? intent.createdAt).getTime()
+  return Number.isFinite(returnedAt) && now.getTime() - returnedAt >= LONG_UNLINKED_SPACE_ORDER_DELAY_MS
+}
 
 export const useSpaceOrderStore = defineStore('space-orders', {
   state: () => ({
@@ -64,7 +72,10 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         eventType: 'order_update',
         eventVersion: event.eventVersion,
         idempotencyKey: event.idempotencyKey,
-        signatureValid: event.signatureValid
+        signatureValid: event.signatureValid,
+        purchaseIntentId: event.purchaseIntentId,
+        spaceEnterpriseId: event.spaceEnterpriseId,
+        spaceProductNo: event.spaceProductNo,
       })
       if (result.decision !== 'process') return result.decision
 
@@ -101,14 +112,37 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       this.mirrors = []
     },
 
-    canReconcileIntent(intent: { appEnterpriseId: string; operatorMemberId: string }): boolean {
+    canReconcileIntent(intent: SpacePurchaseIntent): boolean {
       const userStore = useUserStore()
       const context = userStore.context
+      const product = useTrustedSpaceCatalogStore().byProductId(intent.appProductId)
       return (
         context.enterpriseAuthStatus === 'authenticated'
         && context.currentEnterpriseId === intent.appEnterpriseId
         && context.currentMemberId === intent.operatorMemberId
         && Boolean(userStore.enterpriseMemberFor(intent.appEnterpriseId, intent.operatorMemberId))
+        && product?.spaceProductNo === intent.spaceProductNo
+      )
+    },
+
+    reconciliationIntentId(event: Pick<ConnectorEvent, 'connector' | 'purchaseIntentId' | 'spaceEnterpriseId' | 'spaceProductNo'>): string | undefined {
+      if (event.connector !== 'trusted_space' || !event.purchaseIntentId) return undefined
+      const intent = useTrustedSpacePurchaseStore().byId(event.purchaseIntentId)
+      const product = intent && useTrustedSpaceCatalogStore().byProductId(intent.appProductId)
+      if (
+        !intent
+        || !product
+        || event.spaceEnterpriseId !== intent.spaceEnterpriseId
+        || event.spaceProductNo !== intent.spaceProductNo
+        || product.spaceProductNo !== intent.spaceProductNo
+        || !this.canReconcileIntent(intent)
+      ) return undefined
+      return intent.id
+    },
+
+    longUnlinkedIntents(now = new Date()): SpacePurchaseIntent[] {
+      return useTrustedSpacePurchaseStore().intents.filter(
+        (intent) => isLongUnlinkedSpacePurchase(intent, now) && this.canReconcileIntent(intent),
       )
     },
 
@@ -141,7 +175,10 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         eventType: 'order_update',
         eventVersion: event.eventVersion,
         idempotencyKey: event.idempotencyKey,
-        signatureValid: event.signatureValid
+        signatureValid: event.signatureValid,
+        purchaseIntentId: event.purchaseIntentId,
+        spaceEnterpriseId: event.spaceEnterpriseId,
+        spaceProductNo: event.spaceProductNo,
       })
       while (integration.failEvent(rejected.id).outcome !== 'dead_letter') {
         // Association and state-transition violations are permanent.

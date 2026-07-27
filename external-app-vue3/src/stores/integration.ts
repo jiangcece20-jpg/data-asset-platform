@@ -12,6 +12,9 @@ export interface IncomingEvent {
   eventVersion: number
   idempotencyKey: string
   signatureValid: boolean
+  purchaseIntentId?: string
+  spaceEnterpriseId?: string
+  spaceProductNo?: string
 }
 
 function subjectKey(connector: Connector, subjectId: string, eventType: string): string {
@@ -66,6 +69,9 @@ export const useIntegrationStore = defineStore('integration', {
         eventVersion: input.eventVersion,
         idempotencyKey: input.idempotencyKey,
         signatureValid: input.signatureValid,
+        purchaseIntentId: input.purchaseIntentId,
+        spaceEnterpriseId: input.spaceEnterpriseId,
+        spaceProductNo: input.spaceProductNo,
         status: decision === 'process' ? 'processed' : 'received',
         attempts: 0,
         processingVersion: this.processingVersions[key] ?? 0,
@@ -92,6 +98,9 @@ export const useIntegrationStore = defineStore('integration', {
         eventVersion: input.eventVersion,
         idempotencyKey: input.idempotencyKey,
         signatureValid: input.signatureValid,
+        purchaseIntentId: input.purchaseIntentId,
+        spaceEnterpriseId: input.spaceEnterpriseId,
+        spaceProductNo: input.spaceProductNo,
         status: 'received',
         attempts: 0,
         processingVersion: this.processingVersions[key] ?? 0,

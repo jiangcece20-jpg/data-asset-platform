@@ -11,6 +11,7 @@ import { useDemandStore } from '@/stores/demand'
 import { useSupplyTaskStore } from '@/stores/supplyTasks'
 import { useRefundStore } from '@/stores/refunds'
 import { useIntegrationStore } from '@/stores/integration'
+import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { typeMeta } from '@/utils/productMeta'
 
 const router = useRouter()
@@ -28,14 +29,33 @@ const openSupplyTasks = computed(() => supply.openTasks)
 const refunds = useRefundStore()
 const openRefunds = computed(() => refunds.list.filter((r) => r.status === 'reviewing' || r.status === 'processing'))
 const integration = useIntegrationStore()
+const purchases = useTrustedSpacePurchaseStore()
 const deadLetterCount = computed(() => integration.deadLetters.length)
 const spaceExceptions = computed(() => [
+  ...spaceOrders.longUnlinkedIntents().map((intent) => ({
+    id: `long-unlinked-${intent.id}`,
+    label: `长时间未关联 · 购买意图 ${intent.id}`,
+    status: 'unknown_processing',
+    intentId: intent.id,
+  })),
   ...spaceOrders.mirrors
     .filter((mirror) => mirror.displayStatus === 'unknown_processing')
-    .map((mirror) => ({ id: mirror.spaceOrderId, label: `${mirror.productName} · 空间订单 ${mirror.spaceOrderId}`, status: mirror.displayStatus, intentId: mirror.purchaseIntentId })),
+    .map((mirror) => ({
+      id: mirror.spaceOrderId,
+      label: `${mirror.productName} · 空间订单 ${mirror.spaceOrderId}`,
+      status: mirror.displayStatus,
+      intentId: canReconcileIntent(mirror.purchaseIntentId),
+    })),
   ...integration.events
     .filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status))
-    .map((event) => ({ id: event.id, label: `未关联/异常事件 · ${event.subjectId}`, status: event.status, intentId: undefined })),
+    .map((event) => ({
+      id: event.id,
+      label: spaceOrders.reconciliationIntentId(event)
+        ? `未关联/异常事件 · ${event.subjectId}`
+        : `关联异常 · ${event.subjectId}（无当前企业合法购买意图）`,
+      status: event.status,
+      intentId: spaceOrders.reconciliationIntentId(event),
+    })),
 ])
 
 const reasonDraft = reactive<Record<string, string>>({})
@@ -57,6 +77,11 @@ function decide(id: string, conclusion: 'approved' | 'rejected') {
 
 function reconcileIntent(intentId?: string) {
   if (intentId) void spaceOrders.reconcileIntent(intentId)
+}
+
+function canReconcileIntent(intentId: string): string | undefined {
+  const intent = purchases.byId(intentId)
+  return intent && spaceOrders.canReconcileIntent(intent) ? intent.id : undefined
 }
 </script>
 

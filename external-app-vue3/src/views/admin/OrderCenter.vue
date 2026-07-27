@@ -21,9 +21,11 @@ import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 
 const orders = useOrderStore()
 const spaceOrders = useSpaceOrderStore()
+const purchases = useTrustedSpacePurchaseStore()
 
 const filterChannel = ref('')
 const filterOwner = ref('')
@@ -83,14 +85,20 @@ function confirmPayment(orderId: string) {
 }
 
 async function reconcile(row: UnifiedOrderRow) {
-  const mirror = spaceOrders.byId(row.id)
-  if (!mirror) return
+  const intentId = reconciliationIntentId(row.id)
+  if (!intentId) return
   reconcilingId.value = row.id
   try {
-    await spaceOrders.reconcileIntent(mirror.purchaseIntentId)
+    await spaceOrders.reconcileIntent(intentId)
   } finally {
     reconcilingId.value = ''
   }
+}
+
+function reconciliationIntentId(spaceOrderId: string): string | undefined {
+  const intentId = spaceOrders.byId(spaceOrderId)?.purchaseIntentId
+  const intent = intentId && purchases.byId(intentId)
+  return intent && spaceOrders.canReconcileIntent(intent) ? intent.id : undefined
 }
 
 function spaceDetailUrl(row: UnifiedOrderRow): string | undefined {
@@ -140,7 +148,7 @@ function spaceDetailUrl(row: UnifiedOrderRow): string | undefined {
                 <button v-if="order.contractStatus === 'contract_signed'" class="text-emerald-600 hover:underline" data-testid="confirm-pay" @click="confirmPayment(order.id)">确认付款并开通权益</button>
               </template>
               <template v-else>
-                <button class="mr-2 text-brand-600 hover:underline disabled:text-slate-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>
+                <button v-if="reconciliationIntentId(order.id)" class="mr-2 text-brand-600 hover:underline disabled:text-slate-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>
                 <a v-if="spaceDetailUrl(order)" :href="spaceDetailUrl(order)" target="_blank" rel="noopener" class="text-slate-600 hover:underline">查看空间详情</a>
               </template>
             </td>

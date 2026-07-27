@@ -7,7 +7,7 @@ import { seedTrustedProductSnapshots } from '@/data/trustedSpace'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useIntegrationStore } from './integration'
-import { useSpaceOrderStore } from './spaceOrders'
+import { LONG_UNLINKED_SPACE_ORDER_DELAY_MS, isLongUnlinkedSpacePurchase, useSpaceOrderStore } from './spaceOrders'
 import { useUserStore } from './user'
 
 const spaceEvent = (over: Partial<SpaceOrderEvent> = {}): SpaceOrderEvent => ({
@@ -276,7 +276,19 @@ describe('space order mirror store', () => {
 
     expect(decision).toBe('dead_letter')
     expect(store.byId('sp-order-1')).toBeUndefined()
-    expect(useIntegrationStore().deadLetters).toHaveLength(1)
+    expect(useIntegrationStore().deadLetters).toMatchObject([{
+      purchaseIntentId: 'intent-delayed',
+      spaceEnterpriseId: 'space-ent-wanlian',
+      spaceProductNo: 'SPACE-OTHER-999',
+    }])
+  })
+
+  it('identifies returned intents as long unlinked exactly at the exported reconciliation threshold', () => {
+    const returned = intent({ returnedAt: '2026-07-27T10:00:00.000Z' })
+
+    expect(isLongUnlinkedSpacePurchase(returned, new Date('2026-07-27T10:14:59.999Z'))).toBe(false)
+    expect(isLongUnlinkedSpacePurchase(returned, new Date('2026-07-27T10:15:00.000Z'))).toBe(true)
+    expect(LONG_UNLINKED_SPACE_ORDER_DELAY_MS).toBe(15 * 60 * 1000)
   })
 
   it('dead-letters a callback that attempts to attach an existing space order to another intent', () => {

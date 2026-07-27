@@ -22,7 +22,8 @@ const integration = useIntegrationStore()
 const woStore = useReverseWorkOrderStore()
 const spaceExceptionCount = computed(() =>
   spaceOrders.mirrors.filter((mirror) => mirror.displayStatus === 'unknown_processing').length
-  + integration.events.filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status)).length,
+  + integration.events.filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status)).length
+  + spaceOrders.longUnlinkedIntents().length,
 )
 
 const kpis = [

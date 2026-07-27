@@ -34,6 +34,9 @@ export interface ConnectorEvent {
   eventVersion: number
   idempotencyKey: string
   signatureValid: boolean
+  purchaseIntentId?: string
+  spaceEnterpriseId?: string
+  spaceProductNo?: string
   status: ConnectorEventStatus
   attempts: number
   processingVersion: number
