@@ -34,4 +34,85 @@ describe('item entitlement policies', () => {
 
     expect(store.list.at(-1)).toMatchObject({ source: 'personal', ownerId: 'mem-1', productId: 'prod-logistics-monthly' })
   })
+
+  it('does not let another member inherit a personal item entitlement', () => {
+    const store = useEntitlementStore()
+    const user = useUserStore()
+    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    store.list = []
+    store.grantItem(report, 'mem-1')
+
+    user.context.currentMemberId = 'mem-2'
+    expect(store.hasPersonalItem(report)).toBe(false)
+    expect(store.accessLevel(report)).toBe('none')
+
+    store.grantItem(report, 'mem-2')
+    expect(store.hasPersonalItem(report)).toBe(true)
+    expect(store.accessLevel(report)).toBe('item')
+  })
+
+  it('isolates personal membership entitlements by the current member owner', () => {
+    const store = useEntitlementStore()
+    const user = useUserStore()
+    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    store.list = []
+    user.context.currentMemberId = 'mem-1'
+    store.grantMember()
+
+    user.context.currentMemberId = 'mem-2'
+    expect(user.context.personalMember).toBe(true)
+    expect(store.hasPersonalMember).toBe(false)
+    expect(store.accessLevel(report)).toBe('none')
+
+    user.context.currentMemberId = 'mem-1'
+    expect(store.hasPersonalMember).toBe(true)
+    expect(store.accessLevel(report)).toBe('member')
+  })
+
+  it('scopes enterprise seat access to the current enterprise and its active assigned member', () => {
+    const store = useEntitlementStore()
+    const user = useUserStore()
+    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    store.list = []
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    store.grantEnterpriseSeat(report.id, user.enterprise.id)
+
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(true)
+    expect(store.accessLevel(report)).toBe('enterprise')
+
+    user.setEnterpriseContext('ent-other')
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(false)
+    user.setEnterpriseContext(user.enterprise.id)
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(true)
+
+    user.enterprise.members.find((member) => member.id === 'mem-2')!.status = 'revoked'
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(false)
+    user.enterprise.members.find((member) => member.id === 'mem-2')!.status = 'active'
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(true)
+
+    user.clearEnterpriseContext()
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(false)
+  })
+
+  it('rejects an enterprise seat whose owner or enterprise id differs from the current enterprise', () => {
+    const store = useEntitlementStore()
+    const user = useUserStore()
+    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    user.enterprise.entitledProductIds = [report.id]
+    store.list = [{
+      id: 'other-enterprise-seat',
+      source: 'enterprise',
+      type: 'seat',
+      ownerId: user.enterprise.id,
+      enterpriseId: 'ent-other',
+      productId: report.id,
+      validFrom: '2026-07-01',
+      status: 'active'
+    }]
+
+    expect(store.hasEnterpriseSeatAccess(report.id)).toBe(false)
+  })
 })

@@ -38,7 +38,10 @@ const supply = useSupplyTaskStore()
 const myDemands = computed(() => demand.byOwner(user.context.currentMemberId))
 const myCallbacks = computed(() => supply.callbacksForCustomer(user.context.currentMemberId))
 
-const itemEntitlements = computed(() => entitlements.list.filter((e) => e.type === 'item'))
+const currentPersonalEntitlements = computed(() => entitlements.currentPersonalEntitlements)
+const itemEntitlements = computed(() => currentPersonalEntitlements.value.filter((e) => e.type === 'item'))
+const personalMemberEntitlement = computed(() => currentPersonalEntitlements.value.find((e) => e.type === 'member'))
+const hasPersonalMember = computed(() => Boolean(personalMemberEntitlement.value))
 const favorites = computed(() => catalog.products.filter((p) => p.favorite))
 const myListingRequests = computed(() => listingRequests.byUser(user.context.currentMemberId))
 const enterpriseMember = computed(() => user.currentEnterpriseMember)
@@ -111,7 +114,7 @@ const deliveredNotices = computed(() =>
         <div class="flex-1">
           <div class="text-[14px] font-semibold text-slate-900">{{ user.context.name }}</div>
           <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
-            <span v-if="user.context.personalMember" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">会员至 {{ user.context.memberExpiresAt }}</span>
+            <span v-if="hasPersonalMember" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">会员至 {{ personalMemberEntitlement?.validTo }}</span>
             <span v-else>非会员</span>
           </div>
         </div>
@@ -138,9 +141,9 @@ const deliveredNotices = computed(() =>
       <div class="rounded-2xl border border-slate-100 bg-white p-3.5">
         <div class="text-[13px] font-medium text-slate-700">个人会员</div>
         <div class="mt-1 text-[12px] text-slate-400">
-          {{ user.context.personalMember ? `有效期至 ${user.context.memberExpiresAt}` : '尚未开通' }}
+          {{ hasPersonalMember ? `有效期至 ${personalMemberEntitlement?.validTo}` : '尚未开通' }}
         </div>
-        <button v-if="!user.context.personalMember" class="mt-2 rounded-full bg-brand-500 px-3 py-1.5 text-[12px] text-white" @click="router.push('/app/checkout/member')">
+        <button v-if="!hasPersonalMember" class="mt-2 rounded-full bg-brand-500 px-3 py-1.5 text-[12px] text-white" @click="router.push('/app/checkout/member')">
           去开通
         </button>
       </div>
@@ -153,7 +156,7 @@ const deliveredNotices = computed(() =>
           <span v-else class="text-slate-400">长期有效</span>
         </div>
       </div>
-      <EmptyState v-if="!user.context.personalMember && !itemEntitlements.length" icon="🎫" title="暂无个人权益" />
+      <EmptyState v-if="!hasPersonalMember && !itemEntitlements.length" icon="🎫" title="暂无个人权益" />
     </div>
 
     <!-- 个人订单 -->

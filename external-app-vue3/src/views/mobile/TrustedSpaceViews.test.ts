@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { seedApiUsageBills } from '@/data/trustedSpace'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
@@ -9,6 +10,8 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useCatalogStore } from '@/stores/catalog'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import type { UserContext } from '@/types/domain'
 import type { SpaceOrderMirror } from '@/types/trustedSpace'
@@ -355,5 +358,60 @@ describe('mine order views', () => {
     expect(wrapper.text()).not.toContain('SP-ORDER-OTHER')
     expect(wrapper.text()).toContain('APP 支付')
     expect(wrapper.text()).toContain('可信空间')
+  })
+
+  it('shows only the current member personal item and member entitlements in Mine', async () => {
+    const user = useUserStore()
+    const entitlements = useEntitlementStore()
+    entitlements.list = []
+    user.context.currentMemberId = 'mem-1'
+    entitlements.grantMember()
+    entitlements.grantItem(useCatalogStore().byId('prod-logistics-monthly')!, 'mem-1')
+    user.context.currentMemberId = 'mem-2'
+    entitlements.grantItem(useCatalogStore().byId('prod-freight-index')!, 'mem-2')
+
+    const wrapper = await mountMine({ currentMemberId: 'mem-2' })
+
+    expect(wrapper.text()).toContain('全国货运价格指数')
+    expect(wrapper.text()).not.toContain('中国公路物流行业月报')
+    expect(wrapper.text()).toContain('尚未开通')
+    expect(wrapper.text()).not.toContain('有效期至')
+  })
+
+  it('shows enterprise content only for the current enterprise active assigned member', async () => {
+    const user = useUserStore()
+    const entitlements = useEntitlementStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    user.enterprise.entitledProductIds = ['prod-logistics-monthly', 'prod-freight-index']
+    entitlements.list = [
+      {
+        id: 'current-enterprise-seat', source: 'enterprise', type: 'seat', ownerId: user.enterprise.id,
+        enterpriseId: user.enterprise.id, productId: 'prod-logistics-monthly', validFrom: '2026-07-01', status: 'active'
+      },
+      {
+        id: 'other-enterprise-seat', source: 'enterprise', type: 'seat', ownerId: 'ent-other',
+        enterpriseId: 'ent-other', productId: 'prod-freight-index', validFrom: '2026-07-01', status: 'active'
+      },
+      {
+        id: 'personal-item', source: 'personal', type: 'item', ownerId: 'mem-2',
+        productId: 'prod-cold-chain-dashboard', validFrom: '2026-07-01', status: 'active'
+      }
+    ]
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/app/mine/enterprise', name: 'mine-enterprise', component: MineEnterprise }]
+    })
+    await router.push('/app/mine/enterprise')
+    await router.isReady()
+    const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
+
+    expect(wrapper.text()).toContain('中国公路物流行业月报')
+    expect(wrapper.text()).not.toContain('全国货运价格指数')
+    expect(wrapper.text()).not.toContain('冷链物流温控合规看板')
+
+    user.enterprise.members.find((member) => member.id === 'mem-2')!.status = 'revoked'
+    await nextTick()
+    expect(wrapper.text()).not.toContain('中国公路物流行业月报')
   })
 })

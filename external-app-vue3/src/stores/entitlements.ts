@@ -26,24 +26,63 @@ export const useEntitlementStore = defineStore('entitlements', {
     hasPersonalMember(state): boolean {
       const user = useUserStore()
       const today = todayStr()
-      return user.context.personalMember || state.list.some((e) => e.source === 'personal' && e.type === 'member' && isActive(e, today))
+      return state.list.some((e) =>
+        e.source === 'personal'
+        && e.type === 'member'
+        && e.ownerId === user.context.currentMemberId
+        && isActive(e, today),
+      )
     },
     hasPersonalItem(state) {
-      return (product: Product, today = todayStr()): boolean =>
-        state.list.some((e) => {
-          if (e.source !== 'personal' || e.type !== 'item' || e.productId !== product.id) return false
+      return (product: Product, today = todayStr()): boolean => {
+        const user = useUserStore()
+        return state.list.some((e) => {
+          if (e.source !== 'personal' || e.type !== 'item' || e.ownerId !== user.context.currentMemberId || e.productId !== product.id) return false
           if (!isActive(e, today)) return false
           if (product.type === 'report') return e.productVersion === product.typeDetail.report?.version
           return true
         })
+      }
+    },
+    currentPersonalEntitlements(state): Entitlement[] {
+      const user = useUserStore()
+      const today = todayStr()
+      return state.list.filter((entitlement) =>
+        entitlement.source === 'personal'
+        && entitlement.ownerId === user.context.currentMemberId
+        && isActive(entitlement, today),
+      )
+    },
+    currentEnterpriseSeatEntitlements(state): Entitlement[] {
+      const user = useUserStore()
+      const enterpriseId = user.context.currentEnterpriseId
+      if (user.context.enterpriseAuthStatus !== 'authenticated' || !enterpriseId) return []
+      const member = user.enterpriseMemberFor(enterpriseId, user.context.currentMemberId)
+      if (!member?.seatAssigned) return []
+      const today = todayStr()
+      return state.list.filter((entitlement) =>
+        entitlement.source === 'enterprise'
+        && entitlement.type === 'seat'
+        && entitlement.ownerId === enterpriseId
+        && entitlement.enterpriseId === enterpriseId
+        && isActive(entitlement, today),
+      )
     },
     hasEnterpriseSeatAccess(state) {
       return (productId: string) => {
         const user = useUserStore()
-        if (user.context.enterpriseAuthStatus !== 'authenticated') return false
-        const seat = user.enterprise.members.find((m) => m.id === user.context.currentMemberId && m.seatAssigned)
-        if (!seat) return false
-        return user.enterprise.entitledProductIds.includes(productId)
+        const enterpriseId = user.context.currentEnterpriseId
+        if (user.context.enterpriseAuthStatus !== 'authenticated' || !enterpriseId) return false
+        const member = user.enterpriseMemberFor(enterpriseId, user.context.currentMemberId)
+        if (!member?.seatAssigned || !user.enterprise.entitledProductIds.includes(productId)) return false
+        return state.list.some((entitlement) =>
+          entitlement.source === 'enterprise'
+          && entitlement.type === 'seat'
+          && entitlement.productId === productId
+          && entitlement.ownerId === enterpriseId
+          && entitlement.enterpriseId === enterpriseId
+          && isActive(entitlement, todayStr()),
+        )
       }
     },
     // 权益判断顺序：会员（仅当商品包含 member）> 当前版本/期限单品权益 > 企业席位 > 无权限

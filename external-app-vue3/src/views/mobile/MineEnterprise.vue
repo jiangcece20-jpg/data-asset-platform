@@ -1,14 +1,27 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useUserStore } from '@/stores/user'
 import { useCatalogStore } from '@/stores/catalog'
+import { useEntitlementStore } from '@/stores/entitlements'
 
 const router = useRouter()
 const user = useUserStore()
 const catalog = useCatalogStore()
+const entitlements = useEntitlementStore()
+const enterpriseContextAllowed = computed(() =>
+  user.context.enterpriseAuthStatus === 'authenticated'
+  && Boolean(user.context.currentEnterpriseId)
+  && Boolean(user.context.currentEnterpriseId
+    && user.enterpriseMemberFor(user.context.currentEnterpriseId, user.context.currentMemberId)),
+)
+const enterpriseEntitledProductIds = computed(() =>
+  [...new Set(entitlements.currentEnterpriseSeatEntitlements.flatMap((entitlement) =>
+    entitlement.productId ? [entitlement.productId] : [],
+  ))],
+)
 
 const inviteName = ref('')
 const invitePhone = ref('')
@@ -25,7 +38,7 @@ function invite() {
   <div class="min-h-full bg-slate-50 pb-8">
     <MobileHeader title="企业中心" />
 
-    <div v-if="user.context.enterpriseAuthStatus !== 'authenticated'" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 text-center">
+    <div v-if="!enterpriseContextAllowed" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 text-center">
       <div class="text-[13px] text-slate-500">尚未完成企业认证</div>
       <button class="mt-3 w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white" @click="router.push({ path: '/app/enterprise-auth', query: { redirect: '/app/mine/enterprise' } })">
         去认证
@@ -45,7 +58,7 @@ function invite() {
             <div class="text-[11px] text-slate-400">已用席位</div>
           </div>
           <div class="flex-1 rounded-xl bg-slate-50 p-2.5 text-center">
-            <div class="text-[16px] font-bold text-slate-800">{{ user.enterprise.entitledProductIds.length }}</div>
+            <div class="text-[16px] font-bold text-slate-800">{{ enterpriseEntitledProductIds.length }}</div>
             <div class="text-[11px] text-slate-400">已购内容</div>
           </div>
         </div>
@@ -87,10 +100,10 @@ function invite() {
 
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
         <div class="mb-1.5 text-[13px] font-medium text-slate-700">已开通内容权益</div>
-        <div v-for="pid in user.enterprise.entitledProductIds" :key="pid" class="py-1 text-[12px] text-slate-600">
+        <div v-for="pid in enterpriseEntitledProductIds" :key="pid" class="py-1 text-[12px] text-slate-600">
           📄 {{ catalog.byId(pid)?.name || pid }}
         </div>
-        <div v-if="!user.enterprise.entitledProductIds.length" class="text-[12px] text-slate-400">暂无企业内容权益</div>
+        <div v-if="!enterpriseEntitledProductIds.length" class="text-[12px] text-slate-400">暂无企业内容权益</div>
       </div>
     </template>
   </div>
