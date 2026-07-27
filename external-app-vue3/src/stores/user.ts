@@ -22,6 +22,9 @@ export const useUserStore = defineStore('user', {
   getters: {
     isEnterpriseAuthenticated(state): boolean {
       return state.context.enterpriseAuthStatus === 'authenticated'
+    },
+    currentEnterpriseMember(state) {
+      return state.enterprise.members.find((member) => member.id === state.context.currentMemberId)
     }
   },
   actions: {
@@ -38,6 +41,7 @@ export const useUserStore = defineStore('user', {
     completeEnterpriseAuth() {
       this.context.enterpriseAuthStatus = 'authenticated'
       this.context.currentEnterpriseId = this.enterprise.id
+      this.context.role = this.currentEnterpriseMember?.role ?? 'member'
       this.enterpriseAuthPending = false
       this.enterprise.status = 'active'
     },

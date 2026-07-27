@@ -17,8 +17,11 @@ import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
+import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
+import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import type { ProductType } from '@/types/domain'
+import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +30,8 @@ const entitlements = useEntitlementStore()
 const user = useUserStore()
 const listingRequests = useListingRequestStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
+const trustedPurchase = useTrustedSpacePurchaseStore()
+const bindingStatus = ref<SpaceBindingStatus>('unbound')
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
@@ -51,7 +56,7 @@ const trustedPurchaseCheck = computed(() => {
   return trustedSpaceCatalog.purchaseCheck(
     product.value.id,
     user.context.enterpriseAuthStatus,
-    'unbound'
+    bindingStatus.value
   )
 })
 
@@ -118,6 +123,7 @@ watch(id, () => {
 
 onMounted(() => {
   if (product.value?.dealChannel === 'space_purchase') void trustedSpaceCatalog.syncAll()
+  void refreshEnterpriseBinding()
 })
 
 function toggleFav() {
@@ -127,9 +133,39 @@ function toggleFav() {
 function goEnterpriseAuth() {
   router.push({ path: '/app/enterprise-auth', query: { redirect: route.fullPath } })
 }
-function goSpace() {
+async function refreshEnterpriseBinding() {
+  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId) {
+    bindingStatus.value = 'unbound'
+    return
+  }
+  try {
+    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(user.context.currentEnterpriseId)
+    trustedPurchase.upsertBinding(binding)
+    bindingStatus.value = binding.status
+  } catch {
+    bindingStatus.value = 'failed'
+  }
+}
+
+async function goSpace() {
   if (!user.isEnterpriseAuthenticated) return goEnterpriseAuth()
-  router.push(`/app/space-bridge/${id.value}`)
+  if (!product.value || !user.context.currentEnterpriseId) return
+  if (bindingStatus.value !== 'active') {
+    await refreshEnterpriseBinding()
+    if (bindingStatus.value !== 'active') return
+  }
+  try {
+    const intent = await trustedPurchase.preparePurchase({
+      appEnterpriseId: user.context.currentEnterpriseId,
+      operatorMemberId: user.context.currentMemberId,
+      appProductId: product.value.id,
+      enterpriseAuthStatus: user.context.enterpriseAuthStatus,
+      returnUrl: route.fullPath
+    })
+    await router.push({ name: 'space-bridge', params: { id: product.value.id }, query: { intent: intent.id } })
+  } catch {
+    await refreshEnterpriseBinding()
+  }
 }
 function goMember() {
   router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })

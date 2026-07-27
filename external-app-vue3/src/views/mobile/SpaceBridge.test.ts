@@ -52,11 +52,14 @@ describe('SpaceBridge direct-entry guard', () => {
     }
   )
 
-  it('does not advertise SSO or create a local order for an unvalidated intent query', async () => {
+  it('rejects an unvalidated intent query without creating a local order', async () => {
     useUserStore().completeEnterpriseAuth()
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{ path: '/app/space-bridge/:id', name: 'space-bridge', component: SpaceBridge }]
+      routes: [
+        { path: '/app/space-bridge/:id', name: 'space-bridge', component: SpaceBridge },
+        { path: '/app/product/:id', name: 'product-detail', component: { template: '<div>详情页</div>' } }
+      ]
     })
     await router.push('/app/space-bridge/prod-qualification-api?intent=intent-placeholder')
     await router.isReady()
@@ -64,8 +67,8 @@ describe('SpaceBridge direct-entry guard', () => {
     const wrapper = mount(SpaceBridge, { global: { plugins: [router] } })
     await flushPromises()
 
-    expect(wrapper.text()).toContain('购买意图校验中…')
-    expect(wrapper.text()).not.toContain('单点登录')
+    expect(router.currentRoute.value.path).toBe('/app/product/prod-qualification-api')
+    expect(wrapper.text()).not.toContain('进入可信空间')
     expect(useOrderStore().list).toHaveLength(before)
   })
 })

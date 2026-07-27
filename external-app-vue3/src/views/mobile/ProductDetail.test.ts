@@ -23,7 +23,7 @@ async function mountProductDetail() {
 describe('ProductDetail trusted-space purchase guard', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('blocks an authenticated enterprise until a real space binding is available', async () => {
+  it('unlocks trusted-space purchase only after the adapter returns an active binding', async () => {
     useUserStore().completeEnterpriseAuth()
     const wrapper = await mountProductDetail()
     const trustedCatalog = useTrustedSpaceCatalogStore()
@@ -35,7 +35,7 @@ describe('ProductDetail trusted-space purchase guard', () => {
     await nextTick()
 
     const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('企业信息同步中')
-    expect(primary.attributes('disabled')).toBeDefined()
+    expect(primary.text()).toBe('前往可信空间购买')
+    expect(primary.attributes('disabled')).toBeUndefined()
   })
 })
