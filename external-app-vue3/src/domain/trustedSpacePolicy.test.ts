@@ -41,6 +41,16 @@ describe('trustedSpacePolicy', () => {
     })).toEqual({ allowed: false, reason: 'product_stale' })
   })
 
+  it('caps a trusted product snapshot at 30 minutes even when the caller allows 60', () => {
+    expect(evaluateTrustedPurchase({
+      enterpriseAuthStatus: 'authenticated',
+      bindingStatus: 'active',
+      snapshot: snapshot({ syncedAt: '2026-07-27T08:39:00.000Z' }),
+      now: '2026-07-27T09:10:00.000Z',
+      maxAgeMs: 60 * 60 * 1000
+    })).toEqual({ allowed: false, reason: 'product_stale' })
+  })
+
   it('blocks a product snapshot with a future sync time', () => {
     expect(evaluateTrustedPurchase({
       enterpriseAuthStatus: 'authenticated',
@@ -99,10 +109,6 @@ describe('trustedSpacePolicy', () => {
 
   it('rejects an event with an invalid signature before any order update', () => {
     expect(canApplySpaceOrderEvent(undefined, orderEvent({ signatureValid: false }), expectedAssociation)).toBe(false)
-  })
-
-  it('rejects a first event without an expected verified association', () => {
-    expect(canApplySpaceOrderEvent(undefined, orderEvent())).toBe(false)
   })
 
   it('allows a first event that matches its expected verified association', () => {

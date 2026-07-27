@@ -17,6 +17,8 @@ const knownOrderStatus: Record<string, SpaceOrderDisplayStatus> = {
   CANCELLED: 'cancelled'
 }
 
+const MAX_TRUSTED_PRODUCT_SNAPSHOT_AGE_MS = 30 * 60 * 1000
+
 export function evaluateTrustedPurchase(input: TrustedPurchaseCheckInput): TrustedPurchaseCheck {
   if (input.enterpriseAuthStatus !== 'authenticated') {
     return { allowed: false, reason: 'enterprise_required' }
@@ -28,13 +30,14 @@ export function evaluateTrustedPurchase(input: TrustedPurchaseCheckInput): Trust
     return { allowed: false, reason: 'product_unavailable' }
   }
   const age = new Date(input.now).getTime() - new Date(input.snapshot.syncedAt).getTime()
+  const effectiveMaxAgeMs = Math.min(input.maxAgeMs, MAX_TRUSTED_PRODUCT_SNAPSHOT_AGE_MS)
   if (
     input.snapshot.syncState !== 'current' ||
     !Number.isFinite(age) ||
     !Number.isFinite(input.maxAgeMs) ||
     input.maxAgeMs < 0 ||
     age < 0 ||
-    age > input.maxAgeMs
+    age > effectiveMaxAgeMs
   ) {
     return { allowed: false, reason: 'product_stale' }
   }
@@ -51,7 +54,7 @@ export function mapSpaceOrderStatus(rawStatus: string): SpaceOrderDisplayStatus 
 export function canApplySpaceOrderEvent(
   current: SpaceOrderMirror | undefined,
   incoming: SpaceOrderEvent,
-  expectedAssociation?: SpaceOrderEventAssociation
+  expectedAssociation: SpaceOrderEventAssociation
 ): boolean {
   if (!incoming.signatureValid || !expectedAssociation || !matchesAssociation(incoming, expectedAssociation)) {
     return false
