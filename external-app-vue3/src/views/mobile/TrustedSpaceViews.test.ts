@@ -8,10 +8,58 @@ import { MockTrustedSpaceAdapter } from '@/services/trusted-space/mockTrustedSpa
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/orders'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import type { UserContext } from '@/types/domain'
+import type { SpaceOrderMirror } from '@/types/trustedSpace'
 import SpaceBridge from './SpaceBridge.vue'
 import ApiUsageBills from './ApiUsageBills.vue'
 import ApiUsageBillDetail from './ApiUsageBillDetail.vue'
 import MineEnterprise from './MineEnterprise.vue'
+import Mine from './Mine.vue'
+
+function spaceOrderMirror(over: Partial<SpaceOrderMirror> = {}): SpaceOrderMirror {
+  return {
+    spaceOrderId: 'SP-ORDER-001',
+    purchaseIntentId: 'intent-001',
+    appEnterpriseId: 'ent-wanlian-logistics',
+    spaceEnterpriseId: 'space-ent-wanlian',
+    operatorMemberId: 'mem-1',
+    appProductId: 'prod-qualification-api',
+    spaceProductNo: 'SPACE-API-20415',
+    productName: '企业资质核验 API',
+    rawStatus: 'DELIVERED',
+    displayStatus: 'delivered',
+    amount: 1280,
+    currency: 'CNY',
+    eventVersion: 5,
+    spaceUpdatedAt: '2026-07-27T10:00:00.000Z',
+    syncedAt: '2026-07-27T10:01:00.000Z',
+    deliverySummary: '已开通资格核验 API 凭证',
+    detailUrl: 'https://trusted-space.mock/orders/SP-ORDER-001',
+    ...over
+  }
+}
+
+async function mountMine(context: Partial<UserContext> = {}) {
+  const user = useUserStore()
+  Object.assign(user.context, context)
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/app/mine', name: 'mine', component: Mine }]
+  })
+  await router.push('/app/mine')
+  await router.isReady()
+  const wrapper = mount(Mine, { global: { plugins: [router] } })
+  await flushPromises()
+  return wrapper
+}
+
+async function selectTab(wrapper: ReturnType<typeof mount>, tab: string) {
+  const button = wrapper.findAll('button').find((item) => item.text() === tab)
+  if (!button) throw new Error(`Missing tab: ${tab}`)
+  await button.trigger('click')
+}
 
 async function mountSpaceBridgeWithIntent(options: { linkNow?: string; renderNow?: () => Date; returned?: boolean; redirected?: boolean } = {}) {
   let linkNow = options.linkNow ?? '2026-07-27T10:00:00.000Z'
@@ -173,5 +221,89 @@ describe('API usage bill views', () => {
     await flushPromises()
     expect(detail.text()).toContain('未找到该账单')
     expect(detail.text()).not.toContain('账单有疑问')
+  })
+})
+
+describe('mine order views', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('does not render enterprise orders outside authenticated enterprise context', async () => {
+    useOrderStore().list.push({
+      id: 'app-enterprise-001',
+      channel: 'app',
+      ownerType: 'enterprise',
+      ownerId: 'ent-wanlian-logistics',
+      productId: 'prod-qualification-api',
+      productName: '企业资质核验 API',
+      amount: 1280,
+      status: 'paid',
+      createdAt: '2026-07-27T10:00:00.000Z'
+    })
+    useSpaceOrderStore().mirrors = [spaceOrderMirror()]
+
+    const wrapper = await mountMine({ enterpriseAuthStatus: 'none' })
+    await selectTab(wrapper, '企业订单')
+
+    expect(wrapper.text()).toContain('完成企业认证后查看企业订单')
+    expect(wrapper.text()).not.toContain('SP-ORDER-')
+  })
+
+  it('separates the current member personal orders from member-visible enterprise orders', async () => {
+    useOrderStore().list.push(
+      {
+        id: 'personal-other',
+        channel: 'app',
+        ownerType: 'personal',
+        ownerId: 'mem-1',
+        productId: 'prod-other',
+        productName: '其他成员个人订单',
+        amount: 100,
+        status: 'paid',
+        createdAt: '2026-07-27T10:00:00.000Z'
+      },
+      {
+        id: 'personal-current',
+        channel: 'app',
+        ownerType: 'personal',
+        ownerId: 'mem-2',
+        productId: 'prod-current',
+        productName: '本人个人订单',
+        amount: 200,
+        status: 'paid',
+        createdAt: '2026-07-27T10:00:00.000Z'
+      },
+      {
+        id: 'enterprise-app',
+        channel: 'app',
+        ownerType: 'enterprise',
+        ownerId: 'ent-wanlian-logistics',
+        productId: 'prod-enterprise',
+        productName: '企业 APP 订单',
+        amount: 300,
+        status: 'paid',
+        createdAt: '2026-07-27T10:00:00.000Z'
+      }
+    )
+    useSpaceOrderStore().mirrors = [
+      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-OTHER', operatorMemberId: 'mem-1' }),
+      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-MINE', operatorMemberId: 'mem-2' })
+    ]
+
+    const wrapper = await mountMine({
+      currentMemberId: 'mem-2',
+      currentEnterpriseId: 'ent-wanlian-logistics',
+      enterpriseAuthStatus: 'authenticated',
+      role: 'member'
+    })
+    await selectTab(wrapper, '个人订单')
+    expect(wrapper.text()).toContain('本人个人订单')
+    expect(wrapper.text()).not.toContain('其他成员个人订单')
+
+    await selectTab(wrapper, '企业订单')
+    expect(wrapper.text()).toContain('企业 APP 订单')
+    expect(wrapper.text()).toContain('SP-ORDER-MINE')
+    expect(wrapper.text()).not.toContain('SP-ORDER-OTHER')
+    expect(wrapper.text()).toContain('APP 支付')
+    expect(wrapper.text()).toContain('可信空间')
   })
 })

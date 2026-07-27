@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { SpaceOrderEvent, SpacePurchaseIntent } from '@/types/trustedSpace'
+import type { UserContext } from '@/types/domain'
+import type { SpaceOrderEvent, SpaceOrderMirror, SpacePurchaseIntent } from '@/types/trustedSpace'
 import type { TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { seedTrustedProductSnapshots } from '@/data/trustedSpace'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
@@ -43,6 +44,27 @@ function intent(over: Partial<SpacePurchaseIntent> = {}): SpacePurchaseIntent {
   }
 }
 
+function mirror(over: Partial<SpaceOrderMirror> = {}): SpaceOrderMirror {
+  return {
+    spaceOrderId: 'o1',
+    purchaseIntentId: 'intent-delayed',
+    appEnterpriseId: 'ent-wanlian-logistics',
+    spaceEnterpriseId: 'space-ent-wanlian',
+    operatorMemberId: 'mem-1',
+    appProductId: 'prod-qualification-api',
+    spaceProductNo: 'SPACE-API-20415',
+    productName: '企业资质核验 API',
+    rawStatus: 'DELIVERED',
+    displayStatus: 'delivered',
+    amount: 1280,
+    currency: 'CNY',
+    eventVersion: 5,
+    spaceUpdatedAt: '2026-07-27T10:00:00.000Z',
+    syncedAt: '2026-07-27T10:01:00.000Z',
+    ...over
+  }
+}
+
 describe('space order mirror store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -59,6 +81,36 @@ describe('space order mirror store', () => {
       idempotencyKey: 'older'
     }))
     expect(store.byId('sp-order-1')?.displayStatus).toBe('delivered')
+  })
+
+  it('lets an admin see every enterprise space order', () => {
+    const store = useSpaceOrderStore()
+    store.mirrors = [
+      mirror({ spaceOrderId: 'o1', operatorMemberId: 'mem-1' }),
+      mirror({ spaceOrderId: 'o2', operatorMemberId: 'mem-2' })
+    ]
+
+    expect(store.visibleFor({
+      currentEnterpriseId: 'ent-wanlian-logistics',
+      currentMemberId: 'mem-1',
+      enterpriseAuthStatus: 'authenticated',
+      role: 'admin'
+    } as UserContext)).toHaveLength(2)
+  })
+
+  it('limits a member to orders they operated', () => {
+    const store = useSpaceOrderStore()
+    store.mirrors = [
+      mirror({ spaceOrderId: 'o1', operatorMemberId: 'mem-1' }),
+      mirror({ spaceOrderId: 'o2', operatorMemberId: 'mem-2' })
+    ]
+
+    expect(store.visibleFor({
+      currentEnterpriseId: 'ent-wanlian-logistics',
+      currentMemberId: 'mem-2',
+      enterpriseAuthStatus: 'authenticated',
+      role: 'member'
+    } as UserContext).map((order) => order.spaceOrderId)).toEqual(['o2'])
   })
 
   it('does not overwrite a delivered mirror with a same-version event using a new idempotency key', () => {

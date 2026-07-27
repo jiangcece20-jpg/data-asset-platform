@@ -18,9 +18,6 @@ export const useOrderStore = defineStore('orders', {
     appOrders(state): Order[] {
       return state.list.filter((o) => o.channel === 'app')
     },
-    spaceOrders(state): Order[] {
-      return state.list.filter((o) => o.channel === 'space')
-    },
     enterpriseOrders(state): Order[] {
       return state.list.filter((o) => o.ownerType === 'enterprise')
     }

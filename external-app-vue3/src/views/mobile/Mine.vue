@@ -10,6 +10,7 @@ import { useSupplyTaskStore } from '@/stores/supplyTasks'
 import { useUserStore } from '@/stores/user'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useOrderStore } from '@/stores/orders'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useTrialStore } from '@/stores/trials'
 import { useDemandStore } from '@/stores/demand'
 import { useCatalogStore } from '@/stores/catalog'
@@ -21,15 +22,16 @@ const router = useRouter()
 const user = useUserStore()
 const entitlements = useEntitlementStore()
 const orders = useOrderStore()
+const spaceOrders = useSpaceOrderStore()
 const trials = useTrialStore()
 const demand = useDemandStore()
 const catalog = useCatalogStore()
 const listingRequests = useListingRequestStore()
 const woStore = useReverseWorkOrderStore()
 
-const tabs = ['权益', 'APP订单', '空间订单', '试用与需求', '求上架', '服务通知', '收藏'] as const
+const tabs = ['权益', '个人订单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏'] as const
 const initialTab = (route.query.tab as string) || '权益'
-const validTabs = ['权益', 'APP订单', '空间订单', '试用与需求', '求上架', '服务通知', '收藏']
+const validTabs = ['权益', '个人订单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏']
 const tab = ref<(typeof tabs)[number]>(validTabs.includes(initialTab) ? initialTab as any : '权益')
 
 const supply = useSupplyTaskStore()
@@ -39,6 +41,55 @@ const myCallbacks = computed(() => supply.callbacksForCustomer(user.context.curr
 const itemEntitlements = computed(() => entitlements.list.filter((e) => e.type === 'item'))
 const favorites = computed(() => catalog.products.filter((p) => p.favorite))
 const myListingRequests = computed(() => listingRequests.byUser(user.context.currentMemberId))
+const enterpriseMember = computed(() => user.currentEnterpriseMember)
+const enterpriseOrderUser = computed(() => {
+  if (
+    user.context.enterpriseAuthStatus !== 'authenticated'
+    || !user.context.currentEnterpriseId
+    || !enterpriseMember.value
+  ) return undefined
+
+  return {
+    currentEnterpriseId: user.context.currentEnterpriseId,
+    currentMemberId: user.context.currentMemberId,
+    enterpriseAuthStatus: user.context.enterpriseAuthStatus,
+    role: enterpriseMember.value.role
+  }
+})
+const personalAppOrders = computed(() => orders.appOrders.filter((order) =>
+  order.ownerType === 'personal' && order.ownerId === user.context.currentMemberId,
+))
+const enterpriseOrders = computed(() => {
+  const context = enterpriseOrderUser.value
+  if (!context) return []
+
+  const appOrders = orders.appOrders
+    .filter((order) => order.ownerType === 'enterprise' && order.ownerId === context.currentEnterpriseId)
+    .map((order) => ({
+      source: 'app' as const,
+      id: order.id,
+      channelLabel: 'APP 支付',
+      productName: order.productName,
+      status: order.status,
+      amount: order.amount,
+      createdAt: order.createdAt
+    }))
+  const trustedSpaceOrders = spaceOrders.visibleFor(context).map((order) => ({
+    source: 'space' as const,
+    id: order.spaceOrderId,
+    channelLabel: '可信空间',
+    productName: order.productName,
+    status: order.displayStatus,
+    amount: order.amount,
+    currency: order.currency,
+    spaceOrderId: order.spaceOrderId,
+    deliverySummary: order.deliverySummary,
+    syncedAt: order.syncedAt,
+    detailUrl: order.detailUrl
+  }))
+
+  return [...appOrders, ...trustedSpaceOrders]
+})
 
 const deliveredNotices = computed(() =>
   woStore.notices.filter((n) =>
@@ -105,31 +156,53 @@ const deliveredNotices = computed(() =>
       <EmptyState v-if="!user.context.personalMember && !itemEntitlements.length" icon="🎫" title="暂无个人权益" />
     </div>
 
-    <!-- APP订单 -->
-    <div v-else-if="tab === 'APP订单'" class="mt-3 space-y-2 px-4">
-      <div v-for="o in orders.appOrders" :key="o.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
+    <!-- 个人订单 -->
+    <div v-else-if="tab === '个人订单'" class="mt-3 space-y-2 px-4">
+      <div v-for="o in personalAppOrders" :key="o.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
         <div class="flex items-center justify-between">
           <span class="text-[13px] font-medium text-slate-800">{{ o.productName }}</span>
           <StatusBadge dict="appOrder" :value="o.status" />
         </div>
         <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
-          <span>{{ o.ownerType === 'enterprise' ? '企业订单' : '个人订单' }} · {{ o.createdAt }}</span>
+          <span>个人订单 · {{ o.createdAt }}</span>
           <span>¥{{ o.amount }}</span>
         </div>
       </div>
-      <EmptyState v-if="!orders.appOrders.length" icon="🧾" title="暂无 APP 订单" />
+      <EmptyState v-if="!personalAppOrders.length" icon="🧾" title="暂无个人订单" />
     </div>
 
-    <!-- 空间订单 -->
-    <div v-else-if="tab === '空间订单'" class="mt-3 space-y-2 px-4">
-      <div v-for="o in orders.spaceOrders" :key="o.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="flex items-center justify-between">
-          <span class="text-[13px] font-medium text-slate-800">{{ o.productName }}</span>
-          <StatusBadge dict="spaceOrder" :value="o.status" />
-        </div>
-        <div class="mt-1 text-[11px] text-slate-400">{{ o.createdAt }}</div>
+    <!-- 企业订单 -->
+    <div v-else-if="tab === '企业订单'" class="mt-3 space-y-2 px-4">
+      <div v-if="!enterpriseOrderUser" class="rounded-2xl border border-slate-100 bg-white p-4 text-center text-[13px] text-slate-500">
+        完成企业认证后查看企业订单
       </div>
-      <EmptyState v-if="!orders.spaceOrders.length" icon="🔗" title="暂无空间订单" />
+      <template v-else>
+        <div v-for="o in enterpriseOrders" :key="`${o.source}-${o.id}`" class="rounded-2xl border border-slate-100 bg-white p-3.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-medium text-slate-800">{{ o.productName }}</span>
+            <StatusBadge v-if="o.source === 'app'" dict="appOrder" :value="o.status" />
+            <StatusBadge v-else dict="spaceOrder" :value="o.status" />
+          </div>
+          <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
+            <span>{{ o.channelLabel }}</span>
+            <span>{{ o.source === 'app' ? `¥${o.amount}` : `${o.amount} ${o.currency}` }}</span>
+          </div>
+          <div v-if="o.source === 'app'" class="mt-1 text-[11px] text-slate-400">创建于 {{ o.createdAt }}</div>
+          <template v-else>
+            <div class="mt-1 text-[11px] text-slate-400">空间订单号：{{ o.spaceOrderId }}</div>
+            <div v-if="o.deliverySummary" class="mt-1 text-[11px] text-slate-500">交付摘要：{{ o.deliverySummary }}</div>
+            <div class="mt-1 text-[11px] text-slate-400">最近同步：{{ o.syncedAt }}</div>
+            <a
+              v-if="o.detailUrl"
+              class="mt-2 inline-flex rounded-full bg-brand-50 px-3 py-1.5 text-[12px] text-brand-600"
+              :href="o.detailUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >前往空间使用</a>
+          </template>
+        </div>
+        <EmptyState v-if="!enterpriseOrders.length" icon="🧾" title="暂无企业订单" />
+      </template>
     </div>
 
     <!-- 试用与需求 -->

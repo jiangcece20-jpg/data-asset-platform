@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { canApplySpaceOrderEvent, mapSpaceOrderStatus } from '@/domain/trustedSpacePolicy'
 import { trustedSpaceAdapter, type TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import type { PipelineDecision } from '@/types/configGovernance'
+import type { UserContext } from '@/types/domain'
 import type { SpaceOrderEvent, SpaceOrderMirror } from '@/types/trustedSpace'
 import { useIntegrationStore } from './integration'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
@@ -17,6 +18,16 @@ export const useSpaceOrderStore = defineStore('space-orders', {
     },
     byIntentId(state) {
       return (purchaseIntentId: string) => state.mirrors.find((mirror) => mirror.purchaseIntentId === purchaseIntentId)
+    },
+    visibleFor(state) {
+      return (user: Pick<UserContext, 'currentEnterpriseId' | 'currentMemberId' | 'enterpriseAuthStatus' | 'role'>): SpaceOrderMirror[] => {
+        if (user.enterpriseAuthStatus !== 'authenticated' || !user.currentEnterpriseId || !user.currentMemberId) return []
+
+        const enterpriseOrders = state.mirrors.filter((mirror) => mirror.appEnterpriseId === user.currentEnterpriseId)
+        return user.role === 'admin'
+          ? enterpriseOrders
+          : enterpriseOrders.filter((mirror) => mirror.operatorMemberId === user.currentMemberId)
+      }
     }
   },
   actions: {
