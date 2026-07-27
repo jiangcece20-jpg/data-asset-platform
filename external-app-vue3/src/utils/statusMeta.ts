@@ -40,12 +40,29 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     entitlement_active: { label: '权益已生效', tone: 'green' }
   },
   spaceOrder: {
-    pending_redirect: { label: '待跳转', tone: 'slate' },
-    space_processing: { label: '空间处理中', tone: 'amber' },
-    purchase_success: { label: '购买成功', tone: 'blue' },
-    callback_delayed: { label: '状态同步中', tone: 'amber' },
+    accepted: { label: '已受理', tone: 'blue' },
+    pending_payment: { label: '待支付', tone: 'amber' },
+    paid: { label: '已支付', tone: 'blue' },
     delivering: { label: '交付中', tone: 'blue' },
-    delivered: { label: '已交付', tone: 'green' }
+    delivered: { label: '已交付', tone: 'green' },
+    failed: { label: '失败', tone: 'red' },
+    cancelled: { label: '已取消', tone: 'slate' },
+    unknown_processing: { label: '处理中', tone: 'amber' }
+  },
+  snapshotSync: {
+    current: { label: '同步正常', tone: 'green' },
+    stale: { label: '同步已过期', tone: 'amber' },
+    sync_failed: { label: '同步失败', tone: 'red' },
+    unavailable: { label: '暂不可用', tone: 'slate' }
+  },
+  purchaseIntent: {
+    validating: { label: '资格校验中', tone: 'amber' },
+    ready: { label: '待跳转', tone: 'blue' },
+    redirected: { label: '已跳转', tone: 'blue' },
+    returned_pending_sync: { label: '等待状态同步', tone: 'amber' },
+    linked: { label: '已关联订单', tone: 'green' },
+    failed: { label: '发起失败', tone: 'red' },
+    expired: { label: '已过期', tone: 'slate' }
   },
   trial: {
     not_applied: { label: '未申请', tone: 'slate' },
