@@ -15,6 +15,9 @@ describe('decideEvent', () => {
   it('drops a stale (older-version) event', () => {
     expect(decideEvent({ ...base, eventVersion: 2 })).toBe('stale_dropped')
   })
+  it('drops a same-version event after that object has been processed', () => {
+    expect(decideEvent({ ...base, eventVersion: 3 })).toBe('stale_dropped')
+  })
 })
 
 describe('decideAfterFailure', () => {

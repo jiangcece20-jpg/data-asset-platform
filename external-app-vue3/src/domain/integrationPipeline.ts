@@ -4,7 +4,7 @@ import type { PipelineDecision } from '@/types/configGovernance'
 export interface PipelineInput {
   signatureValid: boolean
   eventVersion: number
-  currentProcessingVersion: number
+  currentProcessingVersion?: number
   idempotencyKeySeen: boolean
 }
 
@@ -12,7 +12,10 @@ export function decideEvent(input: PipelineInput): PipelineDecision {
   if (!input.signatureValid) return 'signature_rejected'
   if (input.idempotencyKeySeen) return 'duplicate_noop'
   // 旧事件版本不得覆盖更新状态（同步超时不会被误判为下架，只是被丢弃）。
-  if (input.eventVersion < input.currentProcessingVersion) return 'stale_dropped'
+  if (
+    input.currentProcessingVersion !== undefined &&
+    input.eventVersion <= input.currentProcessingVersion
+  ) return 'stale_dropped'
   return 'process'
 }
 

@@ -55,7 +55,7 @@ export const useIntegrationStore = defineStore('integration', {
       const decision = decideEvent({
         signatureValid: input.signatureValid,
         eventVersion: input.eventVersion,
-        currentProcessingVersion: this.processingVersions[key] ?? 0,
+        currentProcessingVersion: this.processingVersions[key],
         idempotencyKeySeen: seen
       })
       const event: ConnectorEvent = {

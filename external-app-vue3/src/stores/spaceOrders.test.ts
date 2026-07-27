@@ -61,6 +61,32 @@ describe('space order mirror store', () => {
     expect(store.byId('sp-order-1')?.displayStatus).toBe('delivered')
   })
 
+  it('does not overwrite a delivered mirror with a same-version event using a new idempotency key', () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    store.processSpaceOrderEvent(spaceEvent())
+
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      rawStatus: 'PAID',
+      eventVersion: 5,
+      idempotencyKey: 'same-version-new-key'
+    }))).toBe('stale_dropped')
+    expect(store.byId('sp-order-1')?.displayStatus).toBe('delivered')
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(5)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
+  })
+
+  it('accepts a higher-version callback with the same terminal status', () => {
+    const store = useSpaceOrderStore()
+    store.processSpaceOrderEvent(spaceEvent())
+
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      eventVersion: 6,
+      idempotencyKey: 'same-status-v6'
+    }))).toBe('process')
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(6)
+  })
+
   it('reconciles an intent when return happens before callback', async () => {
     const store = useSpaceOrderStore()
     const adapter: TrustedSpaceAdapter = {

@@ -22,6 +22,17 @@ describe('integration store', () => {
     expect(decision).toBe('process')
   })
 
+  it('accepts version zero for an object with no processed-version record', () => {
+    const store = useIntegrationStore()
+    expect(store.processEvent(evt({ eventVersion: 0, idempotencyKey: 'first-v0' })).decision).toBe('process')
+  })
+
+  it('drops a same-version event with a different idempotency key', () => {
+    const store = useIntegrationStore()
+    store.processEvent(evt({ eventVersion: 5, idempotencyKey: 'v5-first' }))
+    expect(store.processEvent(evt({ eventVersion: 5, idempotencyKey: 'v5-second' })).decision).toBe('stale_dropped')
+  })
+
   it('keeps event versions isolated by space order', () => {
     const store = useIntegrationStore()
     expect(store.processEvent(evt({ subjectId: 'sp-order-1', eventVersion: 5 })).decision).toBe('process')
