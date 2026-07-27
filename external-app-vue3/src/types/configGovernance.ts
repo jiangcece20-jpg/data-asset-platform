@@ -37,6 +37,7 @@ export interface ConnectorEvent {
   purchaseIntentId?: string
   spaceEnterpriseId?: string
   spaceProductNo?: string
+  payloadFingerprint?: string
   status: ConnectorEventStatus
   attempts: number
   processingVersion: number
@@ -79,4 +80,11 @@ export type RollbackAction =
   | 'rollback_keep_erroneous'
 
 // 集成管线决策（§13.1）
-export type PipelineDecision = 'process' | 'stale_dropped' | 'duplicate_noop' | 'signature_rejected' | 'retry' | 'dead_letter'
+export type PipelineDecision =
+  | 'process'
+  | 'stale_dropped'
+  | 'duplicate_noop'
+  | 'signature_rejected'
+  | 'retry_payload_rejected'
+  | 'retry'
+  | 'dead_letter'

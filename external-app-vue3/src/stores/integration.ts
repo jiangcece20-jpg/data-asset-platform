@@ -20,10 +20,26 @@ export interface IncomingEvent {
   purchaseIntentId?: string
   spaceEnterpriseId?: string
   spaceProductNo?: string
+  payloadFingerprint?: string
 }
 
 function subjectKey(connector: Connector, subjectId: string, eventType: string): string {
   return `${connector}:${subjectId}:${eventType}`
+}
+
+function matchesIncomingEvent(event: ConnectorEvent, input: IncomingEvent): boolean {
+  return (
+    event.connector === input.connector
+    && event.subjectId === input.subjectId
+    && event.eventType === input.eventType
+    && event.eventVersion === input.eventVersion
+    && event.idempotencyKey === input.idempotencyKey
+    && event.signatureValid === input.signatureValid
+    && event.purchaseIntentId === input.purchaseIntentId
+    && event.spaceEnterpriseId === input.spaceEnterpriseId
+    && event.spaceProductNo === input.spaceProductNo
+    && event.payloadFingerprint === input.payloadFingerprint
+  )
 }
 
 function emptyImpact(subjectId: string): ImpactSnapshot {
@@ -55,20 +71,81 @@ export const useIntegrationStore = defineStore('integration', {
     },
     byId(state) {
       return (id: string) => state.events.find((e) => e.id === id)
+    },
+    byIdempotencyKey(state) {
+      return (idempotencyKey: string) => state.events.find((event) => event.idempotencyKey === idempotencyKey)
     }
   },
   actions: {
+    matchesIdempotentPayload(input: IncomingEvent): boolean {
+      const existing = this.events.find((event) => event.idempotencyKey === input.idempotencyKey)
+      return !existing || matchesIncomingEvent(existing, input)
+    },
+
+    applyAndCommitEvent(
+      input: IncomingEvent,
+      event: ConnectorEvent,
+      apply: () => boolean
+    ): { decision: PipelineDecision; event: ConnectorEvent } {
+      try {
+        if (!apply()) {
+          event.failureReason = '业务镜像写入失败'
+          return { decision: this.failEvent(event.id).outcome, event }
+        }
+      } catch (error) {
+        event.failureReason = error instanceof Error ? error.message : '业务镜像写入失败'
+        return { decision: this.failEvent(event.id).outcome, event }
+      }
+
+      const key = subjectKey(input.connector, input.subjectId, input.eventType)
+      this.processingVersions[key] = input.eventVersion
+      event.processingVersion = input.eventVersion
+      event.status = 'processed'
+      delete event.failureReason
+      return { decision: 'process', event }
+    },
+
     processEvent(
       input: IncomingEvent,
       apply: () => boolean
     ): { decision: PipelineDecision; event: ConnectorEvent } {
       const key = subjectKey(input.connector, input.subjectId, input.eventType)
-      const seen = this.events.some((e) => e.idempotencyKey === input.idempotencyKey)
-      let decision = decideEvent({
+      const existing = this.events.find((event) => event.idempotencyKey === input.idempotencyKey)
+      if (existing) {
+        if (!matchesIncomingEvent(existing, input)) {
+          return { decision: 'retry_payload_rejected', event: existing }
+        }
+        if (existing.status === 'processed') {
+          return { decision: 'duplicate_noop', event: existing }
+        }
+        if (existing.status === 'dead_letter') {
+          return { decision: 'dead_letter', event: existing }
+        }
+        if (existing.status === 'retrying') {
+          const retryDecision = decideEvent({
+            signatureValid: input.signatureValid,
+            eventVersion: input.eventVersion,
+            currentProcessingVersion: this.processingVersions[key],
+            idempotencyKeySeen: false
+          })
+          if (retryDecision !== 'process') return { decision: retryDecision, event: existing }
+          return this.applyAndCommitEvent(input, existing, apply)
+        }
+
+        const permanentDecision = decideEvent({
+          signatureValid: input.signatureValid,
+          eventVersion: input.eventVersion,
+          currentProcessingVersion: this.processingVersions[key],
+          idempotencyKeySeen: false
+        })
+        return { decision: permanentDecision, event: existing }
+      }
+
+      const decision = decideEvent({
         signatureValid: input.signatureValid,
         eventVersion: input.eventVersion,
         currentProcessingVersion: this.processingVersions[key],
-        idempotencyKeySeen: seen
+        idempotencyKeySeen: false
       })
       const event: ConnectorEvent = {
         id: genId('cevt'),
@@ -81,6 +158,7 @@ export const useIntegrationStore = defineStore('integration', {
         purchaseIntentId: input.purchaseIntentId,
         spaceEnterpriseId: input.spaceEnterpriseId,
         spaceProductNo: input.spaceProductNo,
+        payloadFingerprint: input.payloadFingerprint,
         status: 'received',
         attempts: 0,
         processingVersion: this.processingVersions[key] ?? 0,
@@ -88,23 +166,30 @@ export const useIntegrationStore = defineStore('integration', {
       }
       this.events.push(event)
       if (decision !== 'process') return { decision, event }
+      return this.applyAndCommitEvent(input, event, apply)
+    },
 
-      try {
-        if (!apply()) {
-          event.failureReason = '业务镜像写入失败'
-          decision = this.failEvent(event.id).outcome
-          return { decision, event }
-        }
-      } catch (error) {
-        event.failureReason = error instanceof Error ? error.message : '业务镜像写入失败'
-        decision = this.failEvent(event.id).outcome
-        return { decision, event }
+    // 权威主动对账是死信恢复的显式入口；普通重复回调不能调用该路径。
+    processAuthoritativeEvent(
+      input: IncomingEvent,
+      apply: () => boolean
+    ): { decision: PipelineDecision; event: ConnectorEvent } {
+      const existing = this.events.find((event) => event.idempotencyKey === input.idempotencyKey)
+      if (!existing || existing.status !== 'dead_letter') {
+        return this.processEvent(input, apply)
       }
-
-      this.processingVersions[key] = input.eventVersion
-      event.processingVersion = input.eventVersion
-      event.status = 'processed'
-      return { decision, event }
+      if (!matchesIncomingEvent(existing, input)) {
+        return { decision: 'retry_payload_rejected', event: existing }
+      }
+      const key = subjectKey(input.connector, input.subjectId, input.eventType)
+      const retryDecision = decideEvent({
+        signatureValid: input.signatureValid,
+        eventVersion: input.eventVersion,
+        currentProcessingVersion: this.processingVersions[key],
+        idempotencyKeySeen: false
+      })
+      if (retryDecision !== 'process') return { decision: retryDecision, event: existing }
+      return this.applyAndCommitEvent(input, existing, apply)
     },
 
     // 业务关联校验拒绝的事件需要留痕并进入失败治理，但不能推进对象处理版本。
@@ -123,6 +208,7 @@ export const useIntegrationStore = defineStore('integration', {
         purchaseIntentId: input.purchaseIntentId,
         spaceEnterpriseId: input.spaceEnterpriseId,
         spaceProductNo: input.spaceProductNo,
+        payloadFingerprint: input.payloadFingerprint,
         status: 'received',
         attempts: 0,
         processingVersion: this.processingVersions[key] ?? 0,

@@ -281,6 +281,12 @@ describe('space order mirror store', () => {
       spaceEnterpriseId: 'space-ent-wanlian',
       spaceProductNo: 'SPACE-OTHER-999',
     }])
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      spaceProductNo: 'SPACE-OTHER-999',
+      idempotencyKey: 'wrong-product'
+    }))).toBe('dead_letter')
+    expect(useIntegrationStore().events).toHaveLength(1)
+    expect(useIntegrationStore().events[0]).toMatchObject({ status: 'dead_letter', attempts: 4 })
   })
 
   it('identifies returned intents as long unlinked exactly at the exported reconciliation threshold', () => {
@@ -440,6 +446,116 @@ describe('space order mirror store', () => {
     expect(store.byId('sp-order-1')).toBeUndefined()
     expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBeUndefined()
     expect(integration.events[integration.events.length - 1]?.status).toBe('retrying')
+  })
+
+  it('lets active reconciliation recover the original retrying event after a transient mirror failure', async () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    const failedApply = vi.spyOn(store, 'upsertFromEvent').mockImplementationOnce(() => {
+      throw new Error('mirror storage failed once')
+    })
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => spaceEvent(),
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
+    }
+
+    expect(store.processSpaceOrderEvent(spaceEvent())).toBe('retry')
+    failedApply.mockRestore()
+    await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toMatchObject({
+      spaceOrderId: 'sp-order-1',
+      eventVersion: 5
+    })
+
+    expect(integration.events).toHaveLength(1)
+    expect(integration.events[0]).toMatchObject({
+      status: 'processed',
+      attempts: 1,
+      processingVersion: 5
+    })
+    expect(integration.events[0]?.failureReason).toBeUndefined()
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
+    expect(store.reconciliationAudits).toMatchObject([{
+      intentId: 'intent-delayed',
+      status: 'applied',
+      reason: 'process'
+    }])
+  })
+
+  it('rejects a same-key retry when the full space-order payload changes', () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const failedApply = vi.spyOn(store, 'upsertFromEvent').mockImplementationOnce(() => {
+      throw new Error('mirror storage failed once')
+    })
+
+    expect(store.processSpaceOrderEvent(spaceEvent())).toBe('retry')
+    failedApply.mockRestore()
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      rawStatus: 'PAID',
+      occurredAt: '2026-07-27T10:05:00.000Z'
+    }))).toBe('retry_payload_rejected')
+
+    expect(store.byId('sp-order-1')).toBeUndefined()
+    expect(integration.events).toHaveLength(1)
+    expect(integration.events[0]).toMatchObject({ status: 'retrying', attempts: 1 })
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBeUndefined()
+  })
+
+  it('keeps normal dead-letter repeats inert but lets authoritative reconciliation recover the same audit event', async () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    const failedApply = vi.spyOn(store, 'upsertFromEvent').mockImplementation(() => {
+      throw new Error('mirror storage unavailable')
+    })
+    const event = spaceEvent({ idempotencyKey: 'dead-letter-then-reconcile' })
+
+    expect(Array.from({ length: 4 }, () => store.processSpaceOrderEvent(event))).toEqual([
+      'retry',
+      'retry',
+      'retry',
+      'dead_letter'
+    ])
+    failedApply.mockRestore()
+
+    expect(store.processSpaceOrderEvent(event)).toBe('dead_letter')
+    expect(store.byId(event.spaceOrderId)).toBeUndefined()
+    expect(integration.events).toHaveLength(1)
+    expect(integration.events[0]).toMatchObject({ status: 'dead_letter', attempts: 4 })
+
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => event,
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
+    }
+
+    await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toMatchObject({
+      spaceOrderId: 'sp-order-1',
+      eventVersion: 5
+    })
+    expect(integration.events).toHaveLength(1)
+    expect(integration.events[0]).toMatchObject({
+      status: 'processed',
+      attempts: 4,
+      processingVersion: 5
+    })
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
   })
 
   it('keeps repeated reconciliation idempotent after the first mirror write', async () => {

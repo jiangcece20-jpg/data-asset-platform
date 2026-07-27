@@ -117,6 +117,7 @@ export interface SpaceOrderReconciliationAudit {
     | 'retry'
     | 'dead_letter'
     | 'signature_rejected'
+    | 'retry_payload_rejected'
   eventId?: string
   detail?: string
   createdAt: string

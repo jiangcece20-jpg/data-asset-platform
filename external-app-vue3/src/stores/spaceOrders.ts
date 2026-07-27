@@ -23,6 +23,40 @@ export function isLongUnlinkedSpacePurchase(intent: SpacePurchaseIntent, now: Da
   return Number.isFinite(returnedAt) && now.getTime() - returnedAt >= LONG_UNLINKED_SPACE_ORDER_DELAY_MS
 }
 
+function spaceOrderEventFingerprint(event: SpaceOrderEvent): string {
+  return JSON.stringify({
+    eventId: event.eventId,
+    idempotencyKey: event.idempotencyKey,
+    eventVersion: event.eventVersion,
+    signatureValid: event.signatureValid,
+    spaceOrderId: event.spaceOrderId,
+    purchaseIntentId: event.purchaseIntentId,
+    spaceEnterpriseId: event.spaceEnterpriseId,
+    spaceProductNo: event.spaceProductNo,
+    rawStatus: event.rawStatus,
+    amount: event.amount,
+    currency: event.currency,
+    occurredAt: event.occurredAt,
+    deliverySummary: event.deliverySummary ?? null,
+    detailUrl: event.detailUrl ?? null
+  })
+}
+
+function incomingSpaceOrderEvent(event: SpaceOrderEvent) {
+  return {
+    connector: 'trusted_space' as const,
+    subjectId: event.spaceOrderId,
+    eventType: 'order_update',
+    eventVersion: event.eventVersion,
+    idempotencyKey: event.idempotencyKey,
+    signatureValid: event.signatureValid,
+    purchaseIntentId: event.purchaseIntentId,
+    spaceEnterpriseId: event.spaceEnterpriseId,
+    spaceProductNo: event.spaceProductNo,
+    payloadFingerprint: spaceOrderEventFingerprint(event)
+  }
+}
+
 export const useSpaceOrderStore = defineStore('space-orders', {
   state: () => ({
     mirrors: [] as SpaceOrderMirror[],
@@ -60,8 +94,18 @@ export const useSpaceOrderStore = defineStore('space-orders', {
     }
   },
   actions: {
-    processSpaceOrderEvent(event: SpaceOrderEvent): PipelineDecision {
+    processSpaceOrderEvent(
+      event: SpaceOrderEvent,
+      source: 'callback' | 'reconciliation' = 'callback'
+    ): PipelineDecision {
       const integration = useIntegrationStore()
+      const input = incomingSpaceOrderEvent(event)
+      if (!integration.matchesIdempotentPayload(input)) return 'retry_payload_rejected'
+      const existing = integration.byIdempotencyKey(event.idempotencyKey)
+      if (existing?.status === 'processed') {
+        return integration.processEvent(input, () => this.upsertFromEvent(event)).decision
+      }
+      if (existing?.status === 'dead_letter' && source === 'callback') return 'dead_letter'
       const current = this.byId(event.spaceOrderId)
       if (
         !this.hasValidAssociation(event, current) ||
@@ -73,20 +117,9 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         }))
       ) return this.deadLetterRejectedEvent(event, integration)
 
-      const result = integration.processEvent(
-        {
-          connector: 'trusted_space',
-          subjectId: event.spaceOrderId,
-          eventType: 'order_update',
-          eventVersion: event.eventVersion,
-          idempotencyKey: event.idempotencyKey,
-          signatureValid: event.signatureValid,
-          purchaseIntentId: event.purchaseIntentId,
-          spaceEnterpriseId: event.spaceEnterpriseId,
-          spaceProductNo: event.spaceProductNo,
-        },
-        () => this.upsertFromEvent(event)
-      )
+      const result = source === 'reconciliation'
+        ? integration.processAuthoritativeEvent(input, () => this.upsertFromEvent(event))
+        : integration.processEvent(input, () => this.upsertFromEvent(event))
       if (result.decision !== 'process') return result.decision
       return result.decision
     },
@@ -142,8 +175,8 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         this.recordReconciliationAudit(intentId, 'failed', 'context_changed', event)
         return undefined
       }
-      const decision = this.processSpaceOrderEvent(event)
-      if (['retry', 'dead_letter', 'signature_rejected'].includes(decision)) {
+      const decision = this.processSpaceOrderEvent(event, 'reconciliation')
+      if (['retry', 'dead_letter', 'signature_rejected', 'retry_payload_rejected'].includes(decision)) {
         this.recordReconciliationAudit(intentId, 'failed', decision, event)
         return undefined
       }
@@ -241,17 +274,7 @@ export const useSpaceOrderStore = defineStore('space-orders', {
     },
 
     deadLetterRejectedEvent(event: SpaceOrderEvent, integration = useIntegrationStore()): PipelineDecision {
-      const rejected = integration.recordRejectedEvent({
-        connector: 'trusted_space',
-        subjectId: event.spaceOrderId,
-        eventType: 'order_update',
-        eventVersion: event.eventVersion,
-        idempotencyKey: event.idempotencyKey,
-        signatureValid: event.signatureValid,
-        purchaseIntentId: event.purchaseIntentId,
-        spaceEnterpriseId: event.spaceEnterpriseId,
-        spaceProductNo: event.spaceProductNo,
-      })
+      const rejected = integration.recordRejectedEvent(incomingSpaceOrderEvent(event))
       while (integration.failEvent(rejected.id).outcome !== 'dead_letter') {
         // Association and state-transition violations are permanent.
       }
