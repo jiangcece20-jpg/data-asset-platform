@@ -96,9 +96,9 @@ export const useEntitlementStore = defineStore('entitlements', {
         id: genId('ent'),
         source: 'enterprise',
         type: 'seat',
-        ownerId: user.context.currentMemberId,
+        ownerId: user.context.currentEnterpriseId || user.enterprise.id,
         productId,
-        enterpriseId: user.enterprise.id,
+        enterpriseId: user.context.currentEnterpriseId || user.enterprise.id,
         validFrom: now(),
         validTo: user.enterprise.expiresAt,
         status: 'active'

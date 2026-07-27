@@ -4,15 +4,28 @@ import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
+import { useUserStore } from '@/stores/user'
+import type { PurchaseSubject } from '@/stores/orders'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
 const orders = useOrderStore()
+const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const paid = ref(false)
+const enterpriseEligible = computed(() =>
+  user.isEnterpriseAuthenticated
+  && Boolean(user.context.currentEnterpriseId)
+  && Boolean(user.currentEnterpriseMember)
+)
+const subject = ref<PurchaseSubject>(enterpriseEligible.value ? 'enterprise' : 'personal')
+const enterpriseMode = ref<'online' | 'contract'>('online')
+const confirmationSubject = ref<PurchaseSubject | null>(null)
+const subjectName = computed(() => subject.value === 'enterprise' ? user.enterprise.name : user.context.name)
+const subjectLabel = computed(() => subject.value === 'enterprise' ? '企业' : '个人')
 
 const entitlementNote = computed(() => {
   if (!product.value) return ''
@@ -27,9 +40,29 @@ const entitlementNote = computed(() => {
   return '购买后长期可访问'
 })
 
-function pay() {
+function selectSubject(next: PurchaseSubject) {
+  if (next === 'enterprise' && !enterpriseEligible.value) return
+  if (subject.value !== next) confirmationSubject.value = null
+  subject.value = next
+}
+
+function requestConfirmation() {
+  if (subject.value === 'enterprise' && !enterpriseEligible.value) return
+  confirmationSubject.value = subject.value
+}
+
+function confirmPurchase() {
   if (!product.value) return
-  orders.purchaseItem(id.value, product.value.price.itemPrice || 0)
+  if (confirmationSubject.value !== subject.value) return
+  if (product.value.type === 'report') {
+    if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
+      router.push(`/app/checkout/enterprise/${id.value}`)
+      return
+    }
+    orders.purchaseReportForSubject(id.value, subject.value, enterpriseMode.value)
+  } else {
+    orders.purchaseItem(id.value, product.value.price.itemPrice || 0)
+  }
   paid.value = true
 }
 
@@ -55,7 +88,68 @@ function goBackToContext() {
         <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] leading-relaxed text-slate-500">
           访问期限：{{ entitlementNote }} · 下载/导出：{{ product.type === 'report' ? '会员可合规下载 PDF' : '暂不支持导出' }} · 授权范围：{{ product.deliveryMethod }}
         </div>
-        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="pay">
+        <template v-if="product.type === 'report'">
+          <div class="mt-3">
+            <div class="text-[12px] font-medium text-slate-700">购买主体</div>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button
+                data-testid="purchase-subject-personal"
+                class="rounded-xl border p-3 text-left"
+                :class="subject === 'personal' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+                @click="selectSubject('personal')"
+              >
+                <div class="text-[13px] font-medium text-slate-800">个人购买</div>
+                <div class="mt-1 text-[12px] text-slate-500">{{ user.context.name }}</div>
+              </button>
+              <button
+                data-testid="purchase-subject-enterprise"
+                class="rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
+                :class="subject === 'enterprise' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+                :disabled="!enterpriseEligible"
+                @click="selectSubject('enterprise')"
+              >
+                <div class="text-[13px] font-medium text-slate-800">企业购买</div>
+                <div class="mt-1 text-[12px] text-slate-500">{{ enterpriseEligible ? user.enterprise.name : '认证后可选' }}</div>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="subject === 'enterprise'" class="mt-3 grid grid-cols-2 gap-2">
+            <button
+              class="rounded-xl border p-3 text-left"
+              :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+              @click="enterpriseMode = 'online'; confirmationSubject = null"
+            >在线支付</button>
+            <button
+              class="rounded-xl border p-3 text-left"
+              :class="enterpriseMode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+              @click="enterpriseMode = 'contract'; confirmationSubject = null"
+            >合同采购</button>
+          </div>
+
+          <div data-testid="purchase-subject-name" class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-600">
+            购买主体：{{ subjectName }}
+          </div>
+          <button
+            v-if="confirmationSubject !== subject"
+            data-testid="purchase-intent-confirm"
+            class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
+            @click="requestConfirmation"
+          >
+            确认以{{ subjectLabel }}名义{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
+          </button>
+          <div v-else class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <div class="text-[12px] text-amber-800">请再次确认：本订单将归属 {{ subjectName }}</div>
+            <button
+              data-testid="purchase-final-confirm"
+              class="mt-3 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
+              @click="confirmPurchase"
+            >
+              确认使用{{ subjectName }}{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
+            </button>
+          </div>
+        </template>
+        <button v-else class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="orders.purchaseItem(id, product.price.itemPrice || 0); paid = true">
           确认支付 ¥{{ product.price.itemPrice }}
         </button>
       </div>

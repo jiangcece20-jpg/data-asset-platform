@@ -5,21 +5,28 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
 const orders = useOrderStore()
+const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const submittedOrderId = ref('')
 const mode = ref<'online' | 'contract'>('contract')
+const enterpriseEligible = computed(() =>
+  user.isEnterpriseAuthenticated
+  && Boolean(user.context.currentEnterpriseId)
+  && Boolean(user.currentEnterpriseMember)
+)
 
 const packagePrice = computed(() => (product.value?.price.itemPrice || 199) * 10)
 
 function submit() {
-  if (!product.value) return
+  if (!product.value || !enterpriseEligible.value) return
   const order = orders.submitEnterpriseOrder(id.value, packagePrice.value, mode.value)
   submittedOrderId.value = order.id
 }
@@ -32,6 +39,12 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
     <MobileHeader title="企业采购" />
     <div class="px-4 pt-3">
       <div v-if="!submittedOrder" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+        <div v-if="enterpriseEligible" class="mb-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-600">
+          购买主体：{{ user.enterprise.name }}
+        </div>
+        <div v-else class="mb-3 rounded-lg bg-amber-50 p-3 text-[12px] text-amber-700">
+          企业购买需由已认证的当前企业成员发起
+        </div>
         <div class="text-[14px] font-semibold text-slate-900">{{ product.name }} · 企业内容套餐</div>
         <div class="mt-1 text-[12px] text-slate-500">企业采购后由管理员在企业中心分配席位，成员即可共享内容</div>
 
@@ -39,6 +52,7 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
           <button
             class="rounded-xl border p-3 text-left"
             :class="mode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+            :disabled="!enterpriseEligible"
             @click="mode = 'online'"
           >
             <div class="text-[12px] text-slate-500">小额标准套餐</div>
@@ -47,6 +61,7 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
           <button
             class="rounded-xl border p-3 text-left"
             :class="mode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+            :disabled="!enterpriseEligible"
             @click="mode = 'contract'"
           >
             <div class="text-[12px] text-slate-500">大额/定制采购</div>
@@ -56,8 +71,8 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
 
         <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-500">套餐金额：¥{{ packagePrice }} / 年，含 10 席位</div>
 
-        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="submit">
-          {{ mode === 'online' ? '确认支付' : '提交企业订单' }}
+        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" :disabled="!enterpriseEligible" @click="submit">
+          {{ mode === 'online' ? `确认以${user.enterprise.name}名义支付` : `确认以${user.enterprise.name}名义提交企业订单` }}
         </button>
       </div>
 

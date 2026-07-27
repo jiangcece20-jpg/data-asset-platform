@@ -9,6 +9,8 @@ import { useUserStore } from './user'
 
 const MAX_GRANT_ATTEMPTS = 3
 
+export type PurchaseSubject = 'personal' | 'enterprise'
+
 export const useOrderStore = defineStore('orders', {
   state: () => ({
     list: seedOrders.map((o) => ({ ...o })) as Order[],
@@ -64,6 +66,22 @@ export const useOrderStore = defineStore('orders', {
       this.list.push(order)
       if (product) entitlements.grantItem(product)
       return order
+    },
+    // APP 自营报告可按个人或已认证企业购买；可信空间商品不走此入口。
+    purchaseReportForSubject(
+      productId: string,
+      subject: PurchaseSubject,
+      mode: 'online' | 'contract' = 'online'
+    ) {
+      const product = useCatalogStore().byId(productId)
+      if (!product || product.type !== 'report') throw new Error('仅报告支持此购买方式')
+      if (subject === 'personal') return this.purchaseItem(productId, product.price.itemPrice ?? 0)
+
+      const user = useUserStore()
+      if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId || !user.currentEnterpriseMember) {
+        throw new Error('企业购买需要先完成企业认证')
+      }
+      return this.submitEnterpriseOrder(productId, (product.price.itemPrice ?? 0) * 10, mode)
     },
     // 企业采购：小额可在线支付，大额走报价合同
     submitEnterpriseOrder(productId: string, amount: number, mode: 'online' | 'contract') {
