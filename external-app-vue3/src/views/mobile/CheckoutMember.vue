@@ -63,7 +63,7 @@ function goBackToContext() {
         <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="pay">
           确认支付 ¥{{ plans.find((p) => p.months === selected)?.price }}
         </button>
-        <button class="mt-2 w-full rounded-full bg-slate-100 py-2.5 text-[12px] text-slate-500" @click="router.push('/app/checkout/enterprise/prod-logistics-monthly')">
+        <button data-testid="member-enterprise-report-entry" class="mt-2 w-full rounded-full bg-slate-100 py-2.5 text-[12px] text-slate-500" @click="router.push('/app/checkout/item/prod-logistics-monthly')">
           企业版入口 · 企业采购与席位共享 →
         </button>
       </div>

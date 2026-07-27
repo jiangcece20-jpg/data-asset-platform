@@ -89,16 +89,16 @@ export const useEntitlementStore = defineStore('entitlements', {
         status: 'active'
       })
     },
-    grantEnterpriseSeat(productId: string) {
+    grantEnterpriseSeat(productId: string, enterpriseId: string) {
       const user = useUserStore()
       user.grantEnterpriseEntitlement(productId)
       this.list.push({
         id: genId('ent'),
         source: 'enterprise',
         type: 'seat',
-        ownerId: user.context.currentEnterpriseId || user.enterprise.id,
+        ownerId: enterpriseId,
         productId,
-        enterpriseId: user.context.currentEnterpriseId || user.enterprise.id,
+        enterpriseId,
         validFrom: now(),
         validTo: user.enterprise.expiresAt,
         status: 'active'

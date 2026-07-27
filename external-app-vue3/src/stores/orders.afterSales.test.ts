@@ -65,8 +65,9 @@ describe('orders after-sales', () => {
     const store = useOrderStore()
     const user = useUserStore()
     user.completeEnterpriseAuth()
+    const intent = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'online')
 
-    const order = store.purchaseReportForSubject('prod-logistics-monthly', 'enterprise', 'online')
+    const order = store.purchaseReportForSubject('prod-logistics-monthly', 'enterprise', 'online', intent.id)
 
     expect(order.ownerType).toBe('enterprise')
     expect(order.ownerId).toBe('ent-wanlian-logistics')
@@ -88,5 +89,72 @@ describe('orders after-sales', () => {
 
     expect(() => store.purchaseReportForSubject('prod-logistics-monthly', 'enterprise', 'online'))
       .toThrow('企业购买需要先完成企业认证')
+  })
+
+  it('rejects trusted-space APIs and datasets from every APP report order entry without granting an entitlement', () => {
+    const store = useOrderStore()
+    const entitlements = useEntitlementStore()
+    const beforeOrders = store.list.length
+    const beforeEntitlements = entitlements.list.length
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+
+    expect(() => store.purchaseItem('prod-qualification-api', 1280)).toThrow('仅支持 APP 自营报告购买')
+    expect(() => store.purchaseReportForSubject('prod-enterprise-activity', 'personal')).toThrow('仅支持 APP 自营报告购买')
+    expect(() => store.submitEnterpriseOrder('prod-qualification-api', 1280, 'online', 'forged-intent')).toThrow('仅支持 APP 自营报告购买')
+
+    expect(store.list).toHaveLength(beforeOrders)
+    expect(entitlements.list).toHaveLength(beforeEntitlements)
+  })
+
+  it('rejects direct enterprise orders without an authenticated current enterprise member', () => {
+    const store = useOrderStore()
+    const user = useUserStore()
+
+    expect(() => store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'online', 'any')).toThrow('企业购买需要先完成企业认证')
+
+    user.context.enterpriseAuthStatus = 'authenticated'
+    expect(() => store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'online', 'any')).toThrow('企业购买需要先完成企业认证')
+
+    user.completeEnterpriseAuth()
+    user.context.currentMemberId = 'mem-not-in-enterprise'
+    expect(() => store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'online', 'any')).toThrow('企业购买需要先完成企业认证')
+  })
+
+  it('consumes an enterprise checkout intent once so repeated submission cannot create another order', () => {
+    const store = useOrderStore()
+    useUserStore().completeEnterpriseAuth()
+    const intent = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'online')
+
+    const first = store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'online', intent.id)
+
+    expect(first.ownerId).toBe('ent-wanlian-logistics')
+    expect(() => store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'online', intent.id)).toThrow('企业报告结算意图无效')
+    expect(store.list.filter((order) => order.id === first.id)).toHaveLength(1)
+  })
+
+  it('grants a contract report entitlement to the enterprise recorded on the order after its context is cleared', () => {
+    const store = useOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const intent = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'contract')
+    const order = store.submitEnterpriseOrder('prod-logistics-monthly', 1990, 'contract', intent.id)
+
+    user.clearEnterpriseContext()
+    store.confirmEnterpriseContract(order.id)
+
+    expect(useEntitlementStore().list.some((entitlement) =>
+      entitlement.productId === order.productId
+      && entitlement.source === 'enterprise'
+      && entitlement.ownerId === order.ownerId
+      && entitlement.enterpriseId === order.ownerId
+    )).toBe(true)
+  })
+
+  it('rejects contract confirmation for a personal order', () => {
+    const store = useOrderStore()
+    store.list = [seedOrder({ id: 'personal-contract' })]
+
+    expect(() => store.confirmEnterpriseContract('personal-contract')).toThrow('仅企业订单可确认合同付款')
   })
 })

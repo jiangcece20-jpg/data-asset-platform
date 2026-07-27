@@ -6,26 +6,27 @@ import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import CheckoutItem from './CheckoutItem.vue'
 
-async function mountCheckout() {
+async function mountCheckout(productId = 'prod-logistics-monthly') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/app/checkout/item/:id', name: 'checkout-item', component: CheckoutItem },
-      { path: '/app/checkout/enterprise/:id', name: 'checkout-enterprise', component: { template: '<div />' } }
+      { path: '/app/checkout/enterprise/:id', name: 'checkout-enterprise', component: { template: '<div />' } },
+      { path: '/app/product/:id', name: 'product-detail', component: { template: '<div />' } }
     ]
   })
-  await router.push('/app/checkout/item/prod-logistics-monthly')
+  await router.push(`/app/checkout/item/${productId}`)
   await router.isReady()
   const wrapper = mount(CheckoutItem, { global: { plugins: [router] } })
   await flushPromises()
-  return wrapper
+  return { wrapper, router }
 }
 
 describe('CheckoutItem report purchase subject', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it('keeps enterprise unavailable until the current member enters an authenticated enterprise', async () => {
-    const wrapper = await mountCheckout()
+    const { wrapper } = await mountCheckout()
 
     expect(wrapper.get('[data-testid="purchase-subject-name"]').text()).toContain('陈静')
     expect(wrapper.get('[data-testid="purchase-subject-enterprise"]').attributes('disabled')).toBeDefined()
@@ -35,7 +36,7 @@ describe('CheckoutItem report purchase subject', () => {
   it('requires a fresh confirmation when the chosen report purchase subject changes', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
-    const wrapper = await mountCheckout()
+    const { wrapper } = await mountCheckout()
 
     expect(wrapper.get('[data-testid="purchase-subject-name"]').text()).toContain('万联供应链管理有限公司')
     await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
@@ -51,5 +52,55 @@ describe('CheckoutItem report purchase subject', () => {
     const order = useOrderStore().list.at(-1)!
     expect(order.ownerType).toBe('personal')
     expect(order.ownerId).toBe('mem-1')
+  })
+
+  it.each([
+    [false, 'prod-qualification-api'],
+    [true, 'prod-qualification-api'],
+    [false, 'prod-enterprise-activity'],
+    [true, 'prod-enterprise-activity']
+  ])('blocks a %s authenticated deep link to trusted-space product %s before it can create an APP order', async (authenticated, productId) => {
+    if (authenticated) useUserStore().completeEnterpriseAuth()
+    const beforeOrders = useOrderStore().list.length
+    const { router } = await mountCheckout(productId)
+
+    expect(router.currentRoute.value.name).toBe('product-detail')
+    expect(useOrderStore().list).toHaveLength(beforeOrders)
+  })
+
+  it('creates a bound enterprise contract checkout intent only after the final report confirmation', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper, router } = await mountCheckout()
+    const contract = wrapper.findAll('button').find((button) => button.text() === '合同采购')!
+
+    await contract.trigger('click')
+    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await flushPromises()
+
+    const intentId = String(router.currentRoute.value.query.intent)
+    const intent = useOrderStore().checkoutIntents.find((item) => item.id === intentId)
+    expect(router.currentRoute.value.name).toBe('checkout-enterprise')
+    expect(intent).toMatchObject({
+      productId: 'prod-logistics-monthly',
+      ownerType: 'enterprise',
+      ownerId: 'ent-wanlian-logistics',
+      mode: 'contract'
+    })
+  })
+
+  it('invalidates a prior enterprise checkout intent when the report subject or payment mode changes', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const store = useOrderStore()
+    const { wrapper } = await mountCheckout()
+    const first = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'online')
+
+    await wrapper.findAll('button').find((button) => button.text() === '合同采购')!.trigger('click')
+    expect(store.getEnterpriseReportCheckoutIntent(first.id, 'prod-logistics-monthly')).toBeUndefined()
+
+    const second = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'contract')
+    await wrapper.get('[data-testid="purchase-subject-personal"]').trigger('click')
+    expect(store.getEnterpriseReportCheckoutIntent(second.id, 'prod-logistics-monthly')).toBeUndefined()
   })
 })

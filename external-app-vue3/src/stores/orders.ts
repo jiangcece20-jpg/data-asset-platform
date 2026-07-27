@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { seedOrders } from '@/data/seed'
-import type { Order } from '@/types/domain'
+import type { Order, Product } from '@/types/domain'
 import type { PaymentLedgerEntry } from '@/types/afterSales'
 import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
@@ -10,11 +10,43 @@ import { useUserStore } from './user'
 const MAX_GRANT_ATTEMPTS = 3
 
 export type PurchaseSubject = 'personal' | 'enterprise'
+export type EnterprisePurchaseMode = 'online' | 'contract'
+
+export interface EnterpriseReportCheckoutIntent {
+  id: string
+  productId: string
+  ownerType: 'enterprise'
+  ownerId: string
+  mode: EnterprisePurchaseMode
+  createdAt: string
+  expiresAt: string
+  consumedAt?: string
+  invalidatedAt?: string
+}
+
+const CHECKOUT_INTENT_TTL_MS = 10 * 60 * 1000
+
+function requireAppOwnedReport(productId: string): Product {
+  const product = useCatalogStore().byId(productId)
+  if (!product || product.type !== 'report' || product.dealChannel !== 'app_payment') {
+    throw new Error('仅支持 APP 自营报告购买')
+  }
+  return product
+}
+
+function requireCurrentAuthenticatedEnterprise(): string {
+  const user = useUserStore()
+  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId || !user.currentEnterpriseMember) {
+    throw new Error('企业购买需要先完成企业认证')
+  }
+  return user.context.currentEnterpriseId
+}
 
 export const useOrderStore = defineStore('orders', {
   state: () => ({
     list: seedOrders.map((o) => ({ ...o })) as Order[],
-    ledger: [] as PaymentLedgerEntry[]
+    ledger: [] as PaymentLedgerEntry[],
+    checkoutIntents: [] as EnterpriseReportCheckoutIntent[]
   }),
   getters: {
     appOrders(state): Order[] {
@@ -47,54 +79,94 @@ export const useOrderStore = defineStore('orders', {
     },
     // 单品购买
     purchaseItem(productId: string, amount: number) {
-      const catalog = useCatalogStore()
+      const product = requireAppOwnedReport(productId)
       const entitlements = useEntitlementStore()
       const user = useUserStore()
-      const product = catalog.byId(productId)
       const order: Order = {
         id: genId('order'),
         channel: 'app',
         ownerType: 'personal',
         ownerId: user.context.currentMemberId,
         productId,
-        productName: product?.name || productId,
+        productName: product.name,
         amount,
         status: 'entitlement_active',
         createdAt: now(),
         paidAt: now()
       }
       this.list.push(order)
-      if (product) entitlements.grantItem(product)
+      entitlements.grantItem(product)
       return order
     },
     // APP 自营报告可按个人或已认证企业购买；可信空间商品不走此入口。
     purchaseReportForSubject(
       productId: string,
       subject: PurchaseSubject,
-      mode: 'online' | 'contract' = 'online'
+      mode: EnterprisePurchaseMode = 'online',
+      checkoutIntentId?: string
     ) {
-      const product = useCatalogStore().byId(productId)
-      if (!product || product.type !== 'report') throw new Error('仅报告支持此购买方式')
+      const product = requireAppOwnedReport(productId)
       if (subject === 'personal') return this.purchaseItem(productId, product.price.itemPrice ?? 0)
-
-      const user = useUserStore()
-      if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId || !user.currentEnterpriseMember) {
-        throw new Error('企业购买需要先完成企业认证')
+      return this.submitEnterpriseOrder(productId, (product.price.itemPrice ?? 0) * 10, mode, checkoutIntentId)
+    },
+    createEnterpriseReportCheckoutIntent(productId: string, mode: EnterprisePurchaseMode) {
+      requireAppOwnedReport(productId)
+      const enterpriseId = requireCurrentAuthenticatedEnterprise()
+      const createdAt = new Date().toISOString()
+      this.checkoutIntents
+        .filter((intent) => intent.productId === productId && intent.ownerId === enterpriseId && !intent.consumedAt && !intent.invalidatedAt)
+        .forEach((intent) => { intent.invalidatedAt = createdAt })
+      const intent: EnterpriseReportCheckoutIntent = {
+        id: genId('checkout'),
+        productId,
+        ownerType: 'enterprise',
+        ownerId: enterpriseId,
+        mode,
+        createdAt,
+        expiresAt: new Date(Date.now() + CHECKOUT_INTENT_TTL_MS).toISOString()
       }
-      return this.submitEnterpriseOrder(productId, (product.price.itemPrice ?? 0) * 10, mode)
+      this.checkoutIntents.push(intent)
+      return intent
+    },
+    invalidateEnterpriseReportCheckoutIntents(productId: string) {
+      const enterpriseId = useUserStore().context.currentEnterpriseId
+      const invalidatedAt = new Date().toISOString()
+      this.checkoutIntents
+        .filter((intent) => intent.productId === productId && intent.ownerId === enterpriseId && !intent.consumedAt && !intent.invalidatedAt)
+        .forEach((intent) => { intent.invalidatedAt = invalidatedAt })
+    },
+    getEnterpriseReportCheckoutIntent(intentId: string, productId: string, mode?: EnterprisePurchaseMode) {
+      let enterpriseId: string
+      try {
+        requireAppOwnedReport(productId)
+        enterpriseId = requireCurrentAuthenticatedEnterprise()
+      } catch {
+        return undefined
+      }
+      const intent = this.checkoutIntents.find((item) => item.id === intentId)
+      if (!intent || intent.productId !== productId || intent.ownerType !== 'enterprise' || intent.ownerId !== enterpriseId) return undefined
+      if (mode && intent.mode !== mode) return undefined
+      if (intent.consumedAt || intent.invalidatedAt || Date.parse(intent.expiresAt) <= Date.now()) return undefined
+      return intent
+    },
+    consumeEnterpriseReportCheckoutIntent(intentId: string | undefined, productId: string, mode: EnterprisePurchaseMode) {
+      const intent = this.getEnterpriseReportCheckoutIntent(intentId || '', productId, mode)
+      if (!intent) throw new Error('企业报告结算意图无效')
+      intent.consumedAt = new Date().toISOString()
+      return intent
     },
     // 企业采购：小额可在线支付，大额走报价合同
-    submitEnterpriseOrder(productId: string, amount: number, mode: 'online' | 'contract') {
-      const catalog = useCatalogStore()
-      const user = useUserStore()
-      const product = catalog.byId(productId)
+    submitEnterpriseOrder(productId: string, amount: number, mode: EnterprisePurchaseMode, checkoutIntentId?: string) {
+      const product = requireAppOwnedReport(productId)
+      const enterpriseId = requireCurrentAuthenticatedEnterprise()
+      this.consumeEnterpriseReportCheckoutIntent(checkoutIntentId, productId, mode)
       const order: Order = {
         id: genId('order'),
         channel: 'app',
         ownerType: 'enterprise',
-        ownerId: user.context.currentEnterpriseId || user.enterprise.id,
+        ownerId: enterpriseId,
         productId,
-        productName: product?.name || productId,
+        productName: product.name,
         amount,
         status: mode === 'online' ? 'entitlement_active' : 'pending_payment',
         contractStatus: mode === 'online' ? 'not_required' : 'quoting',
@@ -104,19 +176,19 @@ export const useOrderStore = defineStore('orders', {
       this.list.push(order)
       if (mode === 'online') {
         const entitlements = useEntitlementStore()
-        entitlements.grantEnterpriseSeat(productId)
+        entitlements.grantEnterpriseSeat(productId, enterpriseId)
       }
       return order
     },
     // 后台：确认企业合同付款
     confirmEnterpriseContract(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
-      if (!order) return
+      if (!order || order.ownerType !== 'enterprise') throw new Error('仅企业订单可确认合同付款')
       order.contractStatus = 'payment_confirmed'
       order.status = 'entitlement_active'
       order.paidAt = now()
       const entitlements = useEntitlementStore()
-      entitlements.grantEnterpriseSeat(order.productId)
+      entitlements.grantEnterpriseSeat(order.productId, order.ownerId)
     },
     signContract(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)

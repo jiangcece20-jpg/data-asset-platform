@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
@@ -15,6 +15,7 @@ const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
+const checkoutAllowed = computed(() => product.value?.type === 'report' && product.value.dealChannel === 'app_payment')
 const paid = ref(false)
 const enterpriseEligible = computed(() =>
   user.isEnterpriseAuthenticated
@@ -26,6 +27,10 @@ const enterpriseMode = ref<'online' | 'contract'>('online')
 const confirmationSubject = ref<PurchaseSubject | null>(null)
 const subjectName = computed(() => subject.value === 'enterprise' ? user.enterprise.name : user.context.name)
 const subjectLabel = computed(() => subject.value === 'enterprise' ? '企业' : '个人')
+
+watch(checkoutAllowed, (allowed) => {
+  if (!allowed) router.replace(`/app/product/${id.value}`)
+}, { immediate: true })
 
 const entitlementNote = computed(() => {
   if (!product.value) return ''
@@ -42,7 +47,10 @@ const entitlementNote = computed(() => {
 
 function selectSubject(next: PurchaseSubject) {
   if (next === 'enterprise' && !enterpriseEligible.value) return
-  if (subject.value !== next) confirmationSubject.value = null
+  if (subject.value !== next) {
+    orders.invalidateEnterpriseReportCheckoutIntents(id.value)
+    confirmationSubject.value = null
+  }
   subject.value = next
 }
 
@@ -56,12 +64,14 @@ function confirmPurchase() {
   if (confirmationSubject.value !== subject.value) return
   if (product.value.type === 'report') {
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
-      router.push(`/app/checkout/enterprise/${id.value}`)
+      const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
+      router.push({ path: `/app/checkout/enterprise/${id.value}`, query: { intent: intent.id } })
       return
     }
-    orders.purchaseReportForSubject(id.value, subject.value, enterpriseMode.value)
-  } else {
-    orders.purchaseItem(id.value, product.value.price.itemPrice || 0)
+    const intent = subject.value === 'enterprise'
+      ? orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
+      : undefined
+    orders.purchaseReportForSubject(id.value, subject.value, enterpriseMode.value, intent?.id)
   }
   paid.value = true
 }
@@ -79,7 +89,7 @@ function goBackToContext() {
 </script>
 
 <template>
-  <div v-if="product" class="min-h-full bg-slate-50 pb-8">
+  <div v-if="product && checkoutAllowed" class="min-h-full bg-slate-50 pb-8">
     <MobileHeader title="单品购买" />
     <div class="px-4 pt-3">
       <div v-if="!paid" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
@@ -118,12 +128,12 @@ function goBackToContext() {
             <button
               class="rounded-xl border p-3 text-left"
               :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
-              @click="enterpriseMode = 'online'; confirmationSubject = null"
+              @click="enterpriseMode = 'online'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null"
             >在线支付</button>
             <button
               class="rounded-xl border p-3 text-left"
               :class="enterpriseMode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
-              @click="enterpriseMode = 'contract'; confirmationSubject = null"
+              @click="enterpriseMode = 'contract'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null"
             >合同采购</button>
           </div>
 
@@ -149,9 +159,6 @@ function goBackToContext() {
             </button>
           </div>
         </template>
-        <button v-else class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="orders.purchaseItem(id, product.price.itemPrice || 0); paid = true">
-          确认支付 ¥{{ product.price.itemPrice }}
-        </button>
       </div>
       <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">🎉</div>
