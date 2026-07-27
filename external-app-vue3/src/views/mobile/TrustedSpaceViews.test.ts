@@ -2,12 +2,15 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { seedApiUsageBills } from '@/data/trustedSpace'
+import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { MockTrustedSpaceAdapter } from '@/services/trusted-space/mockTrustedSpaceAdapter'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useUserStore } from '@/stores/user'
 import SpaceBridge from './SpaceBridge.vue'
 import ApiUsageBills from './ApiUsageBills.vue'
+import ApiUsageBillDetail from './ApiUsageBillDetail.vue'
 import MineEnterprise from './MineEnterprise.vue'
 
 async function mountSpaceBridgeWithIntent(options: { linkNow?: string; renderNow?: () => Date; returned?: boolean; redirected?: boolean } = {}) {
@@ -81,6 +84,7 @@ describe('trusted-space purchase handoff views', () => {
 
 describe('API usage bill views', () => {
   beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => vi.restoreAllMocks())
 
   it('does not render the enterprise total in a member bill list', async () => {
     const user = useUserStore()
@@ -134,5 +138,40 @@ describe('API usage bill views', () => {
 
     const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
     expect(wrapper.text()).not.toContain('API 用量账单')
+  })
+
+  it('does not list or provide a detail support entry for a billing month without the member credential', async () => {
+    const memberOneOnlyBill = {
+      ...seedApiUsageBills[0],
+      spaceBillId: 'space-bill-wanlian-2026-06',
+      billingMonth: '2026-06',
+      totalCalls: 1120,
+      successCalls: 1108,
+      totalAmount: 1120,
+      lines: [seedApiUsageBills[0].lines[0]]
+    }
+    vi.spyOn(trustedSpaceAdapter, 'listUsageBills').mockResolvedValue([...seedApiUsageBills, memberOneOnlyBill])
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/app/mine/enterprise/bills', name: 'api-usage-bills', component: ApiUsageBills },
+        { path: '/app/mine/enterprise/bills/:id', name: 'api-usage-bill-detail', component: ApiUsageBillDetail }
+      ]
+    })
+    await router.push('/app/mine/enterprise/bills')
+    await router.isReady()
+
+    const list = mount(ApiUsageBills, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(list.text()).not.toContain('2026-06')
+
+    await router.push('/app/mine/enterprise/bills/space-bill-wanlian-2026-06')
+    const detail = mount(ApiUsageBillDetail, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(detail.text()).toContain('未找到该账单')
+    expect(detail.text()).not.toContain('账单有疑问')
   })
 })

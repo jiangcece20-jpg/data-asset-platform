@@ -44,7 +44,8 @@ async function downloadBill() {
 }
 
 async function askSupport() {
-  supportLink.value = await billsStore.support(billId.value, route.fullPath)
+  if (!member.value) return
+  supportLink.value = await billsStore.support(billId.value, member.value.id, role.value, route.fullPath) ?? ''
 }
 
 onMounted(() => { void loadBill() })

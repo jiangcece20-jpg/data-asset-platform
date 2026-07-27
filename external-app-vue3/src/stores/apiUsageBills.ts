@@ -23,18 +23,26 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
     syncing: false,
     stale: false,
     lastSuccessAt: undefined as string | undefined,
-    error: ''
+    error: '',
+    currentAppEnterpriseId: undefined as string | undefined,
+    currentSpaceEnterpriseId: undefined as string | undefined,
+    syncToken: 0
   }),
   getters: {
     visibleBills(state) {
-      return (memberId: string, role: EnterpriseRole): ApiUsageBillView[] => (
-        state.rawBills.map((bill) => toBillView(bill, memberId, role, state.stale))
-      )
+      return (memberId: string, role: EnterpriseRole): ApiUsageBillView[] => state.rawBills
+        .filter((bill) => belongsToCurrentEnterprise(bill, state.currentAppEnterpriseId, state.currentSpaceEnterpriseId))
+        .map((bill) => toBillView(bill, memberId, role, state.stale))
+        .filter((bill) => role === 'admin' || bill.lines.length > 0)
     },
     billDetail(state) {
       return (spaceBillId: string, memberId: string, role: EnterpriseRole): ApiUsageBillView | undefined => {
-        const bill = state.rawBills.find((item) => item.spaceBillId === spaceBillId)
-        return bill ? toBillView(bill, memberId, role, state.stale) : undefined
+        const bill = state.rawBills.find((item) => (
+          item.spaceBillId === spaceBillId &&
+          belongsToCurrentEnterprise(item, state.currentAppEnterpriseId, state.currentSpaceEnterpriseId)
+        ))
+        const view = bill ? toBillView(bill, memberId, role, state.stale) : undefined
+        return view && (role === 'admin' || view.lines.length > 0) ? view : undefined
       }
     }
   },
@@ -42,26 +50,34 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
     async syncBills(
       appEnterpriseId: string,
       spaceEnterpriseId: string,
-      adapter: TrustedSpaceAdapter = trustedSpaceAdapter
+      adapter: TrustedSpaceAdapter = trustedSpaceAdapter,
+      now: () => string = () => new Date().toISOString()
     ): Promise<void> {
+      if (this.currentAppEnterpriseId !== appEnterpriseId || this.currentSpaceEnterpriseId !== spaceEnterpriseId) {
+        this.clearBills()
+        this.currentAppEnterpriseId = appEnterpriseId
+        this.currentSpaceEnterpriseId = spaceEnterpriseId
+      }
+      const syncToken = ++this.syncToken
       this.syncing = true
       this.error = ''
 
       try {
         const bills = await adapter.listUsageBills(spaceEnterpriseId)
+        if (syncToken !== this.syncToken) return
         this.rawBills = bills
           .filter((bill) => bill.appEnterpriseId === appEnterpriseId && bill.spaceEnterpriseId === spaceEnterpriseId)
           .map(cloneBill)
-        this.lastSuccessAt = this.rawBills.reduce<string | undefined>((latest, bill) => {
-          return !latest || bill.syncedAt > latest ? bill.syncedAt : latest
-        }, undefined)
+        this.lastSuccessAt = now()
         this.stale = false
       } catch (error) {
-        this.stale = true
-        this.error = error instanceof Error ? error.message : '空间账单同步失败'
+        if (syncToken === this.syncToken) {
+          this.stale = true
+          this.error = error instanceof Error ? error.message : '空间账单同步失败'
+        }
         throw error
       } finally {
-        this.syncing = false
+        if (syncToken === this.syncToken) this.syncing = false
       }
     },
     async download(
@@ -70,18 +86,39 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       role: EnterpriseRole,
       adapter: TrustedSpaceAdapter = trustedSpaceAdapter
     ): Promise<string | undefined> {
-      if (role !== 'admin' || !this.rawBills.some((bill) => bill.spaceBillId === spaceBillId)) return undefined
+      if (role !== 'admin' || !this.billDetail(spaceBillId, _memberId, role)) return undefined
       return adapter.createBillDownloadLink(spaceBillId)
     },
     async support(
       spaceBillId: string,
+      memberId: string,
+      role: EnterpriseRole,
       returnUrl: string,
       adapter: TrustedSpaceAdapter = trustedSpaceAdapter
-    ): Promise<string> {
+    ): Promise<string | undefined> {
+      if (!this.billDetail(spaceBillId, memberId, role)) return undefined
       return adapter.createBillSupportLink(spaceBillId, returnUrl)
+    },
+    clearBills() {
+      this.syncToken += 1
+      this.rawBills = []
+      this.syncing = false
+      this.stale = false
+      this.lastSuccessAt = undefined
+      this.error = ''
+      this.currentAppEnterpriseId = undefined
+      this.currentSpaceEnterpriseId = undefined
     }
   }
 })
+
+function belongsToCurrentEnterprise(
+  bill: ApiUsageBillMirror,
+  appEnterpriseId: string | undefined,
+  spaceEnterpriseId: string | undefined
+) {
+  return bill.appEnterpriseId === appEnterpriseId && bill.spaceEnterpriseId === spaceEnterpriseId
+}
 
 function toBillView(
   bill: ApiUsageBillMirror,

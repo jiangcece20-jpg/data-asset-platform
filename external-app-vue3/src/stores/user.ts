@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { seedEnterprise } from '@/data/seed'
 import type { Enterprise, UserContext } from '@/types/domain'
 import { now } from '@/utils/id'
+import { useApiUsageBillsStore } from './apiUsageBills'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -40,10 +41,19 @@ export const useUserStore = defineStore('user', {
     },
     completeEnterpriseAuth() {
       this.context.enterpriseAuthStatus = 'authenticated'
-      this.context.currentEnterpriseId = this.enterprise.id
+      this.setEnterpriseContext(this.enterprise.id)
       this.context.role = this.currentEnterpriseMember?.role ?? 'member'
       this.enterpriseAuthPending = false
       this.enterprise.status = 'active'
+    },
+    setEnterpriseContext(enterpriseId: string | undefined) {
+      if (this.context.currentEnterpriseId !== enterpriseId) useApiUsageBillsStore().clearBills()
+      this.context.currentEnterpriseId = enterpriseId
+    },
+    clearEnterpriseContext() {
+      this.setEnterpriseContext(undefined)
+      this.context.enterpriseAuthStatus = 'none'
+      this.context.role = 'member'
     },
     inviteMember(name: string, phone: string) {
       this.enterprise.members.push({
