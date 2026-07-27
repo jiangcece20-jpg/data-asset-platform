@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
+import { useResponsiveNow } from '@/composables/useResponsiveNow'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -15,6 +16,7 @@ import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { typeMeta } from '@/utils/productMeta'
 
 const router = useRouter()
+const now = useResponsiveNow()
 const approval = useApprovalStore()
 const spaceOrders = useSpaceOrderStore()
 const catalog = useCatalogStore()
@@ -32,7 +34,7 @@ const integration = useIntegrationStore()
 const purchases = useTrustedSpacePurchaseStore()
 const deadLetterCount = computed(() => integration.deadLetters.length)
 const spaceExceptions = computed(() => [
-  ...spaceOrders.longUnlinkedIntents().map((intent) => ({
+  ...spaceOrders.longUnlinkedIntents(now.value).map((intent) => ({
     id: `long-unlinked-${intent.id}`,
     label: `长时间未关联 · 购买意图 ${intent.id}`,
     status: 'unknown_processing',
@@ -178,7 +180,7 @@ function canReconcileIntent(intentId: string): string | undefined {
 
     <div class="rounded-xl border border-slate-200 bg-white p-4">
       <div class="mb-2 text-[13px] font-medium text-slate-700">订单回调 / 异常告警</div>
-      <div v-for="exception in spaceExceptions" :key="exception.id" class="flex items-center justify-between border-t border-slate-100 py-2 text-[13px]">
+      <div v-for="exception in spaceExceptions" :key="exception.id" data-testid="space-exception-row" class="flex items-center justify-between border-t border-slate-100 py-2 text-[13px]">
         <span class="text-slate-700">{{ exception.label }}</span>
         <div class="flex items-center gap-2">
           <StatusBadge :dict="exception.intentId ? 'spaceOrder' : 'connectorEvent'" :value="exception.status" />

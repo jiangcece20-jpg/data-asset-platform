@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useResponsiveNow } from '@/composables/useResponsiveNow'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import DeadLetterList from '@/components/admin/integration/DeadLetterList.vue'
@@ -9,11 +10,12 @@ import type { ConnectorEvent } from '@/types/configGovernance'
 
 const integration = useIntegrationStore()
 const spaceOrders = useSpaceOrderStore()
+const now = useResponsiveNow()
 const error = ref('')
 
 const deadLetters = computed(() => integration.deadLetters)
 const allEvents = computed(() => [...integration.events].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
-const longUnlinkedIntents = computed(() => spaceOrders.longUnlinkedIntents())
+const longUnlinkedIntents = computed(() => spaceOrders.longUnlinkedIntents(now.value))
 
 function repair(id: string) {
   error.value = ''

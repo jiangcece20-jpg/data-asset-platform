@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useResponsiveNow } from '@/composables/useResponsiveNow'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
@@ -12,6 +13,7 @@ import { useIntegrationStore } from '@/stores/integration'
 import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
 
 const router = useRouter()
+const now = useResponsiveNow()
 const catalog = useCatalogStore()
 const approval = useApprovalStore()
 const demand = useDemandStore()
@@ -23,7 +25,7 @@ const woStore = useReverseWorkOrderStore()
 const spaceExceptionCount = computed(() =>
   spaceOrders.mirrors.filter((mirror) => mirror.displayStatus === 'unknown_processing').length
   + integration.events.filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status)).length
-  + spaceOrders.longUnlinkedIntents().length,
+  + spaceOrders.longUnlinkedIntents(now.value).length,
 )
 
 const kpis = [
@@ -68,7 +70,7 @@ const pendingCounts = computed(() => [
         @click="router.push(p.to)"
       >
         <div class="text-xs text-slate-400">{{ p.label }}</div>
-        <div class="mt-1 text-lg font-semibold text-brand-600">{{ p.value }}</div>
+        <div class="mt-1 text-lg font-semibold text-brand-600" :data-testid="p.label === '空间回调异常' ? 'space-exception-count' : undefined">{{ p.value }}</div>
       </button>
     </div>
 

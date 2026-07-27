@@ -1,9 +1,10 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import IntegrationGovernance from './IntegrationGovernance.vue'
 import ApprovalIntegration from './ApprovalIntegration.vue'
+import Dashboard from './Dashboard.vue'
 import { useIntegrationStore } from '@/stores/integration'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
@@ -17,7 +18,7 @@ function purchaseIntent(over: Partial<SpacePurchaseIntent> = {}): SpacePurchaseI
     id: 'intent-delayed', appEnterpriseId: 'ent-wanlian-logistics', spaceEnterpriseId: 'space-ent-wanlian', operatorMemberId: 'mem-1',
     appProductId: 'prod-qualification-api', spaceProductNo: 'SPACE-API-20415', returnUrl: '/app/product/prod-qualification-api',
     idempotencyKey: 'intent-key', correlationId: 'corr-key', status: 'returned_pending_sync', createdAt: '2026-07-27T09:00:00.000Z',
-    returnedAt: '2026-07-27T10:00:00.000Z', expiresAt: '2026-07-27T10:30:00.000Z', ...over,
+    returnedAt: '2026-07-27T09:00:00.000Z', expiresAt: '2026-07-27T10:30:00.000Z', ...over,
   }
 }
 
@@ -27,11 +28,14 @@ function makeRouter(): Router {
 
 describe('IntegrationGovernance page', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-27T10:16:00.000Z'))
     setActivePinia(createPinia())
     useUserStore().completeEnterpriseAuth()
     useTrustedSpacePurchaseStore().intents = [purchaseIntent()]
     useTrustedSpaceCatalogStore().snapshots = [{ ...seedTrustedProductSnapshots[0] }]
   })
+  afterEach(() => vi.useRealTimers())
 
   it('registers the integration route', () => {
     expect(makeRouter().hasRoute('admin-integration-governance')).toBe(true)
@@ -119,5 +123,35 @@ describe('IntegrationGovernance page', () => {
     const wrapper = mount(ApprovalIntegration, { global: { plugins: [router] } })
     expect(wrapper.find('[data-testid="integration-card"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="integration-link"]').exists()).toBe(true)
+  })
+
+  it('refreshes all governance surfaces after a mounted intent crosses the long-unlinked threshold', async () => {
+    useTrustedSpacePurchaseStore().intents = [purchaseIntent({
+      createdAt: '2026-07-27T10:00:00.000Z',
+      returnedAt: '2026-07-27T10:00:00.000Z',
+    })]
+    vi.setSystemTime(new Date('2026-07-27T10:14:59.000Z'))
+    const router = makeRouter()
+    router.addRoute({ path: '/admin/approval', name: 'admin-approval', component: ApprovalIntegration })
+    router.push('/admin/approval/integration')
+    await router.isReady()
+    const governance = mount(IntegrationGovernance, { global: { plugins: [router] } })
+    const approval = mount(ApprovalIntegration, { global: { plugins: [router] } })
+    const dashboard = mount(Dashboard, { global: { plugins: [router] } })
+
+    expect(governance.findAll('[data-testid="long-unlinked-row"]')).toHaveLength(0)
+    expect(approval.findAll('[data-testid="space-exception-row"]')).toHaveLength(0)
+    expect(dashboard.find('[data-testid="space-exception-count"]').text()).toBe('0')
+
+    await vi.advanceTimersByTimeAsync(30_000)
+    await flushPromises()
+
+    expect(governance.findAll('[data-testid="long-unlinked-row"]')).toHaveLength(1)
+    expect(approval.findAll('[data-testid="space-exception-row"]')).toHaveLength(1)
+    expect(dashboard.find('[data-testid="space-exception-count"]').text()).toBe('1')
+
+    governance.unmount()
+    approval.unmount()
+    dashboard.unmount()
   })
 })
