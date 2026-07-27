@@ -1404,7 +1404,8 @@ git commit -m "docs: document trusted-space integration closure"
 #### Task 10 验证记录（2026-07-27）
 
 - RED：新增 `src/integration/trustedSpaceJourneys.test.ts` 后，README 演示契约因缺少 `/#/app/mine?tab=企业订单` 失败；补齐 README 的直接入口、角色、mock 切换和权威边界后转 GREEN。连续集成测试覆盖认证企业购买意图 → SSO 短链 → 返回同步中 → 主动对账镜像 → 管理员账单下载/空间支持深链，并覆盖 APP 报告个人/企业主体各自产生订单和权益。
-- 自动验证：`npm test -- --run` 通过，54 个 Vitest 文件、403 个测试；`npm run build` 通过（`vue-tsc -b --noCheck && vite build`）。
+- 自动验证：`npm test -- --run` 通过，54 个 Vitest 文件、403 个测试；`npm run build` 通过（项目脚本为 `vue-tsc -b --noCheck && vite build`），仅证明生产构建与 SFC/模板转换通过，不证明 TypeScript 语义无错。
+- 独立类型检查：`npx vue-tsc --noEmit -p tsconfig.json` 已运行但未通过，存在既有的联合类型收窄、适配器测试 fixture、`Array.at` 目标库、Store 泛型与商品详情比较等诊断；因此不声明 APP 源码项目类型检查通过。`npx vue-tsc -b` 同样未通过，另含既有 `vite.config.ts` 的 `node:url` 类型配置问题；该基线问题不在 Task 10 范围。
 - 禁止项扫描：对生产源码扫描旧的 `createSpaceOrder`、`advanceSpaceOrder`、`retryCallback`、`SpaceOrderStatus`、`callback_delayed` 及本地账单异议关键字，未发现命中。
 - 浏览器烟测（部分完成）：390×844 下页面 `scrollWidth=390`、无横向溢出；未认证资格核验 API 显示禁用「认证企业后购买」，完成提交认证 → 模拟审核通过 → 继续后为「前往可信空间购买」。购买意图页展示万联供应链管理有限公司、陈静和 APP 不创建本地空间订单说明；mock SSO 短链在 `redirected` 后以 `returned=1` 返回时显示 `returned_pending_sync` /「空间已受理，状态同步中」/「重新同步」。管理员账单显示企业总额 ¥1,840、两条凭证明细、下载和空间支持入口，APP 内无异议表单；报告个人/企业主体均经主体确认和再次确认并落入对应「我的」分栏。1440×900 下商品中心、订单中心和集成治理无横向溢出，且分别展示同步、只读空间镜像、长时间未关联/死信/事件区；控制台 warning/error 为 0。
 - 剩余浏览器风险：原型没有 UI mock 开关，未页面级实测强制快照过期、切换 `mem-2` 普通成员，以及生成真实空间镜像/回调治理；这些由 Vitest 覆盖，不能替代相应视觉/交互验收，因此 Step 5 保持未勾选。

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import readme from '../../README.md?raw'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MockTrustedSpaceAdapter } from '@/services/trusted-space/mockTrustedSpaceAdapter'
@@ -106,8 +106,6 @@ describe('trusted-space end-to-end journeys', () => {
 
 describe('trusted-space README demo contract', () => {
   it('documents the direct routes, role switching, authority boundaries, and report purchase subjects', () => {
-    const readme = readFileSync('README.md', 'utf8')
-
     for (const route of [
       '/#/app/product/prod-qualification-api',
       '/#/app/mine?tab=企业订单',
@@ -121,7 +119,13 @@ describe('trusted-space README demo contract', () => {
       '可信空间是数据集/API 商品、订单、交付和账单的事实权威',
       'APP 不创建空间权益',
       '账单疑问回可信空间处理',
-      '个人/企业购买主体'
+      '个人/企业购买主体',
+      '`mem-1`',
+      '**管理员**',
+      '`mem-2`',
+      '**普通成员**',
+      '成员只能看到本人经办的空间订单与本人账单范围，页面不显示企业总额。',
+      '无 UI mock 开关，成员场景由测试切换'
     ]) expect(readme).toContain(statement)
   })
 })
