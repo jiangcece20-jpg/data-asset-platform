@@ -41,6 +41,7 @@ export interface SpacePurchaseIntent {
   operatorMemberId: string
   appProductId: string
   spaceProductNo: string
+  productSnapshotVersion: number
   returnUrl: string
   idempotencyKey: string
   correlationId: string

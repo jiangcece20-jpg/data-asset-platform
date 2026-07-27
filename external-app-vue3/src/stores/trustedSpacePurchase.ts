@@ -80,6 +80,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
         operatorMemberId: input.operatorMemberId,
         appProductId: input.appProductId,
         spaceProductNo: snapshot.spaceProductNo,
+        productSnapshotVersion: snapshot.version,
         returnUrl: input.returnUrl,
         idempotencyKey: genId('idem'),
         correlationId: genId('corr'),
@@ -102,13 +103,45 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       if (!intent) throw new Error('购买意图不存在')
       if (!['ready', 'failed'].includes(intent.status)) throw new Error('购买意图当前不可重新连接')
-      if (!isAuthorizedIntent(this, intent)) throw new Error('企业购买上下文已失效')
+      if (!intentAuthorizationMatches(this, intent)) throw new Error('企业购买上下文已失效')
       if (isExpired(intent.expiresAt, requestedAt)) {
+        clearPurchaseLink(intent)
         intent.status = 'expired'
         throw new Error('购买意图已过期')
       }
       const requestToken = (this.linkRequestTokens[intentId] ?? 0) + 1
       this.linkRequestTokens[intentId] = requestToken
+
+      const cachedBinding = this.bindingForEnterprise(intent.appEnterpriseId)
+      let binding: EnterpriseSpaceBinding
+      try {
+        binding = await adapter.ensureEnterpriseBinding(intent.appEnterpriseId)
+      } catch (error) {
+        assertCurrentLinkRequest(this, intent, requestToken)
+        const reason = error instanceof Error ? error.message : '可信空间企业绑定校验失败'
+        failPurchaseLink(intent, reason)
+        throw error
+      }
+      assertCurrentLinkRequest(this, intent, requestToken)
+      if (
+        cachedBinding?.status === 'active'
+        && cachedBinding.spaceEnterpriseId !== intent.spaceEnterpriseId
+      ) {
+        failPurchaseLink(intent, '可信空间企业绑定已变化')
+        throw new Error('企业购买上下文已失效')
+      }
+      if (binding.appEnterpriseId === intent.appEnterpriseId) this.upsertBinding(binding)
+      const bindingCheckedAt = readClock(clock)
+      const beforeCheck = validateIntentFacts(this, intent, bindingCheckedAt, binding)
+      if (!beforeCheck.allowed) {
+        failPurchaseLink(intent, beforeCheck.reason)
+        throw new Error(beforeCheck.reason)
+      }
+      if (isExpired(intent.expiresAt, bindingCheckedAt)) {
+        clearPurchaseLink(intent)
+        intent.status = 'expired'
+        throw new Error('购买意图已过期')
+      }
 
       let link: Awaited<ReturnType<TrustedSpaceAdapter['createPurchaseLink']>>
       try {
@@ -120,40 +153,55 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
           returnUrl: intent.returnUrl
         })
       } catch (error) {
-        if (this.byId(intentId) !== intent || !isAuthorizedIntent(this, intent)) {
-          throw new Error('企业购买上下文已失效')
-        }
-        if (this.linkRequestTokens[intentId] !== requestToken) {
-          throw new Error('购买链接请求已失效')
-        }
+        assertCurrentLinkRequest(this, intent, requestToken)
         const completedAt = readClock(clock)
         if (isExpired(intent.expiresAt, completedAt)) {
+          clearPurchaseLink(intent)
           intent.status = 'expired'
           throw new Error('购买意图已过期')
         }
-        intent.purchaseUrl = undefined
-        intent.purchaseLinkExpiresAt = undefined
-        intent.status = 'failed'
-        intent.failureReason = error instanceof Error ? error.message : '可信空间连接失败'
+        failPurchaseLink(intent, error instanceof Error ? error.message : '可信空间连接失败')
         throw error
       }
 
       const completedAt = readClock(clock)
-      if (this.byId(intentId) !== intent || !isAuthorizedIntent(this, intent)) {
-        throw new Error('企业购买上下文已失效')
-      }
-      if (
-        this.linkRequestTokens[intentId] !== requestToken
-        || !['ready', 'failed'].includes(intent.status)
-      ) {
-        if (this.linkRequestTokens[intentId] !== requestToken) throw new Error('购买链接请求已失效')
-        throw new Error('企业购买上下文已失效')
-      }
+      assertCurrentLinkRequest(this, intent, requestToken)
       if (isExpired(intent.expiresAt, completedAt)) {
+        clearPurchaseLink(intent)
         intent.status = 'expired'
         throw new Error('购买意图已过期')
       }
-      if (isExpired(link.expiresAt, completedAt)) throw new Error('可信空间短链已过期')
+      if (isExpired(link.expiresAt, completedAt)) {
+        failPurchaseLink(intent, '可信空间短链已过期')
+        throw new Error('可信空间短链已过期')
+      }
+
+      let finalBinding: EnterpriseSpaceBinding
+      try {
+        finalBinding = await adapter.ensureEnterpriseBinding(intent.appEnterpriseId)
+      } catch (error) {
+        assertCurrentLinkRequest(this, intent, requestToken)
+        const reason = error instanceof Error ? error.message : '可信空间企业绑定校验失败'
+        failPurchaseLink(intent, reason)
+        throw error
+      }
+      assertCurrentLinkRequest(this, intent, requestToken)
+      if (finalBinding.appEnterpriseId === intent.appEnterpriseId) this.upsertBinding(finalBinding)
+      const finalCheckedAt = readClock(clock)
+      const finalCheck = validateIntentFacts(this, intent, finalCheckedAt, finalBinding)
+      if (!finalCheck.allowed) {
+        failPurchaseLink(intent, finalCheck.reason)
+        throw new Error(finalCheck.reason)
+      }
+      if (isExpired(intent.expiresAt, finalCheckedAt)) {
+        clearPurchaseLink(intent)
+        intent.status = 'expired'
+        throw new Error('购买意图已过期')
+      }
+      if (isExpired(link.expiresAt, finalCheckedAt)) {
+        failPurchaseLink(intent, '可信空间短链已过期')
+        throw new Error('可信空间短链已过期')
+      }
 
       intent.purchaseUrl = link.url
       intent.purchaseLinkExpiresAt = link.expiresAt
@@ -163,19 +211,24 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
     },
     markRedirected(intentId: string, at = new Date()) {
       const intent = this.byId(intentId)
-      if (
-        intent
-        && intent.status === 'ready'
-        && isAuthorizedIntent(this, intent)
-        && hasLiveLink(intent, at)
-      ) intent.status = 'redirected'
-    },
-    markReturned(intentId: string) {
-      const intent = this.byId(intentId)
-      if (intent && intent.status === 'redirected' && isAuthorizedIntent(this, intent)) {
-        intent.status = 'returned_pending_sync'
-        intent.returnedAt = new Date().toISOString()
+      if (!intent || intent.status !== 'ready') return
+      const check = validateIntentFacts(this, intent, at)
+      if (!check.allowed) {
+        failPurchaseLink(intent, check.reason)
+        return
       }
+      if (hasLiveLink(intent, at)) intent.status = 'redirected'
+    },
+    markReturned(intentId: string, at = new Date()) {
+      const intent = this.byId(intentId)
+      if (!intent || intent.status !== 'redirected') return
+      const check = validateIntentFacts(this, intent, at)
+      if (!check.allowed) {
+        failPurchaseLink(intent, check.reason)
+        return
+      }
+      intent.status = 'returned_pending_sync'
+      intent.returnedAt = at.toISOString()
     },
     linkOrder(intentId: string) {
       const intent = this.byId(intentId)
@@ -183,7 +236,13 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
     },
     hasActivePurchaseLink(intentId: string, at = new Date()): boolean {
       const intent = this.byId(intentId)
-      return Boolean(intent && isAuthorizedIntent(this, intent) && hasLiveLink(intent, at))
+      if (!intent) return false
+      const check = validateIntentFacts(this, intent, at)
+      if (!check.allowed) {
+        failPurchaseLink(intent, check.reason)
+        return false
+      }
+      return hasLiveLink(intent, at)
     },
     isIntentExpired(intentId: string, at = new Date()): boolean {
       const intent = this.byId(intentId)
@@ -259,25 +318,89 @@ function sameAuthorization(
   )
 }
 
-function isAuthorizedIntent(state: PurchaseAuthorizationState, intent: SpacePurchaseIntent): boolean {
+function intentAuthorizationMatches(state: PurchaseAuthorizationState, intent: SpacePurchaseIntent): boolean {
   const current = currentAuthorization()
-  if (
-    !current
-    || intent.authorizationGeneration !== state.authorizationGeneration
-    || intent.enterpriseContextGeneration !== current.enterpriseContextGeneration
-    || intent.appEnterpriseId !== current.appEnterpriseId
-    || intent.operatorMemberId !== current.operatorMemberId
-  ) return false
-
-  const binding = state.bindings.find((item) => item.appEnterpriseId === intent.appEnterpriseId)
-  const snapshot = useTrustedSpaceCatalogStore().byProductId(intent.appProductId)
   return Boolean(
-    binding
-    && binding.status === 'active'
-    && binding.spaceEnterpriseId === intent.spaceEnterpriseId
-    && snapshot
-    && snapshot.spaceProductNo === intent.spaceProductNo
+    current
+    && intent.authorizationGeneration === state.authorizationGeneration
+    && intent.enterpriseContextGeneration === current.enterpriseContextGeneration
+    && intent.appEnterpriseId === current.appEnterpriseId
+    && intent.operatorMemberId === current.operatorMemberId
   )
+}
+
+type IntentFactsCheck = { allowed: true } | { allowed: false; reason: string }
+
+function validateIntentFacts(
+  state: PurchaseAuthorizationState,
+  intent: SpacePurchaseIntent,
+  at: Date,
+  binding = state.bindings.find((item) => item.appEnterpriseId === intent.appEnterpriseId)
+): IntentFactsCheck {
+  if (!intentAuthorizationMatches(state, intent)) {
+    return { allowed: false, reason: '企业购买上下文已失效' }
+  }
+  if (
+    !binding
+    || binding.appEnterpriseId !== intent.appEnterpriseId
+    || binding.status !== 'active'
+    || !binding.spaceEnterpriseId
+  ) {
+    return { allowed: false, reason: '企业尚未完成可信空间绑定' }
+  }
+  if (binding.spaceEnterpriseId !== intent.spaceEnterpriseId) {
+    return { allowed: false, reason: '可信空间企业绑定已变化' }
+  }
+
+  const catalog = useTrustedSpaceCatalogStore()
+  const snapshot = catalog.byProductId(intent.appProductId)
+  if (!snapshot) return { allowed: false, reason: '可信空间商品不可用' }
+  if (snapshot.spaceProductNo !== intent.spaceProductNo) {
+    return { allowed: false, reason: '可信空间商品映射已变化' }
+  }
+  if (snapshot.version !== intent.productSnapshotVersion) {
+    return { allowed: false, reason: '可信空间商品版本已变化' }
+  }
+  const purchaseCheck = catalog.purchaseCheck(
+    intent.appProductId,
+    'authenticated',
+    binding.status,
+    at.toISOString()
+  )
+  return purchaseCheck.allowed
+    ? { allowed: true }
+    : { allowed: false, reason: purchaseBlockMessage(purchaseCheck.reason) }
+}
+
+function assertCurrentLinkRequest(
+  state: PurchaseAuthorizationState & {
+    intents: SpacePurchaseIntent[]
+    linkRequestTokens: Record<string, number>
+  },
+  intent: SpacePurchaseIntent,
+  requestToken: number
+) {
+  if (
+    state.intents.find((item) => item.id === intent.id) !== intent
+    || !['ready', 'failed'].includes(intent.status)
+    || !intentAuthorizationMatches(state, intent)
+  ) {
+    throw new Error('企业购买上下文已失效')
+  }
+  if (state.linkRequestTokens[intent.id] !== requestToken) {
+    throw new Error('购买链接请求已失效')
+  }
+}
+
+function clearPurchaseLink(intent: SpacePurchaseIntent) {
+  intent.purchaseUrl = undefined
+  intent.purchaseLinkExpiresAt = undefined
+}
+
+function failPurchaseLink(intent: SpacePurchaseIntent, reason: string) {
+  clearPurchaseLink(intent)
+  intent.failureReason = reason
+  if (['ready', 'failed'].includes(intent.status)) intent.status = 'failed'
 }
 
 function hasLiveLink(intent: SpacePurchaseIntent, at: Date): boolean {

@@ -14,6 +14,23 @@ function authenticateAs(memberId = 'mem-1') {
   return user
 }
 
+const purchaseInput = {
+  appEnterpriseId: 'ent-wanlian-logistics',
+  operatorMemberId: 'mem-1',
+  appProductId: 'prod-qualification-api',
+  enterpriseAuthStatus: 'authenticated' as const,
+  returnUrl: '/app/product/prod-qualification-api'
+}
+
+async function prepareReadyPurchase(adapter: MockTrustedSpaceAdapter) {
+  authenticateAs()
+  const catalog = useTrustedSpaceCatalogStore()
+  const purchase = useTrustedSpacePurchaseStore()
+  await catalog.syncAll(adapter)
+  const intent = await purchase.preparePurchase(purchaseInput, adapter)
+  return { catalog, intent, purchase }
+}
+
 describe('trustedSpacePurchase store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -493,5 +510,202 @@ describe('trustedSpacePurchase store', () => {
     store.markReturned(intent.id)
 
     expect(intent.status).toBe('redirected')
+  })
+
+  it.each([
+    ['paused', { saleStatus: 'paused' as const }, '可信空间商品暂不可购买'],
+    ['delisted', { saleStatus: 'delisted' as const }, '可信空间商品暂不可购买'],
+    ['unknown', { saleStatus: 'unknown' as const }, '可信空间商品暂不可购买'],
+    ['sync failed', { syncState: 'sync_failed' as const }, '可信空间商品信息同步中'],
+    ['stale', { syncedAt: '2026-07-27T09:00:00.000Z' }, '可信空间商品信息同步中']
+  ])('rejects link creation when the prepared product becomes %s', async (_case, mutation, reason) => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    intent.purchaseUrl = 'https://trusted-space.mock/purchase/old'
+    intent.purchaseLinkExpiresAt = '2026-07-27T10:05:00.000Z'
+    Object.assign(catalog.byProductId(intent.appProductId)!, mutation)
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow(reason)
+
+    expect(intent.status).toBe('failed')
+    expect(intent.purchaseUrl).toBeUndefined()
+    expect(intent.purchaseLinkExpiresAt).toBeUndefined()
+    expect(intent.failureReason).toBe(reason)
+  })
+
+  it.each([
+    [
+      'unbound',
+      { appEnterpriseId: 'ent-wanlian-logistics', status: 'unbound' as const },
+      '企业尚未完成可信空间绑定'
+    ],
+    [
+      'rebound',
+      {
+        appEnterpriseId: 'ent-wanlian-logistics',
+        spaceEnterpriseId: 'space-ent-rebound',
+        status: 'active' as const
+      },
+      '可信空间企业绑定已变化'
+    ]
+  ])('revalidates an authoritative %s binding before rebuilding a link', async (_case, binding, reason) => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { intent, purchase } = await prepareReadyPurchase(adapter)
+    intent.purchaseUrl = 'https://trusted-space.mock/purchase/old'
+    intent.purchaseLinkExpiresAt = '2026-07-27T10:05:00.000Z'
+    adapter.ensureEnterpriseBinding = async () => binding
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow(reason)
+
+    expect(intent.status).toBe('failed')
+    expect(intent.purchaseUrl).toBeUndefined()
+    expect(intent.purchaseLinkExpiresAt).toBeUndefined()
+    expect(intent.failureReason).toBe(reason)
+  })
+
+  it.each([
+    ['number', { spaceProductNo: 'SPACE-API-CHANGED' }, '可信空间商品映射已变化'],
+    ['version', { version: 13 }, '可信空间商品版本已变化']
+  ])('rejects a link when the trusted product %s changes after intent creation', async (_case, mutation, reason) => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    Object.assign(catalog.byProductId(intent.appProductId)!, mutation)
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow(reason)
+
+    expect(intent.status).toBe('failed')
+    expect(intent.failureReason).toBe(reason)
+  })
+
+  it('discards a purchase-link response when the catalog becomes paused while the request is pending', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    let releaseLink!: (value: { url: string; expiresAt: string }) => void
+    adapter.createPurchaseLink = () => new Promise((resolve) => {
+      releaseLink = resolve
+    })
+
+    const pending = purchase.createLink(intent.id, adapter)
+    await vi.waitFor(() => expect(releaseLink).toBeTypeOf('function'))
+    catalog.byProductId(intent.appProductId)!.saleStatus = 'paused'
+    releaseLink({
+      url: 'https://trusted-space.mock/purchase/late',
+      expiresAt: '2026-07-27T10:05:00.000Z'
+    })
+
+    await expect(pending).rejects.toThrow('可信空间商品暂不可购买')
+    expect(intent.status).toBe('failed')
+    expect(intent.purchaseUrl).toBeUndefined()
+    expect(intent.purchaseLinkExpiresAt).toBeUndefined()
+  })
+
+  it('discards a purchase-link response when the authoritative binding changes while the request is pending', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { intent, purchase } = await prepareReadyPurchase(adapter)
+    let bindingChecks = 0
+    adapter.ensureEnterpriseBinding = async () => {
+      bindingChecks += 1
+      return bindingChecks === 1
+        ? {
+            appEnterpriseId: 'ent-wanlian-logistics',
+            spaceEnterpriseId: 'space-ent-wanlian',
+            status: 'active'
+          }
+        : {
+            appEnterpriseId: 'ent-wanlian-logistics',
+            spaceEnterpriseId: 'space-ent-rebound',
+            status: 'active'
+          }
+    }
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow('可信空间企业绑定已变化')
+
+    expect(bindingChecks).toBe(2)
+    expect(intent.status).toBe('failed')
+    expect(intent.purchaseUrl).toBeUndefined()
+  })
+
+  it('recovers a failed intent after product and binding facts are fresh, published, and active again', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    const snapshot = catalog.byProductId(intent.appProductId)!
+    snapshot.saleStatus = 'paused'
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow('可信空间商品暂不可购买')
+
+    snapshot.saleStatus = 'published'
+    snapshot.syncState = 'current'
+    snapshot.syncedAt = '2026-07-27T10:00:00.000Z'
+    const url = await purchase.createLink(intent.id, adapter)
+
+    expect(url).toContain('https://trusted-space.mock/purchase?')
+    expect(intent.status).toBe('ready')
+    expect(intent.failureReason).toBeUndefined()
+  })
+
+  it('recovers the same failed intent after its authoritative binding becomes active again', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { intent, purchase } = await prepareReadyPurchase(adapter)
+    let bindingStatus: 'unbound' | 'active' = 'unbound'
+    let bindingChecks = 0
+    adapter.ensureEnterpriseBinding = async () => {
+      bindingChecks += 1
+      return {
+        appEnterpriseId: 'ent-wanlian-logistics',
+        spaceEnterpriseId: bindingStatus === 'active' ? 'space-ent-wanlian' : undefined,
+        status: bindingStatus
+      }
+    }
+
+    await expect(purchase.createLink(intent.id, adapter)).rejects.toThrow('企业尚未完成可信空间绑定')
+
+    bindingStatus = 'active'
+    await expect(purchase.createLink(intent.id, adapter)).resolves.toContain('https://trusted-space.mock/purchase?')
+    expect(bindingChecks).toBe(3)
+    expect(intent.status).toBe('ready')
+    expect(intent.failureReason).toBeUndefined()
+  })
+
+  it('immediately hides an old link and refuses redirect after the latest product facts become invalid', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    await purchase.createLink(intent.id, adapter)
+    catalog.byProductId(intent.appProductId)!.saleStatus = 'paused'
+
+    purchase.markRedirected(intent.id, new Date('2026-07-27T10:01:00.000Z'))
+    expect(purchase.hasActivePurchaseLink(intent.id, new Date('2026-07-27T10:01:00.000Z'))).toBe(false)
+
+    expect(intent.status).toBe('failed')
+    expect(intent.purchaseUrl).toBeUndefined()
+    expect(intent.purchaseLinkExpiresAt).toBeUndefined()
+    expect(intent.failureReason).toBe('可信空间商品暂不可购买')
+  })
+
+  it('does not mark a returned purchase when its cached binding is no longer active', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { intent, purchase } = await prepareReadyPurchase(adapter)
+    await purchase.createLink(intent.id, adapter)
+    purchase.markRedirected(intent.id, new Date('2026-07-27T10:01:00.000Z'))
+    purchase.bindingForEnterprise(intent.appEnterpriseId)!.status = 'unbound'
+
+    purchase.markReturned(intent.id, new Date('2026-07-27T10:01:00.000Z'))
+
+    expect(intent.status).toBe('redirected')
+    expect(intent.returnedAt).toBeUndefined()
+    expect(intent.failureReason).toBe('企业尚未完成可信空间绑定')
+  })
+
+  it('does not mark a returned purchase after its product is no longer for sale', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const { catalog, intent, purchase } = await prepareReadyPurchase(adapter)
+    await purchase.createLink(intent.id, adapter)
+    purchase.markRedirected(intent.id, new Date('2026-07-27T10:01:00.000Z'))
+    catalog.byProductId(intent.appProductId)!.saleStatus = 'delisted'
+
+    purchase.markReturned(intent.id, new Date('2026-07-27T10:01:00.000Z'))
+
+    expect(intent.status).toBe('redirected')
+    expect(intent.returnedAt).toBeUndefined()
+    expect(intent.failureReason).toBe('可信空间商品暂不可购买')
   })
 })

@@ -76,7 +76,11 @@ describe('SpaceBridge direct-entry guard', () => {
   it('reconciles a returned intent and displays its trusted-space mirror instead of a purchase success claim', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
-    useTrustedSpaceCatalogStore().snapshots = [{ ...seedTrustedProductSnapshots[0] }]
+    useTrustedSpaceCatalogStore().snapshots = [{
+      ...seedTrustedProductSnapshots[0],
+      syncedAt: new Date().toISOString(),
+      syncState: 'current'
+    }]
     const purchases = useTrustedSpacePurchaseStore()
     purchases.bindings = [{
       appEnterpriseId: 'ent-wanlian-logistics',
@@ -90,6 +94,7 @@ describe('SpaceBridge direct-entry guard', () => {
       operatorMemberId: 'mem-1',
       appProductId: 'prod-qualification-api',
       spaceProductNo: 'SPACE-API-20415',
+      productSnapshotVersion: 12,
       returnUrl: '/app/product/prod-qualification-api',
       idempotencyKey: 'intent-key-1',
       correlationId: 'intent-correlation-1',
