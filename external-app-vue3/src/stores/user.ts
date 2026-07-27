@@ -96,6 +96,7 @@ export const useUserStore = defineStore('user', {
       if (!m || !m.seatAssigned) return
       m.seatAssigned = false
       m.status = 'revoked'
+      useApiUsageBillsStore().invalidateAuthorization()
       this.enterprise.seatsUsed = Math.max(0, this.enterprise.seatsUsed - 1)
       if (this.enterprise.status === 'seats_full') this.enterprise.status = 'active'
     },

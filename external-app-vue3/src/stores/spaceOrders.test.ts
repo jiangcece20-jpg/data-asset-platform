@@ -168,7 +168,7 @@ describe('space order mirror store', () => {
       findOrderByIntent: () => new Promise((resolve) => { releaseOrder = resolve }),
       listUsageBills: async () => [],
       createBillDownloadLink: async () => '',
-      createBillSupportLink: async () => ''
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
     }
 
     const reconciliation = store.reconcileIntent('intent-delayed', delayedAdapter)
@@ -193,7 +193,7 @@ describe('space order mirror store', () => {
       findOrderByIntent: async () => spaceEvent(),
       listUsageBills: async () => [],
       createBillDownloadLink: async () => '',
-      createBillSupportLink: async () => ''
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
     }
 
     await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toBeUndefined()
@@ -239,7 +239,7 @@ describe('space order mirror store', () => {
       findOrderByIntent: async () => spaceEvent(),
       listUsageBills: async () => [],
       createBillDownloadLink: async () => '',
-      createBillSupportLink: async () => ''
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
     }
 
     const mirror = await store.reconcileIntent('intent-delayed', adapter)
@@ -260,7 +260,7 @@ describe('space order mirror store', () => {
       findOrderByIntent: async () => spaceEvent({ purchaseIntentId: 'intent-other' }),
       listUsageBills: async () => [],
       createBillDownloadLink: async () => '',
-      createBillSupportLink: async () => ''
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
     }
 
     await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toBeUndefined()

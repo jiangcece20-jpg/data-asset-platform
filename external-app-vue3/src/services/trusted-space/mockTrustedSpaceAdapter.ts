@@ -10,13 +10,25 @@ import type {
   SpaceOrderEvent,
   TrustedProductSnapshot
 } from '@/types/trustedSpace'
-import type { PurchaseLinkInput, TrustedSpaceAdapter } from './TrustedSpaceAdapter'
+import type {
+  BillSupportLinkInput,
+  BillSupportLinkResult,
+  PurchaseLinkInput,
+  TrustedSpaceAdapter
+} from './TrustedSpaceAdapter'
 
 function clone<T>(value: T): T {
   return structuredClone(value)
 }
 
 export class MockTrustedSpaceAdapter implements TrustedSpaceAdapter {
+  readonly billSupportLinkRecords: Array<{
+    token: string
+    input: BillSupportLinkInput
+    expiresAt: string
+  }> = []
+  private billSupportLinkSequence = 0
+
   constructor(private readonly now: () => string) {}
 
   async syncProducts(cursor?: string): Promise<{ items: TrustedProductSnapshot[]; nextCursor?: string }> {
@@ -69,10 +81,15 @@ export class MockTrustedSpaceAdapter implements TrustedSpaceAdapter {
     return `https://trusted-space.mock/bills/${encodeURIComponent(spaceBillId)}/download`
   }
 
-  async createBillSupportLink(spaceBillId: string, returnUrl: string): Promise<string> {
-    const params = new URLSearchParams({ returnUrl })
+  async createBillSupportLink(input: BillSupportLinkInput): Promise<BillSupportLinkResult> {
+    const token = `bill-support-${String(++this.billSupportLinkSequence).padStart(4, '0')}`
+    const expiresAt = new Date(new Date(this.now()).getTime() + 5 * 60 * 1000).toISOString()
+    this.billSupportLinkRecords.push({ token, input: clone(input), expiresAt })
 
-    return `https://trusted-space.mock/bills/${encodeURIComponent(spaceBillId)}/support?${params.toString()}`
+    return {
+      url: `https://trusted-space.mock/bills/support?token=${encodeURIComponent(token)}`,
+      expiresAt
+    }
   }
 
   private receivedSnapshot(product: TrustedProductSnapshot): TrustedProductSnapshot {

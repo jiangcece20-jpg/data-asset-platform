@@ -222,6 +222,40 @@ describe('API usage bill views', () => {
     expect(detail.text()).toContain('未找到该账单')
     expect(detail.text()).not.toContain('账单有疑问')
   })
+
+  it('rebuilds an expired support link before the detail page can use it', async () => {
+    let clock = new Date('2026-07-27T10:00:00.000Z')
+    let sequence = 0
+    vi.spyOn(trustedSpaceAdapter, 'createBillSupportLink').mockImplementation(async () => ({
+      url: `https://trusted-space.mock/bills/support?token=ui-${++sequence}`,
+      expiresAt: new Date(clock.getTime() + 5 * 60 * 1000).toISOString()
+    }))
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/app/mine/enterprise/bills/:id', name: 'api-usage-bill-detail', component: ApiUsageBillDetail }]
+    })
+    await router.push(`/app/mine/enterprise/bills/${seedApiUsageBills[0].spaceBillId}`)
+    await router.isReady()
+    const wrapper = mount(ApiUsageBillDetail, {
+      global: {
+        plugins: [router],
+        provide: { 'trusted-space-now': () => clock }
+      }
+    })
+    await flushPromises()
+
+    await wrapper.findAll('button').find((item) => item.text() === '账单有疑问')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.get('a').attributes('href')).toContain('token=ui-1')
+
+    clock = new Date('2026-07-27T10:05:00.000Z')
+    await wrapper.get('a').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('a').attributes('href')).toContain('token=ui-2')
+  })
 })
 
 describe('mine order views', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
@@ -11,13 +11,14 @@ const user = useUserStore()
 const billsStore = useApiUsageBillsStore()
 const loading = ref(false)
 const pageError = ref('')
-const supportLink = ref('')
+const currentTime = inject<() => Date>('trusted-space-now', () => new Date())
 
 const member = computed(() => user.currentEnterpriseMember)
 const role = computed(() => member.value?.role ?? 'member')
 const billId = computed(() => String(route.params.id))
 const authenticated = computed(() => user.isEnterpriseAuthenticated && Boolean(user.context.currentEnterpriseId && member.value))
-const bill = computed(() => member.value ? billsStore.billDetail(billId.value, member.value.id, role.value) : undefined)
+const bill = computed(() => billsStore.billDetail(billId.value))
+const supportLink = computed(() => billsStore.supportLinkForBill(billId.value, currentTime()) ?? '')
 
 async function loadBill() {
   if (!authenticated.value || !user.context.currentEnterpriseId) return
@@ -38,14 +39,18 @@ async function loadBill() {
 }
 
 async function downloadBill() {
-  if (!member.value) return
-  const url = await billsStore.download(billId.value, member.value.id, role.value)
+  const url = await billsStore.download(billId.value)
   if (url) window.location.assign(url)
 }
 
 async function askSupport() {
-  if (!member.value) return
-  supportLink.value = await billsStore.support(billId.value, member.value.id, role.value, route.fullPath) ?? ''
+  await billsStore.support(billId.value, route.fullPath, undefined, currentTime)
+}
+
+function useSupportLink(event: MouseEvent) {
+  if (billsStore.supportLinkForBill(billId.value, currentTime())) return
+  event.preventDefault()
+  void askSupport()
 }
 
 onMounted(() => { void loadBill() })
@@ -99,7 +104,7 @@ onMounted(() => { void loadBill() })
       <div class="mx-4 mt-3 space-y-2">
         <button v-if="role === 'admin'" class="w-full rounded-full bg-slate-800 py-2.5 text-[13px] font-medium text-white" @click="downloadBill">下载完整账单</button>
         <button class="w-full rounded-full border border-brand-500 py-2.5 text-[13px] font-medium text-brand-500" @click="askSupport">账单有疑问</button>
-        <a v-if="supportLink" :href="supportLink" class="block break-all rounded-xl bg-cyan-50 p-3 text-[12px] text-cyan-800">前往可信空间处理账单疑问</a>
+        <a v-if="supportLink" :href="supportLink" class="block break-all rounded-xl bg-cyan-50 p-3 text-[12px] text-cyan-800" @click="useSupportLink">前往可信空间处理账单疑问</a>
       </div>
     </template>
   </div>

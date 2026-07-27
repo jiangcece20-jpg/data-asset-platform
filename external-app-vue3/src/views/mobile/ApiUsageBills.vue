@@ -15,7 +15,7 @@ const bindingError = ref('')
 const member = computed(() => user.currentEnterpriseMember)
 const role = computed(() => member.value?.role ?? 'member')
 const authenticated = computed(() => user.isEnterpriseAuthenticated && Boolean(user.context.currentEnterpriseId && member.value))
-const bills = computed(() => member.value ? billsStore.visibleBills(member.value.id, role.value) : [])
+const bills = computed(() => billsStore.visibleBills())
 
 async function loadBills() {
   if (!authenticated.value || !user.context.currentEnterpriseId) return

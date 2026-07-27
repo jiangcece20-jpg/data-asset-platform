@@ -81,10 +81,15 @@ describe('trusted-space end-to-end journeys', () => {
     expect(entitlements.list).toHaveLength(entitlementCount)
 
     await bills.syncBills(intent.appEnterpriseId, intent.spaceEnterpriseId, adapter)
-    const adminBill = bills.visibleBills(intent.operatorMemberId, 'admin')[0]
+    const adminBill = bills.visibleBills()[0]
     expect(adminBill).toMatchObject({ totalAmount: 1840, visibleCalls: 1840 })
-    await expect(bills.download(adminBill.spaceBillId, intent.operatorMemberId, 'admin', adapter)).resolves.toContain('/download')
-    await expect(bills.support(adminBill.spaceBillId, intent.operatorMemberId, 'admin', '/app/mine/enterprise/bills')).resolves.toContain('/support')
+    await expect(bills.download(adminBill.spaceBillId, adapter)).resolves.toContain('/download')
+    await expect(bills.support(
+      adminBill.spaceBillId,
+      '/app/mine/enterprise/bills',
+      adapter,
+      () => new Date('2026-07-27T10:00:00.000Z')
+    )).resolves.toContain('/support')
   })
 
   it('creates APP report orders and entitlements for the selected personal or enterprise subject only', () => {

@@ -14,6 +14,27 @@ export interface PurchaseLinkInput {
   returnUrl: string
 }
 
+export type BillVisibilityScope =
+  | { kind: 'enterprise_statement' }
+  | {
+      kind: 'member_credentials'
+      credentialLocators: string[]
+      apiLocators: string[]
+    }
+
+export interface BillSupportLinkInput {
+  spaceEnterpriseId: string
+  operatorMemberId: string
+  spaceBillId: string
+  returnUrl: string
+  visibilityScope: BillVisibilityScope
+}
+
+export interface BillSupportLinkResult {
+  url: string
+  expiresAt: string
+}
+
 export interface TrustedSpaceAdapter {
   syncProducts(cursor?: string): Promise<{ items: TrustedProductSnapshot[]; nextCursor?: string }>
   getProduct(spaceProductNo: string): Promise<TrustedProductSnapshot | undefined>
@@ -22,7 +43,7 @@ export interface TrustedSpaceAdapter {
   findOrderByIntent(intentId: string): Promise<SpaceOrderEvent | undefined>
   listUsageBills(spaceEnterpriseId: string): Promise<ApiUsageBillMirror[]>
   createBillDownloadLink(spaceBillId: string): Promise<string>
-  createBillSupportLink(spaceBillId: string, returnUrl: string): Promise<string>
+  createBillSupportLink(input: BillSupportLinkInput): Promise<BillSupportLinkResult>
 }
 
 export const trustedSpaceAdapter: TrustedSpaceAdapter =
