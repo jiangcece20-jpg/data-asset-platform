@@ -10,6 +10,15 @@ describe('MockTrustedSpaceAdapter', () => {
     expect(result.items[0].version).toBeGreaterThan(0)
   })
 
+  it('stamps product receipt time from the injected clock without changing the space update time', async () => {
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T11:00:00.000Z')
+    const [snapshot] = (await adapter.syncProducts()).items
+
+    expect(snapshot.syncedAt).toBe('2026-07-27T11:00:00.000Z')
+    expect(snapshot.spaceUpdatedAt).toBe('2026-07-27T09:45:00.000Z')
+    expect((await adapter.getProduct(snapshot.spaceProductNo))?.syncedAt).toBe('2026-07-27T11:00:00.000Z')
+  })
+
   it('binds an app enterprise and creates a short-lived product link', async () => {
     const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
     const binding = await adapter.ensureEnterpriseBinding('ent-wanlian-logistics')

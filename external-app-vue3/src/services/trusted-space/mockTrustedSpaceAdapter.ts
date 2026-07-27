@@ -23,11 +23,12 @@ export class MockTrustedSpaceAdapter implements TrustedSpaceAdapter {
     const start = cursor ? Number.parseInt(cursor, 10) : 0
     const items = seedTrustedProductSnapshots.slice(Number.isNaN(start) ? 0 : start)
 
-    return { items: clone(items) }
+    return { items: items.map((product) => this.receivedSnapshot(product)) }
   }
 
   async getProduct(spaceProductNo: string): Promise<TrustedProductSnapshot | undefined> {
-    return clone(seedTrustedProductSnapshots.find((product) => product.spaceProductNo === spaceProductNo))
+    const product = seedTrustedProductSnapshots.find((item) => item.spaceProductNo === spaceProductNo)
+    return product ? this.receivedSnapshot(product) : undefined
   }
 
   async ensureEnterpriseBinding(appEnterpriseId: string): Promise<EnterpriseSpaceBinding> {
@@ -72,5 +73,9 @@ export class MockTrustedSpaceAdapter implements TrustedSpaceAdapter {
     const params = new URLSearchParams({ returnUrl })
 
     return `https://trusted-space.mock/bills/${encodeURIComponent(spaceBillId)}/support?${params.toString()}`
+  }
+
+  private receivedSnapshot(product: TrustedProductSnapshot): TrustedProductSnapshot {
+    return { ...clone(product), syncedAt: this.now(), syncState: 'current' }
   }
 }

@@ -31,6 +31,19 @@ describe('trustedSpacePolicy', () => {
     })).toEqual({ allowed: false, reason: 'enterprise_required' })
   })
 
+  it.each(['unbound', 'pending', 'failed'] as const)(
+    'blocks an authenticated enterprise with a %s space binding',
+    (bindingStatus) => {
+      expect(evaluateTrustedPurchase({
+        enterpriseAuthStatus: 'authenticated',
+        bindingStatus,
+        snapshot: snapshot(),
+        now: '2026-07-27T09:10:00.000Z',
+        maxAgeMs: 30 * 60 * 1000
+      })).toEqual({ allowed: false, reason: 'binding_required' })
+    }
+  )
+
   it('blocks a stale product snapshot', () => {
     expect(evaluateTrustedPurchase({
       enterpriseAuthStatus: 'authenticated',

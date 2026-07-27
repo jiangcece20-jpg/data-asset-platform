@@ -51,7 +51,7 @@ const trustedPurchaseCheck = computed(() => {
   return trustedSpaceCatalog.purchaseCheck(
     product.value.id,
     user.context.enterpriseAuthStatus,
-    user.isEnterpriseAuthenticated ? 'active' : 'unbound'
+    'unbound'
   )
 })
 
