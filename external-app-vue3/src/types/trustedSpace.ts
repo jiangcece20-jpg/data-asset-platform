@@ -68,6 +68,13 @@ export interface SpaceOrderEvent {
   detailUrl?: string
 }
 
+export interface SpaceOrderEventAssociation {
+  spaceOrderId: string
+  purchaseIntentId: string
+  spaceEnterpriseId: string
+  spaceProductNo: string
+}
+
 export interface SpaceOrderMirror {
   spaceOrderId: string
   purchaseIntentId: string

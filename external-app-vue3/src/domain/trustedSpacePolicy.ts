@@ -1,6 +1,7 @@
 import type {
   SpaceOrderDisplayStatus,
   SpaceOrderEvent,
+  SpaceOrderEventAssociation,
   SpaceOrderMirror,
   TrustedPurchaseCheck,
   TrustedPurchaseCheckInput
@@ -27,7 +28,14 @@ export function evaluateTrustedPurchase(input: TrustedPurchaseCheckInput): Trust
     return { allowed: false, reason: 'product_unavailable' }
   }
   const age = new Date(input.now).getTime() - new Date(input.snapshot.syncedAt).getTime()
-  if (input.snapshot.syncState !== 'current' || !Number.isFinite(age) || age > input.maxAgeMs) {
+  if (
+    input.snapshot.syncState !== 'current' ||
+    !Number.isFinite(age) ||
+    !Number.isFinite(input.maxAgeMs) ||
+    input.maxAgeMs < 0 ||
+    age < 0 ||
+    age > input.maxAgeMs
+  ) {
     return { allowed: false, reason: 'product_stale' }
   }
   if (input.snapshot.saleStatus !== 'published') {
@@ -42,9 +50,14 @@ export function mapSpaceOrderStatus(rawStatus: string): SpaceOrderDisplayStatus 
 
 export function canApplySpaceOrderEvent(
   current: SpaceOrderMirror | undefined,
-  incoming: SpaceOrderEvent
+  incoming: SpaceOrderEvent,
+  expectedAssociation?: SpaceOrderEventAssociation
 ): boolean {
+  if (!incoming.signatureValid || !expectedAssociation || !matchesAssociation(incoming, expectedAssociation)) {
+    return false
+  }
   if (!current) return true
+  if (!matchesAssociation(incoming, current)) return false
   if (incoming.eventVersion <= current.eventVersion) return false
   const next = mapSpaceOrderStatus(incoming.rawStatus)
   if (['delivered', 'failed', 'cancelled'].includes(current.displayStatus)) {
@@ -60,4 +73,14 @@ export function canApplySpaceOrderEvent(
   }
   const currentRank = rank[current.displayStatus as keyof typeof rank]
   return currentRank === undefined || rank[next] >= currentRank
+}
+
+function matchesAssociation(
+  incoming: SpaceOrderEvent,
+  association: SpaceOrderEventAssociation
+): boolean {
+  return incoming.spaceOrderId === association.spaceOrderId &&
+    incoming.purchaseIntentId === association.purchaseIntentId &&
+    incoming.spaceEnterpriseId === association.spaceEnterpriseId &&
+    incoming.spaceProductNo === association.spaceProductNo
 }
