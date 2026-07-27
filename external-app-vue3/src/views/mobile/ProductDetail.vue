@@ -140,6 +140,10 @@ async function refreshEnterpriseBinding() {
   }
   try {
     const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(user.context.currentEnterpriseId)
+    if (binding.appEnterpriseId !== user.context.currentEnterpriseId) {
+      bindingStatus.value = 'failed'
+      return
+    }
     trustedPurchase.upsertBinding(binding)
     bindingStatus.value = binding.status
   } catch {

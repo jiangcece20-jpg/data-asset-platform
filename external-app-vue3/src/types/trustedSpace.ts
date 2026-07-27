@@ -48,6 +48,7 @@ export interface SpacePurchaseIntent {
   createdAt: string
   expiresAt: string
   purchaseUrl?: string
+  purchaseLinkExpiresAt?: string
   failureReason?: string
 }
 

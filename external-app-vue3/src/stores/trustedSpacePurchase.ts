@@ -34,13 +34,14 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       adapter: TrustedSpaceAdapter = trustedSpaceAdapter
     ): Promise<SpacePurchaseIntent> {
       const binding = await adapter.ensureEnterpriseBinding(input.appEnterpriseId)
-      this.upsertBinding(binding)
+      const bindingMatchesEnterprise = binding.appEnterpriseId === input.appEnterpriseId
+      if (bindingMatchesEnterprise) this.upsertBinding(binding)
 
       const catalog = useTrustedSpaceCatalogStore()
       const check = catalog.purchaseCheck(
         input.appProductId,
         input.enterpriseAuthStatus,
-        binding.status
+        bindingMatchesEnterprise ? binding.status : 'failed'
       )
       if (!check.allowed) throw new Error(purchaseBlockMessage(check.reason))
 
@@ -65,11 +66,15 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       this.intents.push(intent)
       return intent
     },
-    async createLink(intentId: string, adapter: TrustedSpaceAdapter = trustedSpaceAdapter): Promise<string> {
+    async createLink(
+      intentId: string,
+      adapter: TrustedSpaceAdapter = trustedSpaceAdapter,
+      at = new Date()
+    ): Promise<string> {
       const intent = this.byId(intentId)
       if (!intent) throw new Error('购买意图不存在')
       if (!['ready', 'failed'].includes(intent.status)) throw new Error('购买意图当前不可重新连接')
-      if (new Date(intent.expiresAt).getTime() <= Date.now()) {
+      if (isExpired(intent.expiresAt, at)) {
         intent.status = 'expired'
         throw new Error('购买意图已过期')
       }
@@ -83,10 +88,13 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
           returnUrl: intent.returnUrl
         })
         intent.purchaseUrl = link.url
+        intent.purchaseLinkExpiresAt = link.expiresAt
         intent.failureReason = undefined
         intent.status = 'ready'
         return link.url
       } catch (error) {
+        intent.purchaseUrl = undefined
+        intent.purchaseLinkExpiresAt = undefined
         intent.status = 'failed'
         intent.failureReason = error instanceof Error ? error.message : '可信空间连接失败'
         throw error
@@ -100,6 +108,19 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       if (intent && intent.status === 'redirected') intent.status = 'returned_pending_sync'
     },
+    hasActivePurchaseLink(intentId: string, at = new Date()): boolean {
+      const intent = this.byId(intentId)
+      return Boolean(
+        intent?.purchaseUrl &&
+        intent.purchaseLinkExpiresAt &&
+        !isExpired(intent.expiresAt, at) &&
+        !isExpired(intent.purchaseLinkExpiresAt, at)
+      )
+    },
+    isIntentExpired(intentId: string, at = new Date()): boolean {
+      const intent = this.byId(intentId)
+      return Boolean(intent && isExpired(intent.expiresAt, at))
+    },
     upsertBinding(binding: EnterpriseSpaceBinding) {
       const index = this.bindings.findIndex((item) => item.appEnterpriseId === binding.appEnterpriseId)
       if (index >= 0) this.bindings[index] = { ...binding }
@@ -107,6 +128,10 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
     }
   }
 })
+
+function isExpired(expiresAt: string, at: Date): boolean {
+  return new Date(expiresAt).getTime() <= at.getTime()
+}
 
 function purchaseBlockMessage(reason: string): string {
   switch (reason) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
@@ -17,6 +17,9 @@ const intentId = computed(() => String(route.query.intent ?? ''))
 const intent = computed(() => purchase.byId(intentId.value))
 const enterprise = computed(() => user.enterprise)
 const operator = computed(() => user.currentEnterpriseMember)
+const currentTime = inject<() => Date>('trusted-space-now', () => new Date())
+const clockTick = ref(0)
+let clockTimer: ReturnType<typeof setInterval> | undefined
 const validIntent = computed(() => {
   const current = intent.value
   return Boolean(
@@ -29,6 +32,15 @@ const validIntent = computed(() => {
 })
 const connecting = ref(false)
 const connectionError = ref('')
+const intentExpired = computed(() => {
+  void clockTick.value
+  return intent.value ? purchase.isIntentExpired(intent.value.id, currentTime()) : false
+})
+const hasActivePurchaseLink = computed(() => {
+  void clockTick.value
+  return intent.value ? purchase.hasActivePurchaseLink(intent.value.id, currentTime()) : false
+})
+const shortLinkExpired = computed(() => Boolean(intent.value?.purchaseUrl) && !hasActivePurchaseLink.value)
 
 onMounted(() => {
   if (!product.value || !validIntent.value) {
@@ -36,6 +48,11 @@ onMounted(() => {
     return
   }
   if (route.query.returned === '1') purchase.markReturned(intent.value!.id)
+  clockTimer = setInterval(() => { clockTick.value += 1 }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (clockTimer) clearInterval(clockTimer)
 })
 
 async function createLink() {
@@ -43,7 +60,7 @@ async function createLink() {
   connecting.value = true
   connectionError.value = ''
   try {
-    await purchase.createLink(intent.value.id)
+    await purchase.createLink(intent.value.id, undefined, currentTime())
   } catch (error) {
     connectionError.value = error instanceof Error ? error.message : '可信空间连接失败'
   } finally {
@@ -82,15 +99,18 @@ function enterTrustedSpace() {
       <div v-if="intent.status === 'returned_pending_sync'" class="rounded-xl bg-amber-400/10 p-3 text-center text-[13px] text-amber-200">
         空间已受理，状态同步中
       </div>
+      <div v-else-if="intentExpired" class="rounded-xl bg-rose-400/10 p-3 text-center text-[13px] text-rose-200">
+        购买意图已过期，请返回商品详情重新发起购买
+      </div>
       <div v-else class="rounded-2xl bg-white/5 p-4">
         <div class="text-[13px] text-white/70">订单与数据权益由可信空间处理，APP 不创建本地空间订单。</div>
         <div v-if="connectionError" class="mt-3 text-[12px] text-rose-300">{{ connectionError }}</div>
         <button
-          v-if="!intent.purchaseUrl"
+          v-if="!hasActivePurchaseLink"
           class="mt-4 w-full rounded-xl bg-cyan-400 py-3 text-[14px] font-medium text-slate-950 disabled:opacity-50"
           :disabled="connecting"
           @click="createLink"
-        >{{ connectionError ? '重新连接' : '生成可信空间链接' }}</button>
+        >{{ connectionError || shortLinkExpired ? '重新连接' : '生成可信空间链接' }}</button>
         <a
           v-else
           class="mt-4 block w-full rounded-xl bg-cyan-400 py-3 text-center text-[14px] font-medium text-slate-950"
