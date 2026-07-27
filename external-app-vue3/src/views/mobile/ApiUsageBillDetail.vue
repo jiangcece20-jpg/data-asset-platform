@@ -2,7 +2,6 @@
 import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { useApiUsageBillsStore } from '@/stores/apiUsageBills'
 import { useUserStore } from '@/stores/user'
 
@@ -18,19 +17,16 @@ const role = computed(() => member.value?.role ?? 'member')
 const billId = computed(() => String(route.params.id))
 const authenticated = computed(() => user.isEnterpriseAuthenticated && Boolean(user.context.currentEnterpriseId && member.value))
 const bill = computed(() => billsStore.billDetail(billId.value))
-const supportLink = computed(() => billsStore.supportLinkForBill(billId.value, currentTime()) ?? '')
+const supportLink = computed(() => (
+  billsStore.supportLinkForBill(billId.value, route.fullPath, currentTime()) ?? ''
+))
 
 async function loadBill() {
   if (!authenticated.value || !user.context.currentEnterpriseId) return
   loading.value = true
   pageError.value = ''
   try {
-    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(user.context.currentEnterpriseId)
-    if (!binding.spaceEnterpriseId) {
-      pageError.value = '暂未建立可信空间企业映射'
-      return
-    }
-    await billsStore.syncBills(user.context.currentEnterpriseId, binding.spaceEnterpriseId)
+    await billsStore.syncBills(user.context.currentEnterpriseId, undefined)
   } catch (error) {
     pageError.value = error instanceof Error ? error.message : '空间账单同步失败'
   } finally {
@@ -48,7 +44,7 @@ async function askSupport() {
 }
 
 function useSupportLink(event: MouseEvent) {
-  if (billsStore.supportLinkForBill(billId.value, currentTime())) return
+  if (billsStore.supportLinkForBill(billId.value, route.fullPath, currentTime())) return
   event.preventDefault()
   void askSupport()
 }
@@ -61,11 +57,13 @@ onMounted(() => { void loadBill() })
     <MobileHeader title="API 用量账单" />
 
     <div v-if="!authenticated" class="mx-4 mt-3 rounded-2xl bg-white p-4 text-center text-[13px] text-slate-500">完成企业认证后可查看账单明细</div>
-    <div v-else-if="loading" class="mx-4 mt-3 rounded-2xl bg-white p-4 text-center text-[13px] text-slate-400">账单同步中…</div>
-    <div v-else-if="pageError || billsStore.error" class="mx-4 mt-3 rounded-2xl bg-amber-50 p-4 text-[13px] text-amber-700">{{ pageError || billsStore.error }}</div>
+    <div v-else-if="loading && !bill" class="mx-4 mt-3 rounded-2xl bg-white p-4 text-center text-[13px] text-slate-400">账单同步中…</div>
+    <div v-else-if="(pageError || billsStore.error) && !bill" class="mx-4 mt-3 rounded-2xl bg-amber-50 p-4 text-[13px] text-amber-700">{{ pageError || billsStore.error }}</div>
     <div v-else-if="!bill" class="mx-4 mt-3 rounded-2xl bg-white p-4 text-center text-[13px] text-slate-400">未找到该账单</div>
 
     <template v-else>
+      <div v-if="pageError || billsStore.error" class="mx-4 mt-3 rounded-2xl bg-amber-50 p-4 text-[13px] text-amber-700">{{ pageError || billsStore.error }}</div>
+      <div v-if="billsStore.stale" class="mx-4 mt-3 rounded-2xl bg-amber-50 p-4 text-[13px] text-amber-700">当前展示最近一次成功同步的账单</div>
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
         <div class="flex items-center justify-between">
           <div class="text-[15px] font-semibold text-slate-800">{{ bill.billingMonth }} 用量账单</div>

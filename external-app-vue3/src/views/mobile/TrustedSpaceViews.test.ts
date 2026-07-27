@@ -8,6 +8,7 @@ import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapte
 import { MockTrustedSpaceAdapter } from '@/services/trusted-space/mockTrustedSpaceAdapter'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
+import { useApiUsageBillsStore } from '@/stores/apiUsageBills'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
 import { useEntitlementStore } from '@/stores/entitlements'
@@ -258,6 +259,34 @@ describe('API usage bill views', () => {
     await wrapper.get('a').trigger('click')
     await flushPromises()
     expect(wrapper.get('a').attributes('href')).toContain('token=ui-2')
+  })
+
+  it('shows the last successful bill details beside a refresh failure warning', async () => {
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-1'
+    user.completeEnterpriseAuth()
+    const store = useApiUsageBillsStore()
+    await store.syncBills(
+      'ent-wanlian-logistics',
+      'space-ent-wanlian',
+      trustedSpaceAdapter,
+      () => '2026-07-27T10:00:00.000Z'
+    )
+    vi.spyOn(trustedSpaceAdapter, 'listUsageBills').mockRejectedValue(new Error('账单网络暂不可用'))
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/app/mine/enterprise/bills/:id', name: 'api-usage-bill-detail', component: ApiUsageBillDetail }]
+    })
+    await router.push(`/app/mine/enterprise/bills/${seedApiUsageBills[0].spaceBillId}?source=mine`)
+    await router.isReady()
+
+    const wrapper = mount(ApiUsageBillDetail, { global: { plugins: [router] } })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('账单网络暂不可用')
+    expect(wrapper.text()).toContain('当前展示最近一次成功同步的账单')
+    expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
+    expect(wrapper.text()).toContain('企业总额')
   })
 })
 

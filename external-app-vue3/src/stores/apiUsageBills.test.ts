@@ -120,6 +120,62 @@ describe('API usage bill authorization and short links', () => {
     expect(store.stale).toBe(true)
   })
 
+  it('revokes the verified bill partition when an explicit unbound binding is returned', async () => {
+    authenticateAs('mem-1')
+    const store = useApiUsageBillsStore()
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+    await store.support(julyBillId, returnUrl, adapter, () => new Date('2026-07-27T10:00:00.000Z'))
+
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      status: 'unbound'
+    })
+
+    await expect(store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)).rejects.toThrow('可信空间企业绑定不匹配')
+    expect(store.rawBills).toEqual([])
+    expect(store.currentAppEnterpriseId).toBeUndefined()
+    expect(store.currentSpaceEnterpriseId).toBeUndefined()
+    expect(store.lastSuccessAt).toBeUndefined()
+    expect(store.supportLinks).toEqual([])
+    expect(store.visibleBills()).toEqual([])
+    expect(store.billDetail(julyBillId)).toBeUndefined()
+  })
+
+  it('revokes the old bill partition when the active binding changes space identity', async () => {
+    authenticateAs('mem-1')
+    const store = useApiUsageBillsStore()
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      spaceEnterpriseId: 'space-ent-rebound',
+      status: 'active'
+    })
+
+    await expect(store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)).rejects.toThrow('可信空间企业绑定不匹配')
+    expect(store.rawBills).toEqual([])
+    expect(store.visibleBills()).toEqual([])
+    expect(store.billDetail(julyBillId)).toBeUndefined()
+  })
+
+  it('keeps the verified snapshot stale when binding verification has a network failure', async () => {
+    authenticateAs('mem-1')
+    const store = useApiUsageBillsStore()
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+    const lastSuccessAt = store.lastSuccessAt
+    adapter.ensureEnterpriseBinding = async () => { throw new Error('binding network unavailable') }
+
+    await expect(store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)).rejects.toThrow('binding network unavailable')
+    expect(store.rawBills).toHaveLength(1)
+    expect(store.visibleBills()).toHaveLength(1)
+    expect(store.billDetail(julyBillId)?.stale).toBe(true)
+    expect(store.lastSuccessAt).toBe(lastSuccessAt)
+    expect(store.error).toBe('binding network unavailable')
+  })
+
   it('records a controlled successful completion time for an empty response', async () => {
     authenticateAs('mem-1')
     const store = useApiUsageBillsStore()
@@ -209,6 +265,85 @@ describe('API usage bill authorization and short links', () => {
     expect(adapter.billSupportLinkRecords).toHaveLength(2)
   })
 
+  it('normalizes return URLs and does not reuse a support link for a different return destination', async () => {
+    authenticateAs('mem-2')
+    const clock = '2026-07-27T10:00:00.000Z'
+    const now = () => new Date(clock)
+    const adapter = new MockTrustedSpaceAdapter(() => clock)
+    const store = useApiUsageBillsStore()
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+
+    const first = await store.support(
+      julyBillId,
+      `${returnUrl}?tab=usage&source=mine`,
+      adapter,
+      now
+    )
+    const normalizedEquivalent = await store.support(
+      julyBillId,
+      `${returnUrl}?source=mine&tab=usage`,
+      adapter,
+      now
+    )
+    const differentDestination = await store.support(
+      julyBillId,
+      `${returnUrl}?tab=support`,
+      adapter,
+      now
+    )
+
+    expect(normalizedEquivalent).toBe(first)
+    expect(differentDestination).toContain('token=bill-support-0002')
+    expect(adapter.billSupportLinkRecords).toHaveLength(2)
+    expect(adapter.billSupportLinkRecords.map((record) => record.input.returnUrl)).toEqual([
+      `${returnUrl}?source=mine&tab=usage`,
+      `${returnUrl}?tab=support`
+    ])
+  })
+
+  it('rechecks the binding before download and revokes access when it is unbound', async () => {
+    authenticateAs('mem-1')
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const store = useApiUsageBillsStore()
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      status: 'unbound'
+    })
+
+    await expect(store.download(julyBillId, adapter)).resolves.toBeUndefined()
+    expect(store.rawBills).toEqual([])
+    expect(store.visibleBills()).toEqual([])
+  })
+
+  it('does not let a cached support link bypass a changed binding preflight', async () => {
+    authenticateAs('mem-2')
+    const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
+    const store = useApiUsageBillsStore()
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+    const first = await store.support(
+      julyBillId,
+      returnUrl,
+      adapter,
+      () => new Date('2026-07-27T10:00:00.000Z')
+    )
+    expect(first).toContain('token=bill-support-0001')
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      spaceEnterpriseId: 'space-ent-rebound',
+      status: 'active'
+    })
+
+    await expect(store.support(
+      julyBillId,
+      returnUrl,
+      adapter,
+      () => new Date('2026-07-27T10:01:00.000Z')
+    )).resolves.toBeUndefined()
+    expect(store.rawBills).toEqual([])
+    expect(store.supportLinks).toEqual([])
+  })
+
   it('clears and denies links when the current member is revoked', async () => {
     const user = authenticateAs('mem-2')
     const adapter = new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z')
@@ -233,6 +368,7 @@ describe('API usage bill authorization and short links', () => {
     await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
 
     const pending = store.download(julyBillId, adapter)
+    await Promise.resolve()
     user.clearEnterpriseContext()
     releaseDownload!('https://trusted-space.mock/late-download')
 
@@ -257,10 +393,61 @@ describe('API usage bill authorization and short links', () => {
       adapter,
       () => new Date('2026-07-27T10:00:00.000Z')
     )
+    await Promise.resolve()
     expect(receivedInput?.operatorMemberId).toBe('mem-2')
     user.revokeSeat('mem-2')
     releaseSupport!({
       url: 'https://trusted-space.mock/bills/support?token=late',
+      expiresAt: '2026-07-27T10:05:00.000Z'
+    })
+
+    await expect(pending).resolves.toBeUndefined()
+    expect(store.supportLinks).toEqual([])
+  })
+
+  it('discards a late download response after an authoritative unbind', async () => {
+    authenticateAs('mem-1')
+    const adapter = adapterWithBills(seedApiUsageBills)
+    let releaseDownload: ((url: string) => void) | undefined
+    adapter.createBillDownloadLink = () => new Promise((resolve) => { releaseDownload = resolve })
+    const store = useApiUsageBillsStore()
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+
+    const pending = store.download(julyBillId, adapter)
+    await Promise.resolve()
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      status: 'unbound'
+    })
+    await expect(store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)).rejects.toThrow('可信空间企业绑定不匹配')
+    releaseDownload!('https://trusted-space.mock/late-download')
+
+    await expect(pending).resolves.toBeUndefined()
+  })
+
+  it('discards a late support response after an authoritative rebind', async () => {
+    authenticateAs('mem-2')
+    const adapter = adapterWithBills(seedApiUsageBills)
+    let releaseSupport: ((link: BillSupportLinkResult) => void) | undefined
+    adapter.createBillSupportLink = () => new Promise((resolve) => { releaseSupport = resolve })
+    const store = useApiUsageBillsStore()
+    await store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)
+
+    const pending = store.support(
+      julyBillId,
+      returnUrl,
+      adapter,
+      () => new Date('2026-07-27T10:00:00.000Z')
+    )
+    await Promise.resolve()
+    adapter.ensureEnterpriseBinding = async () => ({
+      appEnterpriseId,
+      spaceEnterpriseId: 'space-ent-rebound',
+      status: 'active'
+    })
+    await expect(store.syncBills(appEnterpriseId, spaceEnterpriseId, adapter)).rejects.toThrow('可信空间企业绑定不匹配')
+    releaseSupport!({
+      url: 'https://trusted-space.mock/bills/support?token=late-binding',
       expiresAt: '2026-07-27T10:05:00.000Z'
     })
 
@@ -277,7 +464,11 @@ describe('API usage bill authorization and short links', () => {
 
     user.setEnterpriseContext('ent-another')
     expect(store.supportLinks).toEqual([])
-    expect(store.supportLinkForBill(julyBillId, new Date('2026-07-27T10:01:00.000Z'))).toBeUndefined()
+    expect(store.supportLinkForBill(
+      julyBillId,
+      returnUrl,
+      new Date('2026-07-27T10:01:00.000Z')
+    )).toBeUndefined()
   })
 
   it('does not repopulate bills when an old sync completes after enterprise exit', async () => {

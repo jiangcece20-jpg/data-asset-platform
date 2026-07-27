@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { useApiUsageBillsStore } from '@/stores/apiUsageBills'
 import { useUserStore } from '@/stores/user'
 
@@ -22,12 +21,7 @@ async function loadBills() {
   loading.value = true
   bindingError.value = ''
   try {
-    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(user.context.currentEnterpriseId)
-    if (!binding.spaceEnterpriseId) {
-      bindingError.value = '暂未建立可信空间企业映射'
-      return
-    }
-    await billsStore.syncBills(user.context.currentEnterpriseId, binding.spaceEnterpriseId)
+    await billsStore.syncBills(user.context.currentEnterpriseId, undefined)
   } catch (error) {
     bindingError.value = error instanceof Error ? error.message : '空间账单同步失败'
   } finally {

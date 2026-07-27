@@ -4,7 +4,11 @@ import {
   type BillVisibilityScope,
   type TrustedSpaceAdapter
 } from '@/services/trusted-space/TrustedSpaceAdapter'
-import type { ApiUsageBillLine, ApiUsageBillMirror } from '@/types/trustedSpace'
+import type {
+  ApiUsageBillLine,
+  ApiUsageBillMirror,
+  EnterpriseSpaceBinding
+} from '@/types/trustedSpace'
 import { useUserStore } from './user'
 
 export interface ApiUsageBillView {
@@ -32,12 +36,21 @@ interface CachedBillSupportLink {
   spaceBillId: string
   appEnterpriseId: string
   spaceEnterpriseId: string
+  returnUrl: string
   operatorMemberId: string
   role: EnterpriseRole
   visibilityScope: BillVisibilityScope
   url: string
   expiresAt: string
   authorizationGeneration: number
+  bindingGeneration: number
+}
+
+interface VerifiedBillBinding {
+  appEnterpriseId: string
+  spaceEnterpriseId: string
+  generation: number
+  verifiedAt: string
 }
 
 interface BillPartitionState {
@@ -45,6 +58,8 @@ interface BillPartitionState {
   stale: boolean
   currentAppEnterpriseId?: string
   currentSpaceEnterpriseId?: string
+  bindingGeneration: number
+  verifiedBinding?: VerifiedBillBinding
 }
 
 export const useApiUsageBillsStore = defineStore('api-usage-bills', {
@@ -58,13 +73,15 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
     currentSpaceEnterpriseId: undefined as string | undefined,
     syncToken: 0,
     authorizationGeneration: 0,
+    bindingGeneration: 0,
+    verifiedBinding: undefined as VerifiedBillBinding | undefined,
     supportLinks: [] as CachedBillSupportLink[]
   }),
   getters: {
     visibleBills(state) {
       return (): ApiUsageBillView[] => {
         const viewer = authorizedViewer()
-        if (!viewer || state.currentAppEnterpriseId !== viewer.appEnterpriseId) return []
+        if (!viewer || !hasVerifiedPartition(state, viewer)) return []
         return state.rawBills
           .filter((bill) => belongsToViewerPartition(bill, state, viewer))
           .map((bill) => toBillView(bill, viewer, state.stale))
@@ -78,18 +95,21 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       }
     },
     supportLinkForBill(state) {
-      return (spaceBillId: string, at = new Date()): string | undefined => {
+      return (spaceBillId: string, returnUrl: string, at = new Date()): string | undefined => {
         const viewer = authorizedViewer()
         const bill = viewer ? authorizedBillView(state, spaceBillId, viewer) : undefined
         if (!viewer || !bill || !state.currentSpaceEnterpriseId) return undefined
         const scope = visibilityScope(viewer, bill)
+        const normalizedReturnUrl = normalizeReturnUrl(returnUrl)
         return state.supportLinks.find((link) => (
           link.spaceBillId === spaceBillId
           && link.appEnterpriseId === viewer.appEnterpriseId
           && link.spaceEnterpriseId === state.currentSpaceEnterpriseId
+          && link.returnUrl === normalizedReturnUrl
           && link.operatorMemberId === viewer.memberId
           && link.role === viewer.role
           && link.authorizationGeneration === state.authorizationGeneration
+          && link.bindingGeneration === state.bindingGeneration
           && sameScope(link.visibilityScope, scope)
           && !isExpired(link.expiresAt, at)
         ))?.url
@@ -99,7 +119,7 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
   actions: {
     async syncBills(
       appEnterpriseId: string,
-      spaceEnterpriseId: string,
+      spaceEnterpriseId: string | undefined,
       adapter: TrustedSpaceAdapter = trustedSpaceAdapter,
       now: () => string = () => new Date().toISOString()
     ): Promise<void> {
@@ -107,38 +127,86 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       if (!initialViewer || initialViewer.appEnterpriseId !== appEnterpriseId) {
         throw new Error('当前企业账单不可访问')
       }
-      const bindingGeneration = this.authorizationGeneration
-      const binding = await adapter.ensureEnterpriseBinding(appEnterpriseId)
-      if (!this.sameAuthorization(initialViewer, bindingGeneration)) return
+      const authorizationGeneration = this.authorizationGeneration
+      let binding: EnterpriseSpaceBinding
+      try {
+        binding = await adapter.ensureEnterpriseBinding(appEnterpriseId)
+      } catch (error) {
+        if (
+          this.sameAuthorization(initialViewer, authorizationGeneration)
+          && this.verifiedBinding
+          && this.verifiedBinding.appEnterpriseId === appEnterpriseId
+          && (!spaceEnterpriseId || this.verifiedBinding.spaceEnterpriseId === spaceEnterpriseId)
+          && hasVerifiedPartition(this, initialViewer)
+        ) {
+          this.stale = true
+          this.error = error instanceof Error ? error.message : '可信空间企业绑定验证失败'
+        }
+        throw error
+      }
+      if (!this.sameAuthorization(initialViewer, authorizationGeneration)) return
+      const resolvedSpaceEnterpriseId = binding.spaceEnterpriseId
       if (
         binding.status !== 'active'
         || binding.appEnterpriseId !== appEnterpriseId
-        || binding.spaceEnterpriseId !== spaceEnterpriseId
-      ) throw new Error('可信空间企业绑定不匹配')
+        || !resolvedSpaceEnterpriseId
+        || (spaceEnterpriseId !== undefined && resolvedSpaceEnterpriseId !== spaceEnterpriseId)
+      ) {
+        this.revokeBinding('可信空间企业绑定不匹配')
+        throw new Error('可信空间企业绑定不匹配')
+      }
 
-      if (this.currentAppEnterpriseId !== appEnterpriseId || this.currentSpaceEnterpriseId !== spaceEnterpriseId) {
+      if (
+        this.verifiedBinding
+        && (
+          this.verifiedBinding.appEnterpriseId !== appEnterpriseId
+          || this.verifiedBinding.spaceEnterpriseId !== resolvedSpaceEnterpriseId
+        )
+      ) {
+        this.revokeBinding('可信空间企业绑定已变更')
+        throw new Error('可信空间企业绑定已变更')
+      }
+
+      if (
+        this.currentAppEnterpriseId !== appEnterpriseId
+        || this.currentSpaceEnterpriseId !== resolvedSpaceEnterpriseId
+        || !this.verifiedBinding
+      ) {
         this.clearBills()
         this.currentAppEnterpriseId = appEnterpriseId
-        this.currentSpaceEnterpriseId = spaceEnterpriseId
+        this.currentSpaceEnterpriseId = resolvedSpaceEnterpriseId
+        this.verifiedBinding = {
+          appEnterpriseId,
+          spaceEnterpriseId: resolvedSpaceEnterpriseId,
+          generation: this.bindingGeneration,
+          verifiedAt: now()
+        }
+      } else {
+        this.verifiedBinding.verifiedAt = now()
       }
 
       const viewer = authorizedViewer()
       if (!viewer || viewer.appEnterpriseId !== appEnterpriseId) return
-      const authorizationGeneration = this.authorizationGeneration
+      const currentAuthorizationGeneration = this.authorizationGeneration
+      const bindingGeneration = this.bindingGeneration
       const syncToken = ++this.syncToken
       this.syncing = true
       this.error = ''
 
       try {
-        const bills = await adapter.listUsageBills(spaceEnterpriseId)
+        const bills = await adapter.listUsageBills(resolvedSpaceEnterpriseId)
         if (
           syncToken !== this.syncToken
-          || !this.sameAuthorization(viewer, authorizationGeneration)
+          || !this.sameAuthorization(viewer, currentAuthorizationGeneration)
+          || !this.sameVerifiedBinding(appEnterpriseId, resolvedSpaceEnterpriseId, bindingGeneration)
           || this.currentAppEnterpriseId !== appEnterpriseId
-          || this.currentSpaceEnterpriseId !== spaceEnterpriseId
+          || this.currentSpaceEnterpriseId !== resolvedSpaceEnterpriseId
         ) return
         this.rawBills = bills
-          .filter((bill) => bill.appEnterpriseId === appEnterpriseId && bill.spaceEnterpriseId === spaceEnterpriseId)
+          .filter((bill) => (
+            bill.appEnterpriseId === appEnterpriseId
+            && bill.spaceEnterpriseId === resolvedSpaceEnterpriseId
+          ))
           .map(cloneBill)
         this.lastSuccessAt = now()
         this.stale = false
@@ -146,9 +214,10 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       } catch (error) {
         if (
           syncToken === this.syncToken
-          && this.sameAuthorization(viewer, authorizationGeneration)
+          && this.sameAuthorization(viewer, currentAuthorizationGeneration)
+          && this.sameVerifiedBinding(appEnterpriseId, resolvedSpaceEnterpriseId, bindingGeneration)
           && this.currentAppEnterpriseId === appEnterpriseId
-          && this.currentSpaceEnterpriseId === spaceEnterpriseId
+          && this.currentSpaceEnterpriseId === resolvedSpaceEnterpriseId
         ) {
           this.stale = true
           this.error = error instanceof Error ? error.message : '空间账单同步失败'
@@ -165,17 +234,44 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       const viewer = authorizedViewer()
       if (!viewer || viewer.role !== 'admin' || !authorizedBillView(this, spaceBillId, viewer)) return undefined
       const authorizationGeneration = this.authorizationGeneration
+      const bindingGeneration = this.bindingGeneration
       const syncToken = this.syncToken
       const appEnterpriseId = this.currentAppEnterpriseId
       const spaceEnterpriseId = this.currentSpaceEnterpriseId
+      if (!appEnterpriseId || !spaceEnterpriseId) return undefined
+
+      let binding: EnterpriseSpaceBinding
+      try {
+        binding = await adapter.ensureEnterpriseBinding(appEnterpriseId)
+      } catch (error) {
+        if (
+          this.sameAuthorization(viewer, authorizationGeneration)
+          && this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
+        ) {
+          this.stale = true
+          this.error = error instanceof Error ? error.message : '可信空间企业绑定验证失败'
+        }
+        return undefined
+      }
+      if (
+        !this.sameAuthorization(viewer, authorizationGeneration)
+        || !this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
+      ) return undefined
+      if (!isActiveBinding(binding, appEnterpriseId, spaceEnterpriseId)) {
+        this.revokeBinding('可信空间企业绑定不匹配')
+        return undefined
+      }
+      this.verifiedBinding!.verifiedAt = new Date().toISOString()
 
       const url = await adapter.createBillDownloadLink(spaceBillId)
       if (
         authorizationGeneration !== this.authorizationGeneration
+        || bindingGeneration !== this.bindingGeneration
         || syncToken !== this.syncToken
         || appEnterpriseId !== this.currentAppEnterpriseId
         || spaceEnterpriseId !== this.currentSpaceEnterpriseId
         || !this.sameAuthorization(viewer, authorizationGeneration)
+        || !this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
         || !authorizedBillView(this, spaceBillId, viewer)
       ) return undefined
       return url
@@ -188,21 +284,48 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
     ): Promise<string | undefined> {
       const requestedAt = now()
       this.pruneSupportLinks(requestedAt)
-      const cached = this.supportLinkForBill(spaceBillId, requestedAt)
-      if (cached) return cached
 
       const viewer = authorizedViewer()
       const bill = viewer ? authorizedBillView(this, spaceBillId, viewer) : undefined
+      const appEnterpriseId = this.currentAppEnterpriseId
       const spaceEnterpriseId = this.currentSpaceEnterpriseId
-      if (!viewer || !bill || !spaceEnterpriseId) return undefined
+      if (!viewer || !bill || !appEnterpriseId || !spaceEnterpriseId) return undefined
       const scope = visibilityScope(viewer, bill)
       const authorizationGeneration = this.authorizationGeneration
+      const bindingGeneration = this.bindingGeneration
       const syncToken = this.syncToken
+      let binding: EnterpriseSpaceBinding
+      try {
+        binding = await adapter.ensureEnterpriseBinding(appEnterpriseId)
+      } catch (error) {
+        if (
+          this.sameAuthorization(viewer, authorizationGeneration)
+          && this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
+        ) {
+          this.stale = true
+          this.error = error instanceof Error ? error.message : '可信空间企业绑定验证失败'
+        }
+        return undefined
+      }
+      if (
+        !this.sameAuthorization(viewer, authorizationGeneration)
+        || !this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
+      ) return undefined
+      if (!isActiveBinding(binding, appEnterpriseId, spaceEnterpriseId)) {
+        this.revokeBinding('可信空间企业绑定不匹配')
+        return undefined
+      }
+      this.verifiedBinding!.verifiedAt = requestedAt.toISOString()
+
+      const normalizedReturnUrl = normalizeReturnUrl(returnUrl)
+      const cached = this.supportLinkForBill(spaceBillId, normalizedReturnUrl, requestedAt)
+      if (cached) return cached
+
       const result = await adapter.createBillSupportLink({
         spaceEnterpriseId,
         operatorMemberId: viewer.memberId,
         spaceBillId,
-        returnUrl,
+        returnUrl: normalizedReturnUrl,
         visibilityScope: scope
       })
 
@@ -211,11 +334,13 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       const currentBill = currentViewer ? authorizedBillView(this, spaceBillId, currentViewer) : undefined
       if (
         authorizationGeneration !== this.authorizationGeneration
+        || bindingGeneration !== this.bindingGeneration
         || syncToken !== this.syncToken
         || !currentViewer
         || !currentBill
         || !sameViewer(viewer, currentViewer)
         || this.currentSpaceEnterpriseId !== spaceEnterpriseId
+        || !this.sameVerifiedBinding(appEnterpriseId, spaceEnterpriseId, bindingGeneration)
         || !sameScope(scope, visibilityScope(currentViewer, currentBill))
         || isExpired(result.expiresAt, completedAt)
       ) return undefined
@@ -224,12 +349,14 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
         spaceBillId,
         appEnterpriseId: viewer.appEnterpriseId,
         spaceEnterpriseId,
+        returnUrl: normalizedReturnUrl,
         operatorMemberId: viewer.memberId,
         role: viewer.role,
         visibilityScope: cloneScope(scope),
         url: result.url,
         expiresAt: result.expiresAt,
-        authorizationGeneration
+        authorizationGeneration,
+        bindingGeneration
       })
       return result.url
     },
@@ -239,6 +366,7 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
         if (
           !viewer
           || link.authorizationGeneration !== this.authorizationGeneration
+          || link.bindingGeneration !== this.bindingGeneration
           || link.appEnterpriseId !== viewer.appEnterpriseId
           || link.operatorMemberId !== viewer.memberId
           || link.role !== viewer.role
@@ -253,14 +381,30 @@ export const useApiUsageBillsStore = defineStore('api-usage-bills', {
       const current = authorizedViewer()
       return generation === this.authorizationGeneration && Boolean(current && sameViewer(viewer, current))
     },
+    sameVerifiedBinding(appEnterpriseId: string, spaceEnterpriseId: string, generation: number) {
+      return (
+        generation === this.bindingGeneration
+        && this.verifiedBinding?.generation === generation
+        && this.verifiedBinding.appEnterpriseId === appEnterpriseId
+        && this.verifiedBinding.spaceEnterpriseId === spaceEnterpriseId
+        && this.currentAppEnterpriseId === appEnterpriseId
+        && this.currentSpaceEnterpriseId === spaceEnterpriseId
+      )
+    },
     invalidateAuthorization() {
       this.authorizationGeneration += 1
       this.syncToken += 1
       this.syncing = false
       this.supportLinks = []
     },
+    revokeBinding(message = '') {
+      this.clearBills()
+      this.error = message
+    },
     clearBills() {
       this.invalidateAuthorization()
+      this.bindingGeneration += 1
+      this.verifiedBinding = undefined
       this.rawBills = []
       this.stale = false
       this.lastSuccessAt = undefined
@@ -292,12 +436,24 @@ function authorizedBillView(
   spaceBillId: string,
   viewer: AuthorizedBillViewer
 ): ApiUsageBillView | undefined {
-  if (state.currentAppEnterpriseId !== viewer.appEnterpriseId) return undefined
+  if (!hasVerifiedPartition(state, viewer)) return undefined
   const bill = state.rawBills.find((item) => (
     item.spaceBillId === spaceBillId && belongsToViewerPartition(item, state, viewer)
   ))
   const view = bill ? toBillView(bill, viewer, state.stale) : undefined
   return view && (viewer.role === 'admin' || view.lines.length > 0) ? view : undefined
+}
+
+function hasVerifiedPartition(
+  state: BillPartitionState,
+  viewer: AuthorizedBillViewer
+) {
+  return (
+    state.currentAppEnterpriseId === viewer.appEnterpriseId
+    && state.verifiedBinding?.appEnterpriseId === viewer.appEnterpriseId
+    && state.verifiedBinding.spaceEnterpriseId === state.currentSpaceEnterpriseId
+    && state.verifiedBinding.generation === state.bindingGeneration
+  )
 }
 
 function belongsToViewerPartition(
@@ -310,6 +466,25 @@ function belongsToViewerPartition(
     && bill.appEnterpriseId === state.currentAppEnterpriseId
     && bill.spaceEnterpriseId === state.currentSpaceEnterpriseId
   )
+}
+
+function isActiveBinding(
+  binding: EnterpriseSpaceBinding,
+  appEnterpriseId: string,
+  spaceEnterpriseId: string
+) {
+  return (
+    binding.status === 'active'
+    && binding.appEnterpriseId === appEnterpriseId
+    && binding.spaceEnterpriseId === spaceEnterpriseId
+  )
+}
+
+function normalizeReturnUrl(returnUrl: string) {
+  const fallbackOrigin = 'https://trusted-space-return.local'
+  const normalized = new URL(returnUrl, fallbackOrigin)
+  normalized.searchParams.sort()
+  return `${normalized.pathname}${normalized.search}${normalized.hash}`
 }
 
 function toBillView(
