@@ -1,18 +1,23 @@
-import type { Entitlement, Order } from '../types/domain'
+import type { Entitlement } from '../types/domain'
 import type { ImpactSnapshot } from '../types/reverseFlow'
 
 const IN_FLIGHT_ORDER_STATUSES = new Set<string>([
   'pending_payment',
   'paid',
-  'pending_redirect',
-  'space_processing',
-  'purchase_success',
-  'callback_delayed',
+  'accepted',
   'delivering',
+  'unknown_processing',
 ])
 const IMPACTED_ENTITLEMENT_STATUSES = new Set<string>(['active', 'frozen', 'migrating'])
 
 export interface ProductImpactTrial {
+  id: string
+  productId: string
+  ownerId: string
+  status: string
+}
+
+export interface ProductImpactOrderRef {
   id: string
   productId: string
   ownerId: string
@@ -46,11 +51,12 @@ export interface ProductImpactContract {
   status: string
 }
 
-interface BuildProductImpactInput {
+export interface BuildProductImpactInput {
   id: string
   productId: string
   createdAt: string
-  orders: Order[]
+  orders: ProductImpactOrderRef[]
+  spaceOrders: ProductImpactOrderRef[]
   entitlements: Entitlement[]
   trials: ProductImpactTrial[]
   listingRequests: ProductImpactListingRequest[]
@@ -60,7 +66,7 @@ interface BuildProductImpactInput {
 }
 
 export function buildProductImpactSnapshot(input: BuildProductImpactInput): ImpactSnapshot {
-  const inFlightOrders = input.orders.filter(
+  const inFlightOrders = [...input.orders, ...input.spaceOrders].filter(
     (item) => item.productId === input.productId && IN_FLIGHT_ORDER_STATUSES.has(item.status),
   )
   const activeEntitlements = input.entitlements.filter(

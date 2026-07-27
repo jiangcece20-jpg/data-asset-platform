@@ -7,11 +7,26 @@ import type {
   ProductImpactEnterpriseMember,
   ProductImpactReference,
   ProductImpactContract,
+  ProductImpactOrderRef,
 } from './productImpact'
 
 const productId = 'prod-logistics-monthly'
 
 describe('buildProductImpactSnapshot', () => {
+  it('includes an in-flight trusted-space order using its enterprise as the impacted customer', () => {
+    const spaceOrders: ProductImpactOrderRef[] = [
+      { id: 'space-1', productId, ownerId: 'ent-wanlian-logistics', status: 'delivering' },
+    ]
+
+    const snapshot = buildProductImpactSnapshot({
+      id: 'impact-space-001', productId, createdAt: '2026-07-17T10:00:00.000Z',
+      orders: [], spaceOrders, entitlements: [], trials: [], listingRequests: [], enterpriseMembers: [], catalogReferences: [], contracts: [],
+    })
+
+    expect(snapshot.inFlightOrderIds).toContain('space-1')
+    expect(snapshot.customerIds).toContain('ent-wanlian-logistics')
+  })
+
   it('aggregates in-flight orders, active entitlements, members, trials, requests, references, and contracts', () => {
     const orders: Order[] = [
       {
@@ -24,17 +39,6 @@ describe('buildProductImpactSnapshot', () => {
         amount: 99,
         status: 'pending_payment',
         createdAt: '2026-07-17T08:00:00.000Z',
-      },
-      {
-        id: 'ord-inflight-2',
-        channel: 'space',
-        ownerType: 'personal',
-        ownerId: 'mem-2',
-        productId,
-        productName: 'Report',
-        amount: 0,
-        status: 'space_processing',
-        createdAt: '2026-07-17T08:30:00.000Z',
       },
       {
         id: 'ord-completed',
@@ -102,12 +106,16 @@ describe('buildProductImpactSnapshot', () => {
     const contracts: ProductImpactContract[] = [
       { id: 'contract-1', productId, customerId: 'ent-corp-a', status: 'active' },
     ]
+    const spaceOrders: ProductImpactOrderRef[] = [
+      { id: 'ord-inflight-2', productId, ownerId: 'ent-corp-space', status: 'delivering' },
+    ]
 
     const snapshot = buildProductImpactSnapshot({
       id: 'impact-001',
       productId,
       createdAt: '2026-07-17T10:00:00.000Z',
       orders,
+      spaceOrders,
       entitlements,
       trials,
       listingRequests,
@@ -134,6 +142,7 @@ describe('buildProductImpactSnapshot', () => {
     // Deduplicated customer IDs (mem-1 appears in both order and entitlement)
     expect(snapshot.customerIds).toContain('mem-1')
     expect(snapshot.customerIds).toContain('mem-2')
+    expect(snapshot.customerIds).toContain('ent-corp-space')
     expect(snapshot.customerIds).toContain('mem-3')
     expect(snapshot.customerIds).toContain('mem-5')
     expect(snapshot.customerIds).toContain('ent-corp-a')
@@ -166,6 +175,7 @@ describe('buildProductImpactSnapshot', () => {
       productId,
       createdAt: '2026-07-17T10:00:00.000Z',
       orders,
+      spaceOrders: [],
       entitlements: [],
       trials: [],
       listingRequests: [],

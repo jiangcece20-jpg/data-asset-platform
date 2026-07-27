@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { genId, now } from '@/utils/id'
 import { resolveProductReversePolicy } from '@/domain/productReversePolicy'
-import { buildProductImpactSnapshot, type ProductImpactTrial, type ProductImpactListingRequest, type ProductImpactEnterpriseMember, type ProductImpactReference, type ProductImpactContract } from '@/domain/productImpact'
+import { buildProductImpactSnapshot, type ProductImpactOrderRef, type ProductImpactTrial, type ProductImpactListingRequest, type ProductImpactEnterpriseMember, type ProductImpactReference, type ProductImpactContract } from '@/domain/productImpact'
 import type {
   ProductReverseAction,
   ReverseReasonCode,
@@ -17,6 +17,7 @@ import { useTrialStore } from './trials'
 import { useListingRequestStore } from './listingRequests'
 import { useUserStore } from './user'
 import { useReverseWorkOrderStore } from './reverseWorkOrders'
+import { useSpaceOrderStore } from './spaceOrders'
 
 export interface ProductReversePreview {
   productId: string
@@ -50,7 +51,18 @@ const NOTICE_CONTENTS: Record<string, string> = {
 }
 
 function buildImpact(productId: string): ImpactSnapshot {
-  const orders = useOrderStore().list
+  const orders: ProductImpactOrderRef[] = useOrderStore().list.map((order) => ({
+    id: order.id,
+    productId: order.productId,
+    ownerId: order.ownerId,
+    status: order.status,
+  }))
+  const spaceOrders: ProductImpactOrderRef[] = useSpaceOrderStore().mirrors.map((mirror) => ({
+    id: mirror.spaceOrderId,
+    productId: mirror.appProductId,
+    ownerId: mirror.appEnterpriseId,
+    status: mirror.displayStatus,
+  }))
   const entitlements = useEntitlementStore().list
   const trials = useTrialStore().list
   const listingRequests = useListingRequestStore().list
@@ -101,7 +113,7 @@ function buildImpact(productId: string): ImpactSnapshot {
   }
 
   // Contracts from enterprise orders
-  const contractInputs: ProductImpactContract[] = orders
+  const contractInputs: ProductImpactContract[] = useOrderStore().list
     .filter((o) => o.ownerType === 'enterprise'
       && o.productId === productId
       && (o.contractStatus === 'contract_signed' || o.contractStatus === 'payment_confirmed'))
@@ -117,6 +129,7 @@ function buildImpact(productId: string): ImpactSnapshot {
     productId,
     createdAt: new Date().toISOString(),
     orders,
+    spaceOrders,
     entitlements,
     trials: trialInputs,
     listingRequests: listingInputs,

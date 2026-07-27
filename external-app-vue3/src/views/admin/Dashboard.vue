@@ -7,6 +7,8 @@ import { useApprovalStore } from '@/stores/approval'
 import { useDemandStore } from '@/stores/demand'
 import { useTrialStore } from '@/stores/trials'
 import { useOrderStore } from '@/stores/orders'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import { useIntegrationStore } from '@/stores/integration'
 import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
 
 const router = useRouter()
@@ -15,7 +17,13 @@ const approval = useApprovalStore()
 const demand = useDemandStore()
 const trials = useTrialStore()
 const orders = useOrderStore()
+const spaceOrders = useSpaceOrderStore()
+const integration = useIntegrationStore()
 const woStore = useReverseWorkOrderStore()
+const spaceExceptionCount = computed(() =>
+  spaceOrders.mirrors.filter((mirror) => mirror.displayStatus === 'unknown_processing').length
+  + integration.events.filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status)).length,
+)
 
 const kpis = [
   { label: '找数成功率', value: '86.2%' },
@@ -33,8 +41,8 @@ const pendingCounts = computed(() => [
   { label: '待审批商品', value: String(approval.pending.length), to: '/admin/approval' },
   { label: '待处理需求线索', value: String(demand.list.filter((d) => d.status === 'new').length), to: '/admin/trials-leads' },
   { label: '待审批试用', value: String(trials.pendingApplications.length), to: '/admin/trials-leads' },
-  { label: '待确认企业合同', value: String(orders.list.filter((o) => o.contractStatus === 'quoting').length), to: '/admin/commerce' },
-  { label: '空间回调异常', value: String(orders.list.filter((o) => o.status === 'callback_delayed').length), to: '/admin/approval' },
+  { label: '待确认企业合同', value: String(orders.list.filter((order) => order.contractStatus === 'quoting').length), to: '/admin/commerce' },
+  { label: '空间回调异常', value: String(spaceExceptionCount.value), to: '/admin/approval' },
   { label: '逆向工单（待处理）', value: String(woStore.workOrders.filter((w) => w.status !== 'closed' && w.status !== 'cancelled').length), to: '/admin/approval/reverse-work-orders' },
   { label: '逆向工单（超时）', value: String(woStore.workOrders.filter((w) => { const now = new Date().toISOString(); return w.status !== 'closed' && w.status !== 'cancelled' && !w.acknowledgedAt && w.acknowledgeDueAt < now }).length), to: '/admin/approval/reverse-work-orders' },
 ])

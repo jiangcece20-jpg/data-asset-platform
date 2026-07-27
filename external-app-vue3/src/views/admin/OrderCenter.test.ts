@@ -4,12 +4,22 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import OrderCenter from './OrderCenter.vue'
 import { useOrderStore } from '@/stores/orders'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import type { Order } from '@/types/domain'
+import type { SpaceOrderMirror } from '@/types/trustedSpace'
 
 function order(over: Partial<Order> & { id: string }): Order {
   return {
     channel: 'app', ownerType: 'personal', ownerId: 'mem-1', productId: 'p1', productName: '货运指数',
     amount: 99, status: 'entitlement_active', createdAt: '2026-07-17 09:00', ...over
+  }
+}
+
+function spaceMirror(over: Partial<SpaceOrderMirror> & { spaceOrderId: string }): SpaceOrderMirror {
+  return {
+    purchaseIntentId: 'intent-1', appEnterpriseId: 'ent-1', spaceEnterpriseId: 'space-ent-1', operatorMemberId: 'mem-1',
+    appProductId: 'p1', spaceProductNo: 'space-p1', productName: '可信空间商品', rawStatus: 'DELIVERING', displayStatus: 'delivering',
+    amount: 199, currency: 'CNY', eventVersion: 1, spaceUpdatedAt: '2026-07-17 09:00', syncedAt: '2026-07-17 09:01', ...over,
   }
 }
 
@@ -52,5 +62,16 @@ describe('OrderCenter', () => {
     await flushPromises()
     expect(store.list[0].contractStatus).toBe('payment_confirmed')
     expect(store.list[0].status).toBe('entitlement_active')
+  })
+
+  it('lists APP orders and trusted-space mirrors without enabling APP contract actions on space orders', async () => {
+    useOrderStore().list = [order({ id: 'app-1' })]
+    useSpaceOrderStore().mirrors = [spaceMirror({ spaceOrderId: 'space-1', displayStatus: 'delivering' })]
+
+    const wrapper = await mountView()
+
+    expect(wrapper.findAll('[data-testid="order-row"]')).toHaveLength(2)
+    expect(wrapper.find('[data-id="space-1"]').text()).toContain('可信空间')
+    expect(wrapper.find('[data-id="space-1"] [data-testid="confirm-pay"]').exists()).toBe(false)
   })
 })

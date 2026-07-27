@@ -40,10 +40,6 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     entitlement_active: { label: '权益已生效', tone: 'green' }
   },
   spaceOrder: {
-    pending_redirect: { label: '待跳转', tone: 'slate' },
-    space_processing: { label: '空间处理中', tone: 'amber' },
-    purchase_success: { label: '购买成功', tone: 'blue' },
-    callback_delayed: { label: '状态同步中', tone: 'amber' },
     accepted: { label: '已受理', tone: 'blue' },
     pending_payment: { label: '待支付', tone: 'amber' },
     paid: { label: '已支付', tone: 'blue' },

@@ -5,11 +5,21 @@ import { useCatalogStore } from './catalog'
 import { useEntitlementStore } from './entitlements'
 import { useReverseWorkOrderStore } from './reverseWorkOrders'
 import { useUserStore } from './user'
+import { useSpaceOrderStore } from './spaceOrders'
 import { seedProducts } from '@/data/products'
 import type { ProductReverseAction, ReverseReasonCode } from '@/types/reverseFlow'
+import type { SpaceOrderMirror } from '@/types/trustedSpace'
 
 function previewInput(productId: string, action: ProductReverseAction, reason: ReverseReasonCode, reasonDetail = 'Test reason') {
   return { productId, action, reason, reasonDetail }
+}
+
+function spaceMirror(over: Partial<SpaceOrderMirror> & { spaceOrderId: string }): SpaceOrderMirror {
+  return {
+    purchaseIntentId: 'intent-1', appEnterpriseId: 'ent-wanlian-logistics', spaceEnterpriseId: 'space-ent-1', operatorMemberId: 'mem-operator',
+    appProductId: 'prod-qualification-api', spaceProductNo: 'space-prod-1', productName: '资质核验 API', rawStatus: 'DELIVERING', displayStatus: 'delivering',
+    amount: 199, currency: 'CNY', eventVersion: 1, spaceUpdatedAt: '2026-07-17T09:00:00.000Z', syncedAt: '2026-07-17T09:01:00.000Z', ...over,
+  }
 }
 
 function execInput(
@@ -39,6 +49,17 @@ describe('useProductReverseStore', () => {
   const report = seedProducts.find((p) => p.id === 'prod-logistics-monthly')!
   const freeDashboard = seedProducts.find((p) => p.id === 'prod-port-dashboard-free')!
   const paidDashboard = seedProducts.find((p) => p.id === 'prod-freight-index')!
+
+  it('includes a trusted-space order when previewing a product reverse action', () => {
+    useSpaceOrderStore().mirrors = [spaceMirror({ spaceOrderId: 'space-1' })]
+
+    const preview = useProductReverseStore().previewProductReverse(
+      previewInput('prod-qualification-api', 'pause', 'commercial_adjustment'),
+    )
+
+    expect(preview.impact.inFlightOrderIds).toContain('space-1')
+    expect(preview.impact.customerIds).toContain('ent-wanlian-logistics')
+  })
 
   it('commercial pause blocks new sales but keeps historical access active', () => {
     const store = useProductReverseStore()

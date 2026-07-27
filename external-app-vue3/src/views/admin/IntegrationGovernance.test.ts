@@ -27,9 +27,13 @@ describe('IntegrationGovernance page', () => {
     await router.isReady()
     const wrapper = mount(IntegrationGovernance, { global: { plugins: [router] } })
     expect(wrapper.findAll('[data-testid="dead-letter-row"]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="dead-letter-row"]').text()).toContain('space-order-1')
+    expect(wrapper.find('[data-testid="dead-letter-row"]').text()).toContain('v5')
+    expect(wrapper.find('[data-testid="reconcile-event"]').exists()).toBe(true)
     await wrapper.find('[data-testid="repair-btn"]').trigger('click')
     await flushPromises()
     expect(store.byId(event.id)?.status).toBe('repaired')
+    expect(wrapper.find(`[data-id="${event.id}"]`).text()).toContain('工单')
     // a replayed stale event is dropped
     const replay = store.processEvent({ connector: 'trusted_space', subjectId: 'space-order-1', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k2', signatureValid: true })
     expect(replay.decision).toBe('stale_dropped')

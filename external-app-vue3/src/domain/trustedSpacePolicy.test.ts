@@ -179,10 +179,6 @@ describe('trustedSpacePolicy', () => {
   })
 
   it.each([
-    ['pending_redirect', '待跳转'],
-    ['space_processing', '空间处理中'],
-    ['purchase_success', '购买成功'],
-    ['callback_delayed', '状态同步中'],
     ['accepted', '已受理'],
     ['unknown_processing', '处理中']
   ])('displays the %s space order status with a business label', (status, label) => {

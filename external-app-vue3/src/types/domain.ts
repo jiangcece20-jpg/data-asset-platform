@@ -264,7 +264,7 @@ export interface Entitlement {
   refundId?: string
 }
 
-export type OrderChannel = 'app' | 'space'
+export type OrderChannel = 'app'
 export type OrderOwnerType = 'personal' | 'enterprise'
 export type AppOrderStatus =
   | 'pending_payment'
@@ -273,14 +273,6 @@ export type AppOrderStatus =
   | 'paid'
   | 'refunded'
   | 'entitlement_active'
-export type SpaceOrderStatus =
-  | 'pending_redirect'
-  | 'space_processing'
-  | 'purchase_success'
-  | 'callback_delayed'
-  | 'delivering'
-  | 'delivered'
-
 export interface Order {
   id: string
   channel: OrderChannel
@@ -289,7 +281,7 @@ export interface Order {
   productId: string
   productName: string
   amount: number
-  status: AppOrderStatus | SpaceOrderStatus
+  status: AppOrderStatus
   createdAt: string
   paidAt?: string
   contractStatus?: 'quoting' | 'contract_signed' | 'payment_confirmed' | 'not_required'

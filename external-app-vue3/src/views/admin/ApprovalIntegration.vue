@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useApprovalStore } from '@/stores/approval'
-import { useOrderStore } from '@/stores/orders'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useCatalogStore } from '@/stores/catalog'
 import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
 import { useDemandStore } from '@/stores/demand'
@@ -15,7 +15,7 @@ import { typeMeta } from '@/utils/productMeta'
 
 const router = useRouter()
 const approval = useApprovalStore()
-const orders = useOrderStore()
+const spaceOrders = useSpaceOrderStore()
 const catalog = useCatalogStore()
 const woStore = useReverseWorkOrderStore()
 const demand = useDemandStore()
@@ -29,6 +29,14 @@ const refunds = useRefundStore()
 const openRefunds = computed(() => refunds.list.filter((r) => r.status === 'reviewing' || r.status === 'processing'))
 const integration = useIntegrationStore()
 const deadLetterCount = computed(() => integration.deadLetters.length)
+const spaceExceptions = computed(() => [
+  ...spaceOrders.mirrors
+    .filter((mirror) => mirror.displayStatus === 'unknown_processing')
+    .map((mirror) => ({ id: mirror.spaceOrderId, label: `${mirror.productName} · 空间订单 ${mirror.spaceOrderId}`, status: mirror.displayStatus, intentId: mirror.purchaseIntentId })),
+  ...integration.events
+    .filter((event) => event.connector === 'trusted_space' && ['received', 'retrying', 'dead_letter'].includes(event.status))
+    .map((event) => ({ id: event.id, label: `未关联/异常事件 · ${event.subjectId}`, status: event.status, intentId: undefined })),
+])
 
 const reasonDraft = reactive<Record<string, string>>({})
 
@@ -45,6 +53,10 @@ const overdueS1S2 = computed(() => {
 
 function decide(id: string, conclusion: 'approved' | 'rejected') {
   approval.decide(id, conclusion, reasonDraft[id] || (conclusion === 'approved' ? '符合分类检查要求' : '检查项未通过，请补充后重提'), '合规审批人-周敏')
+}
+
+function reconcileIntent(intentId?: string) {
+  if (intentId) void spaceOrders.reconcileIntent(intentId)
 }
 </script>
 
@@ -141,11 +153,15 @@ function decide(id: string, conclusion: 'approved' | 'rejected') {
 
     <div class="rounded-xl border border-slate-200 bg-white p-4">
       <div class="mb-2 text-[13px] font-medium text-slate-700">订单回调 / 异常告警</div>
-      <div v-for="o in orders.list.filter((x) => x.status === 'callback_delayed')" :key="o.id" class="flex items-center justify-between border-t border-slate-100 py-2 text-[13px]">
-        <span class="text-slate-700">{{ o.productName }} · 订单 {{ o.id }}</span>
-        <StatusBadge dict="spaceOrder" :value="o.status" />
+      <div v-for="exception in spaceExceptions" :key="exception.id" class="flex items-center justify-between border-t border-slate-100 py-2 text-[13px]">
+        <span class="text-slate-700">{{ exception.label }}</span>
+        <div class="flex items-center gap-2">
+          <StatusBadge :dict="exception.intentId ? 'spaceOrder' : 'connectorEvent'" :value="exception.status" />
+          <button v-if="exception.intentId" class="text-[12px] text-brand-600 hover:underline" @click="reconcileIntent(exception.intentId)">主动对账</button>
+          <button v-else class="text-[12px] text-brand-600 hover:underline" @click="router.push('/admin/approval/integration')">查看治理</button>
+        </div>
       </div>
-      <div v-if="!orders.list.filter((x) => x.status === 'callback_delayed').length" class="py-3 text-center text-[12px] text-slate-400">
+      <div v-if="!spaceExceptions.length" class="py-3 text-center text-[12px] text-slate-400">
         暂无异常告警
       </div>
     </div>
