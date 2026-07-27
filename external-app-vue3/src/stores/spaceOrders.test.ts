@@ -8,6 +8,7 @@ import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useIntegrationStore } from './integration'
 import { useSpaceOrderStore } from './spaceOrders'
+import { useUserStore } from './user'
 
 const spaceEvent = (over: Partial<SpaceOrderEvent> = {}): SpaceOrderEvent => ({
   eventId: 'space-event-1',
@@ -85,32 +86,118 @@ describe('space order mirror store', () => {
 
   it('lets an admin see every enterprise space order', () => {
     const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
     store.mirrors = [
       mirror({ spaceOrderId: 'o1', operatorMemberId: 'mem-1' }),
       mirror({ spaceOrderId: 'o2', operatorMemberId: 'mem-2' })
     ]
 
-    expect(store.visibleFor({
-      currentEnterpriseId: 'ent-wanlian-logistics',
-      currentMemberId: 'mem-1',
-      enterpriseAuthStatus: 'authenticated',
-      role: 'admin'
-    } as UserContext)).toHaveLength(2)
+    expect(store.visibleFor(user.context)).toHaveLength(2)
   })
 
   it('limits a member to orders they operated', () => {
     const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
     store.mirrors = [
       mirror({ spaceOrderId: 'o1', operatorMemberId: 'mem-1' }),
       mirror({ spaceOrderId: 'o2', operatorMemberId: 'mem-2' })
     ]
 
-    expect(store.visibleFor({
-      currentEnterpriseId: 'ent-wanlian-logistics',
-      currentMemberId: 'mem-2',
-      enterpriseAuthStatus: 'authenticated',
-      role: 'member'
-    } as UserContext).map((order) => order.spaceOrderId)).toEqual(['o2'])
+    expect(store.visibleFor(user.context).map((order) => order.spaceOrderId)).toEqual(['o2'])
+  })
+
+  it('does not let an admin see space orders after switching to an enterprise they do not belong to', () => {
+    const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    store.mirrors = [
+      mirror({ spaceOrderId: 'o1', appEnterpriseId: 'ent-wanlian-logistics' }),
+      mirror({ spaceOrderId: 'o2', appEnterpriseId: 'ent-another' })
+    ]
+
+    user.setEnterpriseContext('ent-another')
+
+    expect(store.visibleFor(user.context)).toEqual([])
+  })
+
+  it('does not let a member forge an admin role to expand space-order visibility', () => {
+    const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    store.mirrors = [
+      mirror({ spaceOrderId: 'o1', operatorMemberId: 'mem-1' }),
+      mirror({ spaceOrderId: 'o2', operatorMemberId: 'mem-2' })
+    ]
+
+    expect(store.visibleFor({ ...user.context, role: 'admin' } as UserContext).map((order) => order.spaceOrderId)).toEqual(['o2'])
+  })
+
+  it('clears mirrors and related intents when the enterprise context changes or exits', () => {
+    const store = useSpaceOrderStore()
+    const purchases = useTrustedSpacePurchaseStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    store.mirrors = [mirror()]
+
+    user.setEnterpriseContext('ent-another')
+    expect(store.mirrors).toEqual([])
+    expect(purchases.intents).toEqual([])
+
+    purchases.intents = [intent()]
+    store.mirrors = [mirror()]
+    user.clearEnterpriseContext()
+    expect(store.mirrors).toEqual([])
+    expect(purchases.intents).toEqual([])
+  })
+
+  it('does not repopulate cleared mirrors when an old reconciliation completes after exit', async () => {
+    const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    let releaseOrder: ((event: SpaceOrderEvent | undefined) => void) | undefined
+    const delayedAdapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: () => new Promise((resolve) => { releaseOrder = resolve }),
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ''
+    }
+
+    const reconciliation = store.reconcileIntent('intent-delayed', delayedAdapter)
+    user.clearEnterpriseContext()
+    releaseOrder!(spaceEvent())
+    await reconciliation
+
+    expect(store.mirrors).toEqual([])
+  })
+
+  it('does not reconcile an intent after its operator loses enterprise membership', async () => {
+    const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    user.enterprise.members.find((member) => member.id === 'mem-1')!.status = 'revoked'
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => spaceEvent(),
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ''
+    }
+
+    await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toBeUndefined()
+    expect(store.mirrors).toEqual([])
   })
 
   it('does not overwrite a delivered mirror with a same-version event using a new idempotency key', () => {
@@ -141,6 +228,9 @@ describe('space order mirror store', () => {
 
   it('reconciles an intent when return happens before callback', async () => {
     const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
     const adapter: TrustedSpaceAdapter = {
       syncProducts: async () => ({ items: [] }),
       getProduct: async () => undefined,
@@ -159,7 +249,9 @@ describe('space order mirror store', () => {
 
   it('does not reconcile a requested intent with a lookup result for another intent', async () => {
     const store = useSpaceOrderStore()
-    useTrustedSpacePurchaseStore().intents.push(intent({ id: 'intent-other' }))
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent(), intent({ id: 'intent-other' })]
     const adapter: TrustedSpaceAdapter = {
       syncProducts: async () => ({ items: [] }),
       getProduct: async () => undefined,

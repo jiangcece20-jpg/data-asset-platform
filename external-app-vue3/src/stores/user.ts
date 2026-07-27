@@ -3,6 +3,8 @@ import { seedEnterprise } from '@/data/seed'
 import type { Enterprise, UserContext } from '@/types/domain'
 import { now } from '@/utils/id'
 import { useApiUsageBillsStore } from './apiUsageBills'
+import { useSpaceOrderStore } from './spaceOrders'
+import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -25,7 +27,16 @@ export const useUserStore = defineStore('user', {
       return state.context.enterpriseAuthStatus === 'authenticated'
     },
     currentEnterpriseMember(state) {
-      return state.enterprise.members.find((member) => member.id === state.context.currentMemberId)
+      if (state.enterprise.id !== state.context.currentEnterpriseId) return undefined
+      return state.enterprise.members.find((member) =>
+        member.id === state.context.currentMemberId && member.status === 'active',
+      )
+    },
+    enterpriseMemberFor(state) {
+      return (enterpriseId: string, memberId: string) => {
+        if (state.enterprise.id !== enterpriseId) return undefined
+        return state.enterprise.members.find((member) => member.id === memberId && member.status === 'active')
+      }
     }
   },
   actions: {
@@ -47,7 +58,11 @@ export const useUserStore = defineStore('user', {
       this.enterprise.status = 'active'
     },
     setEnterpriseContext(enterpriseId: string | undefined) {
-      if (this.context.currentEnterpriseId !== enterpriseId) useApiUsageBillsStore().clearBills()
+      if (this.context.currentEnterpriseId !== enterpriseId) {
+        useApiUsageBillsStore().clearBills()
+        useSpaceOrderStore().clearMirrors()
+        useTrustedSpacePurchaseStore().clearIntents()
+      }
       this.context.currentEnterpriseId = enterpriseId
     },
     clearEnterpriseContext() {

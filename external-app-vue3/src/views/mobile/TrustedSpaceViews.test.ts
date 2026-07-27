@@ -248,6 +248,22 @@ describe('mine order views', () => {
     expect(wrapper.text()).not.toContain('SP-ORDER-')
   })
 
+  it('does not render cleared space orders after the user switches enterprise context', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useSpaceOrderStore().mirrors = [spaceOrderMirror({
+      spaceOrderId: 'SP-ORDER-ANOTHER',
+      appEnterpriseId: 'ent-another'
+    })]
+
+    user.setEnterpriseContext('ent-another')
+    const wrapper = await mountMine()
+    await selectTab(wrapper, '企业订单')
+
+    expect(wrapper.text()).toContain('完成企业认证后查看企业订单')
+    expect(wrapper.text()).not.toContain('SP-ORDER-ANOTHER')
+  })
+
   it('separates the current member personal orders from member-visible enterprise orders', async () => {
     useOrderStore().list.push(
       {

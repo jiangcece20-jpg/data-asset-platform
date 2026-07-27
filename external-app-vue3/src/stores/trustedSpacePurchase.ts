@@ -125,6 +125,9 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       return Boolean(intent && isExpired(intent.expiresAt, at))
     },
+    clearIntents() {
+      this.intents = []
+    },
     upsertBinding(binding: EnterpriseSpaceBinding) {
       const index = this.bindings.findIndex((item) => item.appEnterpriseId === binding.appEnterpriseId)
       if (index >= 0) this.bindings[index] = { ...binding }

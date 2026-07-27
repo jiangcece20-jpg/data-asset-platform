@@ -7,10 +7,12 @@ import type { SpaceOrderEvent, SpaceOrderMirror } from '@/types/trustedSpace'
 import { useIntegrationStore } from './integration'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
+import { useUserStore } from './user'
 
 export const useSpaceOrderStore = defineStore('space-orders', {
   state: () => ({
-    mirrors: [] as SpaceOrderMirror[]
+    mirrors: [] as SpaceOrderMirror[],
+    reconciliationGeneration: 0
   }),
   getters: {
     byId(state) {
@@ -21,12 +23,24 @@ export const useSpaceOrderStore = defineStore('space-orders', {
     },
     visibleFor(state) {
       return (user: Pick<UserContext, 'currentEnterpriseId' | 'currentMemberId' | 'enterpriseAuthStatus' | 'role'>): SpaceOrderMirror[] => {
-        if (user.enterpriseAuthStatus !== 'authenticated' || !user.currentEnterpriseId || !user.currentMemberId) return []
+        const userStore = useUserStore()
+        const current = userStore.context
+        if (
+          current.enterpriseAuthStatus !== 'authenticated'
+          || current.enterpriseAuthStatus !== user.enterpriseAuthStatus
+          || !current.currentEnterpriseId
+          || !current.currentMemberId
+          || current.currentEnterpriseId !== user.currentEnterpriseId
+          || current.currentMemberId !== user.currentMemberId
+        ) return []
 
-        const enterpriseOrders = state.mirrors.filter((mirror) => mirror.appEnterpriseId === user.currentEnterpriseId)
-        return user.role === 'admin'
+        const member = userStore.enterpriseMemberFor(current.currentEnterpriseId, current.currentMemberId)
+        if (!member) return []
+
+        const enterpriseOrders = state.mirrors.filter((mirror) => mirror.appEnterpriseId === current.currentEnterpriseId)
+        return member.role === 'admin'
           ? enterpriseOrders
-          : enterpriseOrders.filter((mirror) => mirror.operatorMemberId === user.currentMemberId)
+          : enterpriseOrders.filter((mirror) => mirror.operatorMemberId === current.currentMemberId)
       }
     }
   },
@@ -62,10 +76,40 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       intentId: string,
       adapter: TrustedSpaceAdapter = trustedSpaceAdapter
     ): Promise<SpaceOrderMirror | undefined> {
+      const purchases = useTrustedSpacePurchaseStore()
+      const intent = purchases.byId(intentId)
+      const generation = this.reconciliationGeneration
+      if (!intent || !this.canReconcileIntent(intent)) return undefined
+
       const event = await adapter.findOrderByIntent(intentId)
-      if (!event || event.purchaseIntentId !== intentId) return undefined
+      const currentIntent = purchases.byId(intentId)
+      if (
+        generation !== this.reconciliationGeneration
+        || !event
+        || event.purchaseIntentId !== intentId
+        || !currentIntent
+        || currentIntent.appEnterpriseId !== intent.appEnterpriseId
+        || currentIntent.operatorMemberId !== intent.operatorMemberId
+        || !this.canReconcileIntent(currentIntent)
+      ) return undefined
       this.processSpaceOrderEvent(event)
       return this.byId(event.spaceOrderId)
+    },
+
+    clearMirrors() {
+      this.reconciliationGeneration += 1
+      this.mirrors = []
+    },
+
+    canReconcileIntent(intent: { appEnterpriseId: string; operatorMemberId: string }): boolean {
+      const userStore = useUserStore()
+      const context = userStore.context
+      return (
+        context.enterpriseAuthStatus === 'authenticated'
+        && context.currentEnterpriseId === intent.appEnterpriseId
+        && context.currentMemberId === intent.operatorMemberId
+        && Boolean(userStore.enterpriseMemberFor(intent.appEnterpriseId, intent.operatorMemberId))
+      )
     },
 
     hasValidAssociation(event: SpaceOrderEvent, current: SpaceOrderMirror | undefined): boolean {
