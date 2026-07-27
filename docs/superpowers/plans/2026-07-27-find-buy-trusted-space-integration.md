@@ -1329,7 +1329,7 @@ git commit -m "feat(trusted-space): expose mirrors and reconciliation in admin"
 - Consumes: Tasks 1-9 的最终行为。
 - Produces: 产品规则、实施状态、演示路径和验证结果的一致记录。
 
-- [ ] **Step 1: 更新产品蓝图中的空间购买规则**
+- [x] **Step 1: 更新产品蓝图中的空间购买规则**
 
 在蓝图中明确：
 
@@ -1339,11 +1339,11 @@ git commit -m "feat(trusted-space): expose mirrors and reconciliation in admin"
 - APP 报告支持个人/企业购买主体选择。
 - 商品快照过期时可查看但不可购买。
 
-- [ ] **Step 2: 更新功能矩阵**
+- [x] **Step 2: 更新功能矩阵**
 
 将目录同步、SSO 企业映射、订单/交付回调、主动对账、API 账单查询、账单空间深链和 APP 报告双主体购买映射到现有场景与阶段；不新增“APP 账单异议处理”功能点。
 
-- [ ] **Step 3: 更新 README 演示路径**
+- [x] **Step 3: 更新 README 演示路径**
 
 加入以下可直接访问路径：
 
@@ -1358,7 +1358,7 @@ git commit -m "feat(trusted-space): expose mirrors and reconciliation in admin"
 
 说明 mock 场景切换方式、管理员/成员身份和预期结果。
 
-- [ ] **Step 4: 运行完整自动验证**
+- [x] **Step 4: 运行完整自动验证**
 
 Run:
 
@@ -1386,7 +1386,7 @@ Expected:
 6. APP 报告个人/企业购买分别生成正确订单和权益。
 7. 后台可查看商品同步、空间镜像、事件版本、死信和主动对账。
 
-- [ ] **Step 6: 将验证结果写入计划**
+- [x] **Step 6: 将验证结果写入计划**
 
 在本任务末尾追加实际测试数量、构建结果和浏览器检查结果；若任何检查未执行，写明原因和剩余风险，不写“已完成”。
 
@@ -1400,6 +1400,13 @@ git add -f docs/product/2026-07-09-对外APP找数买数-六层次蓝图与产�
 git diff --cached --check
 git commit -m "docs: document trusted-space integration closure"
 ```
+
+#### Task 10 验证记录（2026-07-27）
+
+- RED：新增 `src/integration/trustedSpaceJourneys.test.ts` 后，README 演示契约因缺少 `/#/app/mine?tab=企业订单` 失败；补齐 README 的直接入口、角色、mock 切换和权威边界后转 GREEN。连续集成测试覆盖认证企业购买意图 → SSO 短链 → 返回同步中 → 主动对账镜像 → 管理员账单下载/空间支持深链，并覆盖 APP 报告个人/企业主体各自产生订单和权益。
+- 自动验证：`npm test -- --run` 通过，54 个 Vitest 文件、403 个测试；`npm run build` 通过（`vue-tsc -b --noCheck && vite build`）。
+- 禁止项扫描：对生产源码扫描旧的 `createSpaceOrder`、`advanceSpaceOrder`、`retryCallback`、`SpaceOrderStatus`、`callback_delayed` 及本地账单异议关键字，未发现命中。
+- 浏览器烟测：未执行。已启动本地服务并尝试连接浏览器自动化，但当前运行环境没有可用浏览器绑定（`agent.browsers.list()` 返回空）。剩余风险：未能在 390×844 与 1440×900 真实浏览器视口逐项复核；自动化测试和构建已覆盖对应状态与编译路径，不能替代视觉验收。
 
 ---
 
