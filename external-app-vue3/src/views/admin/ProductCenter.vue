@@ -4,19 +4,21 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { typeMeta, originMeta, dealChannelMeta } from '@/utils/productMeta'
 import type { ProductOrigin } from '@/types/domain'
 
 const router = useRouter()
 const catalog = useCatalogStore()
+const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 
 const originFilter = ref<ProductOrigin | ''>('')
 const origins: ProductOrigin[] = ['asset_platform', 'app_content', 'trusted_space']
 
 const list = computed(() => (originFilter.value ? catalog.products.filter((p) => p.origin === originFilter.value) : catalog.products))
 
-function syncing() {
-  catalog.syncSpaceProducts()
+async function syncSpaceProducts() {
+  await trustedSpaceCatalog.syncAll()
 }
 </script>
 
@@ -43,7 +45,21 @@ function syncing() {
           {{ originMeta[s] }}（{{ catalog.products.filter((p) => p.origin === s).length }}）
         </button>
       </div>
-      <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white" @click="syncing">🔄 同步空间商品</button>
+      <div class="flex items-center gap-3">
+        <span class="text-[12px] text-slate-400">
+          <template v-if="trustedSpaceCatalog.syncing">空间商品同步中…</template>
+          <template v-else-if="trustedSpaceCatalog.error">同步失败：{{ trustedSpaceCatalog.error }}</template>
+          <template v-else-if="trustedSpaceCatalog.lastSuccessAt">最近成功：{{ trustedSpaceCatalog.lastSuccessAt }}</template>
+          <template v-else>尚未同步空间商品</template>
+        </span>
+        <button
+          class="rounded-lg bg-slate-800 px-3 py-1.5 text-[12px] text-white disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="trustedSpaceCatalog.syncing"
+          @click="syncSpaceProducts"
+        >
+          🔄 同步空间商品
+        </button>
+      </div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">

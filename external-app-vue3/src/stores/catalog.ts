@@ -3,6 +3,7 @@ import { seedProducts, seedEnhancements } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import type { Product, ProductEnhancement, ProductStatus, AvailabilityStatus } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
+import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { now } from '@/utils/id'
 
 export const useCatalogStore = defineStore('catalog', {
@@ -115,12 +116,17 @@ export const useCatalogStore = defineStore('catalog', {
         })
       }
     },
-    syncSpaceProducts() {
-      this.products
-        .filter((p) => p.dealChannel === 'space_purchase' && p.availability === 'published')
-        .forEach((p) => {
-          p.spaceSyncedAt = now()
-        })
+    applyTrustedSnapshot(snapshot: TrustedProductSnapshot) {
+      const product = this.products.find((item) => item.id === snapshot.appProductId)
+      if (!product || product.dealChannel !== 'space_purchase') return
+      product.name = snapshot.name
+      product.provider = snapshot.provider
+      product.price = { ...snapshot.price }
+      if (snapshot.saleStatus === 'published') product.availability = 'published'
+      if (snapshot.saleStatus === 'paused') product.availability = 'paused'
+      if (snapshot.saleStatus === 'delisted') product.availability = 'delisted'
+      product.spaceProductNo = snapshot.spaceProductNo
+      product.spaceSyncedAt = snapshot.syncedAt
     },
     updateServiceStatus(productId: string, serviceStatus: ServiceStatus) {
       const p = this.products.find((x) => x.id === productId)

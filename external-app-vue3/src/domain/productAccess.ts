@@ -1,5 +1,6 @@
 import type { AcquisitionOption, AvailabilityStatus, StandardProductType } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
+import type { TrustedPurchaseCheck, TrustedPurchaseBlockReason } from '@/types/trustedSpace'
 
 export type ProductActionKey =
   | 'view'
@@ -26,6 +27,15 @@ export interface ProductActionContext {
   hasOpenListingRequest: boolean
   enterpriseAuthenticated: boolean
   serviceStatus?: ServiceStatus
+  trustedPurchaseCheck?: TrustedPurchaseCheck
+}
+
+const trustedPurchaseBlockLabels: Record<TrustedPurchaseBlockReason, string> = {
+  enterprise_required: '认证企业后购买',
+  binding_required: '企业信息同步中',
+  product_unavailable: '商品信息暂不可用',
+  product_stale: '商品信息待更新',
+  product_not_for_sale: '暂不可购买'
 }
 
 export function resolveProductActions(context: ProductActionContext): {
@@ -55,6 +65,15 @@ export function resolveProductActions(context: ProductActionContext): {
     return { primary: { key: 'unavailable', label: context.availability === 'paused' ? '暂停销售' : '已下架', disabled: true } }
   }
   if (context.acquisitions.includes('space_purchase')) {
+    if (context.trustedPurchaseCheck && !context.trustedPurchaseCheck.allowed) {
+      return {
+        primary: {
+          key: 'unavailable',
+          label: trustedPurchaseBlockLabels[context.trustedPurchaseCheck.reason],
+          disabled: true
+        }
+      }
+    }
     return {
       primary: context.enterpriseAuthenticated
         ? { key: 'space_purchase', label: '前往可信空间购买' }

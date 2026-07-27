@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -16,6 +16,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { useListingRequestStore } from '@/stores/listingRequests'
+import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import type { ProductType } from '@/types/domain'
 
@@ -25,6 +26,7 @@ const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
 const listingRequests = useListingRequestStore()
+const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
@@ -44,6 +46,14 @@ const listingRequest = computed(() => product.value
 const hasOpenListingRequest = computed(() =>
   listingRequest.value != null && ['submitted', 'evaluating', 'preparing'].includes(listingRequest.value.status)
 )
+const trustedPurchaseCheck = computed(() => {
+  if (!product.value || product.value.dealChannel !== 'space_purchase') return undefined
+  return trustedSpaceCatalog.purchaseCheck(
+    product.value.id,
+    user.context.enterpriseAuthStatus,
+    user.isEnterpriseAuthenticated ? 'active' : 'unbound'
+  )
+})
 
 const actions = computed(() => product.value ? resolveProductActions({
   type: product.value.type,
@@ -53,6 +63,7 @@ const actions = computed(() => product.value ? resolveProductActions({
   hasOpenListingRequest: hasOpenListingRequest.value,
   enterpriseAuthenticated: user.isEnterpriseAuthenticated,
   serviceStatus: product.value.serviceStatus,
+  trustedPurchaseCheck: trustedPurchaseCheck.value,
 }) : null)
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
@@ -104,6 +115,10 @@ watch(id, () => {
   const p = product.value
   if (p) activeTab.value = tabsByType[p.type][0].key
 }, { immediate: true })
+
+onMounted(() => {
+  if (product.value?.dealChannel === 'space_purchase') void trustedSpaceCatalog.syncAll()
+})
 
 function toggleFav() {
   catalog.toggleFavorite(id.value)

@@ -38,6 +38,14 @@ describe('resolveProductActions', () => {
     expect(resolveProductActions({ ...base, enterpriseAuthenticated: true }).primary.key).toBe('space_purchase')
   })
 
+  it('disables trusted-space purchase when the product snapshot is stale', () => {
+    expect(resolveProductActions({
+      ...base,
+      enterpriseAuthenticated: true,
+      trustedPurchaseCheck: { allowed: false, reason: 'product_stale' }
+    }).primary).toEqual({ key: 'unavailable', label: '商品信息待更新', disabled: true })
+  })
+
   it('offers membership first and item purchase second', () => {
     const actions = resolveProductActions({
       ...base,
