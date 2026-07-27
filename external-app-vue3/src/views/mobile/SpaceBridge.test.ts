@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { seedTrustedProductSnapshots } from '@/data/trustedSpace'
 import { useOrderStore } from '@/stores/orders'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
+import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useUserStore } from '@/stores/user'
 import SpaceBridge from './SpaceBridge.vue'
 
@@ -70,5 +71,41 @@ describe('SpaceBridge direct-entry guard', () => {
     expect(router.currentRoute.value.path).toBe('/app/product/prod-qualification-api')
     expect(wrapper.text()).not.toContain('进入可信空间')
     expect(useOrderStore().list).toHaveLength(before)
+  })
+
+  it('reconciles a returned intent and displays its trusted-space mirror instead of a purchase success claim', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpaceCatalogStore().snapshots = [{ ...seedTrustedProductSnapshots[0] }]
+    useTrustedSpacePurchaseStore().intents = [{
+      id: 'intent-qualification-001',
+      appEnterpriseId: 'ent-wanlian-logistics',
+      spaceEnterpriseId: 'space-ent-wanlian',
+      operatorMemberId: 'mem-1',
+      appProductId: 'prod-qualification-api',
+      spaceProductNo: 'SPACE-API-20415',
+      returnUrl: '/app/product/prod-qualification-api',
+      idempotencyKey: 'intent-key-1',
+      correlationId: 'intent-correlation-1',
+      status: 'redirected',
+      createdAt: '2026-07-27T09:00:00.000Z',
+      expiresAt: '2026-07-27T10:30:00.000Z'
+    }]
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/app/space-bridge/:id', name: 'space-bridge', component: SpaceBridge },
+        { path: '/app/product/:id', name: 'product-detail', component: { template: '<div>详情页</div>' } }
+      ]
+    })
+    await router.push('/app/space-bridge/prod-qualification-api?intent=intent-qualification-001&returned=1')
+    await router.isReady()
+
+    const wrapper = mount(SpaceBridge, { global: { plugins: [router] } })
+    await flushPromises()
+
+    expect(useTrustedSpacePurchaseStore().byId('intent-qualification-001')?.status).toBe('linked')
+    expect(wrapper.text()).toContain('空间订单状态：delivered')
+    expect(wrapper.text()).not.toContain('购买成功')
   })
 })

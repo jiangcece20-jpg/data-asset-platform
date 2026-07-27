@@ -58,7 +58,7 @@ describe('afterSales orchestrator', () => {
 
   it('payment reconciliation backfills without a duplicate entitlement', () => {
     const orders = useOrderStore()
-    orders.list = [order({ id: 'o1', status: 'callback_delayed', entitlementGranted: false })]
+    orders.list = [order({ id: 'o1', status: 'paid', entitlementGranted: false })]
     const after = useAfterSalesStore()
     const { action } = after.reconcilePayment('o1', 'space_success_app_stale', 'op-1')
     expect(action).toBe('backfill_order')

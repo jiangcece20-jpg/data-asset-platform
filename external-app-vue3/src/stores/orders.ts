@@ -93,39 +93,6 @@ export const useOrderStore = defineStore('orders', {
       }
       return order
     },
-    // 空间购买：先创建“待跳转”，随后模拟处理中 -> 成功/延迟
-    createSpaceOrder(productId: string) {
-      const catalog = useCatalogStore()
-      const user = useUserStore()
-      const product = catalog.byId(productId)
-      const order: Order = {
-        id: genId('order'),
-        channel: 'space',
-        ownerType: 'personal',
-        ownerId: user.context.currentMemberId,
-        productId,
-        productName: product?.name || productId,
-        amount: 0,
-        status: 'pending_redirect',
-        createdAt: now()
-      }
-      this.list.push(order)
-      return order
-    },
-    advanceSpaceOrder(orderId: string, outcome: 'success' | 'delayed') {
-      const order = this.list.find((o) => o.id === orderId)
-      if (!order) return
-      order.status = outcome === 'success' ? 'purchase_success' : 'callback_delayed'
-      if (outcome === 'success') {
-        setStatusChain(order)
-      }
-    },
-    retryCallback(orderId: string) {
-      const order = this.list.find((o) => o.id === orderId)
-      if (!order) return
-      order.status = 'purchase_success'
-      setStatusChain(order)
-    },
     // 后台：确认企业合同付款
     confirmEnterpriseContract(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
@@ -200,11 +167,3 @@ export const useOrderStore = defineStore('orders', {
     }
   }
 })
-
-function setStatusChain(order: Order) {
-  // 演示：购买成功后进入交付中，2 秒后变为已交付
-  order.status = 'delivering'
-  setTimeout(() => {
-    order.status = 'delivered'
-  }, 2000)
-}

@@ -3,18 +3,21 @@ import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
+import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
 const purchase = useTrustedSpacePurchaseStore()
+const spaceOrders = useSpaceOrderStore()
 const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const intentId = computed(() => String(route.query.intent ?? ''))
 const intent = computed(() => purchase.byId(intentId.value))
+const mirror = computed(() => intent.value ? spaceOrders.byIntentId(intent.value.id) : undefined)
 const enterprise = computed(() => user.enterprise)
 const operator = computed(() => user.currentEnterpriseMember)
 const currentTime = inject<() => Date>('trusted-space-now', () => new Date())
@@ -47,7 +50,10 @@ onMounted(() => {
     void router.replace(`/app/product/${id.value}`)
     return
   }
-  if (route.query.returned === '1') purchase.markReturned(intent.value!.id)
+  if (route.query.returned === '1') {
+    purchase.markReturned(intent.value!.id)
+    void reconcileReturnedIntent()
+  }
   clockTimer = setInterval(() => { clockTick.value += 1 }, 1000)
 })
 
@@ -70,6 +76,13 @@ async function createLink() {
 
 function enterTrustedSpace() {
   if (intent.value) purchase.markRedirected(intent.value.id)
+}
+
+async function reconcileReturnedIntent() {
+  const current = intent.value
+  if (!current || current.status !== 'returned_pending_sync') return
+  const result = await spaceOrders.reconcileIntent(current.id)
+  if (result?.purchaseIntentId === current.id) purchase.linkOrder(current.id)
 }
 </script>
 
@@ -96,8 +109,13 @@ function enterTrustedSpace() {
         <div class="mt-1 font-medium">{{ intent.status }}</div>
       </div>
 
-      <div v-if="intent.status === 'returned_pending_sync'" class="rounded-xl bg-amber-400/10 p-3 text-center text-[13px] text-amber-200">
-        空间已受理，状态同步中
+      <div v-if="mirror" class="rounded-xl bg-cyan-400/10 p-3 text-center text-[13px] text-cyan-100">
+        <div>空间订单状态：{{ mirror.displayStatus }}</div>
+        <div v-if="mirror.deliverySummary" class="mt-1 text-[12px] text-cyan-100/70">{{ mirror.deliverySummary }}</div>
+      </div>
+      <div v-else-if="intent.status === 'returned_pending_sync'" class="rounded-xl bg-amber-400/10 p-3 text-center text-[13px] text-amber-200">
+        <div>空间已受理，状态同步中</div>
+        <button class="mt-2 underline" @click="reconcileReturnedIntent">重新同步</button>
       </div>
       <div v-else-if="intentExpired" class="rounded-xl bg-rose-400/10 p-3 text-center text-[13px] text-rose-200">
         购买意图已过期，请返回商品详情重新发起购买

@@ -19,7 +19,7 @@ describe('IntegrationGovernance page', () => {
 
   it('shows dead letters and repairs them, then drops a stale replay', async () => {
     const store = useIntegrationStore()
-    const { event } = store.processEvent({ connector: 'trusted_space', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k1', signatureValid: true })
+    const { event } = store.processEvent({ connector: 'trusted_space', subjectId: 'space-order-1', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k1', signatureValid: true })
     // force to dead letter
     for (let i = 0; i < 4; i++) store.failEvent(event.id)
     const router = makeRouter()
@@ -31,7 +31,7 @@ describe('IntegrationGovernance page', () => {
     await flushPromises()
     expect(store.byId(event.id)?.status).toBe('repaired')
     // a replayed stale event is dropped
-    const replay = store.processEvent({ connector: 'trusted_space', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k2', signatureValid: true })
+    const replay = store.processEvent({ connector: 'trusted_space', subjectId: 'space-order-1', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k2', signatureValid: true })
     expect(replay.decision).toBe('stale_dropped')
   })
 

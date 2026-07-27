@@ -7,14 +7,15 @@ import { useReverseWorkOrderStore } from './reverseWorkOrders'
 
 export interface IncomingEvent {
   connector: Connector
+  subjectId: string
   eventType: string
   eventVersion: number
   idempotencyKey: string
   signatureValid: boolean
 }
 
-function subjectKey(connector: Connector, eventType: string): string {
-  return `${connector}:${eventType}`
+function subjectKey(connector: Connector, subjectId: string, eventType: string): string {
+  return `${connector}:${subjectId}:${eventType}`
 }
 
 function emptyImpact(subjectId: string): ImpactSnapshot {
@@ -49,7 +50,7 @@ export const useIntegrationStore = defineStore('integration', {
   },
   actions: {
     processEvent(input: IncomingEvent): { decision: PipelineDecision; event: ConnectorEvent } {
-      const key = subjectKey(input.connector, input.eventType)
+      const key = subjectKey(input.connector, input.subjectId, input.eventType)
       const seen = this.events.some((e) => e.idempotencyKey === input.idempotencyKey)
       const decision = decideEvent({
         signatureValid: input.signatureValid,
@@ -60,6 +61,7 @@ export const useIntegrationStore = defineStore('integration', {
       const event: ConnectorEvent = {
         id: genId('cevt'),
         connector: input.connector,
+        subjectId: input.subjectId,
         eventType: input.eventType,
         eventVersion: input.eventVersion,
         idempotencyKey: input.idempotencyKey,
@@ -77,6 +79,28 @@ export const useIntegrationStore = defineStore('integration', {
       return { decision, event }
     },
 
+    // 业务关联校验拒绝的事件需要留痕并进入失败治理，但不能推进对象处理版本。
+    recordRejectedEvent(input: IncomingEvent): ConnectorEvent {
+      const existing = this.events.find((event) => event.idempotencyKey === input.idempotencyKey)
+      if (existing) return existing
+      const key = subjectKey(input.connector, input.subjectId, input.eventType)
+      const event: ConnectorEvent = {
+        id: genId('cevt'),
+        connector: input.connector,
+        subjectId: input.subjectId,
+        eventType: input.eventType,
+        eventVersion: input.eventVersion,
+        idempotencyKey: input.idempotencyKey,
+        signatureValid: input.signatureValid,
+        status: 'received',
+        attempts: 0,
+        processingVersion: this.processingVersions[key] ?? 0,
+        createdAt: new Date().toISOString()
+      }
+      this.events.push(event)
+      return event
+    },
+
     // 处理失败：累计重试，超阈值进入死信队列。
     failEvent(eventId: string): { outcome: 'retry' | 'dead_letter' } {
       const event = this.events.find((e) => e.id === eventId)
@@ -91,7 +115,7 @@ export const useIntegrationStore = defineStore('integration', {
     repair(eventId: string, actor: string, reviewAt: string): { workOrderId: string } {
       const event = this.events.find((e) => e.id === eventId)
       if (!event) throw new Error('事件不存在')
-      const key = subjectKey(event.connector, event.eventType)
+      const key = subjectKey(event.connector, event.subjectId, event.eventType)
       const newVersion = Math.max(this.processingVersions[key] ?? 0, event.eventVersion) + 1
       this.processingVersions[key] = newVersion
       event.processingVersion = newVersion

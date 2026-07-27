@@ -5,6 +5,7 @@ import { useReverseWorkOrderStore } from './reverseWorkOrders'
 
 const evt = (over: Partial<Parameters<ReturnType<typeof useIntegrationStore>['processEvent']>[0]> = {}) => ({
   connector: 'trusted_space' as const,
+  subjectId: 'sp-order-1',
   eventType: 'order_update',
   eventVersion: 1,
   idempotencyKey: 'k1',
@@ -19,6 +20,16 @@ describe('integration store', () => {
     const store = useIntegrationStore()
     const { decision } = store.processEvent(evt({ eventVersion: 2 }))
     expect(decision).toBe('process')
+  })
+
+  it('keeps event versions isolated by space order', () => {
+    const store = useIntegrationStore()
+    expect(store.processEvent(evt({ subjectId: 'sp-order-1', eventVersion: 5 })).decision).toBe('process')
+    expect(store.processEvent(evt({
+      subjectId: 'sp-order-2',
+      eventVersion: 1,
+      idempotencyKey: 'order-2-v1'
+    })).decision).toBe('process')
   })
 
   it('drops a duplicate idempotency key', () => {

@@ -29,6 +29,7 @@ export type Connector = 'trusted_space' | 'payment' | 'finance'
 export interface ConnectorEvent {
   id: string
   connector: Connector
+  subjectId: string
   eventType: string
   eventVersion: number
   idempotencyKey: string
