@@ -41,9 +41,9 @@ describe('IntegrationGovernance page', () => {
     expect(makeRouter().hasRoute('admin-integration-governance')).toBe(true)
   })
 
-  it('shows dead letters and repairs them, then drops a stale replay', async () => {
+  it('records an audit disposition without claiming the space fact was repaired', async () => {
     const store = useIntegrationStore()
-    const { event } = store.processEvent({
+    const event = store.recordRejectedEvent({
       connector: 'trusted_space', subjectId: 'space-order-1', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k1', signatureValid: true,
       purchaseIntentId: 'intent-delayed', spaceEnterpriseId: 'space-ent-wanlian', spaceProductNo: 'SPACE-API-20415',
     })
@@ -60,13 +60,13 @@ describe('IntegrationGovernance page', () => {
     const reconcile = vi.spyOn(useSpaceOrderStore(), 'reconcileIntent').mockResolvedValue(undefined)
     await wrapper.find('[data-testid="reconcile-event"]').trigger('click')
     expect(reconcile).toHaveBeenCalledWith('intent-delayed')
+    expect(wrapper.find('[data-testid="repair-btn"]').text()).toBe('记录审计处置')
     await wrapper.find('[data-testid="repair-btn"]').trigger('click')
     await flushPromises()
-    expect(store.byId(event.id)?.status).toBe('repaired')
-    expect(wrapper.find(`[data-id="${event.id}"]`).text()).toContain('工单')
-    // a replayed stale event is dropped
-    const replay = store.processEvent({ connector: 'trusted_space', subjectId: 'space-order-1', eventType: 'order_update', eventVersion: 5, idempotencyKey: 'k2', signatureValid: true })
-    expect(replay.decision).toBe('stale_dropped')
+    expect(store.byId(event.id)?.status).toBe('dead_letter')
+    expect(store.processingVersions['trusted_space:space-order-1:order_update']).toBeUndefined()
+    expect(wrapper.find(`[data-id="${event.id}"]`).text()).toContain('审计处置已记录')
+    expect(wrapper.text()).not.toContain('已修正')
   })
 
   it('does not offer reconciliation when an audited dead letter lacks a current valid purchase intent', async () => {

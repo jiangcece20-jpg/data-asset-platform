@@ -3,7 +3,13 @@ import { canApplySpaceOrderEvent, mapSpaceOrderStatus } from '@/domain/trustedSp
 import { trustedSpaceAdapter, type TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import type { ConnectorEvent, PipelineDecision } from '@/types/configGovernance'
 import type { UserContext } from '@/types/domain'
-import type { SpaceOrderEvent, SpaceOrderMirror, SpacePurchaseIntent } from '@/types/trustedSpace'
+import type {
+  SpaceOrderEvent,
+  SpaceOrderMirror,
+  SpaceOrderReconciliationAudit,
+  SpacePurchaseIntent
+} from '@/types/trustedSpace'
+import { genId } from '@/utils/id'
 import { useIntegrationStore } from './integration'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
@@ -20,6 +26,7 @@ export function isLongUnlinkedSpacePurchase(intent: SpacePurchaseIntent, now: Da
 export const useSpaceOrderStore = defineStore('space-orders', {
   state: () => ({
     mirrors: [] as SpaceOrderMirror[],
+    reconciliationAudits: [] as SpaceOrderReconciliationAudit[],
     reconciliationGeneration: 0
   }),
   getters: {
@@ -66,20 +73,21 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         }))
       ) return this.deadLetterRejectedEvent(event, integration)
 
-      const result = integration.processEvent({
-        connector: 'trusted_space',
-        subjectId: event.spaceOrderId,
-        eventType: 'order_update',
-        eventVersion: event.eventVersion,
-        idempotencyKey: event.idempotencyKey,
-        signatureValid: event.signatureValid,
-        purchaseIntentId: event.purchaseIntentId,
-        spaceEnterpriseId: event.spaceEnterpriseId,
-        spaceProductNo: event.spaceProductNo,
-      })
+      const result = integration.processEvent(
+        {
+          connector: 'trusted_space',
+          subjectId: event.spaceOrderId,
+          eventType: 'order_update',
+          eventVersion: event.eventVersion,
+          idempotencyKey: event.idempotencyKey,
+          signatureValid: event.signatureValid,
+          purchaseIntentId: event.purchaseIntentId,
+          spaceEnterpriseId: event.spaceEnterpriseId,
+          spaceProductNo: event.spaceProductNo,
+        },
+        () => this.upsertFromEvent(event)
+      )
       if (result.decision !== 'process') return result.decision
-
-      this.upsertFromEvent(event)
       return result.decision
     },
 
@@ -90,21 +98,67 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       const purchases = useTrustedSpacePurchaseStore()
       const intent = purchases.byId(intentId)
       const generation = this.reconciliationGeneration
-      if (!intent || !this.canReconcileIntent(intent)) return undefined
+      if (!intent) {
+        this.recordReconciliationAudit(intentId, 'failed', 'intent_missing')
+        return undefined
+      }
+      if (!this.canReconcileIntent(intent)) {
+        this.recordReconciliationAudit(intentId, 'failed', 'context_rejected')
+        return undefined
+      }
 
-      const event = await adapter.findOrderByIntent(intentId)
+      let event: SpaceOrderEvent | undefined
+      try {
+        event = await adapter.findOrderByIntent(intentId)
+      } catch (error) {
+        this.recordReconciliationAudit(
+          intentId,
+          'failed',
+          'query_failed',
+          undefined,
+          error instanceof Error ? error.message : '可信空间订单查询失败'
+        )
+        return undefined
+      }
       const currentIntent = purchases.byId(intentId)
+      if (generation !== this.reconciliationGeneration) {
+        this.recordReconciliationAudit(intentId, 'failed', 'context_changed', event)
+        return undefined
+      }
+      if (!event) {
+        this.recordReconciliationAudit(intentId, 'failed', 'order_not_found')
+        return undefined
+      }
+      if (event.purchaseIntentId !== intentId) {
+        this.recordReconciliationAudit(intentId, 'failed', 'intent_mismatch', event)
+        return undefined
+      }
       if (
-        generation !== this.reconciliationGeneration
-        || !event
-        || event.purchaseIntentId !== intentId
-        || !currentIntent
+        !currentIntent
         || currentIntent.appEnterpriseId !== intent.appEnterpriseId
         || currentIntent.operatorMemberId !== intent.operatorMemberId
         || !this.canReconcileIntent(currentIntent)
-      ) return undefined
-      this.processSpaceOrderEvent(event)
-      return this.byId(event.spaceOrderId)
+      ) {
+        this.recordReconciliationAudit(intentId, 'failed', 'context_changed', event)
+        return undefined
+      }
+      const decision = this.processSpaceOrderEvent(event)
+      if (['retry', 'dead_letter', 'signature_rejected'].includes(decision)) {
+        this.recordReconciliationAudit(intentId, 'failed', decision, event)
+        return undefined
+      }
+      const mirror = this.byId(event.spaceOrderId)
+      if (mirror?.purchaseIntentId !== intentId) {
+        this.recordReconciliationAudit(intentId, 'failed', 'intent_mismatch', event)
+        return undefined
+      }
+      this.recordReconciliationAudit(
+        intentId,
+        decision === 'process' ? 'applied' : 'noop',
+        decision,
+        event
+      )
+      return mirror
     },
 
     clearMirrors() {
@@ -144,6 +198,24 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       return useTrustedSpacePurchaseStore().intents.filter(
         (intent) => isLongUnlinkedSpacePurchase(intent, now) && this.canReconcileIntent(intent),
       )
+    },
+
+    recordReconciliationAudit(
+      intentId: string,
+      status: SpaceOrderReconciliationAudit['status'],
+      reason: SpaceOrderReconciliationAudit['reason'],
+      event?: SpaceOrderEvent,
+      detail?: string
+    ) {
+      this.reconciliationAudits.push({
+        id: genId('recaudit'),
+        intentId,
+        status,
+        reason,
+        eventId: event?.eventId,
+        detail,
+        createdAt: new Date().toISOString()
+      })
     },
 
     hasValidAssociation(event: SpaceOrderEvent, current: SpaceOrderMirror | undefined): boolean {
@@ -186,7 +258,7 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       return 'dead_letter'
     },
 
-    upsertFromEvent(event: SpaceOrderEvent) {
+    upsertFromEvent(event: SpaceOrderEvent): boolean {
       const intent = useTrustedSpacePurchaseStore().byId(event.purchaseIntentId)!
       const product = useTrustedSpaceCatalogStore().byProductId(intent.appProductId)!
 
@@ -212,6 +284,7 @@ export const useSpaceOrderStore = defineStore('space-orders', {
       const index = this.mirrors.findIndex((item) => item.spaceOrderId === event.spaceOrderId)
       if (index >= 0) this.mirrors[index] = mirror
       else this.mirrors.push(mirror)
+      return true
     }
   }
 })

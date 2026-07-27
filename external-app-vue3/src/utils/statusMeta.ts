@@ -149,8 +149,7 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     received: { label: '已接收', tone: 'slate' },
     processed: { label: '已处理', tone: 'green' },
     retrying: { label: '重试中', tone: 'amber' },
-    dead_letter: { label: '死信', tone: 'red' },
-    repaired: { label: '已修正', tone: 'blue' }
+    dead_letter: { label: '死信', tone: 'red' }
   },
   approval: {
     approved: { label: '审批通过', tone: 'green' },

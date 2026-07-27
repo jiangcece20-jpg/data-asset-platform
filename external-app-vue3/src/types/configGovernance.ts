@@ -23,7 +23,7 @@ export interface ConfigVersion {
   createdAt: string
 }
 
-export type ConnectorEventStatus = 'received' | 'processed' | 'retrying' | 'dead_letter' | 'repaired'
+export type ConnectorEventStatus = 'received' | 'processed' | 'retrying' | 'dead_letter'
 export type Connector = 'trusted_space' | 'payment' | 'finance'
 
 export interface ConnectorEvent {
@@ -41,6 +41,18 @@ export interface ConnectorEvent {
   attempts: number
   processingVersion: number
   workOrderId?: string
+  repairRevisionId?: string
+  failureReason?: string
+  createdAt: string
+}
+
+export interface ConnectorRepairRevision {
+  id: string
+  eventId: string
+  revision: number
+  status: 'audit_recorded'
+  workOrderId: string
+  actor: string
   createdAt: string
 }
 

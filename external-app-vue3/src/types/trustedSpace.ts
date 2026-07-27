@@ -99,6 +99,28 @@ export interface SpaceOrderMirror {
   detailUrl?: string
 }
 
+export interface SpaceOrderReconciliationAudit {
+  id: string
+  intentId: string
+  status: 'applied' | 'noop' | 'failed'
+  reason:
+    | 'process'
+    | 'duplicate_noop'
+    | 'stale_dropped'
+    | 'intent_missing'
+    | 'context_rejected'
+    | 'context_changed'
+    | 'order_not_found'
+    | 'intent_mismatch'
+    | 'query_failed'
+    | 'retry'
+    | 'dead_letter'
+    | 'signature_rejected'
+  eventId?: string
+  detail?: string
+  createdAt: string
+}
+
 export interface ApiUsageBillLine {
   id: string
   date: string

@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserContext } from '@/types/domain'
 import type { SpaceOrderEvent, SpaceOrderMirror, SpacePurchaseIntent } from '@/types/trustedSpace'
 import type { TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
@@ -321,5 +321,149 @@ describe('space order mirror store', () => {
       idempotencyKey: 'valid-delivered-v6'
     }))).toBe('process')
     expect(store.byId('sp-order-1')?.eventVersion).toBe(6)
+  })
+
+  it('lets a valid v6 event write after a wrong-association v5 is dead-lettered and audited', () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      eventVersion: 5,
+      idempotencyKey: 'wrong-v5',
+      spaceProductNo: 'SPACE-OTHER-999'
+    }))).toBe('dead_letter')
+
+    const deadLetter = integration.deadLetters[0]
+    integration.repair(deadLetter.id, 'op-1', '2026-07-28T11:00:00.000Z')
+
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBeUndefined()
+    expect(store.processSpaceOrderEvent(spaceEvent({
+      eventVersion: 6,
+      idempotencyKey: 'valid-v6'
+    }))).toBe('process')
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(6)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(6)
+  })
+
+  it('does not advance a version when audit disposition has no reconcilable intent', async () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const rejected = integration.recordRejectedEvent({
+      connector: 'trusted_space',
+      subjectId: 'sp-order-missing-intent',
+      eventType: 'order_update',
+      eventVersion: 5,
+      idempotencyKey: 'missing-intent-v5',
+      signatureValid: true,
+      purchaseIntentId: 'intent-missing',
+      spaceEnterpriseId: 'space-ent-wanlian',
+      spaceProductNo: 'SPACE-API-20415'
+    })
+    for (let i = 0; i < 4; i++) integration.failEvent(rejected.id)
+    integration.repair(rejected.id, 'op-1', '2026-07-28T11:00:00.000Z')
+
+    await expect(store.reconcileIntent('intent-missing')).resolves.toBeUndefined()
+    expect(integration.processingVersions['trusted_space:sp-order-missing-intent:order_update']).toBeUndefined()
+    expect(store.byId('sp-order-missing-intent')).toBeUndefined()
+    expect(store.reconciliationAudits).toMatchObject([{
+      intentId: 'intent-missing',
+      status: 'failed',
+      reason: 'intent_missing'
+    }])
+  })
+
+  it('records a failed audit when trusted space returns no order for a valid intent', async () => {
+    const store = useSpaceOrderStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => undefined,
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
+    }
+
+    await expect(store.reconcileIntent('intent-delayed', adapter)).resolves.toBeUndefined()
+    expect(store.reconciliationAudits).toMatchObject([{
+      intentId: 'intent-delayed',
+      status: 'failed',
+      reason: 'order_not_found'
+    }])
+    expect(useIntegrationStore().processingVersions).toEqual({})
+  })
+
+  it('commits versions only after a legal reconciliation writes the mirror', async () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    let result = spaceEvent()
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => result,
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
+    }
+
+    await store.reconcileIntent('intent-delayed', adapter)
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(5)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
+
+    result = spaceEvent({ eventVersion: 4, idempotencyKey: 'old-v4' })
+    await store.reconcileIntent('intent-delayed', adapter)
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(5)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
+
+    result = spaceEvent({ eventVersion: 6, idempotencyKey: 'new-v6' })
+    await store.reconcileIntent('intent-delayed', adapter)
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(6)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(6)
+  })
+
+  it('records a failed apply without advancing the business version', () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    vi.spyOn(store, 'upsertFromEvent').mockImplementation(() => {
+      throw new Error('mirror storage failed')
+    })
+
+    expect(store.processSpaceOrderEvent(spaceEvent())).toBe('retry')
+    expect(store.byId('sp-order-1')).toBeUndefined()
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBeUndefined()
+    expect(integration.events[integration.events.length - 1]?.status).toBe('retrying')
+  })
+
+  it('keeps repeated reconciliation idempotent after the first mirror write', async () => {
+    const store = useSpaceOrderStore()
+    const integration = useIntegrationStore()
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    useTrustedSpacePurchaseStore().intents = [intent()]
+    const adapter: TrustedSpaceAdapter = {
+      syncProducts: async () => ({ items: [] }),
+      getProduct: async () => undefined,
+      ensureEnterpriseBinding: async () => ({ appEnterpriseId: 'ent-wanlian-logistics', status: 'active' }),
+      createPurchaseLink: async () => ({ url: '', expiresAt: '' }),
+      findOrderByIntent: async () => spaceEvent(),
+      listUsageBills: async () => [],
+      createBillDownloadLink: async () => '',
+      createBillSupportLink: async () => ({ url: '', expiresAt: '' })
+    }
+
+    await store.reconcileIntent('intent-delayed', adapter)
+    await store.reconcileIntent('intent-delayed', adapter)
+
+    expect(store.mirrors).toHaveLength(1)
+    expect(store.byId('sp-order-1')?.eventVersion).toBe(5)
+    expect(integration.processingVersions['trusted_space:sp-order-1:order_update']).toBe(5)
   })
 })
