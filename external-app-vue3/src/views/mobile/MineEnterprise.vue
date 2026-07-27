@@ -51,6 +51,14 @@ function invite() {
         </div>
       </div>
 
+      <button v-if="user.context.currentEnterpriseId" data-testid="api-usage-bills-entry" class="mx-4 mt-3 flex w-[calc(100%-2rem)] items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-card" @click="router.push('/app/mine/enterprise/bills')">
+        <div>
+          <div class="text-[14px] font-medium text-slate-800">API 用量账单</div>
+          <div class="mt-1 text-[12px] text-slate-400">查看可信空间出具的企业或个人调用明细</div>
+        </div>
+        <span class="text-slate-300">›</span>
+      </button>
+
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
         <div class="mb-2 text-[13px] font-medium text-slate-700">成员管理</div>
         <div v-for="m in user.enterprise.members" :key="m.id" class="flex items-center justify-between border-b border-slate-50 py-2 last:border-0">

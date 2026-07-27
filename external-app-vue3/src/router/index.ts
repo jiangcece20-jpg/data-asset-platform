@@ -24,6 +24,8 @@ const router = createRouter({
     { path: '/app/listing-request/:id', name: 'listing-request', component: () => import('@/views/mobile/ListingRequest.vue'), meta: { title: '求上架' } },
     { path: '/app/mine', name: 'mine', component: () => import('@/views/mobile/Mine.vue'), meta: { title: '我的' } },
     { path: '/app/mine/enterprise', name: 'mine-enterprise', component: () => import('@/views/mobile/MineEnterprise.vue'), meta: { title: '企业中心' } },
+    { path: '/app/mine/enterprise/bills', name: 'api-usage-bills', component: () => import('@/views/mobile/ApiUsageBills.vue'), meta: { title: 'API 用量账单' } },
+    { path: '/app/mine/enterprise/bills/:id', name: 'api-usage-bill-detail', component: () => import('@/views/mobile/ApiUsageBillDetail.vue'), meta: { title: 'API 用量账单' } },
 
     // ---------------- PC 运营后台 ----------------
     { path: '/admin', name: 'admin-dashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '概览' } },

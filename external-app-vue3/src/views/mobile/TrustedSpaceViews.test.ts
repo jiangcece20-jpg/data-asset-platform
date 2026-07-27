@@ -7,6 +7,8 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useUserStore } from '@/stores/user'
 import SpaceBridge from './SpaceBridge.vue'
+import ApiUsageBills from './ApiUsageBills.vue'
+import MineEnterprise from './MineEnterprise.vue'
 
 async function mountSpaceBridgeWithIntent(options: { linkNow?: string; renderNow?: () => Date; returned?: boolean; redirected?: boolean } = {}) {
   let linkNow = options.linkNow ?? '2026-07-27T10:00:00.000Z'
@@ -74,5 +76,63 @@ describe('trusted-space purchase handoff views', () => {
 
     expect(wrapper.text()).toContain('空间已受理，状态同步中')
     expect(wrapper.text()).not.toContain('进入可信空间')
+  })
+})
+
+describe('API usage bill views', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('does not render the enterprise total in a member bill list', async () => {
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/app/mine/enterprise/bills', name: 'api-usage-bills', component: ApiUsageBills }]
+    })
+    await router.push('/app/mine/enterprise/bills')
+    await router.isReady()
+
+    const wrapper = mount(ApiUsageBills, { global: { plugins: [router] } })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('720')
+    expect(wrapper.text()).not.toContain('企业总额')
+    expect(wrapper.text()).not.toContain('¥1,840')
+  })
+
+  it('shows the API usage bill entry only after enterprise authentication', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/app/mine/enterprise', name: 'mine-enterprise', component: MineEnterprise },
+        { path: '/app/mine/enterprise/bills', name: 'api-usage-bills', component: ApiUsageBills }
+      ]
+    })
+    await router.push('/app/mine/enterprise')
+    await router.isReady()
+
+    const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
+    expect(wrapper.text()).toContain('API 用量账单')
+    await wrapper.get('button[data-testid="api-usage-bills-entry"]').trigger('click')
+    await router.isReady()
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('api-usage-bills')
+  })
+
+  it('does not show the API usage bill entry without an authenticated enterprise context', async () => {
+    const user = useUserStore()
+    user.context.enterpriseAuthStatus = 'authenticated'
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/app/mine/enterprise', name: 'mine-enterprise', component: MineEnterprise }]
+    })
+    await router.push('/app/mine/enterprise')
+    await router.isReady()
+
+    const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
+    expect(wrapper.text()).not.toContain('API 用量账单')
   })
 })
