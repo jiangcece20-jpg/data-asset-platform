@@ -71,6 +71,7 @@ describe('orders after-sales', () => {
 
     expect(order.ownerType).toBe('enterprise')
     expect(order.ownerId).toBe('ent-wanlian-logistics')
+    expect(order.entitlementGranted).toBe(true)
     expect(user.enterprise.entitledProductIds).toContain('prod-logistics-monthly')
     expect(useEntitlementStore().list.some((entitlement) =>
       entitlement.source === 'enterprise' && entitlement.ownerId === 'ent-wanlian-logistics' && entitlement.enterpriseId === 'ent-wanlian-logistics'
@@ -99,7 +100,7 @@ describe('orders after-sales', () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
 
-    expect(() => store.purchaseItem('prod-qualification-api', 1280)).toThrow('仅支持 APP 自营报告购买')
+    expect(() => store.purchaseItem('prod-qualification-api', 1280)).toThrow('仅支持 APP 自营个人单品购买')
     expect(() => store.purchaseReportForSubject('prod-enterprise-activity', 'personal')).toThrow('仅支持 APP 自营报告购买')
     expect(() => store.submitEnterpriseOrder('prod-qualification-api', 1280, 'online', 'forged-intent')).toThrow('仅支持 APP 自营报告购买')
 
@@ -142,13 +143,18 @@ describe('orders after-sales', () => {
 
     user.clearEnterpriseContext()
     store.confirmEnterpriseContract(order.id)
+    store.confirmEnterpriseContract(order.id)
 
+    expect(order.entitlementGranted).toBe(true)
     expect(useEntitlementStore().list.some((entitlement) =>
       entitlement.productId === order.productId
       && entitlement.source === 'enterprise'
       && entitlement.ownerId === order.ownerId
       && entitlement.enterpriseId === order.ownerId
     )).toBe(true)
+    expect(useEntitlementStore().list.filter((entitlement) =>
+      entitlement.productId === order.productId && entitlement.source === 'enterprise' && entitlement.ownerId === order.ownerId
+    )).toHaveLength(1)
   })
 
   it('rejects contract confirmation for a personal order', () => {
@@ -156,5 +162,15 @@ describe('orders after-sales', () => {
     store.list = [seedOrder({ id: 'personal-contract' })]
 
     expect(() => store.confirmEnterpriseContract('personal-contract')).toThrow('仅企业订单可确认合同付款')
+  })
+
+  it('keeps the existing APP dashboard personal purchase path and grants a term item entitlement', () => {
+    const store = useOrderStore()
+    const order = store.purchaseItem('prod-freight-index', 299)
+    const entitlement = useEntitlementStore().list.find((item) => item.productId === 'prod-freight-index' && item.ownerId === 'mem-1')
+
+    expect(order.ownerType).toBe('personal')
+    expect(order.entitlementGranted).toBe(true)
+    expect(entitlement).toMatchObject({ source: 'personal', type: 'item', validTo: expect.any(String) })
   })
 })

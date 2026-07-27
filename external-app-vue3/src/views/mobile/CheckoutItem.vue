@@ -15,8 +15,9 @@ const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
-const checkoutAllowed = computed(() => product.value?.type === 'report' && product.value.dealChannel === 'app_payment')
+const checkoutAllowed = computed(() => product.value?.dealChannel === 'app_payment' && product.value.acquisitions.includes('item_purchase'))
 const paid = ref(false)
+const submitting = ref(false)
 const enterpriseEligible = computed(() =>
   user.isEnterpriseAuthenticated
   && Boolean(user.context.currentEnterpriseId)
@@ -46,6 +47,7 @@ const entitlementNote = computed(() => {
 })
 
 function selectSubject(next: PurchaseSubject) {
+  if (submitting.value) return
   if (next === 'enterprise' && !enterpriseEligible.value) return
   if (subject.value !== next) {
     orders.invalidateEnterpriseReportCheckoutIntents(id.value)
@@ -55,14 +57,15 @@ function selectSubject(next: PurchaseSubject) {
 }
 
 function requestConfirmation() {
-  if (subject.value === 'enterprise' && !enterpriseEligible.value) return
+  if (submitting.value || (subject.value === 'enterprise' && !enterpriseEligible.value)) return
   confirmationSubject.value = subject.value
 }
 
 function confirmPurchase() {
-  if (!product.value) return
-  if (confirmationSubject.value !== subject.value) return
-  if (product.value.type === 'report') {
+  if (submitting.value || paid.value || !product.value || confirmationSubject.value !== subject.value) return
+  submitting.value = true
+  confirmationSubject.value = null
+  try {
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
       const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
       router.push({ path: `/app/checkout/enterprise/${id.value}`, query: { intent: intent.id } })
@@ -72,8 +75,21 @@ function confirmPurchase() {
       ? orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
       : undefined
     orders.purchaseReportForSubject(id.value, subject.value, enterpriseMode.value, intent?.id)
+    paid.value = true
+  } catch {
+    submitting.value = false
   }
-  paid.value = true
+}
+
+function payPersonalItem() {
+  if (submitting.value || paid.value || !product.value) return
+  submitting.value = true
+  try {
+    orders.purchaseItem(id.value, product.value.price.itemPrice || 0)
+    paid.value = true
+  } catch {
+    submitting.value = false
+  }
 }
 
 const returnQ = computed(() => route.query.returnQ as string | undefined)
@@ -106,6 +122,7 @@ function goBackToContext() {
                 data-testid="purchase-subject-personal"
                 class="rounded-xl border p-3 text-left"
                 :class="subject === 'personal' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+                :disabled="submitting"
                 @click="selectSubject('personal')"
               >
                 <div class="text-[13px] font-medium text-slate-800">个人购买</div>
@@ -115,7 +132,7 @@ function goBackToContext() {
                 data-testid="purchase-subject-enterprise"
                 class="rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
                 :class="subject === 'enterprise' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
-                :disabled="!enterpriseEligible"
+                :disabled="!enterpriseEligible || submitting"
                 @click="selectSubject('enterprise')"
               >
                 <div class="text-[13px] font-medium text-slate-800">企业购买</div>
@@ -128,11 +145,13 @@ function goBackToContext() {
             <button
               class="rounded-xl border p-3 text-left"
               :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+              :disabled="submitting"
               @click="enterpriseMode = 'online'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null"
             >在线支付</button>
             <button
               class="rounded-xl border p-3 text-left"
               :class="enterpriseMode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+              :disabled="submitting"
               @click="enterpriseMode = 'contract'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null"
             >合同采购</button>
           </div>
@@ -144,6 +163,7 @@ function goBackToContext() {
             v-if="confirmationSubject !== subject"
             data-testid="purchase-intent-confirm"
             class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
+            :disabled="submitting"
             @click="requestConfirmation"
           >
             确认以{{ subjectLabel }}名义{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
@@ -153,12 +173,16 @@ function goBackToContext() {
             <button
               data-testid="purchase-final-confirm"
               class="mt-3 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
+              :disabled="submitting"
               @click="confirmPurchase"
             >
               确认使用{{ subjectName }}{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
             </button>
           </div>
         </template>
+        <button v-else data-testid="personal-item-submit" class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" :disabled="submitting" @click="payPersonalItem">
+          确认支付 ¥{{ product.price.itemPrice }}
+        </button>
       </div>
       <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">🎉</div>

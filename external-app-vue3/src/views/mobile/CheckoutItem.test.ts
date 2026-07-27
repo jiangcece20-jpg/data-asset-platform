@@ -54,6 +54,29 @@ describe('CheckoutItem report purchase subject', () => {
     expect(order.ownerId).toBe('mem-1')
   })
 
+  it('creates one enterprise online order and entitlement when the final confirmation is triggered twice immediately', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper } = await mountCheckout()
+    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
+    const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
+
+    await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
+
+    expect(useOrderStore().list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'enterprise')).toHaveLength(1)
+    expect(useOrderStore().list.at(-1)?.entitlementGranted).toBe(true)
+  })
+
+  it('keeps the personal final confirmation idempotent when it is triggered twice immediately', async () => {
+    const { wrapper } = await mountCheckout()
+    const beforeOrders = useOrderStore().list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'personal').length
+    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
+    const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
+
+    await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
+
+    expect(useOrderStore().list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'personal')).toHaveLength(beforeOrders + 1)
+  })
+
   it.each([
     [false, 'prod-qualification-api'],
     [true, 'prod-qualification-api'],
@@ -102,5 +125,16 @@ describe('CheckoutItem report purchase subject', () => {
     const second = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'contract')
     await wrapper.get('[data-testid="purchase-subject-personal"]').trigger('click')
     expect(store.getEnterpriseReportCheckoutIntent(second.id, 'prod-logistics-monthly')).toBeUndefined()
+  })
+
+  it('continues to checkout an APP dashboard as a personal term item without showing report subjects', async () => {
+    const { wrapper, router } = await mountCheckout('prod-freight-index')
+
+    expect(router.currentRoute.value.name).toBe('checkout-item')
+    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="personal-item-submit"]').trigger('click')
+
+    const order = useOrderStore().list.at(-1)!
+    expect(order).toMatchObject({ productId: 'prod-freight-index', ownerType: 'personal', entitlementGranted: true })
   })
 })

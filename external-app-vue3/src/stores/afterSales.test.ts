@@ -68,6 +68,33 @@ describe('afterSales orchestrator', () => {
     expect(orders.list[0].entitlementGranted).toBe(true)
   })
 
+  it('payment reconciliation grants a stale enterprise report to its order owner exactly once', () => {
+    const orders = useOrderStore()
+    orders.list = [order({
+      id: 'enterprise-stale',
+      ownerType: 'enterprise',
+      ownerId: 'ent-wanlian-logistics',
+      productId: 'prod-logistics-monthly',
+      productName: '中国公路物流行业月报',
+      status: 'paid',
+      entitlementGranted: false
+    })]
+    const entitlements = useEntitlementStore()
+    const personalBefore = entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal').length
+    const after = useAfterSalesStore()
+
+    after.reconcilePayment('enterprise-stale', 'space_success_app_stale', 'op-1')
+    after.reconcilePayment('enterprise-stale', 'space_success_app_stale', 'op-1')
+
+    expect(entitlements.list.filter((item) =>
+      item.productId === 'prod-logistics-monthly'
+      && item.source === 'enterprise'
+      && item.ownerId === 'ent-wanlian-logistics'
+      && item.enterpriseId === 'ent-wanlian-logistics'
+    )).toHaveLength(1)
+    expect(entitlements.list.filter((item) => item.productId === 'prod-logistics-monthly' && item.source === 'personal')).toHaveLength(personalBefore)
+  })
+
   it('contract termination opens a contract work order and requires two-layer notice', () => {
     const entitlements = useEntitlementStore()
     entitlements.list = [

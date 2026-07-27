@@ -34,6 +34,14 @@ function requireAppOwnedReport(productId: string): Product {
   return product
 }
 
+function requireAppOwnedPersonalPurchasableProduct(productId: string): Product {
+  const product = useCatalogStore().byId(productId)
+  if (!product || product.dealChannel !== 'app_payment' || !product.acquisitions.includes('item_purchase')) {
+    throw new Error('仅支持 APP 自营个人单品购买')
+  }
+  return product
+}
+
 function requireCurrentAuthenticatedEnterprise(): string {
   const user = useUserStore()
   if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId || !user.currentEnterpriseMember) {
@@ -79,7 +87,7 @@ export const useOrderStore = defineStore('orders', {
     },
     // 单品购买
     purchaseItem(productId: string, amount: number) {
-      const product = requireAppOwnedReport(productId)
+      const product = requireAppOwnedPersonalPurchasableProduct(productId)
       const entitlements = useEntitlementStore()
       const user = useUserStore()
       const order: Order = {
@@ -91,6 +99,7 @@ export const useOrderStore = defineStore('orders', {
         productName: product.name,
         amount,
         status: 'entitlement_active',
+        entitlementGranted: true,
         createdAt: now(),
         paidAt: now()
       }
@@ -177,6 +186,7 @@ export const useOrderStore = defineStore('orders', {
       if (mode === 'online') {
         const entitlements = useEntitlementStore()
         entitlements.grantEnterpriseSeat(productId, enterpriseId)
+        order.entitlementGranted = true
       }
       return order
     },
@@ -184,11 +194,14 @@ export const useOrderStore = defineStore('orders', {
     confirmEnterpriseContract(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
       if (!order || order.ownerType !== 'enterprise') throw new Error('仅企业订单可确认合同付款')
+      if (order.entitlementGranted) return order
       order.contractStatus = 'payment_confirmed'
       order.status = 'entitlement_active'
       order.paidAt = now()
       const entitlements = useEntitlementStore()
       entitlements.grantEnterpriseSeat(order.productId, order.ownerId)
+      order.entitlementGranted = true
+      return order
     },
     signContract(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
@@ -239,7 +252,10 @@ export const useOrderStore = defineStore('orders', {
         const catalog = useCatalogStore()
         const entitlements = useEntitlementStore()
         const product = catalog.byId(order.productId)
-        if (product) entitlements.grantItem(product)
+        if (product) {
+          if (order.ownerType === 'enterprise') entitlements.grantEnterpriseSeat(product.id, order.ownerId)
+          else entitlements.grantItem(product)
+        }
         return { granted: true, needsWorkOrder: false }
       }
 
