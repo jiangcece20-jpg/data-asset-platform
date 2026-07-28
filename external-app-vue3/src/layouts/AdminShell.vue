@@ -5,8 +5,7 @@ const route = useRoute()
 
 const nav = [
   { path: '/admin', label: '概览', icon: '📊' },
-  { path: '/admin/products', label: '商品中心', icon: '🗂️', badge: '重点' },
-  { path: '/admin/content', label: '内容中心', icon: '📰' },
+  { path: '/admin/resources', label: '资源管理', icon: '🗂️', badge: '重点' },
   { path: '/admin/commerce', label: '商业化中心', icon: '💰', badge: '重点' },
   { path: '/admin/orders', label: '订单中心', icon: '🧾' },
   { path: '/admin/enterprise', label: '企业权益', icon: '🏢', badge: '重点' },

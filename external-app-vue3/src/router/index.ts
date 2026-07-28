@@ -29,10 +29,8 @@ const router = createRouter({
 
     // ---------------- PC 运营后台 ----------------
     { path: '/admin', name: 'admin-dashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '概览' } },
-    { path: '/admin/products', name: 'admin-products', component: () => import('@/views/admin/ProductCenter.vue'), meta: { title: '商品中心' } },
-    { path: '/admin/products/:id', name: 'admin-product-edit', component: () => import('@/views/admin/ProductEdit.vue'), meta: { title: '商品编辑' } },
-    { path: '/admin/content', name: 'admin-content', component: () => import('@/views/admin/ContentCenter.vue'), meta: { title: '内容中心' } },
-    { path: '/admin/content/:id', name: 'admin-content-edit', component: () => import('@/views/admin/ContentEdit.vue'), meta: { title: '内容编辑' } },
+    { path: '/admin/resources', name: 'admin-resources', component: () => import('@/views/admin/ResourceCenter.vue'), meta: { title: '资源管理' } },
+    { path: '/admin/resources/:id', name: 'admin-resource-edit', component: () => import('@/views/admin/ResourceEdit.vue'), meta: { title: '资源编辑' } },
     { path: '/admin/commerce', name: 'admin-commerce', component: () => import('@/views/admin/CommerceCenter.vue'), meta: { title: '商业化中心' } },
     { path: '/admin/orders', name: 'admin-orders', component: () => import('@/views/admin/OrderCenter.vue'), meta: { title: '订单中心' } },
     { path: '/admin/enterprise', name: 'admin-enterprise', component: () => import('@/views/admin/EnterpriseBenefits.vue'), meta: { title: '企业权益' } },
