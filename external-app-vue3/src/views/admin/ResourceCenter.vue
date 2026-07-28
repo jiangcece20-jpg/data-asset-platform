@@ -197,14 +197,14 @@ function statusLabel(status: string): string {
             <td class="px-4 py-3">
               <div class="flex gap-2">
                 <button
-                  v-if="!row.isListed"
+                  v-if="!row.isListed && row.type !== 'user_view'"
                   class="rounded bg-emerald-600 px-2.5 py-1 text-xs text-white hover:bg-emerald-700"
                   @click="openListModal(row.resourceId)"
                 >
                   上架
                 </button>
                 <button
-                  v-else
+                  v-else-if="row.isListed"
                   class="rounded bg-red-50 px-2.5 py-1 text-xs text-red-600 hover:bg-red-100"
                   @click="handleDelist(row.productId!)"
                 >

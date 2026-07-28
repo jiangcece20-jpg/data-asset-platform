@@ -40,7 +40,7 @@ const kpis = [
 ]
 
 const pendingCounts = computed(() => [
-  { label: '商品总数 / 已发布', value: `${catalog.products.length} / ${catalog.published.length}`, to: '/admin/products' },
+  { label: '商品总数 / 已发布', value: `${catalog.products.length} / ${catalog.published.length}`, to: '/admin/resources' },
   { label: '待审批商品', value: String(approval.pending.length), to: '/admin/approval' },
   { label: '待处理需求线索', value: String(demand.list.filter((d) => d.status === 'new').length), to: '/admin/trials-leads' },
   { label: '待审批试用', value: String(trials.pendingApplications.length), to: '/admin/trials-leads' },

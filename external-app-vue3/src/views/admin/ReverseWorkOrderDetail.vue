@@ -200,9 +200,9 @@ function handleClose() {
 }
 
 function handleCreateFollowUp() {
-  // Navigate to product edit to initiate a new reverse action
+  // Navigate to resource edit to initiate a new reverse action
   if (wo.value) {
-    router.push(`/admin/products/${wo.value.subjectId}`)
+    router.push(`/admin/resources/${wo.value.subjectId}`)
   }
 }
 </script>
