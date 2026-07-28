@@ -93,10 +93,11 @@ export const useCatalogStore = defineStore('catalog', {
         p.updatedAt = now()
       }
     },
-    searchInternalViews(query: string): Resource[] {
+    searchInternalViews(query: string, enterpriseId?: string): Resource[] {
       const q = query.trim().toLowerCase()
       return this.resources.filter((r) => {
         if (r.type !== 'user_view' || r.origin !== 'user_created') return false
+        if (enterpriseId && r.enterpriseId !== enterpriseId) return false
         if (!q) return true
         return r.resourceName.toLowerCase().includes(q)
       })

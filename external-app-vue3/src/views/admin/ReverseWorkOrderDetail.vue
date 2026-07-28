@@ -201,9 +201,9 @@ function handleClose() {
 
 function handleCreateFollowUp() {
   // Navigate to resource edit to initiate a new reverse action
-  if (wo.value) {
-    router.push(`/admin/resources/${wo.value.subjectId}`)
-  }
+  if (!wo.value) return
+  const product = catalog.byId(wo.value.subjectId)
+  router.push(`/admin/resources/${product?.resourceId ?? wo.value.subjectId}`)
 }
 </script>
 
