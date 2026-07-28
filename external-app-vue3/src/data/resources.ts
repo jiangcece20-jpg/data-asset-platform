@@ -21,6 +21,31 @@ function migrateProductToResource(product: Product): Resource {
 
 export const seedResources: Resource[] = [...seedProducts, ...mockProducts].map(migrateProductToResource)
 
+/**
+ * 数据资产平台中已存在但尚未上架为商品的独立资源。
+ * 用于资源管理中心的「未上架 → 上架」流程演示。
+ */
+export const unlistedResources: Resource[] = [
+  {
+    id: 'res-asset-truck-trajectory',
+    resourceName: '货车轨迹明细数据集',
+    type: 'dataset',
+    origin: 'app_content',
+    typeDetail: {},
+    createdAt: '2026-07-18',
+    updatedAt: '2026-07-18'
+  },
+  {
+    id: 'res-asset-warehouse-api',
+    resourceName: '仓储利用率查询 API',
+    type: 'api',
+    origin: 'app_content',
+    typeDetail: {},
+    createdAt: '2026-07-21',
+    updatedAt: '2026-07-21'
+  }
+]
+
 /** 用数模块产出的 mock 用户视图 */
 export const userViewResources: Resource[] = [
   {

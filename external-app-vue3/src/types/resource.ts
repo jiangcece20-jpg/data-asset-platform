@@ -4,6 +4,8 @@
 import type {
   StandardProductType,
   ProductOrigin,
+  PriceModel,
+  AcquisitionOption,
   DatasetDetail,
   ApiDetail,
   ReportDetail,
@@ -53,8 +55,8 @@ export interface Resource {
 export interface ListResourceForm {
   name: string
   subtitle: string
-  price: { model: string; itemPrice?: number; memberDiscount?: number; unit?: string }
-  acquisitions: string[]
+  price: { model: PriceModel; itemPrice?: number; memberDiscount?: number; unit?: string }
+  acquisitions: AcquisitionOption[]
   scenarios: string[]
   tags: string[]
 }

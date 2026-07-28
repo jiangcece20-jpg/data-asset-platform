@@ -1,15 +1,18 @@
 import { defineStore } from 'pinia'
 import { seedProducts, seedEnhancements } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
+import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
 import type { Product, ProductEnhancement, ProductStatus, AvailabilityStatus } from '@/types/domain'
+import type { Resource, ListResourceForm } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
-import { now } from '@/utils/id'
+import { genId, now } from '@/utils/id'
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     products: [...seedProducts, ...mockProducts].map((p) => ({ ...p })) as Product[],
-    enhancements: seedEnhancements.map((e) => ({ ...e })) as ProductEnhancement[]
+    enhancements: seedEnhancements.map((e) => ({ ...e })) as ProductEnhancement[],
+    resources: [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({ ...r })) as Resource[]
   }),
   getters: {
     discoverable(state): Product[] {
@@ -20,6 +23,18 @@ export const useCatalogStore = defineStore('catalog', {
     },
     byId(state) {
       return (id: string) => state.products.find((p) => p.id === id)
+    },
+    resourceById(state) {
+      return (id: string) => state.resources.find((r) => r.id === id)
+    },
+    productForResource(state) {
+      return (resourceId: string) => state.products.find((p) => p.resourceId === resourceId)
+    },
+    internalViews(state) {
+      return (enterpriseId?: string) =>
+        state.resources.filter(
+          (r) => r.type === 'user_view' && r.origin === 'user_created' && (!enterpriseId || r.enterpriseId === enterpriseId)
+        )
     },
     enhancementOf(state) {
       return (productId: string) => state.enhancements.find((e) => e.productId === productId)
@@ -36,6 +51,56 @@ export const useCatalogStore = defineStore('catalog', {
     }
   },
   actions: {
+    listResource(resourceId: string, form: ListResourceForm) {
+      const resource = this.resources.find((r) => r.id === resourceId)
+      if (!resource) throw new Error('资源不存在')
+      if (resource.type === 'user_view') throw new Error('用数视图不可上架')
+      if (this.products.some((p) => p.resourceId === resourceId)) throw new Error('该资源已有上架商品')
+
+      const product: Product = {
+        id: genId('prod'),
+        resourceId,
+        name: form.name,
+        subtitle: form.subtitle,
+        type: resource.type as Product['type'],
+        origin: resource.origin,
+        dealChannel: 'app_payment',
+        availability: 'published',
+        acquisitions: form.acquisitions,
+        scenarios: form.scenarios,
+        provider: 'APP 自营内容',
+        coverage: '',
+        updateFrequency: '',
+        qualityPromise: '',
+        complianceNote: '',
+        price: form.price,
+        status: 'published',
+        tags: form.tags,
+        description: '',
+        valueProposition: '',
+        deliveryMethod: '',
+        memberIncluded: false,
+        updatedAt: now(),
+        typeDetail: resource.typeDetail,
+        serviceStatus: 'normal'
+      }
+      this.products.push(product)
+    },
+    delistProduct(productId: string) {
+      const p = this.products.find((x) => x.id === productId)
+      if (p) {
+        p.availability = 'delisted'
+        p.updatedAt = now()
+      }
+    },
+    searchInternalViews(query: string): Resource[] {
+      const q = query.trim().toLowerCase()
+      return this.resources.filter((r) => {
+        if (r.type !== 'user_view' || r.origin !== 'user_created') return false
+        if (!q) return true
+        return r.resourceName.toLowerCase().includes(q)
+      })
+    },
     search(query: string, opts?: { type?: string; dealChannel?: string; scenario?: string }): Product[] {
       const q = query.trim().toLowerCase()
       return this.discoverable.filter((p) => {
