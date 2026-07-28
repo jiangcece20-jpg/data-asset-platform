@@ -5,6 +5,7 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import { useAiStore } from '@/stores/ai'
 import { useCatalogStore } from '@/stores/catalog'
+import type { Resource } from '@/types/resource'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,6 +46,19 @@ const primarySourceProduct = computed(() => {
 
 // 全文搜索结果（百度式：AI 摘要之下接全文结果列表）
 const fullResults = computed(() => (question.value ? catalog.search(question.value) : []))
+
+// 内部视图结果（与市场商品结果并列展示）
+const internalViews = computed(() => (question.value ? catalog.searchInternalViews(question.value) : []))
+const hasInternalViews = computed(() => internalViews.value.length > 0)
+
+function openExternalView(view: Resource) {
+  const url = view.typeDetail.userView?.externalUrl
+  if (url) {
+    window.open(url, '_blank')
+  } else {
+    alert('该视图暂无跳转链接')
+  }
+}
 
 const canUnlock = computed(() => {
   const p = primarySourceProduct.value
@@ -158,6 +172,38 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
         >
           提交需求
         </button>
+      </div>
+    </div>
+
+    <!-- ③ 内部视图结果 -->
+    <div v-if="hasInternalViews" class="mt-4 px-4">
+      <div class="mb-2 flex items-center gap-2">
+        <span class="text-xs font-medium text-slate-500">🏠 内部视图</span>
+        <span class="text-xs text-slate-400">{{ internalViews.length }} 条</span>
+      </div>
+      <div class="space-y-2">
+        <div
+          v-for="view in internalViews"
+          :key="view.id"
+          class="rounded-xl border border-slate-200 bg-white p-3 active:bg-slate-50"
+          @click="openExternalView(view)"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-slate-800">{{ view.resourceName }}</span>
+                <span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-600">🏠内部</span>
+              </div>
+              <div class="mt-1 text-xs text-slate-500">
+                {{ view.typeDetail.userView?.dataSourceName }} · {{ view.typeDetail.userView?.chartType }}
+              </div>
+              <div class="mt-0.5 text-xs text-slate-400">
+                更新于 {{ view.updatedAt }}
+              </div>
+            </div>
+            <span class="text-slate-300">›</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
