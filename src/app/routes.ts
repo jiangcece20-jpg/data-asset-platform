@@ -22,6 +22,7 @@ export const appRoutes: AppRoute[] = [
   { key: 'discovery', label: '资源发现' },
   { key: 'management', label: '资源管理' },
   { key: 'workbench', label: '即席查询' },
+  { key: 'ai-find', label: 'AI 找数' },
   { key: 'lineage', label: '血缘追溯' },
   { key: 'permissions', label: '权限中心' },
   { key: 'my', label: '我的' },

@@ -4,6 +4,7 @@ export const seedProducts: Product[] = [
   // ── 自有看板 ──────────────────────────────────────────
   {
     id: 'prod-freight-index',
+    resourceId: 'res-prod-freight-index',
     name: '全国货运价格指数',
     subtitle: '周度更新的全国公路货运价格趋势看板',
     type: 'dashboard',
@@ -47,6 +48,7 @@ export const seedProducts: Product[] = [
   },
   {
     id: 'prod-cold-chain-dashboard',
+    resourceId: 'res-prod-cold-chain-dashboard',
     name: '冷链物流温控合规看板',
     subtitle: '冷链运输温控合规监测交互看板',
     type: 'dashboard',
@@ -88,6 +90,7 @@ export const seedProducts: Product[] = [
   },
   {
     id: 'prod-port-dashboard-free',
+    resourceId: 'res-prod-port-dashboard-free',
     name: '港口吞吐量免费看板',
     subtitle: '全国主要港口吞吐量趋势免费看板',
     type: 'dashboard',
@@ -129,6 +132,7 @@ export const seedProducts: Product[] = [
   // ── 行业报告 ──────────────────────────────────────────
   {
     id: 'prod-logistics-monthly',
+    resourceId: 'res-prod-logistics-monthly',
     name: '中国公路物流行业月报',
     subtitle: '公路物流行业趋势与政策解读月报',
     type: 'report',
@@ -180,6 +184,7 @@ export const seedProducts: Product[] = [
   },
   {
     id: 'prod-industry-brief-free',
+    resourceId: 'res-prod-industry-brief-free',
     name: '物流行业政策速递（免费）',
     subtitle: '每月物流政策动态免费摘要',
     type: 'report',
@@ -224,6 +229,7 @@ export const seedProducts: Product[] = [
   // ── API ────────────────────────────────────────────────
   {
     id: 'prod-qualification-api',
+    resourceId: 'res-prod-qualification-api',
     name: '道路运输从业人员资格核验 API',
     subtitle: '从业资格证信息实时核验 API',
     type: 'api',
@@ -288,6 +294,7 @@ export const seedProducts: Product[] = [
   },
   {
     id: 'prod-privacy-verify',
+    resourceId: 'res-prod-privacy-verify',
     name: '企业资质隐私核验 API',
     subtitle: '基于 PIR 的企业资质匹配核验 API',
     type: 'api',
@@ -351,6 +358,7 @@ export const seedProducts: Product[] = [
   // ── 数据集 ──────────────────────────────────────────────
   {
     id: 'prod-enterprise-activity',
+    resourceId: 'res-prod-enterprise-activity',
     name: '企业物流活跃度数据集',
     subtitle: '企业维度物流活跃指标数据集',
     type: 'dataset',
@@ -481,6 +489,7 @@ export const seedProducts: Product[] = [
   },
   {
     id: 'prod-driver-credit-candidate',
+    resourceId: 'res-prod-driver-credit-candidate',
     name: '司机信用评分数据集（可申请上架）',
     subtitle: '司机维度信用与安全驾驶评分',
     type: 'dataset',

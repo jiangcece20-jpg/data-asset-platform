@@ -9,7 +9,7 @@ import type {
 } from '@/types/domain'
 
 export { seedProducts } from './products'
-import { seedProducts } from './products'
+export { seedResources, userViewResources } from './resources'
 
 export const seedEnhancements: ProductEnhancement[] = [
   {

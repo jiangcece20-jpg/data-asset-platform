@@ -269,6 +269,7 @@ function makeMock(input: MockInput): Product {
   const availability = input.availability ?? 'published'
   return {
     id: input.id,
+    resourceId: `res-${input.id}`,
     name: input.name,
     subtitle: input.subtitle,
     type: input.type,
