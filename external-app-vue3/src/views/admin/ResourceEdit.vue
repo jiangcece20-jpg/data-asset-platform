@@ -1,7 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
+import type { PriceModel, AcquisitionOption } from '@/types/domain'
+
+const PRICE_MODELS: { value: PriceModel; label: string }[] = [
+  { value: 'free', label: '免费' },
+  { value: 'member_free', label: '会员免费' },
+  { value: 'member_discount', label: '会员折扣' },
+  { value: 'item_only', label: '仅单品购买' }
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +36,191 @@ const originLabels: Record<string, string> = {
 
 function goBack() {
   router.push('/admin/resources')
+}
+
+// ---------------------------------------------------------------------------
+// 编辑表单状态
+// ---------------------------------------------------------------------------
+
+const editable = computed(() => !!product.value && resource.value?.type !== 'user_view')
+
+// --- 商品信息表单 ---
+const productForm = reactive({
+  name: '',
+  subtitle: '',
+  description: '',
+  valueProposition: '',
+  scenarios: '',
+  priceModel: 'item_only' as PriceModel,
+  itemPrice: 0,
+  memberDiscount: 0.6,
+  memberIncluded: false,
+  acquiFree: false,
+  acquiMember: false,
+  acquiItem: false,
+  coverage: '',
+  updateFrequency: '',
+  deliveryMethod: '',
+  provider: '',
+  qualityPromise: '',
+  complianceNote: ''
+})
+const productSaved = ref(false)
+
+// --- 增强信息表单 ---
+const enhForm = reactive({
+  displayTitle: '',
+  recommendText: '',
+  tags: '',
+  manualDescription: '',
+  previewNote: '',
+  sortWeight: 50,
+  recommendSlot: false
+})
+const enhSaved = ref(false)
+
+// --- 数据探查配置 ---
+const profilingSelection = ref<string[]>([])
+const profilingSaved = ref(false)
+
+const datasetFields = computed(() => {
+  const d = product.value?.typeDetail.dataset
+  if (!d) return []
+  const stats = d.fieldProfiling ?? []
+  return d.fields.map((f) => ({
+    name: f.name,
+    meaning: f.meaning,
+    dataType: f.dataType,
+    sensitive: f.primaryKey || f.sensitivity === 'L2' || f.sensitivity === 'L3',
+    sensitivityLabel: f.primaryKey ? '主键' : (f.sensitivity ?? ''),
+    hasStat: stats.some((s) => s.fieldName === f.name)
+  }))
+})
+
+const selectableFields = computed(() => datasetFields.value.filter((f) => f.hasStat))
+const allSelectableChecked = computed(
+  () => selectableFields.value.length > 0 && selectableFields.value.every((f) => profilingSelection.value.includes(f.name))
+)
+const someSelectableChecked = computed(
+  () => profilingSelection.value.length > 0 && !allSelectableChecked.value
+)
+
+function toggleSelectAll() {
+  profilingSelection.value = allSelectableChecked.value ? [] : selectableFields.value.map((f) => f.name)
+}
+
+// ---------------------------------------------------------------------------
+// 从 store 同步表单
+// ---------------------------------------------------------------------------
+
+function syncFormFromStore() {
+  const p = product.value
+  if (!p) return
+
+  // 商品信息
+  productForm.name = p.name
+  productForm.subtitle = p.subtitle
+  productForm.description = p.description
+  productForm.valueProposition = p.valueProposition
+  productForm.scenarios = (p.scenarios || []).join('、')
+  productForm.priceModel = p.price.model
+  productForm.itemPrice = p.price.itemPrice ?? 0
+  productForm.memberDiscount = p.price.memberDiscount ?? 0.6
+  productForm.memberIncluded = p.memberIncluded
+  productForm.acquiFree = p.acquisitions.includes('free')
+  productForm.acquiMember = p.acquisitions.includes('member')
+  productForm.acquiItem = p.acquisitions.includes('item_purchase')
+  productForm.coverage = p.coverage
+  productForm.updateFrequency = p.updateFrequency
+  productForm.deliveryMethod = p.deliveryMethod
+  productForm.provider = p.provider
+  productForm.qualityPromise = p.qualityPromise
+  productForm.complianceNote = p.complianceNote
+
+  // 增强信息
+  const enh = catalog.enhancementOf(p.id)
+  enhForm.displayTitle = enh?.displayTitle || p.name
+  enhForm.recommendText = enh?.recommendText || ''
+  enhForm.tags = (enh?.tags || []).join('、')
+  enhForm.manualDescription = enh?.manualDescription || ''
+  enhForm.previewNote = enh?.previewNote || ''
+  enhForm.sortWeight = enh?.sortWeight ?? 50
+  enhForm.recommendSlot = enh?.recommendSlot ?? false
+
+  // 探查字段
+  profilingSelection.value = (p.typeDetail.dataset?.fields ?? [])
+    .filter((f) => f.profilingEnabled)
+    .map((f) => f.name)
+
+  productSaved.value = false
+  enhSaved.value = false
+  profilingSaved.value = false
+}
+
+watch(product, syncFormFromStore, { immediate: true })
+
+// ---------------------------------------------------------------------------
+// 保存动作
+// ---------------------------------------------------------------------------
+
+function saveProduct() {
+  const p = product.value
+  if (!p) return
+  catalog.updateProduct(p.id, {
+    name: productForm.name,
+    subtitle: productForm.subtitle,
+    description: productForm.description,
+    valueProposition: productForm.valueProposition,
+    scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
+    coverage: productForm.coverage,
+    updateFrequency: productForm.updateFrequency,
+    deliveryMethod: productForm.deliveryMethod,
+    provider: productForm.provider,
+    qualityPromise: productForm.qualityPromise,
+    complianceNote: productForm.complianceNote,
+    memberIncluded: productForm.memberIncluded,
+    acquisitions: buildAcquisitions(),
+    price: {
+      ...p.price,
+      model: productForm.priceModel,
+      itemPrice: Number(productForm.itemPrice),
+      memberDiscount: Number(productForm.memberDiscount)
+    }
+  })
+  productSaved.value = true
+  setTimeout(() => { productSaved.value = false }, 3000)
+}
+
+function buildAcquisitions(): AcquisitionOption[] {
+  const list: AcquisitionOption[] = []
+  if (productForm.acquiFree) list.push('free')
+  if (productForm.acquiMember) list.push('member')
+  if (productForm.acquiItem) list.push('item_purchase')
+  return list
+}
+
+function saveEnhancement() {
+  const p = product.value
+  if (!p) return
+  catalog.updateEnhancement(p.id, {
+    displayTitle: enhForm.displayTitle,
+    recommendText: enhForm.recommendText,
+    tags: enhForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
+    manualDescription: enhForm.manualDescription,
+    previewNote: enhForm.previewNote,
+    sortWeight: Number(enhForm.sortWeight),
+    recommendSlot: enhForm.recommendSlot
+  })
+  enhSaved.value = true
+  setTimeout(() => { enhSaved.value = false }, 3000)
+}
+
+function saveProfilingFields() {
+  const p = product.value
+  if (!p) return
+  catalog.setProfilingFields(p.id, profilingSelection.value)
+  profilingSaved.value = true
+  setTimeout(() => { profilingSaved.value = false }, 3000)
 }
 </script>
 
@@ -126,6 +319,154 @@ function goBack() {
         <div><span class="text-slate-500">面板数：</span>{{ resource.typeDetail.dashboard.panels?.length }}</div>
       </div>
     </div>
+
+    <!-- ================================================================== -->
+    <!-- 编辑表单（仅有关联商品且非用数视图时显示） -->
+    <!-- ================================================================== -->
+    <template v-if="editable && product">
+
+      <!-- 商品信息编辑 -->
+      <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息编辑</h2>
+
+        <!-- 基本信息 -->
+        <div class="mb-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">基本信息</div>
+          <div class="space-y-3">
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="productForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">副标题</span><input v-model="productForm.subtitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          </div>
+        </div>
+
+        <!-- 价格设置 -->
+        <div class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">价格设置</div>
+          <div class="space-y-3">
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">价格模式</span>
+              <select v-model="productForm.priceModel" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm">
+                <option v-for="m in PRICE_MODELS" :key="m.value" :value="m.value">{{ m.label }}</option>
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">单品价格 ¥</span><input v-model.number="productForm.itemPrice" type="number" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">会员折扣</span><input v-model.number="productForm.memberDiscount" type="number" step="0.1" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            </div>
+            <div>
+              <span class="mb-1 block text-xs text-slate-400">获取方式</span>
+              <div class="flex flex-wrap gap-3 text-xs text-slate-600">
+                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiFree" type="checkbox" />免费</label>
+                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiMember" type="checkbox" />会员</label>
+                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" />单品购买</label>
+                <label class="flex items-center gap-1.5"><input v-model="productForm.memberIncluded" type="checkbox" />会员权益包含</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 运营信息 -->
+        <div class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            </div>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProduct">保存商品信息</button>
+          <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+
+      <!-- 运营增强编辑 -->
+      <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-slate-700">运营增强</h2>
+        <p class="mb-3 text-xs text-slate-400">只影响 App 展示排序与推荐，不影响商品主数据</p>
+        <div class="space-y-3">
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="enhForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="enhForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="enhForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="enhForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="enhForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <div class="flex items-center gap-4">
+            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="enhForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
+            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.recommendSlot" type="checkbox" />进入推荐位</label>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveEnhancement">保存增强信息</button>
+          <span v-if="enhSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+
+      <!-- 数据探查配置（仅数据集类型） -->
+      <div v-if="resource.type === 'dataset' && datasetFields.length" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
+        <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
+
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-400">
+            <tr>
+              <th class="w-9 px-2 py-2">
+                <input
+                  type="checkbox"
+                  :checked="allSelectableChecked"
+                  :indeterminate.prop="someSelectableChecked"
+                  @change="toggleSelectAll"
+                />
+              </th>
+              <th class="px-2 py-2 font-medium">字段名</th>
+              <th class="px-2 py-2 font-medium">业务含义</th>
+              <th class="px-2 py-2 font-medium">类型</th>
+              <th class="px-2 py-2 font-medium">敏感级</th>
+              <th class="px-2 py-2 font-medium">探查结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="f in datasetFields"
+              :key="f.name"
+              class="border-t border-slate-100"
+              :class="f.sensitive ? 'bg-amber-50/40' : ''"
+            >
+              <td class="px-2 py-2">
+                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" />
+              </td>
+              <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
+              <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
+              <td class="px-2 py-2 text-slate-500">{{ f.dataType }}</td>
+              <td class="px-2 py-2">
+                <span v-if="f.sensitive" class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700">
+                  {{ f.sensitivityLabel }}
+                </span>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+              <td class="px-2 py-2">
+                <span v-if="f.hasStat" class="text-emerald-600">已产出</span>
+                <span v-else class="text-slate-300">未产出</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProfilingFields">
+            保存探查配置
+          </button>
+          <span class="text-xs text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
+          <span v-if="profilingSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+    </template>
   </div>
   <div v-else class="py-20 text-center text-slate-500">
     资源不存在
