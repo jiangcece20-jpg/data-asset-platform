@@ -12,7 +12,7 @@ export interface ScrollColumn {
 
 const props = defineProps<{
   columns: ScrollColumn[]
-  rows: Array<Record<string, string | number | null | undefined>>
+  rows: Array<Record<string, string | number | boolean | null | undefined>>
   /** 首列是否吸附在左侧，横滑时保持可见 */
   stickyFirst?: boolean
 }>()
@@ -38,7 +38,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', sync))
 /** 右侧渐隐提示：可横滑且未滑到底时显示 */
 const showHint = computed(() => scrollable.value && !atEnd.value)
 
-function cellText(row: Record<string, string | number | null | undefined>, key: string) {
+function cellText(row: Record<string, string | number | boolean | null | undefined>, key: string) {
   const v = row[key]
   return v === null || v === undefined || v === '' ? '—' : String(v)
 }

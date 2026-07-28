@@ -38,6 +38,12 @@ const trustedPurchaseBlockLabels: Record<TrustedPurchaseBlockReason, string> = {
   product_not_for_sale: '暂不可购买'
 }
 
+function isTrustedPurchaseBlocked(
+  check: TrustedPurchaseCheck
+): check is Extract<TrustedPurchaseCheck, { allowed: false }> {
+  return !check.allowed
+}
+
 export function resolveProductActions(context: ProductActionContext): {
   primary: ProductAction
   secondary?: ProductAction
@@ -65,11 +71,12 @@ export function resolveProductActions(context: ProductActionContext): {
     return { primary: { key: 'unavailable', label: context.availability === 'paused' ? '暂停销售' : '已下架', disabled: true } }
   }
   if (context.acquisitions.includes('space_purchase')) {
-    if (context.trustedPurchaseCheck && !context.trustedPurchaseCheck.allowed) {
+    const trustedCheck = context.trustedPurchaseCheck
+    if (trustedCheck && isTrustedPurchaseBlocked(trustedCheck)) {
       return {
         primary: {
           key: 'unavailable',
-          label: trustedPurchaseBlockLabels[context.trustedPurchaseCheck.reason],
+          label: trustedPurchaseBlockLabels[trustedCheck.reason],
           disabled: true
         }
       }

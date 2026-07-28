@@ -7,7 +7,7 @@ import type { ServiceStatus, EntitlementStatus } from './reverseFlow'
 // 新增类型原语（Task 1 先定义，Task 2 完成替换）
 // ---------------------------------------------------------------------------
 export type StandardProductType = 'dataset' | 'api' | 'report' | 'dashboard'
-export type ProductOrigin = 'asset_platform' | 'app_content' | 'trusted_space'
+export type ProductOrigin = 'asset_platform' | 'app_content' | 'trusted_space' | 'user_created'
 export type AvailabilityStatus = 'candidate' | 'preparing' | 'published' | 'paused' | 'delisted'
 export type AcquisitionOption = 'free' | 'member' | 'item_purchase' | 'space_purchase'
 export type PreviewMode = 'visible' | 'masked' | 'locked'
@@ -27,23 +27,85 @@ export interface DatasetField {
   profilingEnabled?: boolean
 }
 
-/** 单字段数据探查结果（对外版，数值已做区间化/脱敏处理） */
-export interface FieldProfiling {
+/** 字段探查分类 */
+export type FieldProfilingKind = 'numeric' | 'categorical' | 'identifier' | 'datetime' | 'boolean'
+
+/** 直方图/分布条目 */
+export interface DistributionBucket {
+  label: string
+  count: number
+  percent: number
+}
+
+/** 单字段数据探查公共字段 */
+interface FieldProfilingBase {
   fieldName: string
+  kind: FieldProfilingKind
   /** 空值率，如 "0.8%" */
   nullRate: string
   /** 唯一值数量 */
   distinctCount: number
-  /** 数值型/日期型字段的极值与均值，非数值字段可缺省 */
-  min?: string
-  max?: string
-  avg?: string
-  /** TOP 值分布，percent 为 0-100 的占比，用于条形图 */
-  topValues: Array<{ value: string; count: number; percent: number }>
   /** 异常提示，无异常可缺省 */
   anomalies?: string
   updatedAt: string
 }
+
+/** 数值型探查（integer / decimal / float） */
+export interface NumericFieldProfiling extends FieldProfilingBase {
+  kind: 'numeric'
+  min: string
+  max: string
+  avg: string
+  median?: string
+  p25?: string
+  p75?: string
+  /** 区间分布直方图 */
+  histogram: DistributionBucket[]
+}
+
+/** 分类型探查（string 低基数） */
+export interface CategoricalFieldProfiling extends FieldProfilingBase {
+  kind: 'categorical'
+  /** TOP 值分布 */
+  topValues: DistributionBucket[]
+}
+
+/** 标识型探查（string 高基数 / 主键） */
+export interface IdentifierFieldProfiling extends FieldProfilingBase {
+  kind: 'identifier'
+  /** 唯一性百分比，如 "100%" */
+  uniqueness: string
+  /** 脱敏样例格式，如 "ENT-XXXX（脱敏哈希）" */
+  samplePattern?: string
+}
+
+/** 时间型探查（date / timestamp） */
+export interface DateTimeFieldProfiling extends FieldProfilingBase {
+  kind: 'datetime'
+  minDate: string
+  maxDate: string
+  /** 时间跨度描述，如 "2 年 6 个月" */
+  span: string
+  /** 按月/季分布 */
+  distribution: DistributionBucket[]
+}
+
+/** 布尔型探查（boolean） */
+export interface BooleanFieldProfiling extends FieldProfilingBase {
+  kind: 'boolean'
+  trueCount: number
+  falseCount: number
+  /** TRUE 占比 0-100 */
+  truePercent: number
+}
+
+/** 单字段数据探查结果（对外版，数值已做区间化/脱敏处理） */
+export type FieldProfiling =
+  | NumericFieldProfiling
+  | CategoricalFieldProfiling
+  | IdentifierFieldProfiling
+  | DateTimeFieldProfiling
+  | BooleanFieldProfiling
 
 export interface DatasetDetail {
   granularity: string
@@ -53,7 +115,7 @@ export interface DatasetDetail {
   qualityUpdatedAt: string
   fields: DatasetField[]
   sampleColumns: string[]
-  sampleRows: Array<Record<string, string | number>>
+  sampleRows: Array<Record<string, string | number | boolean>>
   sampleGeneratedAt: string
   profiling: {
     completeness: string
@@ -167,6 +229,7 @@ export interface ProductTypeDetail {
 
 export interface Product {
   id: string
+  resourceId: string
   name: string
   subtitle: string
   type: ProductType

@@ -20,19 +20,20 @@ const datasetDetail = (): DatasetDetail => ({
   classification: '行情数据（L1）',
   qualityUpdatedAt: '2026-07-01',
   fields: [
-    { name: 'stat_date', dataType: 'date', meaning: '统计日期', description: '数据统计自然日', primaryKey: true, nullable: false },
-    { name: 'route_code', dataType: 'string', meaning: '线路编码', description: '起讫城市对编码，如 SH-GZ', primaryKey: true, nullable: false },
+    { name: 'stat_date', dataType: 'date', meaning: '统计日期', description: '数据统计自然日', primaryKey: true, nullable: false, profilingEnabled: true },
+    { name: 'route_code', dataType: 'string', meaning: '线路编码', description: '起讫城市对编码，如 SH-GZ', primaryKey: true, nullable: false, profilingEnabled: true },
     { name: 'vehicle_type', dataType: 'string', meaning: '车型', description: '整车/零担/冷链等车型分类', primaryKey: false, nullable: false, profilingEnabled: true },
     { name: 'price_index', dataType: 'decimal', meaning: '价格指数', description: '以基期为 100 的相对价格指数', primaryKey: false, nullable: false, profilingEnabled: true },
-    { name: 'yoy_rate', dataType: 'decimal', meaning: '同比涨跌幅', description: '与去年同期对比的变化率', primaryKey: false, nullable: true, profilingEnabled: true }
+    { name: 'yoy_rate', dataType: 'decimal', meaning: '同比涨跌幅', description: '与去年同期对比的变化率', primaryKey: false, nullable: true, profilingEnabled: true },
+    { name: 'is_peak_season', dataType: 'boolean', meaning: '是否旺季', description: '标记该记录是否处于货运旺季（春节前/双十一等）', primaryKey: false, nullable: false, profilingEnabled: true }
   ],
-  sampleColumns: ['stat_date', 'route_code', 'vehicle_type', 'price_index', 'yoy_rate'],
+  sampleColumns: ['stat_date', 'route_code', 'vehicle_type', 'price_index', 'yoy_rate', 'is_peak_season'],
   sampleRows: [
-    { stat_date: '2026-06-28', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.8, yoy_rate: 0.032 },
-    { stat_date: '2026-06-28', route_code: 'BJ-CD', vehicle_type: '零担', price_index: 103.2, yoy_rate: 0.018 },
-    { stat_date: '2026-06-28', route_code: 'HZ-WH', vehicle_type: '冷链', price_index: 111.5, yoy_rate: 0.061 },
-    { stat_date: '2026-06-27', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.4, yoy_rate: 0.029 },
-    { stat_date: '2026-06-27', route_code: 'SZ-XA', vehicle_type: '整车', price_index: 99.7, yoy_rate: -0.008 }
+    { stat_date: '2026-06-28', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.8, yoy_rate: 0.032, is_peak_season: false },
+    { stat_date: '2026-06-28', route_code: 'BJ-CD', vehicle_type: '零担', price_index: 103.2, yoy_rate: 0.018, is_peak_season: false },
+    { stat_date: '2026-06-28', route_code: 'HZ-WH', vehicle_type: '冷链', price_index: 111.5, yoy_rate: 0.061, is_peak_season: false },
+    { stat_date: '2026-06-27', route_code: 'SH-GZ', vehicle_type: '整车', price_index: 106.4, yoy_rate: 0.029, is_peak_season: false },
+    { stat_date: '2026-01-25', route_code: 'SZ-XA', vehicle_type: '整车', price_index: 119.7, yoy_rate: 0.158, is_peak_season: true }
   ],
   sampleGeneratedAt: '2026-07-01',
   profiling: {
@@ -46,46 +47,100 @@ const datasetDetail = (): DatasetDetail => ({
   },
   fieldProfiling: [
     {
+      fieldName: 'stat_date',
+      kind: 'datetime',
+      nullRate: '0%',
+      distinctCount: 730,
+      minDate: '2024-01-01',
+      maxDate: '2026-06-30',
+      span: '2 年 6 个月',
+      distribution: [
+        { label: '2024 Q1', count: 10800, percent: 9 },
+        { label: '2024 Q2', count: 10800, percent: 9 },
+        { label: '2024 Q3', count: 10800, percent: 9 },
+        { label: '2024 Q4', count: 10800, percent: 9 },
+        { label: '2025 Q1', count: 10800, percent: 9 },
+        { label: '2025 Q2', count: 10800, percent: 9 },
+        { label: '2025 Q3', count: 10800, percent: 9 },
+        { label: '2025 Q4', count: 10800, percent: 9 },
+        { label: '2026 Q1', count: 10800, percent: 9 },
+        { label: '2026 Q2', count: 10800, percent: 9 },
+        { label: '其他', count: 12000, percent: 10 }
+      ],
+      updatedAt: '2026-07-01'
+    },
+    {
+      fieldName: 'route_code',
+      kind: 'identifier',
+      nullRate: '0%',
+      distinctCount: 1850,
+      uniqueness: '98.5%',
+      samplePattern: 'XX-XX（起讫城市对编码，如 SH-GZ）',
+      anomalies: '1.5% 记录存在重复线路编码（不同承运商共用编码）',
+      updatedAt: '2026-07-01'
+    },
+    {
       fieldName: 'vehicle_type',
+      kind: 'categorical',
       nullRate: '0%',
       distinctCount: 6,
       topValues: [
-        { value: '整车', count: 54000, percent: 45 },
-        { value: '零担', count: 33600, percent: 28 },
-        { value: '冷链', count: 19200, percent: 16 },
-        { value: '其他', count: 13200, percent: 11 }
+        { label: '整车', count: 54000, percent: 45 },
+        { label: '零担', count: 33600, percent: 28 },
+        { label: '冷链', count: 19200, percent: 16 },
+        { label: '其他', count: 13200, percent: 11 }
       ],
       updatedAt: '2026-07-01'
     },
     {
       fieldName: 'price_index',
+      kind: 'numeric',
       nullRate: '0%',
       distinctCount: 842,
       min: '88.4',
       max: '126.9',
       avg: '104.6',
-      topValues: [
-        { value: '100 - 110', count: 62400, percent: 52 },
-        { value: '110 - 120', count: 28800, percent: 24 },
-        { value: '90 - 100', count: 21600, percent: 18 },
-        { value: '其他区间', count: 7200, percent: 6 }
+      median: '104.2',
+      p25: '99.8',
+      p75: '109.5',
+      histogram: [
+        { label: '90 以下', count: 3600, percent: 3 },
+        { label: '90 - 100', count: 21600, percent: 18 },
+        { label: '100 - 110', count: 62400, percent: 52 },
+        { label: '110 - 120', count: 28800, percent: 24 },
+        { label: '120 以上', count: 3600, percent: 3 }
       ],
       updatedAt: '2026-07-01'
     },
     {
       fieldName: 'yoy_rate',
+      kind: 'numeric',
       nullRate: '0.8%',
       distinctCount: 516,
-      min: '-0.142',
-      max: '0.208',
-      avg: '0.026',
-      topValues: [
-        { value: '0 ~ 5%', count: 50400, percent: 42 },
-        { value: '5% ~ 10%', count: 26400, percent: 22 },
-        { value: '-5% ~ 0', count: 25200, percent: 21 },
-        { value: '其他', count: 18000, percent: 15 }
+      min: '-14.2%',
+      max: '+20.8%',
+      avg: '+2.6%',
+      median: '+2.1%',
+      p25: '-0.8%',
+      p75: '+6.2%',
+      histogram: [
+        { label: '-5% 以下', count: 18000, percent: 15 },
+        { label: '-5% ~ 0', count: 25200, percent: 21 },
+        { label: '0 ~ 5%', count: 50400, percent: 42 },
+        { label: '5% ~ 10%', count: 15600, percent: 13 },
+        { label: '10% 以上', count: 10800, percent: 9 }
       ],
       anomalies: '空值多为新开线路缺少去年同期基数',
+      updatedAt: '2026-07-01'
+    },
+    {
+      fieldName: 'is_peak_season',
+      kind: 'boolean',
+      nullRate: '0%',
+      distinctCount: 2,
+      trueCount: 42000,
+      falseCount: 78000,
+      truePercent: 35,
       updatedAt: '2026-07-01'
     }
   ]

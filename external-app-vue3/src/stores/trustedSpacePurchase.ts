@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { trustedSpaceAdapter, type TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import type { EnterpriseAuthStatus } from '@/types/domain'
-import type { EnterpriseSpaceBinding, SpacePurchaseIntent } from '@/types/trustedSpace'
+import type { EnterpriseSpaceBinding, SpacePurchaseIntent, TrustedPurchaseCheck } from '@/types/trustedSpace'
 import { genId } from '@/utils/id'
 import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
 import { useUserStore } from './user'
@@ -62,7 +62,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
         'authenticated',
         bindingMatchesEnterprise ? binding.status : 'failed'
       )
-      if (!check.allowed) throw new Error(purchaseBlockMessage(check.reason))
+      if (isPurchaseBlocked(check)) throw new Error(purchaseBlockMessage(check.reason))
 
       const snapshot = catalog.byProductId(input.appProductId)
       if (!snapshot || !binding.spaceEnterpriseId) throw new Error('可信空间商品或企业映射不可用')
@@ -133,7 +133,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       if (binding.appEnterpriseId === intent.appEnterpriseId) this.upsertBinding(binding)
       const bindingCheckedAt = readClock(clock)
       const beforeCheck = validateIntentFacts(this, intent, bindingCheckedAt, binding)
-      if (!beforeCheck.allowed) {
+      if (isFactsBlocked(beforeCheck)) {
         failPurchaseLink(intent, beforeCheck.reason)
         throw new Error(beforeCheck.reason)
       }
@@ -189,7 +189,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       if (finalBinding.appEnterpriseId === intent.appEnterpriseId) this.upsertBinding(finalBinding)
       const finalCheckedAt = readClock(clock)
       const finalCheck = validateIntentFacts(this, intent, finalCheckedAt, finalBinding)
-      if (!finalCheck.allowed) {
+      if (isFactsBlocked(finalCheck)) {
         failPurchaseLink(intent, finalCheck.reason)
         throw new Error(finalCheck.reason)
       }
@@ -213,7 +213,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       if (!intent || intent.status !== 'ready') return
       const check = validateIntentFacts(this, intent, at)
-      if (!check.allowed) {
+      if (isFactsBlocked(check)) {
         failPurchaseLink(intent, check.reason)
         return
       }
@@ -223,7 +223,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       if (!intent || intent.status !== 'redirected') return
       const check = validateIntentFacts(this, intent, at)
-      if (!check.allowed) {
+      if (isFactsBlocked(check)) {
         failPurchaseLink(intent, check.reason)
         return
       }
@@ -238,7 +238,7 @@ export const useTrustedSpacePurchaseStore = defineStore('trusted-space-purchase'
       const intent = this.byId(intentId)
       if (!intent) return false
       const check = validateIntentFacts(this, intent, at)
-      if (!check.allowed) {
+      if (isFactsBlocked(check)) {
         failPurchaseLink(intent, check.reason)
         return false
       }
@@ -331,6 +331,18 @@ function intentAuthorizationMatches(state: PurchaseAuthorizationState, intent: S
 
 type IntentFactsCheck = { allowed: true } | { allowed: false; reason: string }
 
+function isPurchaseBlocked(
+  check: TrustedPurchaseCheck
+): check is Extract<TrustedPurchaseCheck, { allowed: false }> {
+  return !check.allowed
+}
+
+function isFactsBlocked(
+  check: IntentFactsCheck
+): check is Extract<IntentFactsCheck, { allowed: false }> {
+  return !check.allowed
+}
+
 function validateIntentFacts(
   state: PurchaseAuthorizationState,
   intent: SpacePurchaseIntent,
@@ -367,9 +379,10 @@ function validateIntentFacts(
     binding.status,
     at.toISOString()
   )
-  return purchaseCheck.allowed
-    ? { allowed: true }
-    : { allowed: false, reason: purchaseBlockMessage(purchaseCheck.reason) }
+  if (isPurchaseBlocked(purchaseCheck)) {
+    return { allowed: false, reason: purchaseBlockMessage(purchaseCheck.reason) }
+  }
+  return { allowed: true }
 }
 
 function assertCurrentLinkRequest(

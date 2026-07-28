@@ -410,58 +410,68 @@ export const seedProducts: Product[] = [
         fieldProfiling: [
           {
             fieldName: 'order_frequency',
+            kind: 'numeric',
             nullRate: '0%',
             distinctCount: 412,
             min: '1',
             max: '2,180',
             avg: '76.4',
-            topValues: [
-              { value: '1-20 次', count: 894000, percent: 34 },
-              { value: '21-60 次', count: 754000, percent: 29 },
-              { value: '61-150 次', count: 546000, percent: 21 },
-              { value: '150 次以上', count: 406000, percent: 16 }
+            median: '52',
+            p25: '18',
+            p75: '128',
+            histogram: [
+              { label: '1-20 次', count: 894000, percent: 34 },
+              { label: '21-60 次', count: 754000, percent: 29 },
+              { label: '61-150 次', count: 546000, percent: 21 },
+              { label: '150 次以上', count: 406000, percent: 16 }
             ],
             updatedAt: '2026-07-01'
           },
           {
             fieldName: 'fulfillment_rate',
+            kind: 'numeric',
             nullRate: '0%',
             distinctCount: 96,
             min: '0.41',
             max: '1.00',
             avg: '0.86',
-            topValues: [
-              { value: '0.90 - 1.00', count: 1092000, percent: 42 },
-              { value: '0.80 - 0.90', count: 806000, percent: 31 },
-              { value: '0.70 - 0.80', count: 468000, percent: 18 },
-              { value: '0.70 以下', count: 234000, percent: 9 }
+            median: '0.89',
+            p25: '0.78',
+            p75: '0.94',
+            histogram: [
+              { label: '0.90 - 1.00', count: 1092000, percent: 42 },
+              { label: '0.80 - 0.90', count: 806000, percent: 31 },
+              { label: '0.70 - 0.80', count: 468000, percent: 18 },
+              { label: '0.70 以下', count: 234000, percent: 9 }
             ],
             anomalies: '0.3% 记录履约率低于 0.5，多为当月订单量过少导致',
             updatedAt: '2026-07-01'
           },
           {
             fieldName: 'coverage_region',
+            kind: 'categorical',
             nullRate: '2.8%',
             distinctCount: 31,
             topValues: [
-              { value: '广东', count: 468000, percent: 18 },
-              { value: '江苏', count: 390000, percent: 15 },
-              { value: '浙江', count: 338000, percent: 13 },
-              { value: '山东', count: 260000, percent: 10 },
-              { value: '其他省份', count: 1144000, percent: 44 }
+              { label: '广东', count: 468000, percent: 18 },
+              { label: '江苏', count: 390000, percent: 15 },
+              { label: '浙江', count: 338000, percent: 13 },
+              { label: '山东', count: 260000, percent: 10 },
+              { label: '其他省份', count: 1144000, percent: 44 }
             ],
             anomalies: '空值集中在注册未满 3 个月的新企业',
             updatedAt: '2026-07-01'
           },
           {
             fieldName: 'activity_level',
+            kind: 'categorical',
             nullRate: '0%',
             distinctCount: 4,
             topValues: [
-              { value: 'C', count: 988000, percent: 38 },
-              { value: 'B', count: 728000, percent: 28 },
-              { value: 'D', count: 494000, percent: 19 },
-              { value: 'A', count: 390000, percent: 15 }
+              { label: 'C', count: 988000, percent: 38 },
+              { label: 'B', count: 728000, percent: 28 },
+              { label: 'D', count: 494000, percent: 19 },
+              { label: 'A', count: 390000, percent: 15 }
             ],
             updatedAt: '2026-07-01'
           }

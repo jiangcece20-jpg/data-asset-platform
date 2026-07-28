@@ -164,10 +164,8 @@ async function refreshEnterpriseBinding() {
 async function goSpace() {
   if (!user.isEnterpriseAuthenticated) return goEnterpriseAuth()
   if (!product.value || !user.context.currentEnterpriseId) return
-  if (bindingStatus.value !== 'active') {
-    await refreshEnterpriseBinding()
-    if (bindingStatus.value !== 'active') return
-  }
+  if (bindingStatus.value !== 'active') await refreshEnterpriseBinding()
+  if (bindingStatus.value !== 'active') return
   try {
     const intent = await trustedPurchase.preparePurchase({
       appEnterpriseId: user.context.currentEnterpriseId,

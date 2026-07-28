@@ -13,7 +13,9 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
     fields: [
       { name: 'enterprise_id', dataType: 'string', meaning: '企业标识', description: '', primaryKey: true, nullable: false, sensitivity: 'L2' },
       { name: 'order_frequency', dataType: 'integer', meaning: '发单频次', description: '', primaryKey: false, nullable: false, profilingEnabled: true },
-      { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: '', primaryKey: false, nullable: false, profilingEnabled: true }
+      { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: '', primaryKey: false, nullable: false, profilingEnabled: true },
+      { name: 'register_date', dataType: 'date', meaning: '注册日期', description: '', primaryKey: false, nullable: false, profilingEnabled: true },
+      { name: 'is_verified', dataType: 'boolean', meaning: '是否认证', description: '', primaryKey: false, nullable: false, profilingEnabled: true }
     ],
     sampleColumns: [],
     sampleRows: [],
@@ -30,50 +32,117 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
     fieldProfiling: [
       {
         fieldName: 'order_frequency',
+        kind: 'numeric' as const,
         nullRate: '0%',
         distinctCount: 412,
         min: '1',
-        max: '2180',
+        max: '2,180',
         avg: '76.4',
-        topValues: [{ value: '1-20 次', count: 894000, percent: 34 }],
+        median: '52',
+        histogram: [
+          { label: '1-20 次', count: 894000, percent: 34 },
+          { label: '21-60 次', count: 754000, percent: 29 }
+        ],
+        updatedAt: '2026-07-01'
+      },
+      {
+        fieldName: 'activity_level',
+        kind: 'categorical' as const,
+        nullRate: '0%',
+        distinctCount: 4,
+        topValues: [
+          { label: 'C', count: 988000, percent: 38 },
+          { label: 'B', count: 728000, percent: 28 }
+        ],
+        updatedAt: '2026-07-01'
+      },
+      {
+        fieldName: 'register_date',
+        kind: 'datetime' as const,
+        nullRate: '0%',
+        distinctCount: 730,
+        minDate: '2024-01-01',
+        maxDate: '2026-06-30',
+        span: '2 年 6 个月',
+        distribution: [
+          { label: '2024 H1', count: 5000, percent: 42 },
+          { label: '2024 H2', count: 3000, percent: 25 }
+        ],
+        updatedAt: '2026-07-01'
+      },
+      {
+        fieldName: 'is_verified',
+        kind: 'boolean' as const,
+        nullRate: '0%',
+        distinctCount: 2,
+        trueCount: 700,
+        falseCount: 300,
+        truePercent: 70,
         updatedAt: '2026-07-01'
       }
-      // activity_level 开了开关但没有探查结果，不应出现在维度里
+      // enterprise_id 未开启 profiling，不应出现
     ],
     ...overrides
   }
 }
 
 describe('FieldProfilingPanel', () => {
-  it('only offers dimensions for fields enabled in admin and having stats', () => {
+  it('only offers field dimensions (no table overview)', () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     const labels = wrapper.findAll('[role="tab"]').map((n) => n.text())
-    // 整表概览 + 发单频次；企业标识未开启、活跃等级无结果，均被过滤
-    expect(labels).toEqual(['整表概览', '发单频次'])
+    // 不含整表概览；企业标识未开启，不出现在维度中
+    expect(labels).toEqual(['发单频次', '活跃等级', '注册日期', '是否认证'])
   })
 
-  it('shows the table-level overview by default', () => {
+  it('defaults to the first field dimension', () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
-    expect(wrapper.find('[aria-selected="true"]').text()).toBe('整表概览')
-    expect(wrapper.text()).toContain('97.2%')
-  })
-
-  it('switches to a single field profiling view with its top-value distribution', async () => {
-    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
-    await wrapper.get('[data-dim="order_frequency"]').trigger('click')
     expect(wrapper.find('[aria-selected="true"]').text()).toBe('发单频次')
-    expect(wrapper.text()).toContain('TOP 值分布')
-    expect(wrapper.text()).toContain('1-20 次')
-    expect(wrapper.text()).toContain('412')
+    expect(wrapper.text()).toContain('数值型')
+    expect(wrapper.text()).toContain('2,180')
   })
 
-  it('degrades to the overview only when no field is enabled', () => {
+  it('renders numeric histogram when a numeric field is active', () => {
+    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
+    expect(wrapper.text()).toContain('区间分布直方图')
+    expect(wrapper.text()).toContain('1-20 次')
+  })
+
+  it('switches to a categorical field and shows top values', async () => {
+    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
+    await wrapper.get('[data-dim="activity_level"]').trigger('click')
+    expect(wrapper.find('[aria-selected="true"]').text()).toBe('活跃等级')
+    expect(wrapper.text()).toContain('分类型')
+    expect(wrapper.text()).toContain('TOP 值分布')
+    expect(wrapper.text()).toContain('988,000')
+  })
+
+  it('renders datetime distribution for date fields', async () => {
+    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
+    await wrapper.get('[data-dim="register_date"]').trigger('click')
+    expect(wrapper.find('[aria-selected="true"]').text()).toBe('注册日期')
+    expect(wrapper.text()).toContain('时间型')
+    expect(wrapper.text()).toContain('最早日期')
+    expect(wrapper.text()).toContain('2024-01-01')
+    expect(wrapper.text()).toContain('时间分布')
+  })
+
+  it('renders boolean TRUE/FALSE ratio bar', async () => {
+    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
+    await wrapper.get('[data-dim="is_verified"]').trigger('click')
+    expect(wrapper.find('[aria-selected="true"]').text()).toBe('是否认证')
+    expect(wrapper.text()).toContain('布尔型')
+    expect(wrapper.text()).toContain('TRUE / FALSE 占比')
+    expect(wrapper.text()).toContain('700')
+  })
+
+  it('shows placeholder when no field is enabled', () => {
     const detail = makeDetail({
       fields: [
         { name: 'enterprise_id', dataType: 'string', meaning: '企业标识', description: '', primaryKey: true, nullable: false }
       ]
     })
     const wrapper = mount(FieldProfilingPanel, { props: { detail } })
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(1)
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(0)
+    expect(wrapper.text()).toContain('暂无可探查字段')
   })
 })

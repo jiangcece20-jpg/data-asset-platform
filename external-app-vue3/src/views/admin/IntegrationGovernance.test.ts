@@ -16,8 +16,8 @@ import type { SpacePurchaseIntent } from '@/types/trustedSpace'
 function purchaseIntent(over: Partial<SpacePurchaseIntent> = {}): SpacePurchaseIntent {
   return {
     id: 'intent-delayed', appEnterpriseId: 'ent-wanlian-logistics', spaceEnterpriseId: 'space-ent-wanlian', operatorMemberId: 'mem-1',
-    appProductId: 'prod-qualification-api', spaceProductNo: 'SPACE-API-20415', returnUrl: '/app/product/prod-qualification-api',
-    idempotencyKey: 'intent-key', correlationId: 'corr-key', status: 'returned_pending_sync', createdAt: '2026-07-27T09:00:00.000Z',
+    appProductId: 'prod-qualification-api', spaceProductNo: 'SPACE-API-20415', productSnapshotVersion: 1, returnUrl: '/app/product/prod-qualification-api',
+    idempotencyKey: 'intent-key', correlationId: 'corr-key', authorizationGeneration: 0, enterpriseContextGeneration: 0, status: 'returned_pending_sync', createdAt: '2026-07-27T09:00:00.000Z',
     returnedAt: '2026-07-27T09:00:00.000Z', expiresAt: '2026-07-27T10:30:00.000Z', ...over,
   }
 }
