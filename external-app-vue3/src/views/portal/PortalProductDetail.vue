@@ -1,149 +1,284 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import StatusBadge from '@/components/StatusBadge.vue'
+import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
+import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
+import PortalPurchasePanel from './components/PortalPurchasePanel.vue'
+import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
+import PortalApiDetail from './components/PortalApiDetail.vue'
+import PortalReportDetail from './components/PortalReportDetail.vue'
+import PortalDashboardDetail from './components/PortalDashboardDetail.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
-import { typeMeta, originMeta, dealChannelMeta } from '@/utils/productMeta'
-import StatusBadge from '@/components/StatusBadge.vue'
-import type { PriceModel } from '@/types/domain'
+import { useListingRequestStore } from '@/stores/listingRequests'
+import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
+import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
+import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
+import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import type { ProductType } from '@/types/domain'
+import type { SpaceBindingStatus } from '@/types/trustedSpace'
+
+/** 与 4 个类型详情组件的 InfoItem 结构兼容 */
+interface InfoItem {
+  label: string
+  value?: string | number | null
+  full?: boolean
+}
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
+const listingRequests = useListingRequestStore()
+const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
+const trustedPurchase = useTrustedSpacePurchaseStore()
+const bindingStatus = ref<SpaceBindingStatus>('unbound')
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => (product.value ? catalog.displayTitle(product.value) : ''))
+
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
+const contentUnlocked = computed(() => {
+  if (!product.value) return false
+  if (product.value.acquisitions.includes('free')) return true
+  return owned.value
+})
 
-const PRICE_MODELS: { value: PriceModel; label: string }[] = [
-  { value: 'free', label: '免费' },
-  { value: 'member_free', label: '会员免费' },
-  { value: 'member_discount', label: '会员折扣' },
-  { value: 'item_only', label: '仅单品购买' }
-]
+const listingRequest = computed(() => product.value
+  ? listingRequests.byProduct(product.value.id, user.context.currentMemberId)
+  : undefined)
+const hasOpenListingRequest = computed(() =>
+  listingRequest.value != null && ['submitted', 'evaluating', 'preparing'].includes(listingRequest.value.status)
+)
+const trustedPurchaseCheck = computed(() => {
+  if (!product.value || product.value.dealChannel !== 'space_purchase') return undefined
+  return trustedSpaceCatalog.purchaseCheck(
+    product.value.id,
+    user.context.enterpriseAuthStatus,
+    bindingStatus.value
+  )
+})
 
-function goCheckout() {
-  router.push(`/portal/checkout/${id.value}`)
+const actions = computed(() => product.value ? resolveProductActions({
+  type: product.value.type,
+  availability: product.value.availability,
+  acquisitions: product.value.acquisitions,
+  hasAccess: owned.value,
+  hasOpenListingRequest: hasOpenListingRequest.value,
+  enterpriseAuthenticated: user.isEnterpriseAuthenticated,
+  serviceStatus: product.value.serviceStatus,
+  trustedPurchaseCheck: trustedPurchaseCheck.value,
+}) : null)
+
+const tabsByType: Record<ProductType, DetailTab[]> = {
+  dataset: [
+    { key: 'basic', label: '基本信息' },
+    { key: 'fields', label: '字段信息' },
+    { key: 'samples', label: '样例数据' },
+    { key: 'profiling', label: '探查报告' }
+  ],
+  api: [
+    { key: 'basic', label: '基本信息' },
+    { key: 'docs', label: '接口文档' },
+    { key: 'sandbox', label: '在线调试' },
+    { key: 'sla', label: '错误码与 SLA' }
+  ],
+  report: [
+    { key: 'overview', label: '报告介绍' },
+    { key: 'catalog', label: '目录' },
+    { key: 'reader', label: '在线阅读' }
+  ],
+  dashboard: [
+    { key: 'overview', label: '基本信息' },
+    { key: 'preview', label: '看板预览' },
+    { key: 'metrics', label: '指标定义' },
+    { key: 'updates', label: '更新与导出' }
+  ]
 }
 
+/** 概览页公共基础信息，传给各类型详情组件的信息网格 */
+const baseInfoItems = computed<InfoItem[]>(() => {
+  const p = product.value
+  if (!p) return []
+  return [
+    { label: '供应方', value: p.provider },
+    { label: '更新频率', value: p.updateFrequency },
+    { label: '覆盖范围', value: p.coverage },
+    { label: '交付方式', value: p.deliveryMethod },
+    { label: '来源', value: originMeta[p.origin] },
+    { label: '更新时间', value: p.updatedAt }
+  ]
+})
+
+const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
+const activeTab = ref('basic')
+
+watch(id, () => {
+  const p = product.value
+  if (p) activeTab.value = tabsByType[p.type][0].key
+}, { immediate: true })
+
+onMounted(() => {
+  if (product.value?.dealChannel === 'space_purchase') void trustedSpaceCatalog.syncAll()
+  void refreshEnterpriseBinding()
+})
+
+function toggleFav() {
+  catalog.toggleFavorite(id.value)
+}
+
+function goEnterpriseAuth() {
+  router.push({ path: '/app/enterprise-auth', query: { redirect: route.fullPath } })
+}
+async function refreshEnterpriseBinding() {
+  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId) {
+    bindingStatus.value = 'unbound'
+    return
+  }
+  const enterpriseId = user.context.currentEnterpriseId
+  const operatorMemberId = user.context.currentMemberId
+  const enterpriseContextGeneration = user.enterpriseContextGeneration
+  try {
+    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(enterpriseId)
+    if (
+      user.enterpriseContextGeneration !== enterpriseContextGeneration
+      || user.context.enterpriseAuthStatus !== 'authenticated'
+      || user.context.currentEnterpriseId !== enterpriseId
+      || user.context.currentMemberId !== operatorMemberId
+      || !user.enterpriseMemberFor(enterpriseId, operatorMemberId)
+      || binding.appEnterpriseId !== enterpriseId
+    ) {
+      bindingStatus.value = 'failed'
+      return
+    }
+    trustedPurchase.upsertBinding(binding)
+    bindingStatus.value = binding.status
+  } catch {
+    bindingStatus.value = 'failed'
+  }
+}
+
+async function goSpace() {
+  if (!user.isEnterpriseAuthenticated) return goEnterpriseAuth()
+  if (!product.value || !user.context.currentEnterpriseId) return
+  if (bindingStatus.value !== 'active') await refreshEnterpriseBinding()
+  if (bindingStatus.value !== 'active') return
+  try {
+    const intent = await trustedPurchase.preparePurchase({
+      appEnterpriseId: user.context.currentEnterpriseId,
+      operatorMemberId: user.context.currentMemberId,
+      appProductId: product.value.id,
+      enterpriseAuthStatus: user.context.enterpriseAuthStatus,
+      returnUrl: route.fullPath
+    })
+    await router.push({ name: 'space-bridge', params: { id: product.value.id }, query: { intent: intent.id } })
+  } catch {
+    await refreshEnterpriseBinding()
+  }
+}
 function goMember() {
-  router.push('/app/checkout/member')
+  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
+}
+function goItem() {
+  router.push(`/portal/checkout/${id.value}`)
+}
+/** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
+function handleUnlock() {
+  const primary = actions.value?.primary?.key
+  if (primary) return handleAction(primary)
+  goItem()
+}
+
+function handleAction(key: ProductActionKey) {
+  switch (key) {
+    case 'view': router.push('/portal/mine'); break
+    case 'free_view': router.push('/portal/mine'); break
+    case 'enterprise_auth': goEnterpriseAuth(); break
+    case 'space_purchase': goSpace(); break
+    case 'member_purchase': goMember(); break
+    case 'item_purchase': goItem(); break
+    case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
+    case 'listing_progress': router.push({ path: '/app/mine', query: { tab: '求上架' } }); break
+  }
 }
 </script>
 
 <template>
   <div v-if="product" class="mx-auto max-w-5xl">
     <div class="grid grid-cols-3 gap-6">
-      <!-- 左栏：主信息 -->
+      <!-- 左栏：标题卡 + Tab 导航 + Tab 内容 -->
       <div class="col-span-2 space-y-4">
-        <!-- 商品标题 -->
+        <!-- 商品标题卡 -->
         <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="rounded bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
-            <span class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">{{ originMeta[product.origin] }}</span>
-            <StatusBadge dict="availability" :value="product.availability" />
-          </div>
-          <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
-          <p class="mt-1 text-sm text-slate-500">{{ product.subtitle }}</p>
-        </div>
-
-        <!-- 基本信息 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <h3 class="mb-3 text-sm font-semibold text-slate-800">基本信息</h3>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div><span class="text-slate-400">供应方：</span><span class="text-slate-700">{{ product.provider }}</span></div>
-            <div><span class="text-slate-400">更新频率：</span><span class="text-slate-700">{{ product.updateFrequency }}</span></div>
-            <div><span class="text-slate-400">覆盖范围：</span><span class="text-slate-700">{{ product.coverage }}</span></div>
-            <div><span class="text-slate-400">交付方式：</span><span class="text-slate-700">{{ product.deliveryMethod }}</span></div>
-          </div>
-          <div v-if="product.scenarios?.length" class="mt-3 flex flex-wrap gap-1.5">
-            <span v-for="s in product.scenarios" :key="s" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ s }}</span>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
+                <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
+                <StatusBadge dict="availability" :value="product.availability" />
+              </div>
+              <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
+              <p class="mt-1 text-sm text-slate-500">{{ product.subtitle }}</p>
+            </div>
+            <button
+              class="shrink-0 text-xl transition-colors"
+              :class="product.favorite ? 'text-amber-400' : 'text-slate-200 hover:text-slate-300'"
+              :title="product.favorite ? '取消收藏' : '收藏'"
+              @click="toggleFav"
+            >★</button>
           </div>
         </div>
 
-        <!-- 数据描述 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <h3 class="mb-3 text-sm font-semibold text-slate-800">数据描述</h3>
-          <div class="space-y-2 text-sm leading-relaxed text-slate-600">
-            <div><span class="text-slate-400">价值主张：</span>{{ product.valueProposition }}</div>
-            <div><span class="text-slate-400">详细描述：</span>{{ product.description }}</div>
-          </div>
-        </div>
-
-        <!-- 字段信息（dataset） -->
-        <div v-if="product.type === 'dataset' && product.typeDetail.dataset?.fields?.length" class="rounded-xl border border-slate-200 bg-white p-5">
-          <h3 class="mb-3 text-sm font-semibold text-slate-800">字段信息</h3>
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-200 text-left text-xs text-slate-400">
-                <th class="pb-2 pr-4">字段名</th>
-                <th class="pb-2 pr-4">类型</th>
-                <th class="pb-2 pr-4">含义</th>
-                <th class="pb-2">敏感级</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="f in product.typeDetail.dataset.fields" :key="f.name" class="border-b border-slate-100">
-                <td class="py-2 pr-4 font-mono text-xs text-slate-700">{{ f.name }}</td>
-                <td class="py-2 pr-4 text-xs text-slate-600">{{ f.dataType }}</td>
-                <td class="py-2 pr-4 text-xs text-slate-600">{{ f.meaning }}</td>
-                <td class="py-2 text-xs">
-                  <span v-if="f.primaryKey" class="rounded bg-red-50 px-1.5 py-0.5 text-red-600">主键</span>
-                  <span v-else-if="f.sensitivity" class="rounded bg-amber-50 px-1.5 py-0.5 text-amber-600">{{ f.sensitivity }}</span>
-                  <span v-else class="text-slate-300">-</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 质量与合规 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <h3 class="mb-3 text-sm font-semibold text-slate-800">质量与合规</h3>
-          <div class="space-y-2 text-sm leading-relaxed text-slate-600">
-            <div><span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}</div>
-            <div><span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}</div>
+        <!-- Tab 导航 + 内容 -->
+        <div class="rounded-xl border border-slate-200 bg-white">
+          <PortalDetailTabs v-model="activeTab" :tabs="currentTabs" class="px-5" />
+          <div class="p-5">
+            <PortalDatasetDetail
+              v-if="product.type === 'dataset'"
+              :product="product"
+              :active-tab="activeTab"
+              :base-info-items="baseInfoItems"
+            />
+            <PortalApiDetail
+              v-else-if="product.type === 'api'"
+              :product="product"
+              :active-tab="activeTab"
+              :base-info-items="baseInfoItems"
+            />
+            <PortalReportDetail
+              v-else-if="product.type === 'report'"
+              :product="product"
+              :active-tab="activeTab"
+              :unlocked="contentUnlocked"
+              :base-info-items="baseInfoItems"
+              @unlock="handleUnlock"
+            />
+            <PortalDashboardDetail
+              v-else-if="product.type === 'dashboard'"
+              :product="product"
+              :active-tab="activeTab"
+              :unlocked="contentUnlocked"
+              :base-info-items="baseInfoItems"
+            />
+            <div v-else class="py-8 text-center text-sm text-slate-400">资料准备中</div>
           </div>
         </div>
       </div>
 
-      <!-- 右栏：购买面板（sticky） -->
+      <!-- 右栏：sticky 购买面板 -->
       <div class="col-span-1">
-        <div class="sticky top-20 rounded-xl border border-slate-200 bg-white p-5">
-          <div class="text-2xl font-bold text-brand-600">
-            {{ product.price.model === 'free' ? '免费' : product.price.model === 'member_free' ? '会员免费' : `¥${product.price.itemPrice}` }}
-          </div>
-          <div v-if="product.price.model !== 'free'" class="mt-1 text-xs text-slate-400">
-            {{ product.price.model === 'member_free' ? '开通会员后免费使用' : product.price.model === 'member_discount' ? `会员折扣 ${product.price.memberDiscount}折` : '单品购买' }}
-          </div>
-
-          <div class="mt-4 space-y-2">
-            <button
-              class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
-              @click="goCheckout"
-            >立即购买</button>
-            <button
-              v-if="!owned && product.price.model !== 'item_only'"
-              class="w-full rounded-lg border border-brand-300 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
-              @click="goMember"
-            >开通会员</button>
-          </div>
-
-          <div v-if="owned" class="mt-4 rounded-lg bg-emerald-50 p-3 text-center">
-            <div class="text-sm font-medium text-emerald-700">✅ {{ access === 'member' ? '会员权益已覆盖' : '已购买' }}</div>
-          </div>
-
-          <div class="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
-            <div>购买方式：{{ product.acquisitions.includes('free') ? '免费' : product.acquisitions.includes('member') ? '会员/单品' : '单品' }}</div>
-            <div class="mt-1">来源：{{ originMeta[product.origin] }}</div>
-            <div class="mt-1">更新时间：{{ product.updatedAt }}</div>
-          </div>
-        </div>
+        <PortalPurchasePanel
+          :product="product"
+          :owned="owned"
+          :access="access"
+          :actions="actions"
+          @action="handleAction"
+        />
       </div>
     </div>
   </div>
