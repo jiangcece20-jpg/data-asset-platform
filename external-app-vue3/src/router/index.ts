@@ -43,7 +43,17 @@ const router = createRouter({
     { path: '/admin/approval/demand-supply/:id', name: 'admin-demand-supply-detail', component: () => import('@/views/admin/DemandSupplyDetail.vue'), meta: { title: '需求供给详情' } },
     { path: '/admin/approval/after-sales', name: 'admin-after-sales', component: () => import('@/views/admin/AfterSalesList.vue'), meta: { title: '交易售后' } },
     { path: '/admin/approval/after-sales/:id', name: 'admin-after-sales-detail', component: () => import('@/views/admin/AfterSalesDetail.vue'), meta: { title: '交易售后详情' } },
-    { path: '/admin/approval/integration', name: 'admin-integration-governance', component: () => import('@/views/admin/IntegrationGovernance.vue'), meta: { title: '集成治理' } }
+    { path: '/admin/approval/integration', name: 'admin-integration-governance', component: () => import('@/views/admin/IntegrationGovernance.vue'), meta: { title: '集成治理' } },
+
+    // ---------------- PC 门户 ----------------
+    { path: '/portal', redirect: '/portal/home' },
+    { path: '/portal/home', name: 'portal-home', component: () => import('@/views/portal/PortalHome.vue'), meta: { title: '门户首页' } },
+    { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '搜索发现' } },
+    { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },
+    { path: '/portal/checkout/:id', name: 'portal-checkout', component: () => import('@/views/portal/PortalCheckout.vue'), meta: { title: '购买结算' } },
+    { path: '/portal/mine', name: 'portal-mine', component: () => import('@/views/portal/PortalMine.vue'), meta: { title: '我的购买' } },
+    { path: '/portal/bills', name: 'portal-bills', component: () => import('@/views/portal/PortalBills.vue'), meta: { title: 'API账单' } },
+    { path: '/portal/demand', name: 'portal-demand', component: () => import('@/views/portal/PortalDemand.vue'), meta: { title: '需求提报' } }
   ]
 })
 

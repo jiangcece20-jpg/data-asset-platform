@@ -3,15 +3,21 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PhoneShell from '@/layouts/PhoneShell.vue'
 import AdminShell from '@/layouts/AdminShell.vue'
+import PortalShell from '@/layouts/PortalShell.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-const isAdmin = computed(() => route.path.startsWith('/admin'))
+const mode = computed(() => {
+  if (route.path.startsWith('/admin')) return 'admin'
+  if (route.path.startsWith('/portal')) return 'portal'
+  return 'app'
+})
 
-function switchMode(target: 'app' | 'admin') {
-  if (target === 'admin' && !isAdmin.value) router.push('/admin')
-  if (target === 'app' && isAdmin.value) router.push('/app/home')
+function switchMode(target: 'app' | 'portal' | 'admin') {
+  if (target === 'admin' && mode.value !== 'admin') router.push('/admin')
+  if (target === 'portal' && mode.value !== 'portal') router.push('/portal/home')
+  if (target === 'app' && mode.value !== 'app') router.push('/app/home')
 }
 </script>
 
@@ -25,14 +31,21 @@ function switchMode(target: 'app' | 'admin') {
       <div class="flex items-center gap-1 rounded-full bg-slate-100 p-1 text-sm">
         <button
           class="rounded-full px-3 py-1 transition"
-          :class="!isAdmin ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+          :class="mode === 'app' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
           @click="switchMode('app')"
         >
           移动端原型
         </button>
         <button
           class="rounded-full px-3 py-1 transition"
-          :class="isAdmin ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+          :class="mode === 'portal' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+          @click="switchMode('portal')"
+        >
+          PC门户
+        </button>
+        <button
+          class="rounded-full px-3 py-1 transition"
+          :class="mode === 'admin' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
           @click="switchMode('admin')"
         >
           PC 运营后台
@@ -41,7 +54,8 @@ function switchMode(target: 'app' | 'admin') {
     </header>
 
     <main>
-      <PhoneShell v-if="!isAdmin" />
+      <PhoneShell v-if="mode === 'app'" />
+      <PortalShell v-else-if="mode === 'portal'" />
       <AdminShell v-else />
     </main>
   </div>
