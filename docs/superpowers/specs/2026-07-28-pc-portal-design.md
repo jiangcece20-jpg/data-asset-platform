@@ -50,11 +50,18 @@ src/
   views/portal/                   ← 新建目录
     PortalHome.vue
     PortalSearch.vue
-    PortalProductDetail.vue
+    PortalProductDetail.vue       ← 重写（从 152 行通用模板升级为框架页）
     PortalCheckout.vue
     PortalMine.vue
     PortalBills.vue
     PortalDemand.vue
+    components/                   ← 新建子目录（详情页专用组件）
+      PortalDetailTabs.vue       ← 水平 Tab 导航
+      PortalDatasetDetail.vue    ← 数据集 4 Tab
+      PortalApiDetail.vue        ← API 4 Tab（沙箱左右分栏）
+      PortalReportDetail.vue     ← 报告 3 Tab（阅读器双栏）
+      PortalDashboardDetail.vue  ← 看板 4 Tab（网格预览）
+      PortalPurchasePanel.vue    ← 右栏 sticky 购买面板
   views/mobile/
     Mine.vue                     ← 修改（新增"我的账单"Tab）
   router/index.ts                ← 新增 /portal/* 路由组
@@ -148,34 +155,135 @@ AI 模式下，结果区上方多一个 AI 回答摘要区块，下方同样混�
 - 市场商品右侧显示价格（¥299/12个月、会员免费、免费）
 - 内部视图右侧显示"跳转 →"
 
-### 2. 商品详情（PortalProductDetail）
+### 2. 商品详情（PortalProductDetail）— 全功能对齐 App 端
 
-PC 版两栏布局，左栏滚动 + 右栏 sticky 购买面板：
+#### 设计背景
+
+当前 PC 端 `PortalProductDetail.vue` 仅 152 行通用模板，无类型特有 Tab、无 ContentGate、无交互功能。重新设计为：新建 6 个 PC 专用组件，全功能对齐 App 端，并利用 PC 宽屏做布局增强。
+
+> 对应 PRD：`docs/product/2026-07-28-PC门户商品详情页-模块PRD.md`
+
+#### 组件架构
 
 ```
-┌────────────────────────┬──────────────────┐
-│  左栏（主信息）          │  右栏（购买面板）   │
-│                        │  (sticky 定位)    │
-│  商品名称 + 类型标签      │  ¥299 / 12个月   │
-│                        │                  │
-│  ── 基本信息 ──         │  购买方式：       │
-│  覆盖范围、更新频率、     │  ○ 单品购买      │
-│  数据提供方              │  ○ 会员免费      │
-│                        │                  │
-│  ── 数据描述 ──         │  [立即购买]       │
-│  详细描述文本             │  [加入购物车]     │
-│                        │                  │
-│  ── 字段信息 ──         │  会员状态：未开通   │
-│  字段表格（名称/类型/    │  [开通会员]       │
-│  含义/敏感级）           │                  │
-│                        │                  │
-│  ── 质量与合规 ──       │                  │
-│  质量承诺、合规说明       │                  │
-└────────────────────────┴──────────────────┘
+PortalProductDetail.vue（页面框架）
+├── 商品标题卡（内联，公共区域）
+├── PortalDetailTabs.vue（水平 Tab 导航）
+├── 类型特有组件（按 product.type 切换）
+│   ├── PortalDatasetDetail.vue   ← dataset: 4 Tab
+│   ├── PortalApiDetail.vue       ← api: 4 Tab（沙箱左右分栏）
+│   ├── PortalReportDetail.vue    ← report: 3 Tab（阅读器双栏）
+│   └── PortalDashboardDetail.vue ← dashboard: 4 Tab（网格预览）
+└── PortalPurchasePanel.vue（右栏 sticky 购买面板）
 ```
 
-- 字段信息用表格展示，比移动端列表更紧凑
-- 购买按钮跳转 `/portal/checkout/:id`
+新建组件路径：`src/views/portal/components/`
+
+#### 页面布局
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  商品标题卡                                                │
+│  [类型徽标] [渠道标签] [上架状态]  ★ 收藏                    │
+│  商品名称（displayTitle）                                    │
+│  副标题                                                     │
+├────────────────────────────────┬─────────────────────────┤
+│  Tab: Tab1 | Tab2 | Tab3 | Tab4│  ¥299 /12月              │
+│ ────────────────────────────── │  会员免费 · 开通会员立享     │
+│ │                              │                          │
+│ │  类型特有内容                  │  [主操作按钮]              │
+│ │  （4 个组件按类型切换）          │  [次操作按钮]              │
+│ │                              │                          │
+│ │                              │  ✅ 已拥有权益（条件）      │
+│ │                              │  ⚠️ 服务状态通知（条件）    │
+│ │                              │  📊 API 用量入口（条件）    │
+│ │                              │                          │
+│ │                              │  ── 购买信息 ──            │
+│ │                              │  购买方式 / 来源 / 更新时间  │
+└────────────────────────────────┴─────────────────────────┘
+```
+
+#### Tab 结构矩阵（与 App 一致）
+
+| 类型 | Tab 1 | Tab 2 | Tab 3 | Tab 4 |
+|------|-------|-------|-------|-------|
+| 数据集 | 基本信息 | 字段信息 | 样例数据 | 探查报告 |
+| API | 基本信息 | 接口文档 | 在线调试 | 错误码与SLA |
+| 报告 | 报告介绍 | 目录 | 在线阅读 | — |
+| 看板 | 基本信息 | 看板预览 | 指标定义 | 更新与导出 |
+
+#### 类型特有内容 + PC 增强
+
+**数据集 (PortalDatasetDetail)**
+- 字段信息：全 7 列展示（字段名/类型/业务含义/描述/主键/可空/敏感级），无需横向滑动
+- 样例数据：全宽表格，可见行数更多
+- 探查报告：左侧字段切换器 + 右侧宽图表（App 是纵向切换）
+
+**API (PortalApiDetail)**
+- 接口文档：请求参数表 + 响应字段表左右并排（App 是上下排列）
+- 在线调试：左右分栏 — 左参数输入 / 右深色终端结果（App 是上下排列）
+- 沙箱逻辑：本地 reactive 状态，`sendSandbox()` 返回固定脱敏结果（与 App 一致）
+
+**报告 (PortalReportDetail)**
+- 在线阅读：左右双栏 — 左侧目录侧边栏（~180px，始终可见，章节可读状态标记）+ 右侧正文区
+- ContentGate：`unlocked` 时全可读，否则只有 `previewable` 的章节可读
+- 解锁按钮：调用 `resolveProductActions()` 解析路径
+
+**看板 (PortalDashboardDetail)**
+- 看板预览：2 列网格（App 是 1 列纵向），面板更大
+- 指标定义：2 列卡片网格 + ContentGate
+- 更新与导出：更新周期 / 导出规则 / 权益期限提示
+
+#### 第一个 Tab 公共内容
+
+所有类型的第一个 Tab 均包含：
+- **基础信息网格**（3 列，从 App 的 2 列升级）：类型特有字段 + 通用字段（供应方/更新频率/覆盖范围/交付方式/来源/更新时间）
+- **商品说明书**：价值主张 / 详细描述 / 质量承诺 / 合规声明
+- **应用场景标签**
+
+#### ContentGate 内容解锁机制
+
+| 状态 | 含义 | 展示 |
+|------|------|------|
+| `visible` | 公开预览/已解锁 | 正常展示 |
+| `blurred` | 模糊预览 | 内容加遮罩 + 底部解锁按钮 |
+| `locked` | 完全锁定 | 只显示标题和锁定提示 + 底部解锁按钮 |
+
+解锁条件：免费→visible；会员→已开通visible否则blurred；单品→已购买visible否则locked；报告 `previewable` 章节始终 visible。
+
+#### PortalPurchasePanel 右栏购买面板
+
+面板结构（从上到下）：
+1. **价格区** — 大号价格 + 计价单位 + 会员提示
+2. **已拥有权益提示** — 条件渲染（`owned` 时绿色提示框）
+3. **操作按钮** — 通过 `resolveProductActions()` 解析，上下文感知
+4. **购买信息** — 购买方式 / 来源 / 更新时间
+5. **服务状态通知** — 条件渲染（`serviceStatus !== 'normal'` 时黄色警告）
+6. **API 用量入口** — 条件渲染（`type === 'api' && owned` 时，跳转 `/portal/bills`）
+7. **收藏** — `catalog.toggleFavorite()`
+
+购买路径完整映射（通过 `resolveProductActions()` 复用 App 逻辑）：
+
+| 场景 | 主按钮 | 次按钮 | 跳转路径 |
+|------|--------|--------|----------|
+| 免费商品 | 直接查看 | — | `/portal/mine` |
+| 会员免费（未开通） | 开通会员 | 单品购买 | `/app/checkout/member` |
+| 会员免费（已开通） | 已覆盖 ✅ | — | 无跳转 |
+| 会员折扣 | 立即购买 | 开通会员 | `/portal/checkout/:id` |
+| 仅单品购买 | 立即购买 | — | `/portal/checkout/:id` |
+| 可信空间 | 前往可信空间 | 企业认证 | space-bridge |
+| 未上架（下架/暂停） | 求上架 | 查看进度 | `/app/listing-request/:id` |
+| 已拥有 | 查看内容 | — | `/portal/mine` |
+
+#### 复用层（零改动）
+
+| 层 | 复用项 |
+|----|--------|
+| Store | `useCatalogStore` / `useEntitlementStore` / `useUserStore` / `useListingRequestStore` / `useTrustedSpaceCatalogStore` / `useTrustedSpacePurchaseStore` / `useApiUsageBillsStore` |
+| Domain | `resolveProductActions()` / `ProductActionKey` |
+| 组件 | `StatusBadge` |
+| 类型 | `Product` / `ProductType` / `DatasetDetail` / `ApiDetail` / `ReportDetail` / `DashboardDetail` / `PriceModel` / `AcquisitionOption` / `SpaceBindingStatus` |
+| 工具 | `productMeta` / `productAccess` |
 
 ### 3. 购买结算（PortalCheckout）
 
@@ -331,7 +439,7 @@ PC 版两栏布局，左栏滚动 + 右栏 sticky 购买面板：
 | 页面范围 | 7 个页面（首页/搜索/商品详情/购买/我的购买/API账单/需求提报） |
 | 搜索设计 | 统一搜索（关键词+AI双模式），结果混排，去掉独立AI找数菜单 |
 | 导航项 | 5 项（门户首页/搜索发现/我的购买/API账单/需求提报） |
-| 商品详情 | 左右两栏（信息+购买面板sticky） |
+| 商品详情 | 6 个 PC 专用组件，全功能对齐 App，水平 Tab + 右栏 sticky 购买面板 |
 | 购买结算 | 左右分栏（订单信息+摘要） |
 | API账单位置 | A+C：Mine新增"我的账单"Tab + API订单详情内嵌用量区块 |
 | App端调整 | Mine.vue 加Tab + API订单详情加用量区块 |
