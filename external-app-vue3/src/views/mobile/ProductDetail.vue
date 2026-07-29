@@ -278,6 +278,21 @@ function handleAction(key: ProductActionKey) {
       <div class="mt-1 text-[12px] text-emerald-600">可直接查看完整内容 / 在线看板 / 调用测试</div>
     </div>
 
+    <!-- API 用量明细 -->
+    <div v-if="product.type === 'api' && owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4">
+      <div class="text-[13px] font-semibold text-slate-800">📊 用量明细</div>
+      <div class="mt-2 flex items-center justify-between text-[12px]">
+        <div>
+          <span class="text-slate-400">本月调用：</span>
+          <span class="text-slate-700">-- 次</span>
+        </div>
+        <button
+          class="rounded-full bg-brand-50 px-3 py-1.5 text-[12px] text-brand-600"
+          @click="router.push('/app/mine/enterprise/bills')"
+        >查看账单详情 →</button>
+      </div>
+    </div>
+
     <!-- 底部固定操作区 -->
     <ProductPrimaryAction
       v-if="actions"

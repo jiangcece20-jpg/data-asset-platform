@@ -29,9 +29,9 @@ const catalog = useCatalogStore()
 const listingRequests = useListingRequestStore()
 const woStore = useReverseWorkOrderStore()
 
-const tabs = ['权益', '个人订单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏'] as const
+const tabs = ['权益', '个人订单', '我的账单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏'] as const
 const initialTab = (route.query.tab as string) || '权益'
-const validTabs = ['权益', '个人订单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏']
+const validTabs = ['权益', '个人订单', '我的账单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏']
 const tab = ref<(typeof tabs)[number]>(validTabs.includes(initialTab) ? initialTab as any : '权益')
 
 const supply = useSupplyTaskStore()
@@ -172,6 +172,23 @@ const deliveredNotices = computed(() =>
         </div>
       </div>
       <EmptyState v-if="!personalAppOrders.length" icon="🧾" title="暂无个人订单" />
+    </div>
+
+    <!-- 我的账单 -->
+    <div v-else-if="tab === '我的账单'" class="mt-3 space-y-2 px-4">
+      <button
+        class="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 text-left"
+        @click="router.push('/app/mine/enterprise/bills')"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-lg">📈</div>
+          <div>
+            <div class="text-[13px] font-medium text-slate-800">API 用量账单</div>
+            <div class="mt-0.5 text-[11px] text-slate-400">查看 API 调用量和费用明细</div>
+          </div>
+        </div>
+        <span class="text-slate-300">›</span>
+      </button>
     </div>
 
     <!-- 企业订单 -->
