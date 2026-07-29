@@ -9,6 +9,7 @@ import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
 import PortalApiDetail from './components/PortalApiDetail.vue'
 import PortalReportDetail from './components/PortalReportDetail.vue'
 import PortalDashboardDetail from './components/PortalDashboardDetail.vue'
+import PortalSpaceGateDialog from './components/PortalSpaceGateDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
@@ -74,6 +75,28 @@ const actions = computed(() => product.value ? resolveProductActions({
   serviceStatus: product.value.serviceStatus,
   trustedPurchaseCheck: trustedPurchaseCheck.value,
 }) : null)
+
+/**
+ * PC 端按钮层适配（PRD §7.5）：可信空间在售商品对游客/个人用户统一展示
+ * 「前往可信空间」，由跳转门禁弹窗分流；企业用户保持 domain 层原逻辑。
+ */
+const pcActions = computed(() => {
+  const p = product.value
+  if (!p) return null
+  if (
+    p.dealChannel === 'space_purchase'
+    && !owned.value
+    && p.availability === 'published'
+    && (p.serviceStatus ?? 'normal') === 'normal'
+    && (!user.context.loggedIn || !user.isEnterpriseAuthenticated)
+  ) {
+    return { primary: { key: 'space_purchase' as const, label: '前往可信空间' } }
+  }
+  return actions.value
+})
+
+/** 可信空间跳转门禁弹窗状态 */
+const spaceGate = ref<'login' | 'auth-notice' | 'browse-mock' | null>(null)
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
@@ -164,7 +187,16 @@ async function refreshEnterpriseBinding() {
 }
 
 async function goSpace() {
-  if (!user.isEnterpriseAuthenticated) return goEnterpriseAuth()
+  // 硬门禁：游客先登录（可信空间对游客仅开放 10 条且详情不可达）
+  if (!user.context.loggedIn) {
+    spaceGate.value = 'login'
+    return
+  }
+  // 软提示：个人用户可浏览，正式采购需企业认证
+  if (!user.isEnterpriseAuthenticated) {
+    spaceGate.value = 'auth-notice'
+    return
+  }
   if (!product.value || !user.context.currentEnterpriseId) return
   if (bindingStatus.value !== 'active') await refreshEnterpriseBinding()
   if (bindingStatus.value !== 'active') return
@@ -181,6 +213,25 @@ async function goSpace() {
     await refreshEnterpriseBinding()
   }
 }
+
+/** 门禁弹窗：原型模拟登录，登录后自动继续原跳转动作 */
+function gateLogin() {
+  user.context.loggedIn = true
+  spaceGate.value = null
+  void goSpace()
+}
+
+/** 门禁弹窗：个人用户继续前往浏览（不携带购买意图，原型展示模拟跳转态） */
+function gateContinueBrowse() {
+  spaceGate.value = 'browse-mock'
+}
+
+/** 门禁弹窗：去企业认证 */
+function gateGoAuth() {
+  spaceGate.value = null
+  goEnterpriseAuth()
+}
+
 function goMember() {
   router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
 }
@@ -189,7 +240,7 @@ function goItem() {
 }
 /** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
 function handleUnlock() {
-  const primary = actions.value?.primary?.key
+  const primary = pcActions.value?.primary?.key
   if (primary) return handleAction(primary)
   goItem()
 }
@@ -209,10 +260,10 @@ function handleAction(key: ProductActionKey) {
 </script>
 
 <template>
-  <div v-if="product" class="mx-auto max-w-5xl">
-    <div class="grid grid-cols-3 gap-6">
+  <div v-if="product" class="mx-auto max-w-7xl">
+    <div class="grid grid-cols-[minmax(0,1fr)_340px] gap-6">
       <!-- 左栏：标题卡 + Tab 导航 + Tab 内容 -->
-      <div class="col-span-2 space-y-4">
+      <div class="min-w-0 space-y-4">
         <!-- 商品标题卡 -->
         <div class="rounded-xl border border-slate-200 bg-white p-5">
           <div class="flex items-start justify-between gap-3">
@@ -271,16 +322,26 @@ function handleAction(key: ProductActionKey) {
       </div>
 
       <!-- 右栏：sticky 购买面板 -->
-      <div class="col-span-1">
+      <div>
         <PortalPurchasePanel
           :product="product"
           :owned="owned"
           :access="access"
-          :actions="actions"
+          :actions="pcActions"
           @action="handleAction"
         />
       </div>
     </div>
+
+    <!-- 可信空间跳转门禁弹窗 -->
+    <PortalSpaceGateDialog
+      v-if="spaceGate"
+      :mode="spaceGate"
+      @login="gateLogin"
+      @continue-browse="gateContinueBrowse"
+      @go-auth="gateGoAuth"
+      @close="spaceGate = null"
+    />
   </div>
   <div v-else class="p-8 text-center text-sm text-slate-400">商品不存在</div>
 </template>
