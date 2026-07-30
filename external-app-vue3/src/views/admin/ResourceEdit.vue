@@ -296,19 +296,47 @@ function saveProfilingFields() {
       <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息编辑</h2>
 
-        <!-- 基本信息 -->
+        <!-- 标题与展示（对应详情页标题卡） -->
         <div class="mb-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">基本信息</div>
+          <div class="mb-2 text-xs font-medium text-slate-500">标题与展示</div>
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="productForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">副标题</span><input v-model="productForm.subtitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（详情页副标题优先展示）</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">副标题（推荐语为空时展示）</span><input v-model="productForm.subtitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
+              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 运营信息（对应详情页基本信息网格） -->
+        <div class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 商品说明书（对应详情页商品说明书区） -->
+        <div class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">商品说明书</div>
+          <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
           </div>
         </div>
 
-        <!-- 价格设置（仅 APP 内购商品） -->
+        <!-- 价格设置（对应详情页右栏购买面板，仅 APP 内购商品） -->
         <div v-if="product.dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4">
           <div class="mb-2 text-xs font-medium text-slate-500">价格设置</div>
           <div class="space-y-3">
@@ -329,34 +357,6 @@ function saveProfilingFields() {
                 <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" />单品购买</label>
                 <label class="flex items-center gap-1.5"><input v-model="productForm.memberIncluded" type="checkbox" />会员权益包含</label>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 运营信息 -->
-        <div class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
-          <div class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            </div>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          </div>
-        </div>
-
-        <!-- 展示与推荐 -->
-        <div class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">展示与推荐</div>
-          <div class="space-y-3">
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <div class="flex items-center gap-4">
-              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
-              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
             </div>
           </div>
         </div>
