@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useUserStore } from '@/stores/user'
-import { typeMeta, originMeta } from '@/utils/productMeta'
+import { typeMeta, originMeta, priceDisplay } from '@/utils/productMeta'
 import type { Resource } from '@/types/resource'
 
 const router = useRouter()
@@ -75,8 +75,8 @@ function openExternalView(view: Resource) {
           </div>
           <div class="mt-2 text-sm font-semibold text-slate-800">{{ p.name }}</div>
           <div class="mt-1 text-xs text-slate-400">{{ p.subtitle }}</div>
-          <div class="mt-2 text-sm font-medium text-brand-600">
-            {{ p.price.model === 'free' ? '免费' : p.price.model === 'member_free' ? '会员免费' : `¥${p.price.itemPrice}` }}
+          <div class="mt-2 text-sm font-medium" :class="priceDisplay(p).tone">
+            {{ priceDisplay(p).label }}
           </div>
         </div>
       </div>

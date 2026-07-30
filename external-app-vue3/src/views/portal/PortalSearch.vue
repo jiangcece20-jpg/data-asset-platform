@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useAiStore } from '@/stores/ai'
-import { typeMeta } from '@/utils/productMeta'
+import { typeMeta, priceDisplay } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 
@@ -86,12 +86,6 @@ function handleItemClick(item: MixedResult) {
 function switchMode(m: SearchMode) {
   mode.value = m
   aiAnswer.value = ''
-}
-
-function priceLabel(p: Product): string {
-  if (p.price.model === 'free') return '免费'
-  if (p.price.model === 'member_free') return '会员免费'
-  return `¥${p.price.itemPrice}`
 }
 </script>
 
@@ -178,7 +172,7 @@ function priceLabel(p: Product): string {
         </div>
         <!-- 价格/操作 -->
         <div class="shrink-0 text-right">
-          <div v-if="item.type === 'product'" class="text-sm font-medium text-brand-600">{{ priceLabel(item.data as Product) }}</div>
+          <div v-if="item.type === 'product'" class="text-sm font-medium" :class="priceDisplay(item.data as Product).tone">{{ priceDisplay(item.data as Product).label }}</div>
           <div v-else class="text-sm font-medium text-emerald-600">跳转</div>
           <div class="mt-1 text-xs text-slate-400">{{ item.type === 'product' ? '详情' : '打开' }} →</div>
         </div>
