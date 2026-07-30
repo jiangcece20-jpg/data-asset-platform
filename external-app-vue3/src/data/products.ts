@@ -298,7 +298,12 @@ export const seedProducts: Product[] = [
         ],
         sla: '99.9% 可用性 · 平均响应 180ms',
         rateLimit: '100 次/分钟（默认），可按需扩容',
-        billing: '按调用次数阶梯计费'
+        billing: '按调用次数阶梯计费',
+        pricingPlans: [
+          { name: '基础包', quota: '1 万次/月', price: '¥0.40/次' },
+          { name: '标准包', quota: '10 万次/月', price: '¥0.32/次', unitNote: '较基础包省 20%', recommended: true },
+          { name: '企业包', quota: '100 万次/月', price: '¥0.25/次', unitNote: '支持专属扩容' }
+        ]
       }
     }
   },
@@ -370,7 +375,11 @@ export const seedProducts: Product[] = [
         ],
         sla: '99.5% 可用性 · 平均响应 250ms',
         rateLimit: '50 次/分钟（默认）',
-        billing: '按核验次数报价'
+        billing: '按核验次数报价',
+        pricingPlans: [
+          { name: '按量付费', quota: '无月度承诺', price: '¥1.20/次' },
+          { name: '包月套餐', quota: '5 万次/月', price: '¥45,000/月', unitNote: '折合 ¥0.90/次', recommended: true }
+        ]
       }
     }
   },

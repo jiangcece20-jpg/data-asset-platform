@@ -141,6 +141,18 @@ export interface ApiParameter {
   example: string
 }
 
+/** API 套餐价格（可信空间可同步的计费层元数据；多套餐时详情页同时展示全部） */
+export interface ApiPricePlan {
+  name: string
+  /** 套餐规格，如「10 万次/月」 */
+  quota: string
+  /** 价格文本，如「¥0.32/次」「¥2,800/月」 */
+  price: string
+  /** 折合说明，如「折合 ¥0.90/次」 */
+  unitNote?: string
+  recommended?: boolean
+}
+
 export interface ApiDetail {
   method: 'GET' | 'POST'
   pathExample: string
@@ -157,6 +169,8 @@ export interface ApiDetail {
   sla: string
   rateLimit: string
   billing: string
+  /** 多套餐价格；存在时购买面板同时展示全部套餐 */
+  pricingPlans?: ApiPricePlan[]
 }
 
 export interface ReportContentBlock {
