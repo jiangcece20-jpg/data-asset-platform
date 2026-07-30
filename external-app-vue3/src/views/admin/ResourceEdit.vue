@@ -302,7 +302,6 @@ function saveProfilingFields() {
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="productForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（详情页副标题优先展示）</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">副标题（推荐语为空时展示）</span><input v-model="productForm.subtitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <div class="flex items-center gap-4">
               <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
