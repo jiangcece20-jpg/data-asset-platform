@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
-import { seedProducts, seedEnhancements } from '@/data/seed'
+import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
-import type { Product, ProductEnhancement, ProductStatus, AvailabilityStatus } from '@/types/domain'
+import type { Product, ProductStatus, AvailabilityStatus } from '@/types/domain'
 import type { Resource, ListResourceForm } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
@@ -11,7 +11,6 @@ import { genId, now } from '@/utils/id'
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     products: [...seedProducts, ...mockProducts].map((p) => ({ ...p })) as Product[],
-    enhancements: seedEnhancements.map((e) => ({ ...e })) as ProductEnhancement[],
     resources: [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({ ...r })) as Resource[]
   }),
   getters: {
@@ -37,17 +36,17 @@ export const useCatalogStore = defineStore('catalog', {
         )
     },
     enhancementOf(state) {
-      return (productId: string) => state.enhancements.find((e) => e.productId === productId)
-    },
-    displayTitle(): (p: Product) => string {
-      return (p: Product) => {
-        const enh = this.enhancementOf(p.id)
-        return enh?.displayTitle || p.name
+      return (productId: string) => {
+        const p = state.products.find((x) => x.id === productId)
+        if (!p || (!p.displayTitle && !p.recommendText && !p.sortWeight && !p.recommendSlot)) return undefined
+        return { productId, displayTitle: p.displayTitle || '', recommendText: p.recommendText || '', tags: p.tags, manualDescription: p.manualDescription || '', previewNote: p.previewNote || '', sortWeight: p.sortWeight ?? 50, recommendSlot: p.recommendSlot ?? false }
       }
     },
+    displayTitle(): (p: Product) => string {
+      return (p: Product) => p.displayTitle || p.name
+    },
     recommendSlotProducts(state): Product[] {
-      const enhIds = new Set(state.enhancements.filter((e) => e.recommendSlot).map((e) => e.productId))
-      return state.products.filter((p) => p.availability === 'published' && (enhIds.has(p.id) || p.tags.includes('热门')))
+      return state.products.filter((p) => p.availability === 'published' && (p.recommendSlot || p.tags.includes('热门')))
     }
   },
   actions: {
@@ -110,8 +109,7 @@ export const useCatalogStore = defineStore('catalog', {
         if (opts?.dealChannel && p.dealChannel !== opts.dealChannel) return false
         if (opts?.scenario && !p.scenarios.includes(opts.scenario)) return false
         if (!q) return true
-        const enh = this.enhancementOf(p.id)
-        const haystack = [p.name, p.subtitle, p.description, enh?.displayTitle, enh?.recommendText, ...p.tags, ...p.scenarios]
+        const haystack = [p.name, p.subtitle, p.description, p.displayTitle, p.recommendText, ...p.tags, ...p.scenarios]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -166,22 +164,16 @@ export const useCatalogStore = defineStore('catalog', {
         this.products[idx] = { ...this.products[idx], ...patch, updatedAt: now() }
       }
     },
-    updateEnhancement(productId: string, patch: Partial<ProductEnhancement>) {
-      const idx = this.enhancements.findIndex((x) => x.productId === productId)
-      if (idx >= 0) {
-        this.enhancements[idx] = { ...this.enhancements[idx], ...patch }
-      } else {
-        this.enhancements.push({
-          productId,
-          displayTitle: patch.displayTitle || this.byId(productId)?.name || '',
-          recommendText: patch.recommendText || '',
-          tags: patch.tags || [],
-          manualDescription: patch.manualDescription || '',
-          previewNote: patch.previewNote || '',
-          sortWeight: patch.sortWeight ?? 50,
-          recommendSlot: patch.recommendSlot ?? false
-        })
-      }
+    updateEnhancement(productId: string, patch: Partial<Pick<Product, 'displayTitle' | 'recommendText' | 'manualDescription' | 'previewNote' | 'sortWeight' | 'recommendSlot'>> & { tags?: string[] }) {
+      const p = this.products.find((x) => x.id === productId)
+      if (!p) return
+      if (patch.displayTitle !== undefined) p.displayTitle = patch.displayTitle
+      if (patch.recommendText !== undefined) p.recommendText = patch.recommendText
+      if (patch.manualDescription !== undefined) p.manualDescription = patch.manualDescription
+      if (patch.previewNote !== undefined) p.previewNote = patch.previewNote
+      if (patch.sortWeight !== undefined) p.sortWeight = patch.sortWeight
+      if (patch.recommendSlot !== undefined) p.recommendSlot = patch.recommendSlot
+      if (patch.tags) p.tags = patch.tags
     },
     applyTrustedSnapshot(snapshot: TrustedProductSnapshot) {
       const product = this.products.find((item) => item.id === snapshot.appProductId)
@@ -203,10 +195,11 @@ export const useCatalogStore = defineStore('catalog', {
       }
     },
     clearRecommendation(productId: string) {
-      const enh = this.enhancements.find((e) => e.productId === productId)
-      if (enh) enh.recommendSlot = false
       const p = this.products.find((x) => x.id === productId)
-      if (p) p.tags = p.tags.filter((t) => t !== '热门')
+      if (p) {
+        p.recommendSlot = false
+        p.tags = p.tags.filter((t) => t !== '热门')
+      }
     },
     setSalesReview(productId: string, owner: string, reviewAt: string) {
       const p = this.products.find((x) => x.id === productId)

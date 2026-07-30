@@ -45,7 +45,7 @@ function goBack() {
 
 const editable = computed(() => !!product.value && resource.value?.type !== 'user_view')
 
-// --- 商品信息表单 ---
+// --- 商品信息表单（含运营增强） ---
 const productForm = reactive({
   name: '',
   subtitle: '',
@@ -64,12 +64,8 @@ const productForm = reactive({
   deliveryMethod: '',
   provider: '',
   qualityPromise: '',
-  complianceNote: ''
-})
-const productSaved = ref(false)
-
-// --- 增强信息表单 ---
-const enhForm = reactive({
+  complianceNote: '',
+  // 运营增强
   displayTitle: '',
   recommendText: '',
   tags: '',
@@ -78,7 +74,7 @@ const enhForm = reactive({
   sortWeight: 50,
   recommendSlot: false
 })
-const enhSaved = ref(false)
+const productSaved = ref(false)
 
 // --- 数据探查配置 ---
 const profilingSelection = ref<string[]>([])
@@ -138,15 +134,14 @@ function syncFormFromStore() {
   productForm.qualityPromise = p.qualityPromise
   productForm.complianceNote = p.complianceNote
 
-  // 增强信息
-  const enh = catalog.enhancementOf(p.id)
-  enhForm.displayTitle = enh?.displayTitle || p.name
-  enhForm.recommendText = enh?.recommendText || ''
-  enhForm.tags = (enh?.tags || []).join('、')
-  enhForm.manualDescription = enh?.manualDescription || ''
-  enhForm.previewNote = enh?.previewNote || ''
-  enhForm.sortWeight = enh?.sortWeight ?? 50
-  enhForm.recommendSlot = enh?.recommendSlot ?? false
+  // 运营增强
+  productForm.displayTitle = p.displayTitle || p.name
+  productForm.recommendText = p.recommendText || ''
+  productForm.tags = (p.tags || []).join('、')
+  productForm.manualDescription = p.manualDescription || ''
+  productForm.previewNote = p.previewNote || ''
+  productForm.sortWeight = p.sortWeight ?? 50
+  productForm.recommendSlot = p.recommendSlot ?? false
 
   // 探查字段
   profilingSelection.value = (p.typeDetail.dataset?.fields ?? [])
@@ -154,7 +149,6 @@ function syncFormFromStore() {
     .map((f) => f.name)
 
   productSaved.value = false
-  enhSaved.value = false
   profilingSaved.value = false
 }
 
@@ -186,7 +180,15 @@ function saveProduct() {
       model: productForm.priceModel,
       itemPrice: Number(productForm.itemPrice),
       memberDiscount: Number(productForm.memberDiscount)
-    }
+    },
+    // 运营增强字段
+    displayTitle: productForm.displayTitle,
+    recommendText: productForm.recommendText,
+    tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
+    manualDescription: productForm.manualDescription,
+    previewNote: productForm.previewNote,
+    sortWeight: Number(productForm.sortWeight),
+    recommendSlot: productForm.recommendSlot
   })
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
@@ -200,21 +202,6 @@ function buildAcquisitions(): AcquisitionOption[] {
   return list
 }
 
-function saveEnhancement() {
-  const p = product.value
-  if (!p) return
-  catalog.updateEnhancement(p.id, {
-    displayTitle: enhForm.displayTitle,
-    recommendText: enhForm.recommendText,
-    tags: enhForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
-    manualDescription: enhForm.manualDescription,
-    previewNote: enhForm.previewNote,
-    sortWeight: Number(enhForm.sortWeight),
-    recommendSlot: enhForm.recommendSlot
-  })
-  enhSaved.value = true
-  setTimeout(() => { enhSaved.value = false }, 3000)
-}
 
 function saveProfilingFields() {
   const p = product.value
@@ -370,30 +357,25 @@ function saveProfilingFields() {
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProduct">保存商品信息</button>
-          <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
-        </div>
-      </div>
-
-      <!-- 运营增强编辑 -->
-      <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-4 text-sm font-semibold text-slate-700">运营增强</h2>
-        <p class="mb-3 text-xs text-slate-400">只影响 App 展示排序与推荐，不影响商品主数据</p>
-        <div class="space-y-3">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="enhForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="enhForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="enhForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="enhForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="enhForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <div class="flex items-center gap-4">
-            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="enhForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
-            <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="enhForm.recommendSlot" type="checkbox" />进入推荐位</label>
+        <!-- 展示与推荐 -->
+        <div class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 text-xs font-medium text-slate-500">展示与推荐</div>
+          <div class="space-y-3">
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="productForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="productForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="productForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
+              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
+            </div>
           </div>
         </div>
-        <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveEnhancement">保存增强信息</button>
-          <span v-if="enhSaved" class="text-sm text-emerald-600">已保存</span>
+
+        <div class="flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProduct">保存</button>
+          <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
         </div>
       </div>
 

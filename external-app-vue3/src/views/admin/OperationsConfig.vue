@@ -64,7 +64,8 @@ function removeWord(i: number) {
 }
 
 function toggleRecommend(productId: string, current: boolean) {
-  catalog.updateEnhancement(productId, { recommendSlot: !current })
+  const p = catalog.byId(productId)
+  if (p) p.recommendSlot = !current
 }
 </script>
 
@@ -119,10 +120,10 @@ function toggleRecommend(productId: string, current: boolean) {
           <span class="text-slate-600">{{ p.name }}</span>
           <button
             class="rounded-full px-2 py-0.5 text-[11px]"
-            :class="catalog.enhancementOf(p.id)?.recommendSlot ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-400'"
-            @click="toggleRecommend(p.id, !!catalog.enhancementOf(p.id)?.recommendSlot)"
+            :class="p.recommendSlot ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-400'"
+            @click="toggleRecommend(p.id, !!p.recommendSlot)"
           >
-            {{ catalog.enhancementOf(p.id)?.recommendSlot ? '推荐中' : '未推荐' }}
+            {{ p.recommendSlot ? '推荐中' : '未推荐' }}
           </button>
         </div>
       </div>
