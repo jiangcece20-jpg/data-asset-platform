@@ -270,10 +270,7 @@ export const seedProducts: Product[] = [
     listedAt: '2026-06-18',
     updatedAt: '2026-07-09',
     serviceStatus: 'normal',
-    displayTitle: '资格核验 API · 秒级合规核验',
     recommendText: '司机准入必备，99.9% 可用性保障',
-    manualDescription: 'APP 侧补充：已对接 3 家头部物流企业验证，平均节省人工核验时间 90%。',
-    previewNote: '企业认证后可在 APP 内直接测试调用',
     sortWeight: 90,
     recommendSlot: true,
     typeDetail: {
@@ -367,10 +364,7 @@ export const seedProducts: Product[] = [
     listedAt: '2026-06-05',
     updatedAt: '2026-07-06',
     serviceStatus: 'normal',
-    displayTitle: '企业资质隐私核验 · PIR 技术保障',
     recommendText: '查询过程双向匿名，安全合规',
-    manualDescription: 'APP 侧补充：固定脱敏沙箱即点即用。',
-    previewNote: '固定脱敏沙箱即点即用',
     sortWeight: 60,
     recommendSlot: false,
     typeDetail: {
@@ -463,10 +457,7 @@ export const seedProducts: Product[] = [
     listedAt: '2026-06-30',
     updatedAt: '2026-07-08',
     serviceStatus: 'normal',
-    displayTitle: '企业物流活跃度数据集 · 精准画像',
     recommendText: '260 万家企业活跃度全景覆盖',
-    manualDescription: 'APP 侧补充：适合企业征信、供应商评估场景，样本数据可直接下载体验。',
-    previewNote: '公开样本 5 条，企业申请后可获取完整版',
     sortWeight: 80,
     recommendSlot: true,
     typeDetail: {

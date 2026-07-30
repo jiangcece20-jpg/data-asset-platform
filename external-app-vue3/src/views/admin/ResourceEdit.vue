@@ -66,11 +66,8 @@ const productForm = reactive({
   qualityPromise: '',
   complianceNote: '',
   // 运营增强
-  displayTitle: '',
   recommendText: '',
   tags: '',
-  manualDescription: '',
-  previewNote: '',
   sortWeight: 50,
   recommendSlot: false
 })
@@ -135,11 +132,8 @@ function syncFormFromStore() {
   productForm.complianceNote = p.complianceNote
 
   // 运营增强
-  productForm.displayTitle = p.displayTitle || p.name
   productForm.recommendText = p.recommendText || ''
   productForm.tags = (p.tags || []).join('、')
-  productForm.manualDescription = p.manualDescription || ''
-  productForm.previewNote = p.previewNote || ''
   productForm.sortWeight = p.sortWeight ?? 50
   productForm.recommendSlot = p.recommendSlot ?? false
 
@@ -182,11 +176,8 @@ function saveProduct() {
       memberDiscount: Number(productForm.memberDiscount)
     },
     // 运营增强字段
-    displayTitle: productForm.displayTitle,
     recommendText: productForm.recommendText,
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
-    manualDescription: productForm.manualDescription,
-    previewNote: productForm.previewNote,
     sortWeight: Number(productForm.sortWeight),
     recommendSlot: productForm.recommendSlot
   })
@@ -317,8 +308,8 @@ function saveProfilingFields() {
           </div>
         </div>
 
-        <!-- 价格设置 -->
-        <div class="mb-4 border-t border-slate-100 pt-4">
+        <!-- 价格设置（仅 APP 内购商品） -->
+        <div v-if="product.dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4">
           <div class="mb-2 text-xs font-medium text-slate-500">价格设置</div>
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">价格模式</span>
@@ -361,11 +352,8 @@ function saveProfilingFields() {
         <div class="mb-4 border-t border-slate-100 pt-4">
           <div class="mb-2 text-xs font-medium text-slate-500">展示与推荐</div>
           <div class="space-y-3">
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">展示标题</span><input v-model="productForm.displayTitle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">说明书补充</span><textarea v-model="productForm.manualDescription" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">预览说明</span><input v-model="productForm.previewNote" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <div class="flex items-center gap-4">
               <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
               <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>

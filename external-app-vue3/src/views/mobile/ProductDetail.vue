@@ -35,7 +35,7 @@ const bindingStatus = ref<SpaceBindingStatus>('unbound')
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
-const title = computed(() => (product.value ? catalog.displayTitle(product.value) : ''))
+const title = computed(() => product.value?.name ?? '')
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')

@@ -302,14 +302,8 @@ export interface Product {
   salesReviewOwner?: string
   salesReviewAt?: string
   // --- 运营增强（原 Enhancement，已合并为商品字段） ---
-  /** 展示标题（覆盖 name，优先用于前台展示） */
-  displayTitle?: string
   /** 推荐语（卡片副标题优先使用） */
   recommendText?: string
-  /** 说明书补充 */
-  manualDescription?: string
-  /** 预览说明 */
-  previewNote?: string
   /** 排序权重（越大越靠前） */
   sortWeight?: number
   /** 是否进入推荐位 */
@@ -319,11 +313,8 @@ export interface Product {
 /** @deprecated Enhancement 已合并进 Product，保留类型别名兼容过渡 */
 export interface ProductEnhancement {
   productId: string
-  displayTitle: string
   recommendText: string
   tags: string[]
-  manualDescription: string
-  previewNote: string
   sortWeight: number
   recommendSlot: boolean
 }

@@ -14,7 +14,7 @@ const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
 
-const title = computed(() => catalog.displayTitle(props.product))
+const title = computed(() => props.product.name)
 const subtitle = computed(() => props.product.recommendText || props.product.subtitle)
 
 const access = computed(() => entitlements.accessLevel(props.product))

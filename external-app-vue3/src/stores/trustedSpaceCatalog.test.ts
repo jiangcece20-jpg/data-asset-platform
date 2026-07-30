@@ -34,17 +34,17 @@ function productSnapshot(
 describe('trustedSpaceCatalog store', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('syncs snapshots without overwriting APP display title', async () => {
+  it('syncs snapshots without overwriting APP recommend text', async () => {
     const store = useTrustedSpaceCatalogStore()
     const catalog = useCatalogStore()
-    catalog.updateProduct('prod-qualification-api', { displayTitle: 'APP 自定义展示名' })
+    catalog.updateProduct('prod-qualification-api', { recommendText: 'APP 自定义推荐语' })
 
     await store.syncAll(new MockTrustedSpaceAdapter(() => '2026-07-27T10:00:00.000Z'))
 
     expect(store.byProductId('prod-qualification-api')?.spaceProductNo).toBe('SPACE-API-20415')
     expect(store.lastSuccessAt).toBe('2026-07-27T10:00:00.000Z')
     const p = catalog.byId('prod-qualification-api')
-    expect(p?.displayTitle).toBe('APP 自定义展示名')
+    expect(p?.recommendText).toBe('APP 自定义推荐语')
   })
 
   it('blocks purchase when the cached snapshot is stale', async () => {

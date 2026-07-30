@@ -38,12 +38,9 @@ export const useCatalogStore = defineStore('catalog', {
     enhancementOf(state) {
       return (productId: string) => {
         const p = state.products.find((x) => x.id === productId)
-        if (!p || (!p.displayTitle && !p.recommendText && !p.sortWeight && !p.recommendSlot)) return undefined
-        return { productId, displayTitle: p.displayTitle || '', recommendText: p.recommendText || '', tags: p.tags, manualDescription: p.manualDescription || '', previewNote: p.previewNote || '', sortWeight: p.sortWeight ?? 50, recommendSlot: p.recommendSlot ?? false }
+        if (!p || (!p.recommendText && !p.sortWeight && !p.recommendSlot)) return undefined
+        return { productId, recommendText: p.recommendText || '', tags: p.tags, sortWeight: p.sortWeight ?? 50, recommendSlot: p.recommendSlot ?? false }
       }
-    },
-    displayTitle(): (p: Product) => string {
-      return (p: Product) => p.displayTitle || p.name
     },
     recommendSlotProducts(state): Product[] {
       return state.products.filter((p) => p.availability === 'published' && (p.recommendSlot || p.tags.includes('热门')))
@@ -109,7 +106,7 @@ export const useCatalogStore = defineStore('catalog', {
         if (opts?.dealChannel && p.dealChannel !== opts.dealChannel) return false
         if (opts?.scenario && !p.scenarios.includes(opts.scenario)) return false
         if (!q) return true
-        const haystack = [p.name, p.subtitle, p.description, p.displayTitle, p.recommendText, ...p.tags, ...p.scenarios]
+        const haystack = [p.name, p.subtitle, p.description, p.recommendText, ...p.tags, ...p.scenarios]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -164,13 +161,10 @@ export const useCatalogStore = defineStore('catalog', {
         this.products[idx] = { ...this.products[idx], ...patch, updatedAt: now() }
       }
     },
-    updateEnhancement(productId: string, patch: Partial<Pick<Product, 'displayTitle' | 'recommendText' | 'manualDescription' | 'previewNote' | 'sortWeight' | 'recommendSlot'>> & { tags?: string[] }) {
+    updateEnhancement(productId: string, patch: Partial<Pick<Product, 'recommendText' | 'sortWeight' | 'recommendSlot'>> & { tags?: string[] }) {
       const p = this.products.find((x) => x.id === productId)
       if (!p) return
-      if (patch.displayTitle !== undefined) p.displayTitle = patch.displayTitle
       if (patch.recommendText !== undefined) p.recommendText = patch.recommendText
-      if (patch.manualDescription !== undefined) p.manualDescription = patch.manualDescription
-      if (patch.previewNote !== undefined) p.previewNote = patch.previewNote
       if (patch.sortWeight !== undefined) p.sortWeight = patch.sortWeight
       if (patch.recommendSlot !== undefined) p.recommendSlot = patch.recommendSlot
       if (patch.tags) p.tags = patch.tags

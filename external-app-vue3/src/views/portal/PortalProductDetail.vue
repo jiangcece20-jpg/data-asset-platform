@@ -40,7 +40,7 @@ const bindingStatus = ref<SpaceBindingStatus>('unbound')
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
-const title = computed(() => (product.value ? catalog.displayTitle(product.value) : ''))
+const title = computed(() => product.value?.name ?? '')
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
@@ -294,7 +294,14 @@ function handleAction(key: ProductActionKey) {
                 <StatusBadge dict="availability" :value="product.availability" />
               </div>
               <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
-              <p class="mt-1 text-sm text-slate-500">{{ product.subtitle }}</p>
+              <p class="mt-1 text-sm text-slate-500">{{ product.recommendText || product.subtitle }}</p>
+              <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in product.tags"
+                  :key="tag"
+                  class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
+                >{{ tag }}</span>
+              </div>
             </div>
             <button
               class="shrink-0 text-xl transition-colors"
