@@ -1,0 +1,139 @@
+import { setActivePinia, createPinia } from 'pinia'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { useCatalogStore } from '@/stores/catalog'
+
+describe('catalog store — resource extensions', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('has resources in state', () => {
+    const catalog = useCatalogStore()
+    expect(catalog.resources.length).toBeGreaterThan(0)
+  })
+
+  it('resourceById returns the correct resource', () => {
+    const catalog = useCatalogStore()
+    const first = catalog.resources[0]
+    expect(catalog.resourceById(first.id)?.resourceName).toBe(first.resourceName)
+  })
+
+  it('resourceById returns undefined for unknown id', () => {
+    const catalog = useCatalogStore()
+    expect(catalog.resourceById('nonexistent')).toBeUndefined()
+  })
+
+  it('productForResource returns the linked product', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.products[0]
+    const found = catalog.productForResource(product.resourceId)
+    expect(found?.id).toBe(product.id)
+  })
+
+  it('productForResource returns undefined for unlisted resource', () => {
+    const catalog = useCatalogStore()
+    expect(catalog.productForResource('res-nonexistent')).toBeUndefined()
+  })
+
+  it('internalViews returns only user_view resources for current enterprise', () => {
+    const catalog = useCatalogStore()
+    const views = catalog.internalViews('ent-wanlian-logistics')
+    expect(views.length).toBeGreaterThan(0)
+    for (const v of views) {
+      expect(v.type).toBe('user_view')
+      expect(v.origin).toBe('user_created')
+      expect(v.enterpriseId).toBe('ent-wanlian-logistics')
+    }
+  })
+
+  it('internalViews returns empty for other enterprise', () => {
+    const catalog = useCatalogStore()
+    const views = catalog.internalViews('ent-other')
+    expect(views).toHaveLength(0)
+  })
+
+  it('listResource creates a product from a resource', () => {
+    const catalog = useCatalogStore()
+    const unlistedResource = catalog.resources.find(
+      (r) => !catalog.products.some((p) => p.resourceId === r.id) && r.type !== 'user_view'
+    )
+    expect(unlistedResource).toBeDefined()
+    const before = catalog.products.length
+    catalog.listResource(unlistedResource!.id, {
+      name: unlistedResource!.resourceName,
+      subtitle: '测试上架',
+      price: { model: 'item_only', itemPrice: 100, unit: '元/次' },
+      acquisitions: ['item_purchase'],
+      scenarios: ['测试场景'],
+      tags: []
+    })
+    expect(catalog.products.length).toBe(before + 1)
+    const created = catalog.products.find((p) => p.resourceId === unlistedResource!.id)
+    expect(created).toBeDefined()
+    expect(created!.name).toBe(unlistedResource!.resourceName)
+    expect(created!.availability).toBe('published')
+  })
+
+  it('listResource throws for already listed resource', () => {
+    const catalog = useCatalogStore()
+    const listedResource = catalog.resources.find(
+      (r) => catalog.products.some((p) => p.resourceId === r.id)
+    )
+    expect(listedResource).toBeDefined()
+    expect(() =>
+      catalog.listResource(listedResource!.id, {
+        name: '重复上架',
+        subtitle: '',
+        price: { model: 'free' },
+        acquisitions: ['free'],
+        scenarios: [],
+        tags: []
+      })
+    ).toThrow('该资源已有上架商品')
+  })
+
+  it('listResource throws for user_view type', () => {
+    const catalog = useCatalogStore()
+    const userView = catalog.resources.find((r) => r.type === 'user_view')
+    expect(userView).toBeDefined()
+    expect(() =>
+      catalog.listResource(userView!.id, {
+        name: '不允许',
+        subtitle: '',
+        price: { model: 'free' },
+        acquisitions: ['free'],
+        scenarios: [],
+        tags: []
+      })
+    ).toThrow('用数视图不可上架')
+  })
+
+  it('delistProduct sets availability to delisted', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.products.find((p) => p.availability === 'published')
+    expect(product).toBeDefined()
+    catalog.delistProduct(product!.id)
+    expect(catalog.byId(product!.id)?.availability).toBe('delisted')
+  })
+
+  it('delistProduct is idempotent for nonexistent product', () => {
+    const catalog = useCatalogStore()
+    expect(() => catalog.delistProduct('nonexistent')).not.toThrow()
+  })
+
+  it('searchInternalViews returns matching user views', () => {
+    const catalog = useCatalogStore()
+    const results = catalog.searchInternalViews('司机')
+    expect(results.length).toBeGreaterThan(0)
+    for (const r of results) {
+      expect(r.type).toBe('user_view')
+      expect(r.resourceName.toLowerCase()).toContain('司机')
+    }
+  })
+
+  it('searchInternalViews returns empty for no match', () => {
+    const catalog = useCatalogStore()
+    const results = catalog.searchInternalViews('xyznonexistent')
+    expect(results).toHaveLength(0)
+  })
+})

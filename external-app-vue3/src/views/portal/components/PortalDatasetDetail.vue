@@ -11,6 +11,7 @@ import type {
   BooleanFieldProfiling,
   DistributionBucket
 } from '@/types/domain'
+import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
 
 export interface InfoItem {
   label: string
@@ -222,6 +223,9 @@ const booleanBar = computed(() => {
           >{{ s }}</span>
         </div>
       </div>
+
+      <!-- 声明信息 + 提供方信息（仅空间商品） -->
+      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- ==================== Tab 2: 字段信息 ==================== -->

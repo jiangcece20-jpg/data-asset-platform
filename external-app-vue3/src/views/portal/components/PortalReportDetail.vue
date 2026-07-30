@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types/domain'
+import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
 
 export interface InfoItem {
   label: string
@@ -110,6 +111,9 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <div v-if="product.scenarios?.length" class="flex flex-wrap gap-1.5">
         <span v-for="s in product.scenarios" :key="s" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ s }}</span>
       </div>
+
+      <!-- 声明信息 + 提供方信息（仅空间商品） -->
+      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- 目录 -->

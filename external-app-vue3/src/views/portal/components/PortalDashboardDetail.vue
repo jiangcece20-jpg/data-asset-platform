@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Product, PreviewMode } from '@/types/domain'
+import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
 
 export interface InfoItem {
   label: string
@@ -105,6 +106,9 @@ function displayValue(value: string | number | null | undefined): string {
           >{{ s }}</span>
         </div>
       </div>
+
+      <!-- 声明信息 + 提供方信息（仅空间商品） -->
+      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- Tab: preview 看板预览（2 列） -->

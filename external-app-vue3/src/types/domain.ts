@@ -262,6 +262,28 @@ export interface SpaceSyncMeta {
   dataVolume?: string
   /** 计费模式说明（如：数据表类产品采用一次性价格模式） */
   billingNote?: string
+  // --- 声明信息 ---
+  /** 合法合规声明（文件链接） */
+  complianceDeclarationUrl?: string
+  /** 数据来源声明（文件链接） */
+  dataSourceDeclarationUrl?: string
+  /** 数据样例（文件链接） */
+  dataSampleUrl?: string
+  /** 安全分类分级（文件链接） */
+  securityClassificationUrl?: string
+  /** 数据质量、产品价值评估报告（文件链接） */
+  qualityAssessmentUrl?: string
+  // --- 提供方信息 ---
+  /** 提供方名称 */
+  providerName?: string
+  /** 提供方主体类型（如 LEGAL） */
+  providerEntityType?: string
+  /** 提供方主体信息（注册地址/法人/成立日期/注册资本等） */
+  providerEntityInfo?: string
+  /** 提供方简介 */
+  providerBrief?: string
+  /** 授权委托书（文件链接） */
+  authorizationLetterUrl?: string
 }
 
 export interface Product {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
+import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
 
 export interface InfoItem {
   label: string
@@ -124,6 +125,9 @@ function simulateFail() {
           >{{ s }}</span>
         </div>
       </div>
+
+      <!-- 声明信息 + 提供方信息（仅空间商品） -->
+      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- =================== Tab 2: docs =================== -->
