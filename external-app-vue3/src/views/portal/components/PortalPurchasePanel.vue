@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { originMeta, dataUpdatedAtOf } from '@/utils/productMeta'
+import { originMeta, listedAtOf } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
 import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 
@@ -134,7 +134,7 @@ function goBills() {
       <div class="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-400">
         <div>购买方式：{{ acquisitionText }}</div>
         <div class="mt-1">来源：{{ originMeta[product.origin] }}</div>
-        <div class="mt-1">数据更新时间：{{ dataUpdatedAtOf(product) }}</div>
+        <div class="mt-1">上架时间：{{ listedAtOf(product) }}</div>
       </div>
     </div>
 

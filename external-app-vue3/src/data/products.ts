@@ -26,7 +26,7 @@ export const seedProducts: Product[] = [
     valueProposition: '帮助物流企业和货主实时掌握运价波动，辅助采购与报价决策。',
     deliveryMethod: 'APP 在线看板，支持导出会员专享',
     memberIncluded: true,
-    dataUpdatedAt: '2026-07-06 08:00',
+    listedAt: '2026-05-20',
     updatedAt: '2026-07-10',
     serviceStatus: 'normal',
     typeDetail: {
@@ -71,7 +71,7 @@ export const seedProducts: Product[] = [
     valueProposition: '帮助冷链企业及时发现温控异常，降低货损与合规风险。',
     deliveryMethod: 'APP 在线看板',
     memberIncluded: true,
-    dataUpdatedAt: '2026-07-12 06:00',
+    listedAt: '2026-04-15',
     updatedAt: '2026-06-28',
     serviceStatus: 'normal',
     typeDetail: {
@@ -113,7 +113,7 @@ export const seedProducts: Product[] = [
     valueProposition: '快速了解港口运营趋势，辅助物流规划。',
     deliveryMethod: 'APP 在线看板',
     memberIncluded: false,
-    dataUpdatedAt: '2026-07-12 07:30',
+    listedAt: '2026-05-08',
     updatedAt: '2026-07-12',
     serviceStatus: 'normal',
     typeDetail: {
@@ -157,7 +157,7 @@ export const seedProducts: Product[] = [
     valueProposition: '为企业战略规划和采购决策提供权威、及时的行业洞察。',
     deliveryMethod: 'APP 阅读器在线阅读，会员可合规下载 PDF',
     memberIncluded: true,
-    dataUpdatedAt: '2026-07-05 10:00',
+    listedAt: '2026-06-01',
     updatedAt: '2026-07-05',
     serviceStatus: 'normal',
     typeDetail: {
@@ -209,7 +209,7 @@ export const seedProducts: Product[] = [
     valueProposition: '快速了解政策变化，把握行业方向。',
     deliveryMethod: 'APP 在线阅读',
     memberIncluded: false,
-    dataUpdatedAt: '2026-07-03 09:00',
+    listedAt: '2026-05-12',
     updatedAt: '2026-07-03',
     serviceStatus: 'normal',
     typeDetail: {
@@ -267,7 +267,7 @@ export const seedProducts: Product[] = [
       restrictionNote: '需取得被核验人授权后方可调用',
       billingNote: 'API 类产品按调用量阶梯计费'
     },
-    dataUpdatedAt: '2026-06-20 15:00',
+    listedAt: '2026-06-18',
     updatedAt: '2026-07-09',
     serviceStatus: 'normal',
     typeDetail: {
@@ -358,7 +358,7 @@ export const seedProducts: Product[] = [
       usageRestrictions: ['仅返回匹配结果', '禁止二次转售', '仅限内部使用'],
       billingNote: '隐私核验类产品按核验次数报价'
     },
-    dataUpdatedAt: '2026-06-12 11:00',
+    listedAt: '2026-06-05',
     updatedAt: '2026-07-06',
     serviceStatus: 'normal',
     typeDetail: {
@@ -448,7 +448,7 @@ export const seedProducts: Product[] = [
       dataVolume: '约 3.2 GB',
       billingNote: '数据表类产品采用一次性价格模式'
     },
-    dataUpdatedAt: '2026-07-01 02:00',
+    listedAt: '2026-06-30',
     updatedAt: '2026-07-08',
     serviceStatus: 'normal',
     typeDetail: {
@@ -578,6 +578,7 @@ export const seedProducts: Product[] = [
     valueProposition: '未来可用于司机准入与风险定价。',
     deliveryMethod: '待发布',
     memberIncluded: false,
+    listedAt: '2026-07-02',
     updatedAt: '2026-07-11',
     serviceStatus: 'normal',
     typeDetail: {

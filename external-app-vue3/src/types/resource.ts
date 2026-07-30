@@ -48,8 +48,6 @@ export interface Resource {
   createdBy?: string
   enterpriseId?: string
   createdAt: string
-  /** 数据最后更新时间（RQ-11 源系统口径，缺失时降级取 updatedAt） */
-  dataUpdatedAt?: string
   updatedAt: string
 }
 

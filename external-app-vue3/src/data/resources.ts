@@ -15,7 +15,6 @@ function migrateProductToResource(product: Product): Resource {
     origin: product.origin,
     typeDetail: { ...product.typeDetail },
     createdAt: product.updatedAt,
-    dataUpdatedAt: product.dataUpdatedAt ?? product.spaceSyncedAt,
     updatedAt: product.updatedAt
   }
 }

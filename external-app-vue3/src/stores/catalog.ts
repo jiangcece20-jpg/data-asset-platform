@@ -80,6 +80,7 @@ export const useCatalogStore = defineStore('catalog', {
         valueProposition: '',
         deliveryMethod: '',
         memberIncluded: false,
+        listedAt: now(),
         updatedAt: now(),
         typeDetail: resource.typeDetail,
         serviceStatus: 'normal'

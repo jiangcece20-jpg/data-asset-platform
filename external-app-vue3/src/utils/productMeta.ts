@@ -24,9 +24,9 @@ export interface PriceDisplay {
   tone: string
 }
 
-/** 数据更新时间（RQ-11 源系统口径）降级链：数据更新时间 → 空间同步时间 → 平台记录时间 */
-export function dataUpdatedAtOf(p: Product): string {
-  return p.dataUpdatedAt ?? p.spaceSyncedAt ?? p.updatedAt
+/** 上架时间降级链：上架时间 → 空间同步时间 → 平台记录时间（数据更新时间因源系统难以提供，暂缓展示） */
+export function listedAtOf(p: Product): string {
+  return p.listedAt ?? p.spaceSyncedAt ?? p.updatedAt
 }
 
 /** 列表/卡片价格标签：覆盖全部 PriceModel；quote 报价商品有套餐时取最低单价展示「起」，无套餐时展示「按报价」 */

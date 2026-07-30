@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import type { PriceModel, AcquisitionOption } from '@/types/domain'
+import { listedAtOf } from '@/utils/productMeta'
 
 const PRICE_MODELS: { value: PriceModel; label: string }[] = [
   { value: 'free', label: '免费' },
@@ -242,7 +243,7 @@ function saveProfilingFields() {
         <div><span class="text-slate-500">类型：</span>{{ typeLabels[resource.type] }}</div>
         <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
         <div v-if="resource.createdBy"><span class="text-slate-500">创建者：</span>{{ resource.createdBy }}</div>
-        <div><span class="text-slate-500">数据更新时间：</span>{{ resource.dataUpdatedAt ?? resource.updatedAt }}</div>
+        <div><span class="text-slate-500">上架时间：</span>{{ product ? listedAtOf(product) : '未上架' }}</div>
       </div>
     </div>
 
