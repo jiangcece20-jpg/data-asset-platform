@@ -185,6 +185,14 @@ const booleanBar = computed(() => {
         </div>
       </div>
 
+      <!-- 分类分级（仅空间商品有数据时展示） -->
+      <div v-if="product.spaceMeta?.classificationStandard" class="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50/60 px-4 py-3">
+        <span class="shrink-0 text-xs font-medium text-slate-500">分类分级</span>
+        <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">来自可信空间</span>
+        <span class="text-sm text-slate-700">{{ product.spaceMeta.classificationPath }}</span>
+        <span class="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">{{ product.spaceMeta.classificationLevel }} 级</span>
+      </div>
+
       <!-- 3列信息网格 -->
       <div class="grid grid-cols-3 gap-px bg-slate-100">
         <div

@@ -284,6 +284,13 @@ export interface SpaceSyncMeta {
   providerBrief?: string
   /** 授权委托书（文件链接） */
   authorizationLetterUrl?: string
+  // --- 分类分级 ---
+  /** 分类标准（如"政务数据分类标准"） */
+  classificationStandard?: string
+  /** 分类路径（如"政务数据分类标准 / 组织数据 / 企事业单位"） */
+  classificationPath?: string
+  /** 分级（如 1、2、3） */
+  classificationLevel?: number
 }
 
 export interface Product {

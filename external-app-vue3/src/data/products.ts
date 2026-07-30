@@ -275,7 +275,10 @@ export const seedProducts: Product[] = [
       providerEntityType: 'LEGAL',
       providerEntityInfo: '四川省雅安市经济开发区永兴大道南；法定代表人：可信test3；成立日期：2026-06-09；注册资本：1500万元',
       providerBrief: '专注交通运输行业数据服务，为物流、客运企业提供合规核验能力。',
-      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-api-20415.pdf'
+      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-api-20415.pdf',
+      classificationStandard: '政务数据分类标准',
+      classificationPath: '政务数据分类标准 / 个人数据 / 从业资格',
+      classificationLevel: 2
     },
     listedAt: '2026-06-18',
     updatedAt: '2026-07-09',
@@ -481,7 +484,10 @@ export const seedProducts: Product[] = [
       providerEntityType: 'LEGAL',
       providerEntityInfo: '四川省雅安市经济开发区永兴大道南；法定代表人：可信test3；成立日期：2026-06-09；注册资本：1500万元',
       providerBrief: '物流行业数据服务商，覆盖全国 260 万家企业画像数据。',
-      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-ds-10893.pdf'
+      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-ds-10893.pdf',
+      classificationStandard: '政务数据分类标准',
+      classificationPath: '政务数据分类标准 / 组织数据 / 企事业单位',
+      classificationLevel: 1
     },
     listedAt: '2026-06-30',
     updatedAt: '2026-07-08',
