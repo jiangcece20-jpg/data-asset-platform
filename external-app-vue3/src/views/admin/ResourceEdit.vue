@@ -330,8 +330,12 @@ function saveProfilingFields() {
                 <div class="mt-0.5 text-sm text-slate-700">{{ product.updateFrequency }}</div>
               </div>
               <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <!-- 覆盖范围：始终可编辑（非空间同步字段） -->
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <!-- 覆盖范围（时间覆盖范围）：空间商品只读 -->
+              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+                <span class="text-xs text-slate-400">覆盖时间范围 <span class="text-blue-500">· 同步</span></span>
+                <div class="mt-0.5 text-sm text-slate-700">{{ product.coverage || '—' }}</div>
+              </div>
+              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
               <!-- 交付方式：空间商品只读 -->
               <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
                 <span class="text-xs text-slate-400">交付方式 <span class="text-blue-500">· 同步</span></span>

@@ -188,6 +188,7 @@ export const useCatalogStore = defineStore('catalog', {
       if (snapshot.deliveryMethod !== undefined) product.deliveryMethod = snapshot.deliveryMethod
       if (snapshot.description !== undefined) product.description = snapshot.description
       if (snapshot.scenarios !== undefined) product.scenarios = snapshot.scenarios
+      if (snapshot.coverage !== undefined) product.coverage = snapshot.coverage
     },
     updateServiceStatus(productId: string, serviceStatus: ServiceStatus) {
       const p = this.products.find((x) => x.id === productId)

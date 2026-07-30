@@ -35,6 +35,8 @@ export interface TrustedProductSnapshot {
   description?: string
   /** 应用场景（空间侧单值，映射为数组第一项） */
   scenarios?: string[]
+  /** 覆盖时间范围（如 "2026-07-30 至 2026-08-31"） */
+  coverage?: string
 }
 
 export interface EnterpriseSpaceBinding {

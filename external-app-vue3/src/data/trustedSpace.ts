@@ -54,7 +54,8 @@ export const seedTrustedProductSnapshots: TrustedProductSnapshot[] = [
     updateFrequency: '每月更新',
     deliveryMethod: '可信空间订单交付，支持 API 或批量文件形式',
     description: '包含企业物流发单频次、履约稳定性、区域覆盖等活跃度指标，可用于企业画像与合作评估。',
-    scenarios: ['物流企业评估', '合作伙伴筛选', '行业活跃度分析']
+    scenarios: ['物流企业评估', '合作伙伴筛选', '行业活跃度分析'],
+    coverage: '2024-01 至 2026-06'
   }
 ]
 
