@@ -324,6 +324,44 @@ function saveProfilingFields() {
           </div>
         </div>
 
+        <!-- 可信空间同步信息（只读，仅 space_purchase 商品有 spaceMeta 时展示） -->
+        <div v-if="product.spaceMeta" class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-2 flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-500">合规与分类信息</span>
+            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">来自可信空间同步 · 不可编辑</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div v-if="product.spaceMeta.industryCategory" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">行业分类</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.industryCategory }}</div>
+            </div>
+            <div v-if="product.spaceMeta.regionCategory" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">地域分类</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.regionCategory }}</div>
+            </div>
+            <div v-if="product.spaceMeta.dataSubject" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">数据主体</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.dataSubject }}</div>
+            </div>
+            <div v-if="product.spaceMeta.personalInfo != null" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">是否涉及个人信息</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.personalInfo ? '是' : '否' }}</div>
+            </div>
+            <div v-if="product.spaceMeta.authorizedUse != null" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">授权使用</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.authorizedUse ? '是' : '否' }}</div>
+            </div>
+            <div v-if="product.spaceMeta.dataVolume" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">数据规模</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.dataVolume }}</div>
+            </div>
+            <div v-if="product.spaceMeta.usageRestrictions?.length" class="col-span-2 rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">使用限制</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.usageRestrictions.join('、') }}<template v-if="product.spaceMeta.restrictionNote">；其他说明：{{ product.spaceMeta.restrictionNote }}</template></div>
+            </div>
+          </div>
+        </div>
+
         <!-- 商品说明书（对应详情页商品说明书区） -->
         <div class="mb-4 border-t border-slate-100 pt-4">
           <div class="mb-2 text-xs font-medium text-slate-500">商品说明书</div>
