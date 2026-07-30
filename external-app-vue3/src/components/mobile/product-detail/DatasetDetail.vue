@@ -42,6 +42,7 @@ const basicItems = computed<InfoItem[]>(() => {
     { label: '数据粒度', value: d.granularity },
     { label: '时间范围', value: d.timeRange },
     { label: '数据行数', value: d.rowCount },
+    { label: '字段数', value: d.fields.length ? `${d.fields.length} 个` : undefined },
     { label: '分类分级', value: d.classification },
     { label: '质量更新时间', value: d.qualityUpdatedAt },
     { label: '样本生成时间', value: d.sampleGeneratedAt }
@@ -52,7 +53,21 @@ const basicItems = computed<InfoItem[]>(() => {
 <template>
   <div v-if="detail">
     <!-- 基本信息 -->
-    <InfoGrid v-if="activeTab === 'basic'" :items="basicItems" />
+    <template v-if="activeTab === 'basic'">
+      <InfoGrid :items="basicItems" />
+      <!-- 空间分类分级（结构化） -->
+      <div v-if="product.spaceMeta?.classificationStandard" class="mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+        <div class="mb-1.5 flex items-center gap-2">
+          <span class="text-[12px] font-medium text-slate-500">分类分级</span>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+        </div>
+        <div class="space-y-1 text-[12px] text-slate-700">
+          <div><span class="text-slate-400">分类标准：</span>{{ product.spaceMeta.classificationStandard }}</div>
+          <div><span class="text-slate-400">分类路径：</span>{{ product.spaceMeta.classificationPath }}</div>
+          <div><span class="text-slate-400">分级：</span>{{ product.spaceMeta.classificationLevel }} 级</div>
+        </div>
+      </div>
+    </template>
 
     <!-- 字段信息：横向滑动，首列字段名吸附 -->
     <ScrollTable

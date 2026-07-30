@@ -113,6 +113,13 @@ const baseInfoItems = computed<InfoItem[]>(() => {
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
+
+/** 是否存在声明信息链接 */
+const hasDeclarations = computed(() => {
+  const m = product.value?.spaceMeta
+  if (!m) return false
+  return !!(m.complianceDeclarationUrl || m.dataSourceDeclarationUrl || m.dataSampleUrl || m.securityClassificationUrl || m.qualityAssessmentUrl)
+})
 // 第一个 tab（基本信息/概览）：在此并入「商品说明书」，避免单独一张卡把 tab 挤到下面
 const isOverviewTab = computed(() => currentTabs.value.length > 0 && activeTab.value === currentTabs.value[0].key)
 
@@ -254,6 +261,36 @@ function handleAction(key: ProductActionKey) {
           <div><span class="text-slate-400">详细描述：</span><span class="text-slate-700">{{ product.description }}</span></div>
           <div><span class="text-slate-400">质量/服务承诺：</span><span class="text-slate-700">{{ product.qualityPromise }}</span></div>
           <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
+        </div>
+
+        <!-- 声明信息（仅空间商品且有数据时展示） -->
+        <div v-if="product.spaceMeta && hasDeclarations" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[12px] font-semibold text-slate-800">声明信息</span>
+            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[12px]">
+            <a v-if="product.spaceMeta.complianceDeclarationUrl" :href="product.spaceMeta.complianceDeclarationUrl" target="_blank" class="text-blue-600">合法合规声明 →</a>
+            <a v-if="product.spaceMeta.dataSourceDeclarationUrl" :href="product.spaceMeta.dataSourceDeclarationUrl" target="_blank" class="text-blue-600">数据来源声明 →</a>
+            <a v-if="product.spaceMeta.dataSampleUrl" :href="product.spaceMeta.dataSampleUrl" target="_blank" class="text-blue-600">数据样例 →</a>
+            <a v-if="product.spaceMeta.securityClassificationUrl" :href="product.spaceMeta.securityClassificationUrl" target="_blank" class="text-blue-600">安全分类分级 →</a>
+            <a v-if="product.spaceMeta.qualityAssessmentUrl" :href="product.spaceMeta.qualityAssessmentUrl" target="_blank" class="col-span-2 text-blue-600">数据质量评估报告 →</a>
+          </div>
+        </div>
+
+        <!-- 提供方信息（仅空间商品且有提供方名称时展示） -->
+        <div v-if="product.spaceMeta?.providerName" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[12px] font-semibold text-slate-800">提供方信息</span>
+            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+          </div>
+          <div class="space-y-1 text-[12px] text-slate-700">
+            <div><span class="text-slate-400">提供方：</span>{{ product.spaceMeta.providerName }}</div>
+            <div v-if="product.spaceMeta.providerEntityType"><span class="text-slate-400">主体类型：</span>{{ product.spaceMeta.providerEntityType }}</div>
+            <div v-if="product.spaceMeta.providerEntityInfo"><span class="text-slate-400">主体信息：</span>{{ product.spaceMeta.providerEntityInfo }}</div>
+            <div v-if="product.spaceMeta.providerBrief"><span class="text-slate-400">简介：</span>{{ product.spaceMeta.providerBrief }}</div>
+            <a v-if="product.spaceMeta.authorizationLetterUrl" :href="product.spaceMeta.authorizationLetterUrl" target="_blank" class="text-blue-600">授权委托书 →</a>
+          </div>
         </div>
       </div>
 
