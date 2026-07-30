@@ -26,6 +26,18 @@ const props = defineProps<{
 
 const detail = computed<DatasetDetail | undefined>(() => props.product.typeDetail.dataset)
 
+/** 数据集类型特有基础信息（与运营端“数据集详情”对齐） */
+const datasetItems = computed<InfoItem[]>(() => {
+  const d = detail.value
+  if (!d) return []
+  return [
+    { label: '数据粒度', value: d.granularity },
+    { label: '时间范围', value: d.timeRange },
+    { label: '数据行数', value: d.rowCount },
+    { label: '字段数', value: d.fields.length ? `${d.fields.length} 个` : null }
+  ]
+})
+
 /** 字段表示例值列：仅当存在字段级示例值时展示（可信空间同步商品） */
 const hasSampleValues = computed(() => (detail.value?.fields ?? []).some((f) => f.sampleValue != null))
 
@@ -160,10 +172,10 @@ const booleanBar = computed(() => {
   <div v-if="detail">
     <!-- ==================== Tab 1: 基本信息 ==================== -->
     <div v-if="activeTab === 'basic'" class="space-y-6">
-      <!-- 3列信息网格 -->
+      <!-- 3列信息网格（公共 + 数据集特有） -->
       <div class="grid grid-cols-3 gap-px bg-slate-100">
         <div
-          v-for="(item, idx) in baseInfoItems"
+          v-for="(item, idx) in [...baseInfoItems, ...datasetItems]"
           :key="`${item.label}-${idx}`"
           class="bg-white px-4 py-3"
           :class="item.full ? 'col-span-3' : ''"
