@@ -247,19 +247,7 @@ function saveProfilingFields() {
       </div>
     </div>
 
-    <!-- 关联商品信息 -->
-    <div v-if="product" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">关联商品</h2>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">商品名称：</span>{{ product.name }}</div>
-        <div><span class="text-slate-500">商品 ID：</span><code class="text-xs">{{ product.id }}</code></div>
-        <div><span class="text-slate-500">前台状态：</span>{{ product.availability }}</div>
-        <div><span class="text-slate-500">价格：</span>{{ product.price.itemPrice ?? '—' }} {{ product.price.unit ?? '' }}</div>
-      </div>
-    </div>
-    <div v-else class="mb-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">
-      该资源尚未上架为商品
-    </div>
+
 
     <!-- 类型特有区块：用数视图（只读） -->
     <div v-if="resource.type === 'user_view' && resource.typeDetail.userView" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
