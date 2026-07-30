@@ -381,6 +381,18 @@ function saveProfilingFields() {
               <span class="text-xs text-slate-400">使用限制</span>
               <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.usageRestrictions.join('、') }}<template v-if="product.spaceMeta.restrictionNote">；其他说明：{{ product.spaceMeta.restrictionNote }}</template></div>
             </div>
+            <div v-if="product.spaceMeta.classificationStandard" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">分类标准</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationStandard }}</div>
+            </div>
+            <div v-if="product.spaceMeta.classificationLevel != null" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">分级</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationLevel }} 级</div>
+            </div>
+            <div v-if="product.spaceMeta.classificationPath" class="col-span-2 rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">分类路径</span>
+              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationPath }}</div>
+            </div>
           </div>
         </div>
 
