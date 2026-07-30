@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
+import { typeMeta, dealChannelMeta, originMeta, dataUpdatedAtOf } from '@/utils/productMeta'
 import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
 import PortalPurchasePanel from './components/PortalPurchasePanel.vue'
 import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
@@ -134,7 +134,7 @@ const baseInfoItems = computed<InfoItem[]>(() => {
     { label: '覆盖范围', value: p.coverage },
     { label: '交付方式', value: p.deliveryMethod },
     { label: '来源', value: originMeta[p.origin] },
-    { label: '更新时间', value: p.updatedAt }
+    { label: '数据更新时间', value: dataUpdatedAtOf(p) }
   ]
   // 可信空间同步元数据（PRD §11）：合规三要素 + 行业/地域 + 数据规模 + 结构化使用限制
   const m = p.spaceMeta

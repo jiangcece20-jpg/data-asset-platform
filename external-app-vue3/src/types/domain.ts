@@ -292,6 +292,9 @@ export interface Product {
   spaceSyncedAt?: string
   /** 可信空间同步的描述/合规层元数据（space_purchase 商品只读展示，PRD §11） */
   spaceMeta?: SpaceSyncMeta
+  /** 数据最后更新时间（RQ-11 源系统口径：数据集=最后数据写入、API=接口定义最后变更、报告/看板=数据最后刷新） */
+  dataUpdatedAt?: string
+  /** 平台记录更新时间（商品信息编辑触发，不对外展示） */
   updatedAt: string
   typeDetail: ProductTypeDetail
   favorite?: boolean

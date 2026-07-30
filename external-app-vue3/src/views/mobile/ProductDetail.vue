@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
+import { typeMeta, dealChannelMeta, originMeta, dataUpdatedAtOf } from '@/utils/productMeta'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
 import InfoGrid, { type InfoItem } from '@/components/mobile/product-detail/InfoGrid.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
@@ -107,7 +107,7 @@ const baseInfoItems = computed<InfoItem[]>(() => {
     { label: '覆盖范围', value: p.coverage },
     { label: '交付方式', value: p.deliveryMethod },
     { label: '来源', value: originMeta[p.origin] },
-    { label: '更新时间', value: p.updatedAt }
+    { label: '数据更新时间', value: dataUpdatedAtOf(p) }
   ]
 })
 

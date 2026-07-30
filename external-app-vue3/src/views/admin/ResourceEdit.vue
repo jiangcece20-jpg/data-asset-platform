@@ -242,7 +242,7 @@ function saveProfilingFields() {
         <div><span class="text-slate-500">类型：</span>{{ typeLabels[resource.type] }}</div>
         <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
         <div v-if="resource.createdBy"><span class="text-slate-500">创建者：</span>{{ resource.createdBy }}</div>
-        <div><span class="text-slate-500">更新时间：</span>{{ resource.updatedAt }}</div>
+        <div><span class="text-slate-500">数据更新时间：</span>{{ resource.dataUpdatedAt ?? resource.updatedAt }}</div>
       </div>
     </div>
 
