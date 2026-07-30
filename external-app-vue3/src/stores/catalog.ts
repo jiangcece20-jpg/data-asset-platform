@@ -180,6 +180,14 @@ export const useCatalogStore = defineStore('catalog', {
       if (snapshot.saleStatus === 'delisted') product.availability = 'delisted'
       product.spaceProductNo = snapshot.spaceProductNo
       product.spaceSyncedAt = snapshot.syncedAt
+      // 空间基本信息同步（覆盖本地对应字段）
+      if (snapshot.timeRange !== undefined) {
+        if (product.typeDetail.dataset) product.typeDetail.dataset.timeRange = snapshot.timeRange
+      }
+      if (snapshot.updateFrequency !== undefined) product.updateFrequency = snapshot.updateFrequency
+      if (snapshot.deliveryMethod !== undefined) product.deliveryMethod = snapshot.deliveryMethod
+      if (snapshot.description !== undefined) product.description = snapshot.description
+      if (snapshot.scenarios !== undefined) product.scenarios = snapshot.scenarios
     },
     updateServiceStatus(productId: string, serviceStatus: ServiceStatus) {
       const p = this.products.find((x) => x.id === productId)

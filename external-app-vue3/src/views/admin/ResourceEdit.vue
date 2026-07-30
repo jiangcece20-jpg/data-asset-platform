@@ -312,13 +312,32 @@ function saveProfilingFields() {
 
         <!-- 运营信息（对应详情页基本信息网格） -->
         <div class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
+          <div class="mb-2 flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-500">运营信息</span>
+            <span v-if="product.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
+          </div>
           <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <!-- 提供方：空间商品只读 -->
+              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+                <span class="text-xs text-slate-400">提供方 <span class="text-blue-500">· 同步</span></span>
+                <div class="mt-0.5 text-sm text-slate-700">{{ product.provider }}</div>
+              </div>
+              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <!-- 更新频率：空间商品只读 -->
+              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+                <span class="text-xs text-slate-400">更新频率 <span class="text-blue-500">· 同步</span></span>
+                <div class="mt-0.5 text-sm text-slate-700">{{ product.updateFrequency }}</div>
+              </div>
+              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <!-- 覆盖范围：始终可编辑（非空间同步字段） -->
               <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <!-- 交付方式：空间商品只读 -->
+              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+                <span class="text-xs text-slate-400">交付方式 <span class="text-blue-500">· 同步</span></span>
+                <div class="mt-0.5 text-sm text-slate-700">{{ product.deliveryMethod }}</div>
+              </div>
+              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             </div>
           </div>
         </div>
@@ -363,13 +382,26 @@ function saveProfilingFields() {
 
         <!-- 商品说明书（对应详情页商品说明书区） -->
         <div class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">商品说明书</div>
+          <div class="mb-2 flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-500">商品说明书</span>
+            <span v-if="product.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
+          </div>
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <!-- 详细描述：空间商品只读 -->
+            <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">详细描述 <span class="text-blue-500">· 同步</span></span>
+              <div class="mt-1 text-sm leading-relaxed text-slate-700">{{ product.description || '—' }}</div>
+            </div>
+            <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <!-- 适用场景：空间商品只读 -->
+            <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">适用场景 <span class="text-blue-500">· 同步</span></span>
+              <div class="mt-0.5 text-sm text-slate-700">{{ (product.scenarios || []).join('、') || '—' }}</div>
+            </div>
+            <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
           </div>
         </div>
 

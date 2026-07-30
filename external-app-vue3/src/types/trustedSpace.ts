@@ -24,6 +24,17 @@ export interface TrustedProductSnapshot {
   spaceUpdatedAt: string
   syncedAt: string
   syncState: SnapshotSyncState
+  // --- 空间基本信息同步（覆盖本地对应字段） ---
+  /** 覆盖时间范围（如 "2024-01 至 2026-06"） */
+  timeRange?: string
+  /** 更新频率（如 "次/天"） */
+  updateFrequency?: string
+  /** 交付方式（如 "文件传输"） */
+  deliveryMethod?: string
+  /** 产品简介 → 覆盖 description */
+  description?: string
+  /** 应用场景（空间侧单值，映射为数组第一项） */
+  scenarios?: string[]
 }
 
 export interface EnterpriseSpaceBinding {
