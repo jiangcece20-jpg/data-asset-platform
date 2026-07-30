@@ -25,6 +25,8 @@ export interface DatasetField {
   sensitivity?: 'L1' | 'L2' | 'L3'
   /** 后台开关：该字段是否对外开放单字段数据探查（默认关闭，敏感字段不应开启） */
   profilingEnabled?: boolean
+  /** 字段级示例值（可信空间同步商品可从空间元数据获取） */
+  sampleValue?: string
 }
 
 /** 字段探查分类 */
@@ -227,6 +229,23 @@ export interface ProductTypeDetail {
   dashboard?: DashboardDetail
 }
 
+/** 可信空间元数据同步字段：空间侧为权威源，本地只读不可编辑 */
+export interface SpaceSyncMeta {
+  industryCategory?: string
+  regionCategory?: string
+  /** 数据主体：企业数据 / 个人数据 / 公共数据 */
+  dataSubject?: string
+  personalInfo?: boolean
+  authorizedUse?: boolean
+  /** 使用限制（结构化枚举，对齐空间侧多选项） */
+  usageRestrictions?: string[]
+  restrictionNote?: string
+  /** 数据规模（容量维度，如 22 GB） */
+  dataVolume?: string
+  /** 计费模式说明（如：数据表类产品采用一次性价格模式） */
+  billingNote?: string
+}
+
 export interface Product {
   id: string
   resourceId: string
@@ -253,6 +272,8 @@ export interface Product {
   memberIncluded: boolean
   spaceProductNo?: string
   spaceSyncedAt?: string
+  /** 可信空间同步的描述/合规层元数据（space_purchase 商品只读展示，PRD §11） */
+  spaceMeta?: SpaceSyncMeta
   updatedAt: string
   typeDetail: ProductTypeDetail
   favorite?: boolean

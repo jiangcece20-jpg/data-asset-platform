@@ -128,7 +128,7 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
 const baseInfoItems = computed<InfoItem[]>(() => {
   const p = product.value
   if (!p) return []
-  return [
+  const items: InfoItem[] = [
     { label: '供应方', value: p.provider },
     { label: '更新频率', value: p.updateFrequency },
     { label: '覆盖范围', value: p.coverage },
@@ -136,6 +136,26 @@ const baseInfoItems = computed<InfoItem[]>(() => {
     { label: '来源', value: originMeta[p.origin] },
     { label: '更新时间', value: p.updatedAt }
   ]
+  // 可信空间同步元数据（PRD §11）：合规三要素 + 行业/地域 + 数据规模 + 结构化使用限制
+  const m = p.spaceMeta
+  if (m) {
+    items.push(
+      { label: '行业分类', value: m.industryCategory },
+      { label: '地域分类', value: m.regionCategory },
+      { label: '数据主体', value: m.dataSubject },
+      { label: '是否涉及个人信息', value: m.personalInfo == null ? null : (m.personalInfo ? '是' : '否') },
+      { label: '授权使用', value: m.authorizedUse == null ? null : (m.authorizedUse ? '是' : '否') },
+      { label: '数据规模', value: m.dataVolume }
+    )
+    if (m.usageRestrictions?.length) {
+      items.push({
+        label: '使用限制',
+        value: m.usageRestrictions.join('、') + (m.restrictionNote ? `；其他说明：${m.restrictionNote}` : ''),
+        full: true
+      })
+    }
+  }
+  return items
 })
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))

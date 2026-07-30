@@ -26,6 +26,9 @@ const props = defineProps<{
 
 const detail = computed<DatasetDetail | undefined>(() => props.product.typeDetail.dataset)
 
+/** 字段表示例值列：仅当存在字段级示例值时展示（可信空间同步商品） */
+const hasSampleValues = computed(() => (detail.value?.fields ?? []).some((f) => f.sampleValue != null))
+
 // ---- 空值标准化 ----
 function displayValue(v: string | number | null | undefined): string {
   if (v === null || v === undefined || v === '') return '—'
@@ -209,6 +212,7 @@ const booleanBar = computed(() => {
             <th class="px-4 py-3 text-center font-medium">主键</th>
             <th class="px-4 py-3 text-center font-medium">可空</th>
             <th class="px-4 py-3 text-center font-medium">敏感等级</th>
+            <th v-if="hasSampleValues" class="px-4 py-3 text-left font-medium">示例值</th>
           </tr>
         </thead>
         <tbody>
@@ -224,6 +228,7 @@ const booleanBar = computed(() => {
             <td class="px-4 py-3 text-center">{{ f.primaryKey ? '🔑' : '' }}</td>
             <td class="px-4 py-3 text-center">{{ f.nullable ? '✓' : '✗' }}</td>
             <td class="px-4 py-3 text-center text-slate-600">{{ f.sensitivity ?? '—' }}</td>
+            <td v-if="hasSampleValues" class="px-4 py-3 font-mono text-xs text-slate-500">{{ f.sampleValue ?? '—' }}</td>
           </tr>
         </tbody>
       </table>

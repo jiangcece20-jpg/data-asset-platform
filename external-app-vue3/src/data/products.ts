@@ -252,6 +252,16 @@ export const seedProducts: Product[] = [
     memberIncluded: false,
     spaceProductNo: 'SPACE-API-20415',
     spaceSyncedAt: '2026-07-09 08:30',
+    spaceMeta: {
+      industryCategory: '交通运输',
+      regionCategory: '全国',
+      dataSubject: '个人数据',
+      personalInfo: true,
+      authorizedUse: true,
+      usageRestrictions: ['仅限合规核验用途', '禁止二次转售', '禁止留存原始数据'],
+      restrictionNote: '需取得被核验人授权后方可调用',
+      billingNote: 'API 类产品按调用量阶梯计费'
+    },
     updatedAt: '2026-07-09',
     serviceStatus: 'normal',
     typeDetail: {
@@ -317,6 +327,15 @@ export const seedProducts: Product[] = [
     memberIncluded: false,
     spaceProductNo: 'SPACE-PIR-40217',
     spaceSyncedAt: '2026-07-06 10:00',
+    spaceMeta: {
+      industryCategory: '企业服务',
+      regionCategory: '全国',
+      dataSubject: '企业数据',
+      personalInfo: false,
+      authorizedUse: false,
+      usageRestrictions: ['仅返回匹配结果', '禁止二次转售', '仅限内部使用'],
+      billingNote: '隐私核验类产品按核验次数报价'
+    },
     updatedAt: '2026-07-06',
     serviceStatus: 'normal',
     typeDetail: {
@@ -381,6 +400,17 @@ export const seedProducts: Product[] = [
     memberIncluded: false,
     spaceProductNo: 'SPACE-DS-10893',
     spaceSyncedAt: '2026-07-08 21:10',
+    spaceMeta: {
+      industryCategory: '物流',
+      regionCategory: '全国',
+      dataSubject: '企业数据',
+      personalInfo: false,
+      authorizedUse: false,
+      usageRestrictions: ['使用前必须上传合规承诺文件', '禁止二次转售', '仅限内部使用'],
+      restrictionNote: '跨境传输需另行合规评估',
+      dataVolume: '约 3.2 GB',
+      billingNote: '数据表类产品采用一次性价格模式'
+    },
     updatedAt: '2026-07-08',
     serviceStatus: 'normal',
     typeDetail: {
@@ -391,11 +421,11 @@ export const seedProducts: Product[] = [
         classification: '企业画像数据（L2）',
         qualityUpdatedAt: '2026-07-01',
         fields: [
-          { name: 'enterprise_id', dataType: 'string', meaning: '企业唯一标识（脱敏哈希）', description: '不可逆哈希值，用于跨数据集关联', primaryKey: true, nullable: false, sensitivity: 'L2' },
-          { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false, profilingEnabled: true },
-          { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false, profilingEnabled: true },
-          { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true, profilingEnabled: true },
-          { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false, profilingEnabled: true }
+          { name: 'enterprise_id', dataType: 'string', meaning: '企业唯一标识（脱敏哈希）', description: '不可逆哈希值，用于跨数据集关联', primaryKey: true, nullable: false, sensitivity: 'L2', sampleValue: 'ENT-8A12' },
+          { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '156' },
+          { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '0.94' },
+          { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true, profilingEnabled: true, sampleValue: '广东,浙江,江苏' },
+          { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: 'A' }
         ],
         sampleColumns: ['enterprise_id', 'order_frequency', 'fulfillment_rate', 'coverage_region', 'activity_level'],
         sampleRows: [
