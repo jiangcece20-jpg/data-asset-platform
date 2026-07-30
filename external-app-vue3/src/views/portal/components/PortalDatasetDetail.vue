@@ -26,7 +26,7 @@ const props = defineProps<{
 
 const detail = computed<DatasetDetail | undefined>(() => props.product.typeDetail.dataset)
 
-/** 数据集类型特有基础信息（与运营端“数据集详情”对齐） */
+/** 数据集关键指标（用户判断数据适用性的核心信息，顶部醒目展示） */
 const datasetItems = computed<InfoItem[]>(() => {
   const d = detail.value
   if (!d) return []
@@ -172,10 +172,22 @@ const booleanBar = computed(() => {
   <div v-if="detail">
     <!-- ==================== Tab 1: 基本信息 ==================== -->
     <div v-if="activeTab === 'basic'" class="space-y-6">
-      <!-- 3列信息网格（公共 + 数据集特有） -->
+      <!-- 数据集关键指标：粒度/时间范围/行数/字段数，高亮卡置顶 -->
+      <div class="grid grid-cols-4 gap-3">
+        <div
+          v-for="item in datasetItems"
+          :key="item.label"
+          class="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3"
+        >
+          <div class="text-xs text-blue-600/70">{{ item.label }}</div>
+          <div class="mt-1 text-lg font-bold text-blue-900">{{ displayValue(item.value) }}</div>
+        </div>
+      </div>
+
+      <!-- 3列信息网格 -->
       <div class="grid grid-cols-3 gap-px bg-slate-100">
         <div
-          v-for="(item, idx) in [...baseInfoItems, ...datasetItems]"
+          v-for="(item, idx) in baseInfoItems"
           :key="`${item.label}-${idx}`"
           class="bg-white px-4 py-3"
           :class="item.full ? 'col-span-3' : ''"
