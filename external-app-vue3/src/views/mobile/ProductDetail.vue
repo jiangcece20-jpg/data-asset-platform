@@ -244,7 +244,8 @@ function handleAction(key: ProductActionKey) {
     <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
       <!-- 概览页：基础信息 + 商品说明书（从 hero 下沉至此） -->
       <div v-if="isOverviewTab" class="mb-4 space-y-4 border-b border-slate-100 pb-4">
-        <div>
+        <!-- dataset 类型的基础信息已合并到 DatasetDetail 中，此处跳过 -->
+        <div v-if="product.type !== 'dataset'">
           <div class="mb-2 text-[13px] font-semibold text-slate-800">基础信息</div>
           <InfoGrid :items="baseInfoItems" />
           <div class="mt-2 flex flex-wrap gap-1.5">
@@ -294,7 +295,7 @@ function handleAction(key: ProductActionKey) {
         </div>
       </div>
 
-      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" />
+      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" :base-info-items="baseInfoItems" />
       <ApiDetail v-else-if="product.type === 'api'" :product="product" :active-tab="activeTab as any" />
       <ReportDetail
         v-else-if="product.type === 'report'"
