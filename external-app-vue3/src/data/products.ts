@@ -276,11 +276,22 @@ export const seedProducts: Product[] = [
           { name: 'vehicleClass', location: 'body', dataType: 'string', required: false, description: '准驾车型（可选筛选条件）', example: 'A2' }
         ],
         responseFields: [
-          { name: 'requestId', dataType: 'string', description: '请求唯一标识' },
-          { name: 'valid', dataType: 'boolean', description: '证件是否有效' },
-          { name: 'vehicleClass', dataType: 'string', description: '准驾类型' },
-          { name: 'expireAt', dataType: 'string', description: '证件到期日期' }
+          { name: 'requestId', dataType: 'string', description: '请求唯一标识', example: 'req-20260709-8a3f' },
+          { name: 'valid', dataType: 'boolean', description: '证件是否有效', example: 'true' },
+          { name: 'vehicleClass', dataType: 'string', description: '准驾类型', example: 'A2' },
+          { name: 'expireAt', dataType: 'string', description: '证件到期日期', example: '2028-05-01' }
         ],
+        requestExample: `{
+  "idCardNo": "110101199001010011",
+  "certificateNo": "CERT-A2-001",
+  "vehicleClass": "A2"
+}`,
+        responseExample: `{
+  "requestId": "req-20260709-8a3f",
+  "valid": true,
+  "vehicleClass": "A2",
+  "expireAt": "2028-05-01"
+}`,
         sandbox: {
           editableParameters: ['idCardNo', 'certificateNo', 'vehicleClass'],
           fixedResponse: {
@@ -355,10 +366,20 @@ export const seedProducts: Product[] = [
           { name: 'validUntil', location: 'body', dataType: 'string', required: false, description: '要求有效期至', example: '2027-12-31' }
         ],
         responseFields: [
-          { name: 'requestId', dataType: 'string', description: '请求唯一标识' },
-          { name: 'hit', dataType: 'boolean', description: '是否命中匹配资质' },
-          { name: 'validRange', dataType: 'string', description: '有效期区间（命中时返回）' }
+          { name: 'requestId', dataType: 'string', description: '请求唯一标识', example: 'req-pir-20260706-c51d' },
+          { name: 'hit', dataType: 'boolean', description: '是否命中匹配资质', example: 'true' },
+          { name: 'validRange', dataType: 'string', description: '有效期区间（命中时返回）', example: '2024-01-01 ~ 2028-12-31' }
         ],
+        requestExample: `{
+  "creditCode": "91110108MA01ABCDEF",
+  "qualificationType": "道路运输经营许可",
+  "validUntil": "2027-12-31"
+}`,
+        responseExample: `{
+  "requestId": "req-pir-20260706-c51d",
+  "hit": true,
+  "validRange": "2024-01-01 ~ 2028-12-31"
+}`,
         sandbox: {
           editableParameters: ['creditCode', 'qualificationType', 'validUntil'],
           fixedResponse: {

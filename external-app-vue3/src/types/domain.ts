@@ -159,7 +159,11 @@ export interface ApiDetail {
   version: string
   authentication: string
   parameters: ApiParameter[]
-  responseFields: Array<{ name: string; dataType: string; description: string }>
+  responseFields: Array<{ name: string; dataType: string; description: string; example?: string }>
+  /** 请求示例 JSON（可信空间可同步；存在时接口文档 Tab 展示并支持一键复制） */
+  requestExample?: string
+  /** 返回示例 JSON（可信空间可同步；存在时接口文档 Tab 展示并支持一键复制） */
+  responseExample?: string
   sandbox: {
     editableParameters: string[]
     fixedResponse: Record<string, string | number | boolean>

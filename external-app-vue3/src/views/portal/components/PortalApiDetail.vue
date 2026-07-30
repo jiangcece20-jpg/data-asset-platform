@@ -16,6 +16,26 @@ const props = defineProps<{
 
 const detail = computed(() => props.product.typeDetail.api)
 
+const hasResponseExamples = computed(() =>
+  (detail.value?.responseFields ?? []).some((f) => f.example != null)
+)
+
+// ---- Copy JSON example ----
+const copiedKey = ref('')
+let copyTimer: ReturnType<typeof setTimeout> | undefined
+async function copyExample(key: string, text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copiedKey.value = key
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => {
+      copiedKey.value = ''
+    }, 2000)
+  } catch {
+    // 剪贴板不可用时静默失败
+  }
+}
+
 // ---- Sandbox state ----
 const paramValues = reactive<Record<string, string>>({})
 const sandboxResult = ref<Record<string, string | number | boolean> | null>(null)
@@ -148,6 +168,7 @@ function simulateFail() {
               <th class="px-3 py-2 font-medium">字段名</th>
               <th class="px-3 py-2 font-medium">类型</th>
               <th class="px-3 py-2 font-medium">说明</th>
+              <th v-if="hasResponseExamples" class="px-3 py-2 font-medium">示例值</th>
             </tr>
           </thead>
           <tbody>
@@ -159,9 +180,34 @@ function simulateFail() {
               <td class="px-3 py-2 font-mono text-slate-800">{{ field.name }}</td>
               <td class="px-3 py-2 text-slate-600">{{ field.dataType }}</td>
               <td class="px-3 py-2 text-slate-600">{{ field.description }}</td>
+              <td v-if="hasResponseExamples" class="px-3 py-2 font-mono text-xs text-slate-500">{{ field.example ?? '—' }}</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- 请求示例 -->
+      <div v-if="detail.requestExample" class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-slate-800">请求示例</h3>
+          <button
+            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
+            @click="copyExample('request', detail.requestExample)"
+          >{{ copiedKey === 'request' ? '已复制 ✓' : '复制' }}</button>
+        </div>
+        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.requestExample }}</pre>
+      </div>
+
+      <!-- 返回示例 -->
+      <div v-if="detail.responseExample" class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-slate-800">返回示例</h3>
+          <button
+            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
+            @click="copyExample('response', detail.responseExample)"
+          >{{ copiedKey === 'response' ? '已复制 ✓' : '复制' }}</button>
+        </div>
+        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
       </div>
     </div>
 
