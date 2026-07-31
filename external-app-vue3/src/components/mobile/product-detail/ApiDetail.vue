@@ -101,6 +101,18 @@ function simulateFail() {
         <div class="mb-1.5 text-[12px] font-medium text-slate-500">响应字段</div>
         <ScrollTable :columns="responseColumns" :rows="responseRows" sticky-first />
       </div>
+
+      <!-- 请求示例 -->
+      <div v-if="detail.requestExample">
+        <div class="mb-1.5 text-[12px] font-medium text-slate-500">请求示例</div>
+        <pre class="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-slate-100">{{ detail.requestExample }}</pre>
+      </div>
+
+      <!-- 返回示例 -->
+      <div v-if="detail.responseExample">
+        <div class="mb-1.5 text-[12px] font-medium text-slate-500">返回示例</div>
+        <pre class="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
+      </div>
     </div>
 
     <!-- 在线调试 -->
