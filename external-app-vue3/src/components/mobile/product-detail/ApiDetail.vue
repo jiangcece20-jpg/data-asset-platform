@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+import ScrollTable, { type ScrollColumn } from './ScrollTable.vue'
 
 const props = defineProps<{ product: Product; activeTab: 'basic' | 'docs' | 'sandbox' | 'sla' }>()
 
@@ -18,6 +19,42 @@ const basicItems = computed<InfoItem[]>(() => {
     { label: '路径示例', value: d.pathExample, full: true }
   ]
 })
+
+// 请求参数表（横向滚动，字段名吸附）
+const paramColumns: ScrollColumn[] = [
+  { key: 'name', label: '参数名', mono: true },
+  { key: 'location', label: '位置' },
+  { key: 'dataType', label: '类型' },
+  { key: 'required', label: '必填', align: 'center' },
+  { key: 'description', label: '说明' },
+  { key: 'example', label: '示例', mono: true }
+]
+
+const paramRows = computed(() =>
+  (detail.value?.parameters ?? []).map((p) => ({
+    name: p.name,
+    location: p.location,
+    dataType: p.dataType,
+    required: p.required ? '✓' : '',
+    description: p.description,
+    example: p.example
+  }))
+)
+
+// 响应字段表
+const responseColumns: ScrollColumn[] = [
+  { key: 'name', label: '字段名', mono: true },
+  { key: 'dataType', label: '类型' },
+  { key: 'description', label: '说明' }
+]
+
+const responseRows = computed(() =>
+  (detail.value?.responseFields ?? []).map((f) => ({
+    name: f.name,
+    dataType: f.dataType,
+    description: f.description
+  }))
+)
 
 // 本地沙箱状态
 const paramValues = reactive<Record<string, string>>({})
@@ -50,54 +87,19 @@ function simulateFail() {
 
 <template>
   <div v-if="detail">
-    <!-- 基本信息 -->
-    <InfoGrid v-if="activeTab === 'basic'" :items="basicItems" />
-
-    <!-- 接口文档 -->
-    <div v-else-if="activeTab === 'docs'" class="space-y-4">
+    <!-- 接口文档（含接口基础信息） -->
+    <div v-if="activeTab === 'docs'" class="space-y-4">
+      <div>
+        <div class="mb-1.5 text-[12px] font-medium text-slate-500">接口基础信息</div>
+        <InfoGrid :items="basicItems" />
+      </div>
       <div>
         <div class="mb-1.5 text-[12px] font-medium text-slate-500">请求参数</div>
-        <table class="w-full text-left text-[12px]">
-          <thead class="bg-slate-50 text-slate-400">
-            <tr>
-              <th class="px-3 py-2 font-medium">参数名</th>
-              <th class="px-3 py-2 font-medium">位置</th>
-              <th class="px-3 py-2 font-medium">类型</th>
-              <th class="px-3 py-2 font-medium">必填</th>
-              <th class="px-3 py-2 font-medium">说明</th>
-              <th class="px-3 py-2 font-medium">示例</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="param in detail.parameters" :key="param.name" class="border-t border-slate-100">
-              <td class="px-3 py-2 font-mono text-slate-800">{{ param.name }}</td>
-              <td class="px-3 py-2 text-slate-500">{{ param.location }}</td>
-              <td class="px-3 py-2 text-slate-500">{{ param.dataType }}</td>
-              <td class="px-3 py-2 text-center">{{ param.required ? '✓' : '' }}</td>
-              <td class="px-3 py-2 text-slate-600">{{ param.description }}</td>
-              <td class="px-3 py-2 font-mono text-slate-400">{{ param.example }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <ScrollTable :columns="paramColumns" :rows="paramRows" sticky-first />
       </div>
       <div>
         <div class="mb-1.5 text-[12px] font-medium text-slate-500">响应字段</div>
-        <table class="w-full text-left text-[12px]">
-          <thead class="bg-slate-50 text-slate-400">
-            <tr>
-              <th class="px-3 py-2 font-medium">字段名</th>
-              <th class="px-3 py-2 font-medium">类型</th>
-              <th class="px-3 py-2 font-medium">说明</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="field in detail.responseFields" :key="field.name" class="border-t border-slate-100">
-              <td class="px-3 py-2 font-mono text-slate-800">{{ field.name }}</td>
-              <td class="px-3 py-2 text-slate-500">{{ field.dataType }}</td>
-              <td class="px-3 py-2 text-slate-600">{{ field.description }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <ScrollTable :columns="responseColumns" :rows="responseRows" sticky-first />
       </div>
     </div>
 

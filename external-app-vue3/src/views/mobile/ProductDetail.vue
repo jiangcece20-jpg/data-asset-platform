@@ -249,7 +249,11 @@ function handleAction(key: ProductActionKey) {
       <div
         v-if="isOverviewTab"
         class="space-y-4"
-        :class="product.type === 'dataset' ? 'mt-4 border-t border-slate-100 pt-4' : 'mb-4 border-b border-slate-100 pb-4'"
+        :class="product.type === 'dataset'
+          ? 'mt-4 border-t border-slate-100 pt-4'
+          : product.type === 'api'
+            ? ''
+            : 'mb-4 border-b border-slate-100 pb-4'"
       >
         <!-- dataset 类型的基础信息已合并到 DatasetDetail 中，此处跳过 -->
         <div v-if="product.type !== 'dataset'">

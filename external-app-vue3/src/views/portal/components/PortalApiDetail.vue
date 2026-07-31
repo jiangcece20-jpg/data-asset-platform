@@ -81,7 +81,31 @@ function simulateFail() {
         </div>
       </div>
 
-      <!-- API-specific basic items -->
+      <!-- 商品说明书 -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5">
+        <h3 class="mb-3 text-sm font-semibold text-slate-800">商品说明书</h3>
+        <div class="space-y-2 text-sm leading-relaxed text-slate-600">
+          <div><span class="text-slate-400">价值主张：</span>{{ product.valueProposition }}</div>
+          <div><span class="text-slate-400">详细描述：</span>{{ product.description }}</div>
+          <div><span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}</div>
+          <div><span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}</div>
+        </div>
+        <div v-if="product.scenarios?.length" class="mt-3 flex flex-wrap gap-1.5">
+          <span
+            v-for="s in product.scenarios"
+            :key="s"
+            class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+          >{{ s }}</span>
+        </div>
+      </div>
+
+      <!-- 声明信息 + 提供方信息（仅空间商品） -->
+      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
+    </div>
+
+    <!-- =================== Tab 2: docs =================== -->
+    <div v-if="activeTab === 'docs'" class="space-y-4">
+      <!-- 接口基础信息 -->
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-sm font-semibold text-slate-800">接口基础信息</h3>
         <div class="grid grid-cols-3 gap-px bg-slate-100">
@@ -108,42 +132,18 @@ function simulateFail() {
         </div>
       </div>
 
-      <!-- 商品说明书 -->
-      <div class="rounded-xl border border-slate-200 bg-white p-5">
-        <h3 class="mb-3 text-sm font-semibold text-slate-800">商品说明书</h3>
-        <div class="space-y-2 text-sm leading-relaxed text-slate-600">
-          <div><span class="text-slate-400">价值主张：</span>{{ product.valueProposition }}</div>
-          <div><span class="text-slate-400">详细描述：</span>{{ product.description }}</div>
-          <div><span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}</div>
-          <div><span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}</div>
-        </div>
-        <div v-if="product.scenarios?.length" class="mt-3 flex flex-wrap gap-1.5">
-          <span
-            v-for="s in product.scenarios"
-            :key="s"
-            class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
-          >{{ s }}</span>
-        </div>
-      </div>
-
-      <!-- 声明信息 + 提供方信息（仅空间商品） -->
-      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
-    </div>
-
-    <!-- =================== Tab 2: docs =================== -->
-    <div v-if="activeTab === 'docs'" class="grid grid-cols-2 gap-4">
-      <!-- 请求参数 -->
+      <!-- 请求参数（全宽） -->
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-sm font-semibold text-slate-800">请求参数</h3>
-        <table class="w-full text-left text-sm">
+        <table class="w-full table-fixed text-left text-sm">
           <thead>
             <tr class="bg-slate-50 text-xs text-slate-400">
-              <th class="px-3 py-2 font-medium">参数名</th>
-              <th class="px-3 py-2 font-medium">位置</th>
-              <th class="px-3 py-2 font-medium">类型</th>
-              <th class="px-3 py-2 font-medium">必填</th>
+              <th class="w-[16%] px-3 py-2 font-medium">参数名</th>
+              <th class="w-[10%] px-3 py-2 font-medium">位置</th>
+              <th class="w-[10%] px-3 py-2 font-medium">类型</th>
+              <th class="w-[8%] px-3 py-2 text-center font-medium">必填</th>
               <th class="px-3 py-2 font-medium">说明</th>
-              <th class="px-3 py-2 font-medium">示例</th>
+              <th class="w-[18%] px-3 py-2 font-medium">示例</th>
             </tr>
           </thead>
           <tbody>
@@ -152,27 +152,27 @@ function simulateFail() {
               :key="param.name"
               class="border-b border-slate-100"
             >
-              <td class="px-3 py-2 font-mono text-slate-800">{{ param.name }}</td>
+              <td class="break-all px-3 py-2 font-mono text-slate-800">{{ param.name }}</td>
               <td class="px-3 py-2 text-slate-600">{{ param.location }}</td>
               <td class="px-3 py-2 text-slate-600">{{ param.dataType }}</td>
-              <td class="px-3 py-2 text-slate-600">{{ param.required ? '✓' : '' }}</td>
+              <td class="px-3 py-2 text-center text-slate-600">{{ param.required ? '✓' : '' }}</td>
               <td class="px-3 py-2 text-slate-600">{{ param.description }}</td>
-              <td class="px-3 py-2 font-mono text-xs text-slate-500">{{ param.example }}</td>
+              <td class="break-all px-3 py-2 font-mono text-xs text-slate-500">{{ param.example }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- 响应字段 -->
+      <!-- 响应字段（全宽） -->
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-sm font-semibold text-slate-800">响应字段</h3>
-        <table class="w-full text-left text-sm">
+        <table class="w-full table-fixed text-left text-sm">
           <thead>
             <tr class="bg-slate-50 text-xs text-slate-400">
-              <th class="px-3 py-2 font-medium">字段名</th>
-              <th class="px-3 py-2 font-medium">类型</th>
+              <th class="w-[22%] px-3 py-2 font-medium">字段名</th>
+              <th class="w-[14%] px-3 py-2 font-medium">类型</th>
               <th class="px-3 py-2 font-medium">说明</th>
-              <th v-if="hasResponseExamples" class="px-3 py-2 font-medium">示例值</th>
+              <th v-if="hasResponseExamples" class="w-[20%] px-3 py-2 font-medium">示例值</th>
             </tr>
           </thead>
           <tbody>
@@ -181,37 +181,40 @@ function simulateFail() {
               :key="field.name"
               class="border-b border-slate-100"
             >
-              <td class="px-3 py-2 font-mono text-slate-800">{{ field.name }}</td>
+              <td class="break-all px-3 py-2 font-mono text-slate-800">{{ field.name }}</td>
               <td class="px-3 py-2 text-slate-600">{{ field.dataType }}</td>
               <td class="px-3 py-2 text-slate-600">{{ field.description }}</td>
-              <td v-if="hasResponseExamples" class="px-3 py-2 font-mono text-xs text-slate-500">{{ field.example ?? '—' }}</td>
+              <td v-if="hasResponseExamples" class="break-all px-3 py-2 font-mono text-xs text-slate-500">{{ field.example ?? '—' }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- 请求示例 -->
-      <div v-if="detail.requestExample" class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="mb-3 flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-slate-800">请求示例</h3>
-          <button
-            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
-            @click="copyExample('request', detail.requestExample)"
-          >{{ copiedKey === 'request' ? '已复制 ✓' : '复制' }}</button>
+      <!-- 请求/返回示例（并排） -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- 请求示例 -->
+        <div v-if="detail.requestExample" class="rounded-xl border border-slate-200 bg-white p-5">
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">请求示例</h3>
+            <button
+              class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
+              @click="copyExample('request', detail.requestExample)"
+            >{{ copiedKey === 'request' ? '已复制 ✓' : '复制' }}</button>
+          </div>
+          <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.requestExample }}</pre>
         </div>
-        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.requestExample }}</pre>
-      </div>
 
-      <!-- 返回示例 -->
-      <div v-if="detail.responseExample" class="rounded-xl border border-slate-200 bg-white p-5">
-        <div class="mb-3 flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-slate-800">返回示例</h3>
-          <button
-            class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
-            @click="copyExample('response', detail.responseExample)"
-          >{{ copiedKey === 'response' ? '已复制 ✓' : '复制' }}</button>
+        <!-- 返回示例 -->
+        <div v-if="detail.responseExample" class="rounded-xl border border-slate-200 bg-white p-5">
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-800">返回示例</h3>
+            <button
+              class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50"
+              @click="copyExample('response', detail.responseExample)"
+            >{{ copiedKey === 'response' ? '已复制 ✓' : '复制' }}</button>
+          </div>
+          <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
         </div>
-        <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
       </div>
     </div>
 
