@@ -242,8 +242,15 @@ function handleAction(key: ProductActionKey) {
 
     <!-- Tab 内容 -->
     <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+      <!-- dataset 类型：表格+分类分级放在最前面 -->
+      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" :base-info-items="baseInfoItems" />
+
       <!-- 概览页：基础信息 + 商品说明书（从 hero 下沉至此） -->
-      <div v-if="isOverviewTab" class="mb-4 space-y-4 border-b border-slate-100 pb-4">
+      <div
+        v-if="isOverviewTab"
+        class="space-y-4"
+        :class="product.type === 'dataset' ? 'mt-4 border-t border-slate-100 pt-4' : 'mb-4 border-b border-slate-100 pb-4'"
+      >
         <!-- dataset 类型的基础信息已合并到 DatasetDetail 中，此处跳过 -->
         <div v-if="product.type !== 'dataset'">
           <div class="mb-2 text-[13px] font-semibold text-slate-800">基础信息</div>
@@ -295,8 +302,7 @@ function handleAction(key: ProductActionKey) {
         </div>
       </div>
 
-      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" :base-info-items="baseInfoItems" />
-      <ApiDetail v-else-if="product.type === 'api'" :product="product" :active-tab="activeTab as any" />
+      <ApiDetail v-if="product.type === 'api'" :product="product" :active-tab="activeTab as any" />
       <ReportDetail
         v-else-if="product.type === 'report'"
         :product="product"
@@ -305,7 +311,7 @@ function handleAction(key: ProductActionKey) {
         @unlock="handleUnlock"
       />
       <DashboardDetail v-else-if="product.type === 'dashboard'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
-      <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+      <div v-else-if="product.type !== 'dataset'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
     </div>
 
     <!-- 已拥有权益 -->
