@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
-import type { Product, ProductStatus, AvailabilityStatus } from '@/types/domain'
+import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail } from '@/types/domain'
 import type { Resource, ListResourceForm } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
@@ -15,7 +15,8 @@ export const useCatalogStore = defineStore('catalog', {
   }),
   getters: {
     discoverable(state): Product[] {
-      return state.products.filter((p) => ['candidate', 'preparing', 'published'].includes(p.availability))
+      // 前台只展示已经完成商品包装、审核并发布的商品。
+      return state.products.filter((p) => p.availability === 'published' && p.status === 'published')
     },
     published(state): Product[] {
       return state.products.filter((p) => p.availability === 'published')
@@ -52,6 +53,9 @@ export const useCatalogStore = defineStore('catalog', {
       if (!resource) throw new Error('资源不存在')
       if (resource.type === 'user_view') throw new Error('用数视图不可上架')
       if (this.products.some((p) => p.resourceId === resourceId)) throw new Error('该资源已有上架商品')
+      if (resource.origin === 'asset_platform' && (resource.assetStatus !== 'published' || !resource.commercializable)) {
+        throw new Error('仅已上架且允许商业化的资产可包装为商品')
+      }
 
       const product: Product = {
         id: genId('prod'),
@@ -61,16 +65,30 @@ export const useCatalogStore = defineStore('catalog', {
         type: resource.type as Product['type'],
         origin: resource.origin,
         dealChannel: 'app_payment',
-        availability: 'published',
+        availability: 'preparing',
         acquisitions: form.acquisitions,
         scenarios: form.scenarios,
-        provider: 'APP 自营内容',
+        provider: resource.origin === 'asset_platform' ? '万联数据资产平台' : 'APP 自营内容',
         coverage: '',
         updateFrequency: '',
         qualityPromise: '',
         complianceNote: '',
         price: form.price,
-        status: 'published',
+        datasetOffers: resource.type === 'dataset' ? [
+          { id: genId('offer-personal'), name: '个人快照版', subject: 'personal', price: form.price.itemPrice ?? 100, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
+          { id: genId('offer-personal-updates'), name: '个人持续更新版', subject: 'personal', price: (form.price.itemPrice ?? 100) * 3, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'personal', allowDownload: false, deliveryMode: 'managed_connection' },
+          { id: genId('offer-enterprise-snapshot'), name: '企业快照版', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 10, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'snapshot' },
+          { id: genId('offer-enterprise'), name: '企业持续更新版', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 24, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'managed_connection' }
+        ] : undefined,
+        assetSnapshot: resource.origin === 'asset_platform' ? {
+          resourceId: resource.id,
+          assetVersion: resource.assetVersion || 'unknown',
+          syncedAt: resource.lastSyncedAt || now(),
+          lastCheckedAt: resource.lastCheckedAt || now(),
+          changeRisk: resource.changeRisk || 'none',
+          changeSummary: resource.changeSummary
+        } : undefined,
+        status: 'draft',
         tags: form.tags,
         description: '',
         valueProposition: '',
@@ -82,6 +100,24 @@ export const useCatalogStore = defineStore('catalog', {
         serviceStatus: 'normal'
       }
       this.products.push(product)
+      return product
+    },
+    submitProductReview(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.status !== 'draft') throw new Error('仅草稿商品可提交审核')
+      product.status = 'pending_approval'
+      product.availability = 'preparing'
+      product.updatedAt = now()
+      return product
+    },
+    approveAndPublishProduct(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.status !== 'pending_approval') throw new Error('仅待审核商品可审批发布')
+      product.status = 'published'
+      product.availability = 'published'
+      product.listedAt = now()
+      product.updatedAt = now()
+      return product
     },
     delistProduct(productId: string) {
       const p = this.products.find((x) => x.id === productId)
@@ -161,6 +197,26 @@ export const useCatalogStore = defineStore('catalog', {
         this.products[idx] = { ...this.products[idx], ...patch, updatedAt: now() }
       }
     },
+    /**
+     * 看板展示配置同时写回商品与关联资源，确保后台资源摘要和前台详情使用同一份口径。
+     */
+    updateDashboardDetail(productId: string, detail: DashboardDetail) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.type !== 'dashboard') return
+      const cloneDetail = (): DashboardDetail => ({
+        ...detail,
+        metrics: detail.metrics.map((metric) => ({ ...metric, dimensions: [...metric.dimensions] })),
+        panels: detail.panels.map((panel) => ({ ...panel }))
+      })
+      product.typeDetail = { ...product.typeDetail, dashboard: cloneDetail() }
+      product.updatedAt = now()
+
+      const resource = this.resources.find((item) => item.id === product.resourceId)
+      if (resource) {
+        resource.typeDetail = { ...resource.typeDetail, dashboard: cloneDetail() }
+        resource.updatedAt = now()
+      }
+    },
     updateEnhancement(productId: string, patch: Partial<Pick<Product, 'recommendText' | 'sortWeight' | 'recommendSlot'>> & { tags?: string[] }) {
       const p = this.products.find((x) => x.id === productId)
       if (!p) return
@@ -175,6 +231,7 @@ export const useCatalogStore = defineStore('catalog', {
       product.name = snapshot.name
       product.provider = snapshot.provider
       product.price = { ...snapshot.price }
+      if (snapshot.datasetOffers) product.datasetOffers = snapshot.datasetOffers.map((offer) => ({ ...offer }))
       if (snapshot.saleStatus === 'published') product.availability = 'published'
       if (snapshot.saleStatus === 'paused') product.availability = 'paused'
       if (snapshot.saleStatus === 'delisted') product.availability = 'delisted'

@@ -127,14 +127,24 @@ describe('CheckoutItem report purchase subject', () => {
     expect(store.getEnterpriseReportCheckoutIntent(second.id, 'prod-logistics-monthly')).toBeUndefined()
   })
 
-  it('continues to checkout an APP dashboard as a personal term item without showing report subjects', async () => {
+  it('lets an APP dashboard use the same subject, delivery-mode and finite-term checkout', async () => {
     const { wrapper, router } = await mountCheckout('prod-freight-index')
 
     expect(router.currentRoute.value.name).toBe('checkout-item')
-    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
-    await wrapper.get('[data-testid="personal-item-submit"]').trigger('click')
+    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="commerce-offer-continuous"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="commerce-term-select"]').setValue('36')
+    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
 
     const order = useOrderStore().list.at(-1)!
-    expect(order).toMatchObject({ productId: 'prod-freight-index', ownerType: 'personal', entitlementGranted: true })
+    expect(order).toMatchObject({
+      productId: 'prod-freight-index',
+      ownerType: 'personal',
+      entitlementGranted: true,
+      serviceMode: 'continuous',
+      selectedTermMonths: 36,
+      amount: 897
+    })
   })
 })

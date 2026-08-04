@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import ProductCard from '@/components/mobile/ProductCard.vue'
 import EmptyState from '@/components/mobile/EmptyState.vue'
-import DemandProgress from '@/components/mobile/DemandProgress.vue'
-import { useSupplyTaskStore } from '@/stores/supplyTasks'
 import { useUserStore } from '@/stores/user'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
-import { useTrialStore } from '@/stores/trials'
-import { useDemandStore } from '@/stores/demand'
 import { useCatalogStore } from '@/stores/catalog'
-import { useListingRequestStore } from '@/stores/listingRequests'
-import { useReverseWorkOrderStore } from '@/stores/reverseWorkOrders'
+import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import {
+  appOrderCard,
+  formatOrderTime,
+  orderFilterLabel,
+  productTypeLabels,
+  spaceOrderCard,
+  type MyOrderCard,
+  type MyOrderFilter
+} from '@/domain/myCenter'
+import type { Entitlement } from '@/types/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,35 +27,28 @@ const user = useUserStore()
 const entitlements = useEntitlementStore()
 const orders = useOrderStore()
 const spaceOrders = useSpaceOrderStore()
-const trials = useTrialStore()
-const demand = useDemandStore()
 const catalog = useCatalogStore()
-const listingRequests = useListingRequestStore()
-const woStore = useReverseWorkOrderStore()
+const datasetCommerce = useDatasetCommerceStore()
 
-const tabs = ['权益', '个人订单', '我的账单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏'] as const
-const initialTab = (route.query.tab as string) || '权益'
-const validTabs = ['权益', '个人订单', '我的账单', '企业订单', '试用与需求', '求上架', '服务通知', '收藏']
-const tab = ref<(typeof tabs)[number]>(validTabs.includes(initialTab) ? initialTab as any : '权益')
+type MineTab = 'orders' | 'data'
+type SubjectFilter = 'all' | 'personal' | 'enterprise'
+type ChannelFilter = 'all' | 'app' | 'space'
+type ProductTypeFilter = 'all' | 'dataset' | 'api' | 'report' | 'dashboard'
+const tabs: Array<{ value: MineTab; label: string }> = [
+  { value: 'orders', label: '我的订单' },
+  { value: 'data', label: '我的数据' }
+]
+const initialTab = ['data', '我的数据'].includes(String(route.query.tab || '')) ? 'data' : 'orders'
+const tab = ref<MineTab>(initialTab)
+const orderFilters: MyOrderFilter[] = ['all', 'pending_payment', 'processing', 'completed', 'closed']
+const orderFilter = ref<MyOrderFilter>('all')
+const subjectFilter = ref<SubjectFilter>(route.query.subject === 'enterprise' ? 'enterprise' : route.query.subject === 'personal' ? 'personal' : 'all')
+const channelFilter = ref<ChannelFilter>('all')
+const productTypeFilter = ref<ProductTypeFilter>('all')
 
-const supply = useSupplyTaskStore()
-const myDemands = computed(() => demand.byOwner(user.context.currentMemberId))
-const myCallbacks = computed(() => supply.callbacksForCustomer(user.context.currentMemberId))
-
-const currentPersonalEntitlements = computed(() => entitlements.currentPersonalEntitlements)
-const itemEntitlements = computed(() => currentPersonalEntitlements.value.filter((e) => e.type === 'item'))
-const personalMemberEntitlement = computed(() => currentPersonalEntitlements.value.find((e) => e.type === 'member'))
-const hasPersonalMember = computed(() => Boolean(personalMemberEntitlement.value))
-const favorites = computed(() => catalog.products.filter((p) => p.favorite))
-const myListingRequests = computed(() => listingRequests.byUser(user.context.currentMemberId))
 const enterpriseMember = computed(() => user.currentEnterpriseMember)
 const enterpriseOrderUser = computed(() => {
-  if (
-    user.context.enterpriseAuthStatus !== 'authenticated'
-    || !user.context.currentEnterpriseId
-    || !enterpriseMember.value
-  ) return undefined
-
+  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId || !enterpriseMember.value) return undefined
   return {
     currentEnterpriseId: user.context.currentEnterpriseId,
     currentMemberId: user.context.currentMemberId,
@@ -59,229 +56,220 @@ const enterpriseOrderUser = computed(() => {
     role: enterpriseMember.value.role
   }
 })
-const personalAppOrders = computed(() => orders.appOrders.filter((order) =>
-  order.ownerType === 'personal' && order.ownerId === user.context.currentMemberId,
-))
-const enterpriseOrders = computed(() => {
-  const context = enterpriseOrderUser.value
-  if (!context) return []
 
-  const appOrders = orders.appOrders
-    .filter((order) => order.ownerType === 'enterprise' && order.ownerId === context.currentEnterpriseId)
-    .map((order) => ({
-      source: 'app' as const,
-      id: order.id,
-      channelLabel: 'APP 支付',
-      productName: order.productName,
-      status: order.status,
-      amount: order.amount,
-      createdAt: order.createdAt
-    }))
-  const trustedSpaceOrders = spaceOrders.visibleFor(context).map((order) => ({
-    source: 'space' as const,
-    id: order.spaceOrderId,
-    channelLabel: '可信空间',
-    productName: order.productName,
-    status: order.displayStatus,
-    amount: order.amount,
-    currency: order.currency,
-    spaceOrderId: order.spaceOrderId,
-    deliverySummary: order.deliverySummary,
-    syncedAt: order.syncedAt,
-    detailUrl: order.detailUrl
-  }))
+const allOrders = computed<MyOrderCard[]>(() => {
+  const enterpriseContext = enterpriseOrderUser.value
+  const appCards = orders.appOrders
+    .filter((order) => {
+      if (order.ownerType === 'personal') return order.ownerId === user.context.currentMemberId
+      if (!enterpriseContext || order.ownerId !== enterpriseContext.currentEnterpriseId) return false
+      return enterpriseContext.role === 'admin' || order.operatorMemberId === enterpriseContext.currentMemberId
+    })
+    .map((order) => {
+      const card = appOrderCard(order, user.enterprise.name)
+      card.productType ||= catalog.byId(order.productId)?.type
+      return card
+    })
 
-  return [...appOrders, ...trustedSpaceOrders]
+  const spaceCards = enterpriseContext
+    ? spaceOrders.visibleFor(enterpriseContext).map((order) => spaceOrderCard(order, catalog.byId(order.appProductId)?.type, user.enterprise.name))
+    : []
+
+  return [...appCards, ...spaceCards].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 })
 
-const deliveredNotices = computed(() =>
-  woStore.notices.filter((n) =>
-    n.status === 'delivered'
-    && n.channel === 'in_app'
-    && (n.customerId === user.context.currentMemberId
-      || (user.context.currentEnterpriseId && n.customerId === user.context.currentEnterpriseId)),
-  ),
-)
+const filteredOrders = computed(() => allOrders.value.filter((order) => (
+  (orderFilter.value === 'all' || order.filter === orderFilter.value)
+  && (subjectFilter.value === 'all' || order.ownerType === subjectFilter.value)
+  && (channelFilter.value === 'all' || order.source === channelFilter.value)
+  && (productTypeFilter.value === 'all' || order.productType === productTypeFilter.value)
+)))
+
+const datasetEntitlements = computed(() => entitlements.visibleDatasetEntitlements)
+const deliveryFor = (entitlementId: string) => datasetCommerce.deliveries.find((item) => item.entitlementId === entitlementId)
+const effectiveExpiry = (entitlement: Entitlement) => entitlement.updateValidTo || entitlement.validTo
+const isRenewable = (entitlement: Entitlement) => entitlement.licenseKind === 'subscription' || entitlement.serviceMode === 'continuous'
+const isExpiring = (entitlement: Entitlement) => {
+  const value = effectiveExpiry(entitlement)
+  if (!value) return false
+  const days = Math.ceil((new Date(`${value}T23:59:59`).getTime() - Date.now()) / 86_400_000)
+  return days >= 0 && days <= 90
+}
+
+function selectTab(next: MineTab) {
+  tab.value = next
+  void router.replace({ query: { ...route.query, tab: next } })
+}
+
+function setSubjectFilter(next: SubjectFilter) {
+  subjectFilter.value = next
+  void router.replace({ query: { ...route.query, subject: next === 'all' ? undefined : next } })
+}
+
+function goProduct(order: MyOrderCard) {
+  router.push(`/app/product/${order.productId}`)
+}
+
+function pay(order: MyOrderCard) {
+  if (order.paymentPath) router.push(order.paymentPath)
+}
+
+function goData() {
+  selectTab('data')
+}
+
+function renew(entitlement: Entitlement) {
+  if (!entitlement.productId) return
+  router.push({
+    path: `/app/checkout/dataset/${entitlement.productId}`,
+    query: {
+      subject: entitlement.source,
+      offer: entitlement.datasetOfferId,
+      renew: entitlement.id
+    }
+  })
+}
+
+function openBills() {
+  if (user.isEnterpriseAuthenticated) {
+    router.push('/app/mine/enterprise/bills')
+    return
+  }
+  router.push({ path: '/app/enterprise-auth', query: { redirect: '/app/mine/enterprise/bills' } })
+}
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 pb-6">
+  <div class="min-h-full bg-slate-50 pb-8">
     <MobileHeader title="我的" :show-back="false" />
 
     <div class="px-4 pt-3">
-      <div class="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-lg">👤</div>
-        <div class="flex-1">
-          <div class="text-[14px] font-semibold text-slate-900">{{ user.context.name }}</div>
-          <div class="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-400">
-            <span v-if="hasPersonalMember" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">会员至 {{ personalMemberEntitlement?.validTo }}</span>
-            <span v-else>非会员</span>
+      <div class="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-slate-900 to-brand-800 p-4 text-white shadow-card">
+        <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-lg">👤</div>
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-[14px] font-semibold">{{ user.context.name }}</div>
+          <div class="mt-0.5 truncate text-[11px] text-white/65">
+            {{ user.isEnterpriseAuthenticated ? user.enterprise.name : '个人身份 · 企业认证后可查看企业订单' }}
           </div>
         </div>
-        <button class="rounded-full bg-slate-100 px-3 py-1.5 text-[12px] text-slate-600" @click="router.push('/app/mine/enterprise')">企业中心 ›</button>
+        <button class="rounded-full bg-white/15 px-3 py-1.5 text-[11px]" @click="router.push('/app/mine/enterprise')">企业中心 ›</button>
       </div>
     </div>
 
-    <div class="mt-3 px-4">
-      <div class="flex gap-1 overflow-x-auto rounded-full bg-slate-100 p-1 text-[12px]">
-        <button
-          v-for="t in tabs"
-          :key="t"
-          class="shrink-0 rounded-full px-3 py-1.5 transition"
-          :class="tab === t ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
-          @click="tab = t"
-        >
-          {{ t }}
-        </button>
-      </div>
-    </div>
-
-    <!-- 权益 -->
-    <div v-if="tab === '权益'" class="mt-3 space-y-2.5 px-4">
-      <div class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="text-[13px] font-medium text-slate-700">个人会员</div>
-        <div class="mt-1 text-[12px] text-slate-400">
-          {{ hasPersonalMember ? `有效期至 ${personalMemberEntitlement?.validTo}` : '尚未开通' }}
-        </div>
-        <button v-if="!hasPersonalMember" class="mt-2 rounded-full bg-brand-500 px-3 py-1.5 text-[12px] text-white" @click="router.push('/app/checkout/member')">
-          去开通
-        </button>
-      </div>
-      <div v-if="itemEntitlements.length" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="mb-1.5 text-[13px] font-medium text-slate-700">单品权益</div>
-        <div v-for="e in itemEntitlements" :key="e.id" class="flex items-center justify-between py-1 text-[12px] text-slate-600">
-          <span>{{ catalog.byId(e.productId || '')?.name }}</span>
-          <span v-if="e.productVersion" class="text-slate-400">版本 {{ e.productVersion }} · 长期有效</span>
-          <span v-else-if="e.validTo" class="text-slate-400">有效至 {{ e.validTo }}</span>
-          <span v-else class="text-slate-400">长期有效</span>
-        </div>
-      </div>
-      <EmptyState v-if="!hasPersonalMember && !itemEntitlements.length" icon="🎫" title="暂无个人权益" />
-    </div>
-
-    <!-- 个人订单 -->
-    <div v-else-if="tab === '个人订单'" class="mt-3 space-y-2 px-4">
-      <div v-for="o in personalAppOrders" :key="o.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="flex items-center justify-between">
-          <span class="text-[13px] font-medium text-slate-800">{{ o.productName }}</span>
-          <StatusBadge dict="appOrder" :value="o.status" />
-        </div>
-        <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
-          <span>个人订单 · {{ o.createdAt }}</span>
-          <span>¥{{ o.amount }}</span>
-        </div>
-      </div>
-      <EmptyState v-if="!personalAppOrders.length" icon="🧾" title="暂无个人订单" />
-    </div>
-
-    <!-- 我的账单 -->
-    <div v-else-if="tab === '我的账单'" class="mt-3 space-y-2 px-4">
+    <div class="mx-4 mt-3 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-[13px]">
       <button
-        class="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 text-left"
-        @click="router.push('/app/mine/enterprise/bills')"
-      >
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-lg">📈</div>
-          <div>
-            <div class="text-[13px] font-medium text-slate-800">API 用量账单</div>
-            <div class="mt-0.5 text-[11px] text-slate-400">查看 API 调用量和费用明细</div>
-          </div>
-        </div>
-        <span class="text-slate-300">›</span>
-      </button>
+        v-for="item in tabs"
+        :key="item.value"
+        class="rounded-lg py-2.5 transition"
+        :class="tab === item.value ? 'bg-white font-medium text-brand-600 shadow-sm' : 'text-slate-500'"
+        @click="selectTab(item.value)"
+      >{{ item.label }}</button>
     </div>
 
-    <!-- 企业订单 -->
-    <div v-else-if="tab === '企业订单'" class="mt-3 space-y-2 px-4">
-      <div v-if="!enterpriseOrderUser" class="rounded-2xl border border-slate-100 bg-white p-4 text-center text-[13px] text-slate-500">
-        完成企业认证后查看企业订单
+    <section v-if="tab === 'orders'" class="mt-3 space-y-3 px-4" data-testid="my-orders">
+      <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2 text-[11px] text-violet-700" data-testid="enterprise-order-filter-context">
+        <span>当前仅显示 {{ user.enterprise.name }} 的可见订单</span>
+        <button class="font-medium" @click="setSubjectFilter('all')">查看全部</button>
       </div>
-      <template v-else>
-        <div v-for="o in enterpriseOrders" :key="`${o.source}-${o.id}`" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-medium text-slate-800">{{ o.productName }}</span>
-            <StatusBadge v-if="o.source === 'app'" dict="appOrder" :value="o.status" />
-            <StatusBadge v-else dict="spaceOrder" :value="o.status" />
-          </div>
-          <div class="mt-1 flex items-center justify-between text-[11px] text-slate-400">
-            <span>{{ o.channelLabel }}</span>
-            <span>{{ o.source === 'app' ? `¥${o.amount}` : `${o.amount} ${o.currency}` }}</span>
-          </div>
-          <div v-if="o.source === 'app'" class="mt-1 text-[11px] text-slate-400">创建于 {{ o.createdAt }}</div>
-          <template v-else>
-            <div class="mt-1 text-[11px] text-slate-400">空间订单号：{{ o.spaceOrderId }}</div>
-            <div v-if="o.deliverySummary" class="mt-1 text-[11px] text-slate-500">交付摘要：{{ o.deliverySummary }}</div>
-            <div class="mt-1 text-[11px] text-slate-400">最近同步：{{ o.syncedAt }}</div>
-            <a
-              v-if="o.detailUrl"
-              class="mt-2 inline-flex rounded-full bg-brand-50 px-3 py-1.5 text-[12px] text-brand-600"
-              :href="o.detailUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >前往空间使用</a>
-          </template>
-        </div>
-        <EmptyState v-if="!enterpriseOrders.length" icon="🧾" title="暂无企业订单" />
-      </template>
-    </div>
-
-    <!-- 试用与需求 -->
-    <div v-else-if="tab === '试用与需求'" class="mt-3 space-y-2 px-4">
-      <div v-if="trials.list.length">
-        <div class="mb-1.5 text-xs font-medium text-slate-400">试用申请</div>
-        <div v-for="t in trials.list" :key="t.id" class="mb-2 rounded-2xl border border-slate-100 bg-white p-3.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] font-medium text-slate-800">{{ t.productName }}</span>
-            <StatusBadge dict="trial" :value="t.status" />
-          </div>
-          <div class="mt-1 text-[11px] text-slate-400">额度 {{ t.usedQuota }}/{{ t.quota }} · 申请于 {{ t.appliedAt }}</div>
-        </div>
-      </div>
-      <div v-if="myDemands.length">
-        <div class="mb-1.5 text-xs font-medium text-slate-400">我的需求</div>
-        <div class="space-y-2">
-          <DemandProgress :demands="myDemands" :callbacks="myCallbacks" @view="(id) => router.push('/app/mine')" />
-        </div>
-      </div>
-      <EmptyState v-if="!trials.list.length && !myDemands.length" icon="📝" title="暂无试用或需求记录" />
-    </div>
-
-    <!-- 求上架 -->
-    <div v-else-if="tab === '求上架'" class="mt-3 space-y-2 px-4">
-      <div v-for="r in myListingRequests" :key="r.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="flex items-center justify-between">
-          <span class="text-[13px] font-medium text-slate-800">{{ r.productName }}</span>
-          <StatusBadge dict="listingRequest" :value="r.status" />
-        </div>
-        <div class="mt-1 text-[11px] text-slate-400">使用场景：{{ r.scenario }} · 提交于 {{ r.createdAt }}</div>
-        <div v-if="r.feedbackMessage" class="mt-1 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500">{{ r.feedbackMessage }}</div>
+      <div class="flex gap-2 overflow-x-auto pb-0.5">
         <button
-          v-if="r.status === 'published'"
-          class="mt-2 rounded-full bg-brand-500 px-3 py-1.5 text-[12px] text-white"
-          @click="router.push(`/app/product/${r.productId}`)"
-        >
-          前往购买 ›
-        </button>
+          v-for="filter in orderFilters"
+          :key="filter"
+          class="shrink-0 rounded-full border px-3 py-1.5 text-[11px]"
+          :class="orderFilter === filter ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-200 bg-white text-slate-500'"
+          @click="orderFilter = filter"
+        >{{ orderFilterLabel(filter) }}</button>
       </div>
-      <EmptyState v-if="!myListingRequests.length" icon="📋" title="暂无求上架记录" />
-    </div>
 
-    <!-- 服务通知 -->
-    <div v-else-if="tab === '服务通知'" class="mt-3 space-y-2.5 px-4">
-      <div v-for="n in deliveredNotices" :key="n.id" class="rounded-2xl border border-slate-100 bg-white p-3.5">
-        <div class="flex items-center gap-1.5">
-          <span class="text-[12px] font-medium text-slate-700">📋 服务通知</span>
-          <span class="ml-auto text-[10px] text-slate-400">{{ n.deliveredAt?.slice(0, 10) }}</span>
+      <div class="grid grid-cols-2 gap-2 rounded-xl border border-slate-100 bg-white p-2.5 text-[11px]">
+        <div class="col-span-2 flex gap-1 rounded-lg bg-slate-50 p-1">
+          <button class="flex-1 rounded-md py-1.5" :class="subjectFilter === 'all' ? 'bg-white font-medium text-brand-600 shadow-sm' : 'text-slate-500'" @click="setSubjectFilter('all')">全部主体</button>
+          <button class="flex-1 rounded-md py-1.5" :class="subjectFilter === 'personal' ? 'bg-white font-medium text-brand-600 shadow-sm' : 'text-slate-500'" @click="setSubjectFilter('personal')">个人</button>
+          <button class="flex-1 rounded-md py-1.5" :class="subjectFilter === 'enterprise' ? 'bg-white font-medium text-brand-600 shadow-sm' : 'text-slate-500'" :disabled="!user.isEnterpriseAuthenticated" @click="setSubjectFilter('enterprise')">企业</button>
         </div>
-        <div class="mt-1.5 text-[12px] leading-relaxed text-slate-600">{{ n.content }}</div>
+        <select v-model="productTypeFilter" aria-label="商品类型筛选" class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-slate-600">
+          <option value="all">全部商品类型</option><option value="dataset">数据集</option><option value="api">API</option><option value="report">报告</option><option value="dashboard">看板</option>
+        </select>
+        <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-slate-600">
+          <option value="all">全部成交渠道</option><option value="app">APP 内购买</option><option value="space">可信空间购买</option>
+        </select>
       </div>
-      <EmptyState v-if="!deliveredNotices.length" icon="📭" title="暂无服务通知" desc="商品状态变更时会在此通知您" />
-    </div>
 
-    <!-- 收藏 -->
-    <div v-else class="mt-3 space-y-2.5 px-4">
-      <ProductCard v-for="p in favorites" :key="p.id" :product="p" />
-      <EmptyState v-if="!favorites.length" icon="⭐" title="暂无收藏" desc="在商品卡片右上角点击星标即可收藏" />
-    </div>
+      <button data-testid="api-bills-order-entry" class="flex w-full items-center justify-between rounded-2xl border border-brand-100 bg-brand-50 p-3.5 text-left" @click="openBills">
+        <div class="flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-base">📈</div>
+          <div>
+            <div class="text-[12px] font-medium text-slate-800">API 调用与费用账单</div>
+            <div class="mt-0.5 text-[10px] text-slate-500">从订单追溯到具体 API、凭证、调用量和费用</div>
+          </div>
+        </div>
+        <span class="text-brand-500">›</span>
+      </button>
+
+      <article v-for="order in filteredOrders" :key="`${order.source}-${order.id}`" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+              <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">{{ order.productType ? productTypeLabels[order.productType] : '商品' }}</span>
+              <span class="font-mono text-slate-400">{{ order.id }}</span>
+            </div>
+            <h3 class="mt-2 text-[14px] font-semibold leading-snug text-slate-900">{{ order.productName }}</h3>
+          </div>
+          <StatusBadge :dict="order.statusDict" :value="order.status" />
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-slate-50 p-3 text-[10px]">
+          <div><span class="text-slate-400">购买主体</span><div class="mt-0.5 truncate text-slate-700">{{ order.ownerLabel }}</div></div>
+          <div><span class="text-slate-400">成交渠道</span><div class="mt-0.5 text-slate-700">{{ order.channelLabel }}</div></div>
+          <div><span class="text-slate-400">购买方案</span><div class="mt-0.5 text-slate-700">{{ order.planSummary }}</div></div>
+          <div><span class="text-slate-400">付款方式</span><div class="mt-0.5 text-slate-700">{{ order.paymentLabel }}</div></div>
+          <div><span class="text-slate-400">下单时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.createdAt) }}</div></div>
+          <div><span class="text-slate-400">付款时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.paidAt) }}</div></div>
+          <div class="col-span-2"><span class="text-slate-400">订单金额</span><div class="mt-0.5 font-semibold text-brand-600">{{ order.amountText }}</div></div>
+        </div>
+        <div class="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[10px] leading-relaxed text-emerald-700">{{ order.progressSummary }}</div>
+        <div v-if="order.source === 'space'" class="mt-2 text-[10px] text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</div>
+
+        <div class="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3">
+          <button class="rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600" @click="goProduct(order)">查看商品</button>
+          <button v-if="order.canPay && order.paymentPath" class="rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white" @click="pay(order)">继续付款</button>
+          <button v-if="order.productType === 'dataset' && order.filter === 'completed'" class="rounded-full bg-brand-50 px-3 py-1.5 text-[11px] text-brand-600" @click="goData">查看我的数据</button>
+          <button v-if="order.productType === 'api'" class="rounded-full bg-brand-50 px-3 py-1.5 text-[11px] text-brand-600" @click="openBills">查看 API 账单</button>
+          <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" class="rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white">前往可信空间</a>
+        </div>
+      </article>
+      <EmptyState v-if="!filteredOrders.length" icon="🧾" title="暂无符合条件的订单" desc="订单会统一展示个人、企业、APP 与可信空间来源" />
+    </section>
+
+    <section v-else class="mt-3 space-y-3 px-4" data-testid="my-datasets">
+      <div class="rounded-xl bg-blue-50 px-3 py-2 text-[11px] leading-relaxed text-blue-700">这里管理已购数据集的交付与有效期；报告、看板和 API 的使用入口从“我的订单”进入。</div>
+      <article v-for="entitlement in datasetEntitlements" :key="entitlement.id" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400">
+              <span class="rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">{{ entitlement.source === 'enterprise' ? '企业数据' : '个人数据' }}</span>
+              <span>订单 {{ entitlement.orderId || '—' }}</span>
+            </div>
+            <h3 class="mt-2 text-[14px] font-semibold text-slate-900">{{ catalog.byId(entitlement.productId || '')?.name || '未知数据集' }}</h3>
+          </div>
+          <StatusBadge dict="entitlementStatus" :value="entitlement.status" />
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl bg-slate-50 p-3 text-[10px]">
+          <div><span class="text-slate-400">服务方式</span><div class="mt-0.5 text-slate-700">{{ isRenewable(entitlement) ? '持续更新' : '一次性快照' }}</div></div>
+          <div><span class="text-slate-400">资产版本</span><div class="mt-0.5 text-slate-700">{{ entitlement.assetVersion || '—' }}</div></div>
+          <div><span class="text-slate-400">用数交付</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.status === 'delivered' ? '已交付' : '处理中' }}</div></div>
+          <div><span class="text-slate-400">最近更新</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.lastSuccessfulRefreshAt?.slice(0, 10) || '—' }}</div></div>
+          <div class="col-span-2"><span class="text-slate-400">{{ isRenewable(entitlement) ? '更新服务到期日' : '数据保留期限' }}</span><div class="mt-0.5 font-medium" :class="isExpiring(entitlement) ? 'text-amber-600' : 'text-slate-700'">{{ effectiveExpiry(entitlement) || '当前快照长期保留' }}<span v-if="isExpiring(entitlement)"> · 即将到期</span></div></div>
+        </div>
+        <div v-if="isRenewable(entitlement)" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-700">到期后停止接收新版本，最近已交付版本仍可使用；续订后延长更新服务。</div>
+
+        <div class="mt-3 flex gap-2">
+          <a v-if="deliveryFor(entitlement.id)?.biEntryUrl" :href="deliveryFor(entitlement.id)?.biEntryUrl" class="flex-1 rounded-full bg-brand-500 py-2.5 text-center text-[11px] font-medium text-white">进入用数模块</a>
+          <button v-if="isRenewable(entitlement)" data-testid="renew-dataset" class="rounded-full border border-brand-500 px-4 py-2.5 text-[11px] font-medium text-brand-600" @click="renew(entitlement)">续订</button>
+        </div>
+      </article>
+      <EmptyState v-if="!datasetEntitlements.length" icon="🗂️" title="暂无可用数据" desc="已购买并完成交付的数据集会显示在这里" />
+    </section>
   </div>
 </template>

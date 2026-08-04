@@ -1,0 +1,65 @@
+import { mount } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { useCatalogStore } from '@/stores/catalog'
+import ResourceEdit from './ResourceEdit.vue'
+
+async function mountResourceEdit() {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/admin/resources/:id', component: ResourceEdit }]
+  })
+  await router.push('/admin/resources/res-prod-freight-index')
+  await router.isReady()
+  return mount(ResourceEdit, { global: { plugins: [router] } })
+}
+
+describe('ResourceEdit product-detail mapping', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('edits the fallback subtitle and preferred recommendation copy separately', async () => {
+    const wrapper = await mountResourceEdit()
+
+    await wrapper.get('[data-testid="product-subtitle-input"]').setValue('看板基础副标题')
+    await wrapper.get('[data-testid="product-recommend-input"]').setValue('详情页优先推荐语')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-freight-index')
+    expect(product?.subtitle).toBe('看板基础副标题')
+    expect(product?.recommendText).toBe('详情页优先推荐语')
+    expect(wrapper.text()).toContain('导出规则')
+    expect(wrapper.text()).toContain('货运价格指数')
+    expect(wrapper.text()).toContain('全国运价趋势')
+  })
+
+  it('configures public metric descriptions and syncs product and resource summaries', async () => {
+    const wrapper = await mountResourceEdit()
+
+    await wrapper.get('[data-testid="dashboard-metric-definition-0"]').setValue('公开展示的指标业务描述')
+    await wrapper.get('[data-testid="dashboard-time-range"]').setValue('近 5 年')
+    await wrapper.get('[data-testid="save-dashboard-config"]').trigger('click')
+
+    const catalog = useCatalogStore()
+    const product = catalog.byId('prod-freight-index')
+    const resource = catalog.resourceById('res-prod-freight-index')
+    expect(product?.typeDetail.dashboard?.metrics[0].definition).toBe('公开展示的指标业务描述')
+    expect(product?.typeDetail.dashboard?.metrics[0].preview).toBe('visible')
+    expect(resource?.typeDetail.dashboard?.metrics[0].definition).toBe('公开展示的指标业务描述')
+    expect(resource?.typeDetail.dashboard?.timeRange).toBe('近 5 年')
+  })
+
+  it('configures personal and enterprise one-time and finite continuous plans for a dashboard', async () => {
+    const wrapper = await mountResourceEdit()
+    const planForms = wrapper.findAll('[data-testid^="commerce-offer-form-"]')
+
+    expect(planForms).toHaveLength(4)
+    const personalContinuous = planForms.find((item) => item.text().includes('个人 · 持续服务'))!
+    await personalContinuous.get('[data-testid="max-term-months"]').setValue('24')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const plan = useCatalogStore().byId('prod-freight-index')?.commerceOffers
+      ?.find((item) => item.subject === 'personal' && item.serviceMode === 'continuous')
+    expect(plan).toMatchObject({ billingPeriodMonths: 12, maxTermMonths: 24 })
+  })
+})

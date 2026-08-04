@@ -6,6 +6,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import type { PurchaseSubject } from '@/stores/orders'
+import { commerceOffersOf, normalizeOfferTerm, offerAmount, offerDescription, offerTermOptions } from '@/domain/commerceOffers'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,6 +27,12 @@ const enterpriseEligible = computed(() =>
 const subject = ref<PurchaseSubject>(enterpriseEligible.value ? 'enterprise' : 'personal')
 const enterpriseMode = ref<'online' | 'contract'>('online')
 const confirmationSubject = ref<PurchaseSubject | null>(null)
+const offers = computed(() => product.value ? commerceOffersOf(product.value).filter((item) => item.subject === subject.value) : [])
+const selectedOfferId = ref('')
+const offer = computed(() => offers.value.find((item) => item.id === selectedOfferId.value))
+const selectedTermMonths = ref<number | undefined>()
+const termOptions = computed(() => offer.value ? offerTermOptions(offer.value) : [])
+const amount = computed(() => offer.value ? offerAmount(offer.value, selectedTermMonths.value) : 0)
 const subjectName = computed(() => subject.value === 'enterprise' ? user.enterprise.name : user.context.name)
 const subjectLabel = computed(() => subject.value === 'enterprise' ? '企业' : '个人')
 
@@ -34,17 +41,23 @@ watch(checkoutAllowed, (allowed) => {
 }, { immediate: true })
 
 const entitlementNote = computed(() => {
-  if (!product.value) return ''
-  if (product.value.type === 'report') {
-    const version = product.value.typeDetail.report?.version || ''
-    return `永久访问当前版本 ${version}；后续独立版本需另行购买`
-  }
-  if (product.value.type === 'dashboard') {
-    const months = product.value.entitlementPolicy?.kind === 'term' ? product.value.entitlementPolicy.months : 12
-    return `购买后使用 ${months} 个月，期间持续获得更新`
-  }
-  return '购买后长期可访问'
+  if (!offer.value) return '请选择价格方案'
+  const scope = subject.value === 'personal' ? '仅购买人使用' : '归企业所有，由管理员分配成员权限'
+  return `${offerDescription(offer.value)} · ${scope}`
 })
+
+function chooseOffer(offerId: string) {
+  selectedOfferId.value = offerId
+  const next = offers.value.find((item) => item.id === offerId)
+  selectedTermMonths.value = next ? offerTermOptions(next)[0] : undefined
+  confirmationSubject.value = null
+}
+
+watch([product, subject], () => {
+  const preferred = offers.value.find((item) => item.recommended) || offers.value[0]
+  if (!preferred || offers.value.some((item) => item.id === selectedOfferId.value)) return
+  chooseOffer(preferred.id)
+}, { immediate: true })
 
 function selectSubject(next: PurchaseSubject) {
   if (submitting.value) return
@@ -57,35 +70,34 @@ function selectSubject(next: PurchaseSubject) {
 }
 
 function requestConfirmation() {
-  if (submitting.value || (subject.value === 'enterprise' && !enterpriseEligible.value)) return
+  if (submitting.value || !offer.value || (subject.value === 'enterprise' && !enterpriseEligible.value)) return
   confirmationSubject.value = subject.value
 }
 
 function confirmPurchase() {
-  if (submitting.value || paid.value || !product.value || confirmationSubject.value !== subject.value) return
+  if (submitting.value || paid.value || !product.value || !offer.value || confirmationSubject.value !== subject.value) return
   submitting.value = true
   confirmationSubject.value = null
   try {
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
-      const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
+      const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
+        offerId: offer.value.id,
+        selectedTermMonths: normalizeOfferTerm(offer.value, selectedTermMonths.value),
+        amount: amount.value,
+        serviceMode: offer.value.serviceMode
+      })
       router.push({ path: `/app/checkout/enterprise/${id.value}`, query: { intent: intent.id } })
       return
     }
     const intent = subject.value === 'enterprise'
-      ? orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value)
+      ? orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
+          offerId: offer.value.id,
+          selectedTermMonths: normalizeOfferTerm(offer.value, selectedTermMonths.value),
+          amount: amount.value,
+          serviceMode: offer.value.serviceMode
+        })
       : undefined
-    orders.purchaseReportForSubject(id.value, subject.value, enterpriseMode.value, intent?.id)
-    paid.value = true
-  } catch {
-    submitting.value = false
-  }
-}
-
-function payPersonalItem() {
-  if (submitting.value || paid.value || !product.value) return
-  submitting.value = true
-  try {
-    orders.purchaseItem(id.value, product.value.price.itemPrice || 0)
+    orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, selectedTermMonths.value, enterpriseMode.value, intent?.id)
     paid.value = true
   } catch {
     submitting.value = false
@@ -114,7 +126,7 @@ function goBackToContext() {
         <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] leading-relaxed text-slate-500">
           访问期限：{{ entitlementNote }} · 下载/导出：{{ product.type === 'report' ? '会员可合规下载 PDF' : '暂不支持导出' }} · 授权范围：{{ product.deliveryMethod }}
         </div>
-        <template v-if="product.type === 'report'">
+        <template>
           <div class="mt-3">
             <div class="text-[12px] font-medium text-slate-700">购买主体</div>
             <div class="mt-2 grid grid-cols-2 gap-2">
@@ -140,6 +152,32 @@ function goBackToContext() {
               </button>
             </div>
           </div>
+
+          <div class="mt-3">
+            <div class="text-[12px] font-medium text-slate-700">交付与更新方式</div>
+            <div class="mt-2 grid gap-2 sm:grid-cols-2">
+              <button
+                v-for="item in offers"
+                :key="item.id"
+                :data-testid="`commerce-offer-${item.serviceMode}`"
+                class="rounded-xl border p-3 text-left"
+                :class="selectedOfferId === item.id ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
+                :disabled="submitting"
+                @click="chooseOffer(item.id)"
+              >
+                <div class="flex items-start justify-between gap-2"><span class="text-[13px] font-medium text-slate-800">{{ item.name }}</span><span class="text-[13px] font-semibold text-brand-600">¥{{ item.price.toLocaleString() }}</span></div>
+                <div class="mt-1 text-[11px] leading-relaxed text-slate-500">{{ offerDescription(item) }}</div>
+              </button>
+            </div>
+          </div>
+
+          <label v-if="termOptions.length" class="mt-3 block text-[12px] text-slate-600">
+            购买有效期
+            <select v-model.number="selectedTermMonths" data-testid="commerce-term-select" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-700" @change="confirmationSubject = null">
+              <option v-for="months in termOptions" :key="months" :value="months">{{ months }} 个月</option>
+            </select>
+            <span class="mt-1 block text-[11px] text-slate-400">最长可购买 {{ offer?.maxTermMonths }} 个月，不提供永久持续更新。</span>
+          </label>
 
           <div v-if="subject === 'enterprise'" class="mt-3 grid grid-cols-2 gap-2">
             <button
@@ -170,6 +208,7 @@ function goBackToContext() {
           </button>
           <div v-else class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
             <div class="text-[12px] text-amber-800">请再次确认：本订单将归属 {{ subjectName }}</div>
+            <div class="mt-1 text-[12px] text-amber-800">应付金额：¥{{ amount.toLocaleString() }}</div>
             <button
               data-testid="purchase-final-confirm"
               class="mt-3 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
@@ -180,9 +219,6 @@ function goBackToContext() {
             </button>
           </div>
         </template>
-        <button v-else data-testid="personal-item-submit" class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" :disabled="submitting" @click="payPersonalItem">
-          确认支付 ¥{{ product.price.itemPrice }}
-        </button>
       </div>
       <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">🎉</div>

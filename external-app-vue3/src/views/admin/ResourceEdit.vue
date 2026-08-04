@@ -2,15 +2,9 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import type { PriceModel, AcquisitionOption } from '@/types/domain'
+import type { PriceModel, AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetOffer, ProductType } from '@/types/domain'
 import { listedAtOf } from '@/utils/productMeta'
-
-const PRICE_MODELS: { value: PriceModel; label: string }[] = [
-  { value: 'free', label: '免费' },
-  { value: 'member_free', label: '会员免费' },
-  { value: 'member_discount', label: '会员折扣' },
-  { value: 'item_only', label: '仅单品购买' }
-]
+import { commerceOffersOf } from '@/domain/commerceOffers'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,6 +66,34 @@ const productForm = reactive({
   recommendSlot: false
 })
 const productSaved = ref(false)
+const workflowMessage = ref('')
+type DashboardMetricForm = {
+  name: string
+  definition: string
+  formula: string
+  dimensions: string
+}
+const dashboardForm = reactive({
+  timeRange: '',
+  updateCycle: '',
+  exportRule: '',
+  metrics: [] as DashboardMetricForm[]
+})
+const dashboardConfigSaved = ref(false)
+type CommerceOfferForm = {
+  id: string
+  name: string
+  subject: 'personal' | 'enterprise'
+  serviceMode: 'one_time' | 'continuous'
+  price: number
+  billingPeriodMonths: number
+  maxTermMonths: number
+  accessScope: 'personal' | 'named_seats' | 'enterprise_wide'
+  seats: number
+  allowDownload: boolean
+  recommended: boolean
+}
+const commerceOfferForm = reactive({ offers: [] as CommerceOfferForm[] })
 
 // --- 数据探查配置 ---
 const profilingSelection = ref<string[]>([])
@@ -137,12 +159,43 @@ function syncFormFromStore() {
   productForm.sortWeight = p.sortWeight ?? 50
   productForm.recommendSlot = p.recommendSlot ?? false
 
+  commerceOfferForm.offers.splice(0, commerceOfferForm.offers.length, ...commerceOffersOf(p).map((offer) => ({
+    id: offer.id,
+    name: offer.name,
+    subject: offer.subject,
+    serviceMode: offer.serviceMode,
+    price: offer.price,
+    billingPeriodMonths: offer.billingPeriodMonths ?? 12,
+    maxTermMonths: offer.maxTermMonths ?? 36,
+    accessScope: offer.accessScope ?? (offer.subject === 'personal' ? 'personal' : 'named_seats'),
+    seats: offer.seats ?? 10,
+    allowDownload: Boolean(offer.allowDownload),
+    recommended: Boolean(offer.recommended)
+  })))
+
+  // 看板展示配置：原型阶段由商品 Mock 初始化，保存时同步商品与关联资源。
+  const dashboard = p.typeDetail.dashboard
+  dashboardForm.timeRange = dashboard?.timeRange ?? ''
+  dashboardForm.updateCycle = dashboard?.updateCycle ?? ''
+  dashboardForm.exportRule = dashboard?.exportRule ?? ''
+  dashboardForm.metrics.splice(
+    0,
+    dashboardForm.metrics.length,
+    ...(dashboard?.metrics ?? []).map((metric) => ({
+      name: metric.name,
+      definition: metric.definition,
+      formula: metric.formula,
+      dimensions: metric.dimensions.join('、')
+    }))
+  )
+
   // 探查字段
   profilingSelection.value = (p.typeDetail.dataset?.fields ?? [])
     .filter((f) => f.profilingEnabled)
     .map((f) => f.name)
 
   productSaved.value = false
+  dashboardConfigSaved.value = false
   profilingSaved.value = false
 }
 
@@ -155,6 +208,23 @@ watch(product, syncFormFromStore, { immediate: true })
 function saveProduct() {
   const p = product.value
   if (!p) return
+  const isAssetDataset = p.origin === 'asset_platform' && p.type === 'dataset'
+  const appOffers = p.dealChannel === 'app_payment'
+    ? commerceOfferForm.offers.map((offer) => normalizeCommerceOffer(p.type, offer))
+    : []
+  const datasetOffers = isAssetDataset
+    ? appOffers.map((offer): DatasetOffer => ({
+        ...offer,
+        licenseKind: offer.serviceMode === 'continuous' ? 'subscription' : 'snapshot',
+        termMonths: offer.serviceMode === 'continuous' ? offer.billingPeriodMonths : undefined,
+        accessScope: offer.accessScope || (offer.subject === 'personal' ? 'personal' : 'named_seats'),
+        allowDownload: Boolean(offer.allowDownload),
+        deliveryMode: offer.serviceMode === 'continuous' ? 'managed_connection' : 'snapshot'
+      }))
+    : p.datasetOffers
+  const personalStartingPrice = appOffers
+    .filter((offer) => offer.subject === 'personal')
+    .reduce((min, offer) => Math.min(min, offer.price), Number.POSITIVE_INFINITY)
   catalog.updateProduct(p.id, {
     name: productForm.name,
     subtitle: productForm.subtitle,
@@ -167,9 +237,14 @@ function saveProduct() {
     provider: productForm.provider,
     qualityPromise: productForm.qualityPromise,
     complianceNote: productForm.complianceNote,
-    memberIncluded: productForm.memberIncluded,
-    acquisitions: buildAcquisitions(),
-    price: {
+    memberIncluded: isAssetDataset ? false : productForm.memberIncluded,
+    acquisitions: isAssetDataset ? ['item_purchase'] : buildAcquisitions(),
+    price: isAssetDataset ? {
+      ...p.price,
+      model: 'item_only',
+      itemPrice: Number.isFinite(personalStartingPrice) ? personalStartingPrice : p.price.itemPrice,
+      memberDiscount: undefined
+    } : {
       ...p.price,
       model: productForm.priceModel,
       itemPrice: Number(productForm.itemPrice),
@@ -179,10 +254,87 @@ function saveProduct() {
     recommendText: productForm.recommendText,
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
     sortWeight: Number(productForm.sortWeight),
-    recommendSlot: productForm.recommendSlot
+    recommendSlot: productForm.recommendSlot,
+    commerceOffers: p.dealChannel === 'app_payment' && p.type !== 'dataset' ? appOffers : p.commerceOffers,
+    datasetOffers
   })
+  if (p.type === 'dashboard') persistDashboardConfig()
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
+}
+
+function contentKindFor(type: ProductType, serviceMode: 'one_time' | 'continuous'): CommerceContentKind {
+  if (serviceMode === 'continuous') return type === 'api' ? 'continuous_service' : 'continuous_updates'
+  if (type === 'dataset') return 'snapshot'
+  if (type === 'report') return 'current_version'
+  if (type === 'dashboard') return 'fixed_dashboard'
+  return 'quota_package'
+}
+
+function normalizeCommerceOffer(type: ProductType, form: CommerceOfferForm): CommerceOffer {
+  return {
+    id: form.id,
+    name: form.name.trim(),
+    subject: form.subject,
+    price: Number(form.price),
+    currency: 'CNY',
+    serviceMode: form.serviceMode,
+    contentKind: contentKindFor(type, form.serviceMode),
+    billingPeriodMonths: form.serviceMode === 'continuous' ? Math.max(1, Number(form.billingPeriodMonths)) : undefined,
+    maxTermMonths: form.serviceMode === 'continuous'
+      ? Math.max(Number(form.billingPeriodMonths), Number(form.maxTermMonths))
+      : undefined,
+    accessScope: form.subject === 'personal' ? 'personal' : form.accessScope,
+    seats: form.subject === 'enterprise' && form.accessScope === 'named_seats' ? Math.max(1, Number(form.seats)) : undefined,
+    allowDownload: form.allowDownload,
+    recommended: form.recommended
+  }
+}
+
+function addDashboardMetric() {
+  dashboardForm.metrics.push({ name: '', definition: '', formula: '', dimensions: '' })
+}
+
+function removeDashboardMetric(index: number) {
+  dashboardForm.metrics.splice(index, 1)
+}
+
+function persistDashboardConfig() {
+  const p = product.value
+  const current = p?.typeDetail.dashboard
+  if (!p || !current) return
+  catalog.updateDashboardDetail(p.id, {
+    ...current,
+    timeRange: dashboardForm.timeRange.trim(),
+    updateCycle: dashboardForm.updateCycle.trim(),
+    exportRule: dashboardForm.exportRule.trim(),
+    metrics: dashboardForm.metrics.map((metric) => ({
+      name: metric.name.trim(),
+      definition: metric.definition.trim(),
+      formula: metric.formula.trim(),
+      dimensions: metric.dimensions.split(/[、,，]/).map((item) => item.trim()).filter(Boolean),
+      preview: 'visible'
+    }))
+  })
+}
+
+function saveDashboardConfig() {
+  persistDashboardConfig()
+  dashboardConfigSaved.value = true
+  setTimeout(() => { dashboardConfigSaved.value = false }, 3000)
+}
+
+function submitReview() {
+  if (!product.value) return
+  saveProduct()
+  catalog.submitProductReview(product.value.id)
+  workflowMessage.value = '已提交审核，商品仍不会在前台展示'
+}
+
+function approveAndPublish() {
+  if (!product.value) return
+  catalog.approveAndPublishProduct(product.value.id)
+  workflowMessage.value = '审核通过，商品已发布'
 }
 
 function buildAcquisitions(): AcquisitionOption[] {
@@ -210,6 +362,19 @@ function saveProfilingFields() {
       <h1 class="text-xl font-semibold text-slate-800">{{ resource.resourceName }}</h1>
       <span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ typeLabels[resource.type] }}</span>
       <span class="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{{ originLabels[resource.origin] }}</span>
+    </div>
+
+    <div v-if="resource.origin === 'asset_platform'" class="mb-6 rounded-lg border border-blue-200 bg-blue-50/40 p-5">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-700">资产平台同步绑定 <span class="ml-1 rounded bg-white px-1.5 py-0.5 text-[10px] text-blue-600">只读</span></h2>
+        <span :class="resource.commercializable ? 'text-emerald-600' : 'text-red-600'" class="text-xs">{{ resource.commercializable ? '已上架 · 可商品化' : '不可商品化' }}</span>
+      </div>
+      <div class="grid grid-cols-3 gap-4 text-sm">
+        <div><span class="text-slate-500">资产版本：</span>{{ product?.assetSnapshot?.assetVersion || resource.assetVersion || '—' }}</div>
+        <div><span class="text-slate-500">最后检查：</span>{{ product?.assetSnapshot?.lastCheckedAt || resource.lastCheckedAt || '—' }}</div>
+        <div><span class="text-slate-500">变更风险：</span><span :class="(product?.assetSnapshot?.changeRisk || resource.changeRisk) === 'high' ? 'text-red-600' : 'text-emerald-600'">{{ product?.assetSnapshot?.changeRisk || resource.changeRisk || 'none' }}</span></div>
+      </div>
+      <p v-if="product?.assetSnapshot?.changeSummary || resource.changeSummary" class="mt-3 text-xs text-slate-500">{{ product?.assetSnapshot?.changeSummary || resource.changeSummary }}</p>
     </div>
 
     <!-- 资源基本信息 -->
@@ -278,12 +443,19 @@ function saveProfilingFields() {
 
     <!-- 类型特有区块：看板 -->
     <div v-if="resource.type === 'dashboard' && resource.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">看板详情</h2>
+      <div class="mb-3 flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700">看板资源摘要</h2>
+        <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">来自关联看板资源</span>
+      </div>
+      <p class="mb-4 text-xs leading-relaxed text-slate-400">当前原型随关联看板资源初始化；生产环境由看板 / BI 平台同步基础结构，运营在下方维护前台展示口径和指标描述。</p>
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div><span class="text-slate-500">时间范围：</span>{{ resource.typeDetail.dashboard.timeRange }}</div>
         <div><span class="text-slate-500">更新周期：</span>{{ resource.typeDetail.dashboard.updateCycle }}</div>
         <div><span class="text-slate-500">指标数：</span>{{ resource.typeDetail.dashboard.metrics?.length }}</div>
         <div><span class="text-slate-500">面板数：</span>{{ resource.typeDetail.dashboard.panels?.length }}</div>
+        <div class="col-span-2"><span class="text-slate-500">指标：</span>{{ resource.typeDetail.dashboard.metrics?.map((item) => item.name).join('、') || '—' }}</div>
+        <div class="col-span-2"><span class="text-slate-500">图表面板：</span>{{ resource.typeDetail.dashboard.panels?.map((item) => item.title).join('、') || '—' }}</div>
+        <div class="col-span-2"><span class="text-slate-500">导出规则：</span>{{ resource.typeDetail.dashboard.exportRule || '—' }}</div>
       </div>
     </div>
 
@@ -291,6 +463,16 @@ function saveProfilingFields() {
     <!-- 编辑表单（仅有关联商品且非用数视图时显示） -->
     <!-- ================================================================== -->
     <template v-if="editable && product">
+
+      <div class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="product-review-workflow">
+        <div class="mr-auto">
+          <div class="text-sm font-medium text-slate-700">商品发布流程</div>
+          <div class="mt-0.5 text-xs text-slate-400">当前状态：{{ product.status }} · 前台状态：{{ product.availability }}</div>
+        </div>
+        <button v-if="product.status === 'draft'" class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" data-testid="submit-review" @click="submitReview">保存并提交审核</button>
+        <button v-if="product.status === 'pending_approval'" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" data-testid="approve-publish" @click="approveAndPublish">审核通过并发布</button>
+        <span v-if="workflowMessage" class="text-xs text-emerald-600">{{ workflowMessage }}</span>
+      </div>
 
       <!-- 商品信息编辑 -->
       <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
@@ -301,11 +483,13 @@ function saveProfilingFields() {
           <div class="mb-2 text-xs font-medium text-slate-500">标题与展示</div>
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="productForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（详情页副标题优先展示）</span><input v-model="productForm.recommendText" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">商品副标题（推荐语为空时展示）</span><input v-model="productForm.subtitle" data-testid="product-subtitle-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（商品卡片与详情页优先展示）</span><input v-model="productForm.recommendText" data-testid="product-recommend-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <div class="flex items-center gap-4">
               <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
               <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
+              <span class="text-[11px] text-slate-400">仅影响发现页排序与推荐，不在详情页展示</span>
             </div>
           </div>
         </div>
@@ -421,34 +605,109 @@ function saveProfilingFields() {
           </div>
         </div>
 
-        <!-- 价格设置（对应详情页右栏购买面板，仅 APP 内购商品） -->
-        <div v-if="product.dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">价格设置</div>
-          <div class="space-y-3">
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">价格模式</span>
-              <select v-model="productForm.priceModel" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm">
-                <option v-for="m in PRICE_MODELS" :key="m.value" :value="m.value">{{ m.label }}</option>
-              </select>
-            </label>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">单品价格 ¥</span><input v-model.number="productForm.itemPrice" type="number" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">会员折扣</span><input v-model.number="productForm.memberDiscount" type="number" step="0.1" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            </div>
-            <div>
-              <span class="mb-1 block text-xs text-slate-400">获取方式</span>
-              <div class="flex flex-wrap gap-3 text-xs text-slate-600">
-                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiFree" type="checkbox" />免费</label>
-                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiMember" type="checkbox" />会员</label>
-                <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" />单品购买</label>
-                <label class="flex items-center gap-1.5"><input v-model="productForm.memberIncluded" type="checkbox" />会员权益包含</label>
+        <!-- APP 统一价格方案：四类商品共同使用，可信空间价格只读同步。 -->
+        <div v-if="product.dealChannel === 'app_payment' && product.acquisitions.includes('item_purchase')" class="mb-4 border-t border-slate-100 pt-4" data-testid="commerce-offer-editor">
+          <div class="mb-1 flex items-center justify-between gap-3">
+            <div class="text-xs font-medium text-slate-600">统一价格方案</div>
+            <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
+          </div>
+          <p class="mb-3 text-[11px] leading-relaxed text-slate-400">个人、企业均可分别配置一次性交付与持续服务。持续方案必须设置计价周期和最长购买期限，不允许永久更新。</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div v-for="(offer, index) in commerceOfferForm.offers" :key="offer.id" class="rounded-lg border border-slate-200 p-3" :data-testid="`commerce-offer-form-${index}`">
+              <div class="mb-2 flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-700">{{ offer.subject === 'personal' ? '个人' : '企业' }} · {{ offer.serviceMode === 'one_time' ? '一次性交付' : '持续服务' }}</span>
+                <label class="flex items-center gap-1 text-[11px] text-slate-400"><input v-model="offer.recommended" type="checkbox" />推荐</label>
               </div>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="col-span-2 text-xs text-slate-400">方案名称<input v-model="offer.name" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                <label class="text-xs text-slate-400">购买主体<select v-model="offer.subject" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="personal">个人</option><option value="enterprise">企业</option></select></label>
+                <label class="text-xs text-slate-400">交付方式<select v-model="offer.serviceMode" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="one_time">一次性交付</option><option value="continuous">持续服务</option></select></label>
+                <label class="text-xs text-slate-400">价格 ¥<input v-model.number="offer.price" type="number" min="0" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">计价周期（月）<input v-model.number="offer.billingPeriodMonths" data-testid="billing-period-months" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">最长购买（月）<input v-model.number="offer.maxTermMonths" data-testid="max-term-months" type="number" :min="offer.billingPeriodMonths" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                <template v-if="offer.subject === 'enterprise'">
+                  <label class="text-xs text-slate-400">授权范围<select v-model="offer.accessScope" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="named_seats">指定成员</option><option value="enterprise_wide">企业全员</option></select></label>
+                  <label v-if="offer.accessScope === 'named_seats'" class="text-xs text-slate-400">席位数<input v-model.number="offer.seats" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                </template>
+              </div>
+              <label class="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500"><input v-model="offer.allowDownload" type="checkbox" />允许下载 / 导出</label>
+            </div>
+          </div>
+          <div class="mt-3">
+            <span class="mb-1 block text-xs text-slate-400">其它获取方式</span>
+            <div class="flex flex-wrap gap-3 text-xs text-slate-600">
+              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiFree" type="checkbox" />免费</label>
+              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiMember" type="checkbox" />会员</label>
+              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" />单品购买</label>
+              <label v-if="product.type !== 'dataset'" class="flex items-center gap-1.5"><input v-model="productForm.memberIncluded" type="checkbox" />会员权益包含</label>
             </div>
           </div>
         </div>
 
+        <div v-if="product.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
+          <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>
+          <p class="mb-2 text-[11px] text-slate-400">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
+          <div v-if="product.datasetOffers?.length" class="space-y-2">
+            <div v-for="offer in product.datasetOffers" :key="offer.id" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{{ offer.name }} · {{ offer.licenseKind === 'subscription' ? `${offer.termMonths}个月` : '一次性' }}</span><span class="font-medium text-slate-700">¥{{ offer.price.toLocaleString() }}</span></div>
+          </div>
+          <div v-else-if="product.typeDetail.api?.pricingPlans?.length" class="space-y-2">
+            <div v-for="plan in product.typeDetail.api.pricingPlans" :key="plan.name" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{{ plan.name }} · {{ plan.quota }}</span><span class="font-medium text-slate-700">{{ plan.price }}</span></div>
+          </div>
+          <div v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">{{ product.price.quoteNote || product.spaceMeta?.billingNote || '以可信空间实际报价为准' }}</div>
+        </div>
+
         <div class="flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProduct">保存</button>
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-product" @click="saveProduct">保存</button>
           <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+
+      <!-- 看板与指标定义配置 -->
+      <div v-if="resource.type === 'dashboard' && product.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-slate-400">这些内容对应前台“看板信息”和“指标定义”。指标定义属于购买前说明，所有用户无需解锁即可查看。</p>
+          </div>
+          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">时间范围</span><input v-model="dashboardForm.timeRange" data-testid="dashboard-time-range" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">更新周期</span><input v-model="dashboardForm.updateCycle" data-testid="dashboard-update-cycle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">导出规则</span><textarea v-model="dashboardForm.exportRule" rows="2" data-testid="dashboard-export-rule" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+        </div>
+
+        <div class="mt-5 border-t border-slate-100 pt-4">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-medium text-slate-600">指标定义</div>
+              <div class="mt-0.5 text-[11px] text-slate-400">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
+            </div>
+            <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50" type="button" @click="addDashboardMetric">+ 添加指标</button>
+          </div>
+
+          <div class="space-y-3">
+            <div v-for="(metric, index) in dashboardForm.metrics" :key="index" class="rounded-lg border border-slate-200 p-4" :data-testid="`dashboard-metric-${index}`">
+              <div class="mb-3 flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-600">指标 {{ index + 1 }}</span>
+                <button class="text-xs text-red-500 hover:text-red-600" type="button" @click="removeDashboardMetric(index)">删除</button>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">指标名称</span><input v-model="metric.name" :data-testid="`dashboard-metric-name-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">支持维度（顿号分隔）</span><input v-model="metric.dimensions" :data-testid="`dashboard-metric-dimensions-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">指标描述</span><textarea v-model="metric.definition" rows="2" :data-testid="`dashboard-metric-definition-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">计算公式</span><input v-model="metric.formula" :data-testid="`dashboard-metric-formula-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
+          <span v-if="dashboardConfigSaved" class="text-sm text-emerald-600">已同步到资源摘要和前台详情</span>
         </div>
       </div>
 

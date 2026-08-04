@@ -20,6 +20,12 @@ export const seedProducts: Product[] = [
     qualityPromise: '数据来源于平台真实交易样本，月度校准',
     complianceNote: '已脱敏，仅展示指数与趋势，不含企业级明细',
     price: { model: 'member_discount', itemPrice: 299, memberDiscount: 0, unit: '元/12个月' },
+    commerceOffers: [
+      { id: 'offer-freight-personal-fixed', name: '个人固定版', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'one_time', contentKind: 'fixed_dashboard', accessScope: 'personal', allowDownload: false },
+      { id: 'offer-freight-personal-updates', name: '个人持续更新版', subject: 'personal', price: 299, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, accessScope: 'personal', allowDownload: false, recommended: true },
+      { id: 'offer-freight-enterprise-fixed', name: '企业固定版', subject: 'enterprise', price: 1990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'fixed_dashboard', accessScope: 'named_seats', seats: 10, allowDownload: false },
+      { id: 'offer-freight-enterprise-updates', name: '企业持续更新版', subject: 'enterprise', price: 2990, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, accessScope: 'named_seats', seats: 10, allowDownload: false, recommended: true }
+    ],
     status: 'published',
     tags: ['热门', '会员免费'],
     description: '覆盖全国主要城市对的公路货运价格指数，支持按线路、车型、时间维度下钻分析价格走势。',
@@ -151,6 +157,12 @@ export const seedProducts: Product[] = [
     qualityPromise: '由行业研究团队撰写，交叉验证三方数据源',
     complianceNote: '公开发布内容，不含企业敏感信息',
     price: { model: 'member_discount', itemPrice: 199, memberDiscount: 0.6, unit: '元/篇' },
+    commerceOffers: [
+      { id: 'offer-monthly-personal-current', name: '个人当前版本', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'one_time', contentKind: 'current_version', accessScope: 'personal', allowDownload: true },
+      { id: 'offer-monthly-personal-updates', name: '个人持续更新版', subject: 'personal', price: 499, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, accessScope: 'personal', allowDownload: true, recommended: true },
+      { id: 'offer-monthly-enterprise-current', name: '企业当前版本', subject: 'enterprise', price: 1990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'current_version', accessScope: 'named_seats', seats: 10, allowDownload: true },
+      { id: 'offer-monthly-enterprise-updates', name: '企业持续更新版', subject: 'enterprise', price: 4990, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, accessScope: 'named_seats', seats: 10, allowDownload: true, recommended: true }
+    ],
     status: 'published',
     tags: ['行业研究', '企业采购'],
     description: '系统梳理公路物流行业月度运行情况、政策动态与代表企业动向，含数据图表与专家解读。',
@@ -457,6 +469,11 @@ export const seedProducts: Product[] = [
     qualityPromise: '完整性 97%，字段级质量校验',
     complianceNote: '企业维度脱敏样本，正式使用需企业认证与空间订单',
     price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
+    datasetOffers: [
+      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'space-ds-year', externalPlanCode: 'DS-10893-YEAR', name: '年度订阅版', subject: 'enterprise', price: 29800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
+      { id: 'space-ds-custom', externalPlanCode: 'DS-10893-PLUS', name: '扩展覆盖版', subject: 'enterprise', price: 49800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' }
+    ],
     status: 'published',
     tags: ['数据集', '空间商品', '热门数据集'],
     description: '包含企业物流发单频次、履约稳定性、区域覆盖等活跃度指标，可用于企业画像与合作评估。',
@@ -596,6 +613,100 @@ export const seedProducts: Product[] = [
             updatedAt: '2026-07-01'
           }
         ]
+      }
+    }
+  },
+  {
+    id: 'prod-truck-trajectory',
+    resourceId: 'res-prod-truck-trajectory',
+    name: '全国货车轨迹热力数据集',
+    subtitle: '资产平台上架数据，购买后交付至用数模块',
+    type: 'dataset',
+    origin: 'asset_platform',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['item_purchase'],
+    scenarios: ['运输网络规划', '线路热度分析'],
+    provider: '万联数据资产平台',
+    coverage: '全国主要干线 · 按区县聚合',
+    updateFrequency: '每日更新',
+    qualityPromise: '完整性 98.6%，每日质量巡检',
+    complianceNote: '轨迹已聚合脱敏，不提供车辆级明细样本',
+    price: { model: 'item_only', itemPrice: 399, unit: '元起' },
+    datasetOffers: [
+      { id: 'offer-truck-personal-snapshot', name: '个人快照版', subject: 'personal', price: 399, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'offer-truck-personal-updates', name: '个人持续更新版', subject: 'personal', price: 999, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'personal', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
+      { id: 'offer-truck-enterprise-snapshot', name: '企业快照版', subject: 'enterprise', price: 3800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'offer-truck-enterprise-updates', name: '企业持续更新版', subject: 'enterprise', price: 6800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'managed_connection', recommended: true }
+    ],
+    assetSnapshot: { resourceId: 'asset-truck-trajectory', assetVersion: 'v3.2.0', syncedAt: '2026-07-30 09:20', lastCheckedAt: '2026-07-31 08:00', changeRisk: 'none' },
+    status: 'published',
+    tags: ['资产平台', '用数模块可用', '每日更新'],
+    description: '对货车轨迹做空间网格聚合后形成的热力数据，适合运输网络规划与线路热度分析。',
+    valueProposition: '无需自行接入和清洗轨迹明细，购买后可进入用数模块使用。',
+    deliveryMethod: 'APP 内支付后自动交付至用数模块',
+    memberIncluded: false,
+    listedAt: '2026-07-26',
+    updatedAt: '2026-07-30',
+    serviceStatus: 'normal',
+    recommendText: '购买后直接进入用数模块',
+    sortWeight: 86,
+    recommendSlot: true,
+    typeDetail: {
+      dataset: {
+        granularity: '区县 × 小时', timeRange: '近 12 个月', rowCount: 18600000, classification: '聚合运营数据（L2）', qualityUpdatedAt: '2026-07-30',
+        fields: [
+          { name: 'district_code', dataType: 'string', meaning: '区县编码', description: '国家统计区划编码', primaryKey: true, nullable: false, sampleValue: '310115' },
+          { name: 'time_bucket', dataType: 'datetime', meaning: '小时窗口', description: '轨迹聚合时间窗口', primaryKey: true, nullable: false, sampleValue: '2026-07-30 08:00' },
+          { name: 'vehicle_heat', dataType: 'integer', meaning: '车辆热度', description: '窗口内脱敏聚合热度', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '862' }
+        ],
+        sampleColumns: ['district_code', 'time_bucket', 'vehicle_heat'],
+        sampleRows: [
+          { district_code: '310115', time_bucket: '2026-07-30 08:00', vehicle_heat: 862 },
+          { district_code: '320115', time_bucket: '2026-07-30 08:00', vehicle_heat: 641 }
+        ],
+        sampleGeneratedAt: '2026-07-30',
+        profiling: { completeness: '98.6%', uniqueness: '联合主键唯一性 100%', nullRate: '1.4%', distribution: '东部干线占 48%', anomalies: '节假日波动已标注', conclusion: '适合区域热力和趋势分析', updatedAt: '2026-07-30' }
+      }
+    }
+  },
+  {
+    id: 'prod-warehouse-turnover-risk',
+    resourceId: 'res-prod-warehouse-turnover-risk',
+    name: '仓储周转效率数据集',
+    subtitle: '检测到资产结构高风险变更，已暂停新购',
+    type: 'dataset',
+    origin: 'asset_platform',
+    dealChannel: 'app_payment',
+    availability: 'paused',
+    acquisitions: ['item_purchase'],
+    scenarios: ['仓储效率分析'],
+    provider: '万联数据资产平台',
+    coverage: '全国 120 个园区',
+    updateFrequency: '每周更新',
+    qualityPromise: '最近有效版本可继续使用',
+    complianceNote: '字段结构调整待重新评估',
+    price: { model: 'item_only', itemPrice: 599, unit: '元起' },
+    datasetOffers: [
+      { id: 'offer-warehouse-personal', name: '个人快照版', subject: 'personal', price: 599, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'offer-warehouse-enterprise', name: '企业年度订阅', subject: 'enterprise', price: 8800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 20, allowDownload: false, deliveryMode: 'managed_connection' }
+    ],
+    assetSnapshot: { resourceId: 'asset-warehouse-turnover', assetVersion: 'v2.4.0', syncedAt: '2026-07-28 18:20', lastCheckedAt: '2026-07-31 08:00', changeRisk: 'high', changeSummary: '关键字段 turnover_days 类型发生变化，等待运营确认版本迁移。' },
+    status: 'paused',
+    tags: ['资产平台', '变更监控', '暂停新购'],
+    description: '仓储园区周转效率指标数据集。',
+    valueProposition: '用于仓储运营效率横向对标。',
+    deliveryMethod: '用数模块数据交付',
+    memberIncluded: false,
+    listedAt: '2026-06-18',
+    updatedAt: '2026-07-31',
+    serviceStatus: 'degraded',
+    typeDetail: {
+      dataset: {
+        granularity: '园区 × 周', timeRange: '近 18 个月', rowCount: 9360, classification: '企业运营聚合数据（L2）', qualityUpdatedAt: '2026-07-28',
+        fields: [{ name: 'park_code', dataType: 'string', meaning: '园区编码', description: '脱敏园区编码', primaryKey: true, nullable: false }],
+        sampleColumns: ['park_code'], sampleRows: [{ park_code: 'PARK-031' }], sampleGeneratedAt: '2026-07-28',
+        profiling: { completeness: '99.1%', uniqueness: '100%', nullRate: '0.9%', distribution: '全国分布', anomalies: '结构变更待复核', conclusion: '暂停新购，保留最近有效版本', updatedAt: '2026-07-31' }
       }
     }
   },

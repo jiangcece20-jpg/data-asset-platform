@@ -71,6 +71,11 @@ describe('catalog store — resource extensions', () => {
     const created = catalog.products.find((p) => p.resourceId === unlistedResource!.id)
     expect(created).toBeDefined()
     expect(created!.name).toBe(unlistedResource!.resourceName)
+    expect(created!.availability).toBe('preparing')
+    expect(created!.status).toBe('draft')
+    catalog.submitProductReview(created!.id)
+    expect(created!.status).toBe('pending_approval')
+    catalog.approveAndPublishProduct(created!.id)
     expect(created!.availability).toBe('published')
   })
 

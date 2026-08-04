@@ -108,6 +108,18 @@ export const useUserStore = defineStore('user', {
       }
       this.enterprise.status = 'active'
     },
+    updateEnterprisePurchasePolicy(policy: Partial<Enterprise['purchasePolicy']>) {
+      if (this.currentEnterpriseMember?.role !== 'admin') throw new Error('仅企业管理员可修改采购策略')
+      this.enterprise.purchasePolicy = { ...this.enterprise.purchasePolicy, ...policy }
+    },
+    switchMockEnterpriseMember(memberId: string) {
+      const member = this.enterprise.members.find((item) => item.id === memberId && item.status === 'active')
+      if (!member || !this.isEnterpriseAuthenticated) throw new Error('仅可切换至当前企业的有效成员')
+      this.context.currentMemberId = member.id
+      this.context.name = member.name
+      this.context.role = member.role
+      this.enterpriseContextGeneration += 1
+    },
     renewEnterprise(months = 12) {
       const base = new Date(this.enterprise.expiresAt)
       base.setMonth(base.getMonth() + months)

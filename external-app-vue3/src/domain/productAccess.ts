@@ -11,6 +11,7 @@ export type ProductActionKey =
   | 'free_view'
   | 'member_purchase'
   | 'item_purchase'
+  | 'dataset_purchase'
   | 'unavailable'
 
 export interface ProductAction {
@@ -88,6 +89,9 @@ export function resolveProductActions(context: ProductActionContext): {
     }
   }
   if (context.acquisitions.includes('free')) return { primary: { key: 'free_view', label: '免费查看' } }
+  if (context.type === 'dataset' && context.acquisitions.includes('item_purchase')) {
+    return { primary: { key: 'dataset_purchase', label: '购买数据集' } }
+  }
   if (context.acquisitions.includes('member')) {
     return {
       primary: { key: 'member_purchase', label: '开通会员' },

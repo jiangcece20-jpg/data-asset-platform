@@ -20,6 +20,8 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import { pricingPresentation } from '@/domain/pricingPresentation'
+import { commerceOffersOf, offerDescription } from '@/domain/commerceOffers'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
@@ -36,6 +38,8 @@ const bindingStatus = ref<SpaceBindingStatus>('unbound')
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
+const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
+const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
@@ -60,16 +64,79 @@ const trustedPurchaseCheck = computed(() => {
   )
 })
 
-const actions = computed(() => product.value ? resolveProductActions({
-  type: product.value.type,
-  availability: product.value.availability,
-  acquisitions: product.value.acquisitions,
-  hasAccess: owned.value,
-  hasOpenListingRequest: hasOpenListingRequest.value,
-  enterpriseAuthenticated: user.isEnterpriseAuthenticated,
-  serviceStatus: product.value.serviceStatus,
-  trustedPurchaseCheck: trustedPurchaseCheck.value,
-}) : null)
+const actions = computed(() => {
+  const current = product.value
+  if (!current) return null
+  let resolved = resolveProductActions({
+    type: current.type,
+    availability: current.availability,
+    acquisitions: current.acquisitions,
+    hasAccess: owned.value,
+    hasOpenListingRequest: hasOpenListingRequest.value,
+    enterpriseAuthenticated: user.isEnterpriseAuthenticated,
+    serviceStatus: current.serviceStatus,
+    trustedPurchaseCheck: trustedPurchaseCheck.value,
+  })
+  if (current.dealChannel === 'space_purchase' && !owned.value) {
+    if (user.context.enterpriseAuthStatus === 'none') {
+      resolved = { primary: { key: 'enterprise_auth', label: '去企业认证' } }
+    } else if (user.context.enterpriseAuthStatus === 'pending') {
+      resolved = { primary: { key: 'unavailable', label: '企业认证审核中', disabled: true } }
+    }
+  }
+  if (current.type === 'dataset' && current.origin === 'asset_platform' && owned.value) {
+    return { ...resolved, primary: { ...resolved.primary, label: '查看我的数据' } }
+  }
+  return resolved
+})
+
+const trustedPurchaseEligibility = computed(() => {
+  const current = product.value
+  if (!current || current.dealChannel !== 'space_purchase') return null
+  if (!user.context.loggedIn) {
+    return {
+      badge: '未登录',
+      tone: 'border-slate-200 bg-slate-50',
+      badgeTone: 'bg-slate-200 text-slate-600',
+      title: '登录后查看购买资格',
+      description: '登录后可继续查看商品信息；正式购买仍需使用已认证企业身份。'
+    }
+  }
+  if (user.context.enterpriseAuthStatus === 'none') {
+    return {
+      badge: '个人浏览',
+      tone: 'border-amber-200 bg-amber-50',
+      badgeTone: 'bg-amber-100 text-amber-700',
+      title: '当前为个人身份',
+      description: '你可以查看商品、价格和公开资料，但可信空间商品仅支持认证企业购买，个人身份不能下单。'
+    }
+  }
+  if (user.context.enterpriseAuthStatus === 'pending') {
+    return {
+      badge: '认证中',
+      tone: 'border-blue-200 bg-blue-50',
+      badgeTone: 'bg-blue-100 text-blue-700',
+      title: '企业认证审核中',
+      description: '审核期间可以继续浏览和收藏；认证通过后返回当前商品继续购买。'
+    }
+  }
+  if (bindingStatus.value !== 'active') {
+    return {
+      badge: '连接中',
+      tone: 'border-blue-200 bg-blue-50',
+      badgeTone: 'bg-blue-100 text-blue-700',
+      title: '企业信息同步中',
+      description: `已认证企业：${user.enterprise.name}。正在建立可信空间企业连接，完成前暂不能下单。`
+    }
+  }
+  return {
+    badge: '可购买',
+    tone: 'border-emerald-200 bg-emerald-50',
+    badgeTone: 'bg-emerald-100 text-emerald-700',
+    title: '认证企业购买',
+    description: `当前购买企业：${user.enterprise.name}。订单、付款、正式交付和售后由可信空间承接。`
+  }
+})
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
@@ -101,14 +168,21 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
 const baseInfoItems = computed<InfoItem[]>(() => {
   const p = product.value
   if (!p) return []
-  return [
-    { label: '供应方', value: p.provider },
+  const items: InfoItem[] = [
+    { label: '提供方', value: p.provider },
     { label: '更新频率', value: p.updateFrequency },
     { label: '覆盖范围', value: p.coverage },
     { label: '交付方式', value: p.deliveryMethod },
     { label: '来源', value: originMeta[p.origin] },
     { label: '上架时间', value: listedAtOf(p) }
   ]
+  if (p.assetSnapshot) {
+    items.push(
+      { label: '资产版本', value: p.assetSnapshot.assetVersion },
+      { label: '最后监测', value: p.assetSnapshot.lastCheckedAt },
+    )
+  }
+  return items
 })
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
@@ -201,12 +275,17 @@ function handleUnlock() {
 
 function handleAction(key: ProductActionKey) {
   switch (key) {
-    case 'view': router.push('/app/mine'); break
-    case 'free_view': router.push('/app/mine'); break
+    case 'view':
+    case 'free_view':
+      router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
+        ? { path: '/app/mine', query: { tab: '我的数据' } }
+        : '/app/mine')
+      break
     case 'enterprise_auth': goEnterpriseAuth(); break
     case 'space_purchase': goSpace(); break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
+    case 'dataset_purchase': router.push(`/app/checkout/dataset/${id.value}`); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { tab: '求上架' } }); break
   }
@@ -228,13 +307,51 @@ function handleAction(key: ProductActionKey) {
           <StatusBadge dict="availability" :value="product.availability" />
         </div>
         <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
-        <div class="mt-1 text-[13px] text-slate-500">{{ product.subtitle }}</div>
+        <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
+        <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+          <span v-for="tag in product.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+        </div>
       </div>
     </div>
 
     <!-- Service status notice -->
     <div v-if="product.serviceStatus !== 'normal' || product.availability === 'paused' || product.availability === 'delisted'" class="px-4 pt-2">
       <ServiceStatusNotice :availability="product.availability" :service-status="product.serviceStatus" :has-access="owned" />
+    </div>
+
+    <div v-if="pricingInfo" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] text-slate-400">报价方式</div>
+          <div class="mt-0.5 text-[14px] font-semibold text-slate-800">{{ pricingInfo.label }}</div>
+        </div>
+        <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] text-blue-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
+      </div>
+      <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
+    </div>
+
+    <div v-if="commerceOffers.length" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
+      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">价格方案</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : '购买时可切换主体' }}</span></div>
+      <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
+        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }}</div></div>
+        <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
+      </div>
+    </div>
+
+    <div
+      v-if="trustedPurchaseEligibility"
+      class="mx-4 mt-3 rounded-2xl border p-4"
+      :class="trustedPurchaseEligibility.tone"
+      data-testid="trusted-space-purchase-eligibility"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-[11px] text-slate-500">购买资格</div>
+        <span class="rounded-full px-2 py-0.5 text-[10px]" :class="trustedPurchaseEligibility.badgeTone">
+          {{ trustedPurchaseEligibility.badge }}
+        </span>
+      </div>
+      <div class="mt-2 text-[13px] font-semibold text-slate-800">{{ trustedPurchaseEligibility.title }}</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ trustedPurchaseEligibility.description }}</div>
     </div>
 
     <!-- Tab 导航（紧跟摘要卡，吸附在头部下方） -->
@@ -256,9 +373,13 @@ function handleAction(key: ProductActionKey) {
             : 'mb-4 border-b border-slate-100 pb-4'"
       >
         <!-- dataset 类型的基础信息已合并到 DatasetDetail 中，此处跳过 -->
-        <div v-if="product.type !== 'dataset'">
-          <div class="mb-2 text-[13px] font-semibold text-slate-800">基础信息</div>
+        <div v-if="product.type !== 'dataset'" data-testid="product-basic-info">
+          <div class="mb-2 text-[13px] font-semibold text-slate-800">基本信息</div>
           <InfoGrid :items="baseInfoItems" />
+          <div v-if="product.type === 'dashboard'" class="mt-4" data-testid="dashboard-overview-info">
+            <div class="mb-2 text-[13px] font-semibold text-slate-800">看板信息</div>
+            <DashboardDetail :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
+          </div>
           <div class="mt-2 flex flex-wrap gap-1.5">
             <span v-for="s in product.scenarios" :key="s" class="tag-chip">{{ s }}</span>
           </div>
@@ -267,7 +388,7 @@ function handleAction(key: ProductActionKey) {
           </div>
         </div>
 
-        <div class="space-y-2 text-[13px] leading-relaxed">
+        <div class="space-y-2 text-[13px] leading-relaxed" data-testid="product-manual">
           <div class="text-[13px] font-semibold text-slate-800">商品说明书</div>
           <div><span class="text-slate-400">价值主张：</span><span class="text-slate-700">{{ product.valueProposition }}</span></div>
           <div><span class="text-slate-400">详细描述：</span><span class="text-slate-700">{{ product.description }}</span></div>
@@ -314,16 +435,16 @@ function handleAction(key: ProductActionKey) {
         :unlocked="contentUnlocked"
         @unlock="handleUnlock"
       />
-      <DashboardDetail v-else-if="product.type === 'dashboard'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
-      <div v-else-if="product.type !== 'dataset'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+      <DashboardDetail v-else-if="product.type === 'dashboard' && activeTab !== 'overview'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
+      <div v-else-if="product.type !== 'dataset' && product.type !== 'dashboard'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
     </div>
 
     <!-- 已拥有权益 -->
     <div v-if="owned" class="mx-4 mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
       <div class="text-[13px] font-semibold text-emerald-700">
-        ✅ {{ access === 'member' ? '会员权益已覆盖' : access === 'item' ? '已单独购买' : '企业席位已授权' }}
+        ✅ {{ product.type === 'dataset' && product.origin === 'asset_platform' ? '已获得数据权益' : access === 'member' ? '会员权益已覆盖' : access === 'item' ? '已单独购买' : '企业席位已授权' }}
       </div>
-      <div class="mt-1 text-[12px] text-emerald-600">可直接查看完整内容 / 在线看板 / 调用测试</div>
+      <div class="mt-1 text-[12px] text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的数据”查看交付状态并进入用数模块' : '可直接查看完整内容 / 在线看板 / 调用测试' }}</div>
     </div>
 
     <!-- API 用量明细 -->

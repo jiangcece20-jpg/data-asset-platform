@@ -43,17 +43,15 @@ const basicItems = computed<InfoItem[]>(() => {
       </div>
     </div>
 
-    <!-- 指标定义 -->
+    <!-- 指标定义属于购买前可见的商品说明，不受内容解锁状态限制 -->
     <div v-else-if="activeTab === 'metrics'" class="space-y-3">
       <div v-for="metric in detail.metrics" :key="metric.name" class="border-b border-slate-100 pb-3 last:border-0">
         <div class="mb-1 text-[13px] font-semibold text-slate-800">{{ metric.name }}</div>
-        <ContentGate :mode="metric.preview" :unlocked="unlocked" :label="metric.name">
-          <div class="space-y-1 text-[12px] text-slate-500">
-            <div><span class="text-slate-400">定义：</span>{{ metric.definition }}</div>
-            <div><span class="text-slate-400">公式：</span>{{ metric.formula }}</div>
-            <div><span class="text-slate-400">维度：</span>{{ metric.dimensions.join('、') }}</div>
-          </div>
-        </ContentGate>
+        <div class="space-y-1 text-[12px] text-slate-500">
+          <div><span class="text-slate-400">指标描述：</span>{{ metric.definition }}</div>
+          <div><span class="text-slate-400">计算公式：</span>{{ metric.formula }}</div>
+          <div><span class="text-slate-400">支持维度：</span>{{ metric.dimensions.join('、') }}</div>
+        </div>
       </div>
     </div>
 

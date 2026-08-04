@@ -11,6 +11,7 @@ import type {
   ReportDetail,
   DashboardDetail
 } from './domain'
+import type { AssetChangeRisk } from './domain'
 
 /** 资源类型（在 StandardProductType 基础上增加 user_view） */
 export type ResourceType = StandardProductType | 'user_view'
@@ -49,6 +50,14 @@ export interface Resource {
   enterpriseId?: string
   createdAt: string
   updatedAt: string
+  /** 资产平台同步信息；非资产平台来源可缺省。 */
+  assetStatus?: 'published' | 'paused' | 'delisted'
+  commercializable?: boolean
+  assetVersion?: string
+  lastSyncedAt?: string
+  lastCheckedAt?: string
+  changeRisk?: AssetChangeRisk
+  changeSummary?: string
 }
 
 /** 上架表单数据（从资源创建商品时填写） */

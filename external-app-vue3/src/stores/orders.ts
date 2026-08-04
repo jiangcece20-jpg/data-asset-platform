@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { seedOrders } from '@/data/seed'
-import type { Order, Product } from '@/types/domain'
+import type { CommerceServiceMode, Order, Product } from '@/types/domain'
 import type { PaymentLedgerEntry } from '@/types/afterSales'
 import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
 import { useUserStore } from './user'
+import { commerceOffersOf, normalizeOfferTerm, offerAmount } from '@/domain/commerceOffers'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -18,6 +19,10 @@ export interface EnterpriseReportCheckoutIntent {
   ownerType: 'enterprise'
   ownerId: string
   mode: EnterprisePurchaseMode
+  commerceOfferId?: string
+  serviceMode?: CommerceServiceMode
+  selectedTermMonths?: number
+  amount?: number
   createdAt: string
   expiresAt: string
   consumedAt?: string
@@ -38,6 +43,15 @@ function requireAppOwnedPersonalPurchasableProduct(productId: string): Product {
   const product = useCatalogStore().byId(productId)
   if (!product || product.dealChannel !== 'app_payment' || !product.acquisitions.includes('item_purchase')) {
     throw new Error('仅支持 APP 自营个人单品购买')
+  }
+  return product
+}
+
+function requireAppOwnedEnterprisePurchasableProduct(productId: string): Product {
+  const product = useCatalogStore().byId(productId)
+  if (!product || product.type === 'dataset' || product.dealChannel !== 'app_payment' || !product.acquisitions.includes('item_purchase')) {
+    // 保留旧报告接口的错误语义，避免可信空间商品从历史深链绕过购买边界。
+    throw new Error('仅支持 APP 自营报告购买')
   }
   return product
 }
@@ -107,6 +121,51 @@ export const useOrderStore = defineStore('orders', {
       entitlements.grantItem(product, user.context.currentMemberId)
       return order
     },
+    /** 报告、看板、API 的统一 APP 购买入口；数据集仍走专用交付链路。 */
+    purchaseCommerceProductForSubject(
+      productId: string,
+      subject: PurchaseSubject,
+      offerId: string,
+      selectedTermMonths?: number,
+      mode: EnterprisePurchaseMode = 'online',
+      checkoutIntentId?: string
+    ) {
+      const product = requireAppOwnedEnterprisePurchasableProduct(productId)
+      const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
+      if (!offer) throw new Error(subject === 'personal' ? '未配置个人价格方案' : '未配置企业价格方案')
+      const termMonths = normalizeOfferTerm(offer, selectedTermMonths)
+      const amount = offerAmount(offer, termMonths)
+      if (subject === 'enterprise') {
+        return this.submitEnterpriseOrder(productId, amount, mode, checkoutIntentId)
+      }
+
+      const user = useUserStore()
+      const order: Order = {
+        id: genId('order'),
+        channel: 'app',
+        ownerType: 'personal',
+        ownerId: user.context.currentMemberId,
+        productId,
+        productName: product.name,
+        productType: product.type,
+        amount,
+        status: 'entitlement_active',
+        entitlementGranted: true,
+        commerceOfferId: offer.id,
+        serviceMode: offer.serviceMode,
+        selectedTermMonths: termMonths,
+        createdAt: now(),
+        paidAt: now()
+      }
+      this.list.push(order)
+      useEntitlementStore().grantItem(product, user.context.currentMemberId, {
+        offerId: offer.id,
+        serviceMode: offer.serviceMode,
+        termMonths,
+        orderId: order.id
+      })
+      return order
+    },
     // APP 自营报告可按个人或已认证企业购买；可信空间商品不走此入口。
     purchaseReportForSubject(
       productId: string,
@@ -118,8 +177,12 @@ export const useOrderStore = defineStore('orders', {
       if (subject === 'personal') return this.purchaseItem(productId, product.price.itemPrice ?? 0)
       return this.submitEnterpriseOrder(productId, (product.price.itemPrice ?? 0) * 10, mode, checkoutIntentId)
     },
-    createEnterpriseReportCheckoutIntent(productId: string, mode: EnterprisePurchaseMode) {
-      requireAppOwnedReport(productId)
+    createEnterpriseReportCheckoutIntent(
+      productId: string,
+      mode: EnterprisePurchaseMode,
+      options?: { offerId?: string; selectedTermMonths?: number; amount?: number; serviceMode?: CommerceServiceMode }
+    ) {
+      requireAppOwnedEnterprisePurchasableProduct(productId)
       const enterpriseId = requireCurrentAuthenticatedEnterprise()
       const createdAt = new Date().toISOString()
       this.checkoutIntents
@@ -131,6 +194,10 @@ export const useOrderStore = defineStore('orders', {
         ownerType: 'enterprise',
         ownerId: enterpriseId,
         mode,
+        commerceOfferId: options?.offerId,
+        selectedTermMonths: options?.selectedTermMonths,
+        amount: options?.amount,
+        serviceMode: options?.serviceMode,
         createdAt,
         expiresAt: new Date(Date.now() + CHECKOUT_INTENT_TTL_MS).toISOString()
       }
@@ -147,7 +214,7 @@ export const useOrderStore = defineStore('orders', {
     getEnterpriseReportCheckoutIntent(intentId: string, productId: string, mode?: EnterprisePurchaseMode) {
       let enterpriseId: string
       try {
-        requireAppOwnedReport(productId)
+        requireAppOwnedEnterprisePurchasableProduct(productId)
         enterpriseId = requireCurrentAuthenticatedEnterprise()
       } catch {
         return undefined
@@ -166,9 +233,9 @@ export const useOrderStore = defineStore('orders', {
     },
     // 企业采购：小额可在线支付，大额走报价合同
     submitEnterpriseOrder(productId: string, amount: number, mode: EnterprisePurchaseMode, checkoutIntentId?: string) {
-      const product = requireAppOwnedReport(productId)
+      const product = requireAppOwnedEnterprisePurchasableProduct(productId)
       const enterpriseId = requireCurrentAuthenticatedEnterprise()
-      this.consumeEnterpriseReportCheckoutIntent(checkoutIntentId, productId, mode)
+      const intent = this.consumeEnterpriseReportCheckoutIntent(checkoutIntentId, productId, mode)
       const order: Order = {
         id: genId('order'),
         channel: 'app',
@@ -176,16 +243,25 @@ export const useOrderStore = defineStore('orders', {
         ownerId: enterpriseId,
         productId,
         productName: product.name,
-        amount,
+        amount: intent.amount ?? amount,
         status: mode === 'online' ? 'entitlement_active' : 'pending_payment',
         contractStatus: mode === 'online' ? 'not_required' : 'quoting',
+        productType: product.type,
+        commerceOfferId: intent.commerceOfferId,
+        serviceMode: intent.serviceMode,
+        selectedTermMonths: intent.selectedTermMonths,
         createdAt: now(),
         paidAt: mode === 'online' ? now() : undefined
       }
       this.list.push(order)
       if (mode === 'online') {
         const entitlements = useEntitlementStore()
-        entitlements.grantEnterpriseSeat(productId, enterpriseId)
+        entitlements.grantEnterpriseSeat(productId, enterpriseId, {
+          offerId: intent.commerceOfferId,
+          serviceMode: intent.serviceMode,
+          termMonths: intent.selectedTermMonths,
+          orderId: order.id
+        })
         order.entitlementGranted = true
       }
       return order
@@ -199,7 +275,12 @@ export const useOrderStore = defineStore('orders', {
       order.status = 'entitlement_active'
       order.paidAt = now()
       const entitlements = useEntitlementStore()
-      entitlements.grantEnterpriseSeat(order.productId, order.ownerId)
+      entitlements.grantEnterpriseSeat(order.productId, order.ownerId, {
+        offerId: order.commerceOfferId,
+        serviceMode: order.serviceMode,
+        termMonths: order.selectedTermMonths,
+        orderId: order.id
+      })
       order.entitlementGranted = true
       return order
     },

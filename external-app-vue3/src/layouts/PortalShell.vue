@@ -6,12 +6,12 @@ const route = useRoute()
 const nav = [
   { path: '/portal/home', label: '门户首页', icon: '📊' },
   { path: '/portal/search', label: '搜索发现', icon: '🔍' },
-  { path: '/portal/mine', label: '我的购买', icon: '💳' },
-  { path: '/portal/bills', label: 'API账单', icon: '📈' },
+  { path: '/portal/mine', label: '我的', icon: '👤' },
   { path: '/portal/demand', label: '需求提报', icon: '📝' }
 ]
 
 function isActive(path: string) {
+  if (path === '/portal/mine' && route.path.startsWith('/portal/bills')) return true
   return route.path.startsWith(path)
 }
 </script>

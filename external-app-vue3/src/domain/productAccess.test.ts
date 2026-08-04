@@ -60,6 +60,13 @@ describe('resolveProductActions', () => {
     expect(resolveProductActions({ ...base, type: 'dashboard', acquisitions: ['free'] }).primary.key).toBe('free_view')
   })
 
+  it('routes APP-owned datasets to the dedicated dataset checkout', () => {
+    expect(resolveProductActions({ ...base, acquisitions: ['item_purchase'] }).primary).toEqual({
+      key: 'dataset_purchase',
+      label: '购买数据集'
+    })
+  })
+
   it('blocks paused and delisted products', () => {
     expect(resolveProductActions({ ...base, availability: 'paused' }).primary.key).toBe('unavailable')
     expect(resolveProductActions({ ...base, availability: 'delisted' }).primary.key).toBe('unavailable')

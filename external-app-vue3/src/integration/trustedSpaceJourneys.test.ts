@@ -113,7 +113,7 @@ describe('trusted-space README demo contract', () => {
   it('documents the direct routes, role switching, authority boundaries, and report purchase subjects', () => {
     for (const route of [
       '/#/app/product/prod-qualification-api',
-      '/#/app/mine?tab=企业订单',
+      '/#/app/mine?tab=orders&subject=enterprise',
       '/#/app/mine/enterprise/bills',
       '/#/admin/products',
       '/#/admin/orders',
@@ -130,7 +130,7 @@ describe('trusted-space README demo contract', () => {
       '`mem-2`',
       '**普通成员**',
       '成员只能看到本人经办的空间订单与本人账单范围，页面不显示企业总额。',
-      '无 UI mock 开关，成员场景由测试切换'
+      '“原型身份”开关切换管理员/普通成员'
     ]) expect(readme).toContain(statement)
   })
 })

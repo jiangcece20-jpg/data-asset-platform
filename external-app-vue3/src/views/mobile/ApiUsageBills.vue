@@ -16,6 +16,15 @@ const role = computed(() => member.value?.role ?? 'member')
 const authenticated = computed(() => user.isEnterpriseAuthenticated && Boolean(user.context.currentEnterpriseId && member.value))
 const bills = computed(() => billsStore.visibleBills())
 
+function distinctCount(values: string[]) {
+  return new Set(values).size
+}
+
+function apiSummary(names: string[]) {
+  const unique = [...new Set(names)]
+  return unique.length <= 1 ? (unique[0] || '暂无 API') : `${unique[0]} 等 ${unique.length} 个 API`
+}
+
 async function loadBills() {
   if (!authenticated.value || !user.context.currentEnterpriseId) return
   loading.value = true
@@ -78,6 +87,10 @@ onMounted(() => { void loadBills() })
             <div>{{ role === 'admin' ? '企业调用量' : '本人调用量' }} {{ bill.visibleCalls }}</div>
             <div class="mt-1">成功 {{ bill.successCalls }}</div>
           </div>
+        </div>
+        <div class="mt-3 rounded-xl bg-slate-50 p-3 text-[11px] text-slate-500">
+          <div class="truncate text-slate-700">{{ apiSummary(bill.lines.map(line => line.apiName)) }}</div>
+          <div class="mt-1">关联 {{ distinctCount(bill.lines.map(line => line.spaceOrderId)) }} 个采购订单 · {{ distinctCount(bill.lines.map(line => line.spaceProductNo)) }} 个 API 商品</div>
         </div>
       </button>
     </template>

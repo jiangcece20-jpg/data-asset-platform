@@ -14,6 +14,15 @@ function migrateProductToResource(product: Product): Resource {
     type: product.type,
     origin: product.origin,
     typeDetail: { ...product.typeDetail },
+    assetStatus: product.origin === 'asset_platform'
+      ? (product.availability === 'delisted' ? 'delisted' : product.availability === 'paused' ? 'paused' : 'published')
+      : undefined,
+    commercializable: product.origin === 'asset_platform' ? product.availability !== 'candidate' : undefined,
+    assetVersion: product.assetSnapshot?.assetVersion,
+    lastSyncedAt: product.assetSnapshot?.syncedAt,
+    lastCheckedAt: product.assetSnapshot?.lastCheckedAt,
+    changeRisk: product.assetSnapshot?.changeRisk,
+    changeSummary: product.assetSnapshot?.changeSummary,
     createdAt: product.updatedAt,
     updatedAt: product.updatedAt
   }
@@ -30,8 +39,14 @@ export const unlistedResources: Resource[] = [
     id: 'res-asset-truck-trajectory',
     resourceName: '货车轨迹明细数据集',
     type: 'dataset',
-    origin: 'app_content',
+    origin: 'asset_platform',
     typeDetail: {},
+    assetStatus: 'published',
+    commercializable: true,
+    assetVersion: 'v3.2.0',
+    lastSyncedAt: '2026-07-30 09:20',
+    lastCheckedAt: '2026-07-31 08:00',
+    changeRisk: 'none',
     createdAt: '2026-07-18',
     updatedAt: '2026-07-18'
   },
@@ -39,8 +54,14 @@ export const unlistedResources: Resource[] = [
     id: 'res-asset-warehouse-api',
     resourceName: '仓储利用率查询 API',
     type: 'api',
-    origin: 'app_content',
+    origin: 'asset_platform',
     typeDetail: {},
+    assetStatus: 'published',
+    commercializable: true,
+    assetVersion: 'v1.8.1',
+    lastSyncedAt: '2026-07-29 15:10',
+    lastCheckedAt: '2026-07-31 08:00',
+    changeRisk: 'low',
     createdAt: '2026-07-21',
     updatedAt: '2026-07-21'
   }

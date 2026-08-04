@@ -45,6 +45,11 @@ export const seedTrustedProductSnapshots: TrustedProductSnapshot[] = [
     provider: '可信数据空间 · 平台自营',
     saleStatus: 'published',
     price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
+    datasetOffers: [
+      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'space-ds-year', externalPlanCode: 'DS-10893-YEAR', name: '年度订阅版', subject: 'enterprise', price: 29800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
+      { id: 'space-ds-custom', externalPlanCode: 'DS-10893-PLUS', name: '扩展覆盖版', subject: 'enterprise', price: 49800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' }
+    ],
     currency: 'CNY',
     version: 5,
     spaceUpdatedAt: '2026-07-27T09:35:00.000Z',
@@ -122,7 +127,12 @@ export const seedApiUsageBills: ApiUsageBillMirror[] = [
       {
         id: 'space-bill-line-mem-1',
         date: '2026-07-26',
+        appProductId: 'prod-qualification-api',
+        spaceProductNo: 'SPACE-API-20415',
+        spaceOrderId: 'space-order-qualification-001',
         apiName: '道路运输从业人员资格核验 API',
+        pricingPlan: '标准调用方案',
+        unitPrice: 1,
         appCredentialId: 'credential-mem-1',
         ownerMemberId: 'mem-1',
         calls: 1120,
@@ -133,7 +143,12 @@ export const seedApiUsageBills: ApiUsageBillMirror[] = [
       {
         id: 'space-bill-line-mem-2',
         date: '2026-07-27',
+        appProductId: 'prod-privacy-verify',
+        spaceProductNo: 'SPACE-PIR-40217',
+        spaceOrderId: 'space-order-privacy-001',
         apiName: '企业资质隐私核验 API',
+        pricingPlan: '按次核验方案',
+        unitPrice: 1,
         appCredentialId: 'credential-mem-2',
         ownerMemberId: 'mem-2',
         calls: 720,

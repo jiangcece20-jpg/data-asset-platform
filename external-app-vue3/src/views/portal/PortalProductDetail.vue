@@ -83,14 +83,24 @@ const actions = computed(() => product.value ? resolveProductActions({
 const pcActions = computed(() => {
   const p = product.value
   if (!p) return null
+  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value && actions.value) {
+    return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的数据' } }
+  }
   if (
     p.dealChannel === 'space_purchase'
     && !owned.value
     && p.availability === 'published'
     && (p.serviceStatus ?? 'normal') === 'normal'
-    && (!user.context.loggedIn || !user.isEnterpriseAuthenticated)
   ) {
-    return { primary: { key: 'space_purchase' as const, label: '前往可信空间' } }
+    if (!user.context.loggedIn) {
+      return { primary: { key: 'space_purchase' as const, label: '登录后继续' } }
+    }
+    if (user.context.enterpriseAuthStatus === 'none') {
+      return { primary: { key: 'enterprise_auth' as const, label: '去企业认证' } }
+    }
+    if (user.context.enterpriseAuthStatus === 'pending') {
+      return { primary: { key: 'unavailable' as const, label: '企业认证审核中', disabled: true } }
+    }
   }
   return actions.value
 })
@@ -129,13 +139,19 @@ const baseInfoItems = computed<InfoItem[]>(() => {
   const p = product.value
   if (!p) return []
   const items: InfoItem[] = [
-    { label: '供应方', value: p.provider },
+    { label: '提供方', value: p.provider },
     { label: '更新频率', value: p.updateFrequency },
     { label: '覆盖范围', value: p.coverage },
     { label: '交付方式', value: p.deliveryMethod },
     { label: '来源', value: originMeta[p.origin] },
     { label: '上架时间', value: listedAtOf(p) }
   ]
+  if (p.assetSnapshot) {
+    items.push(
+      { label: '资产版本', value: p.assetSnapshot.assetVersion },
+      { label: '最后监测', value: p.assetSnapshot.lastCheckedAt }
+    )
+  }
   // 可信空间同步元数据（PRD §11）：合规三要素 + 行业/地域 + 数据规模 + 结构化使用限制
   const m = p.spaceMeta
   if (m) {
@@ -267,12 +283,17 @@ function handleUnlock() {
 
 function handleAction(key: ProductActionKey) {
   switch (key) {
-    case 'view': router.push('/portal/mine'); break
-    case 'free_view': router.push('/portal/mine'); break
+    case 'view':
+    case 'free_view':
+      router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
+        ? { path: '/portal/mine', query: { tab: 'data' } }
+        : '/portal/mine')
+      break
     case 'enterprise_auth': goEnterpriseAuth(); break
     case 'space_purchase': goSpace(); break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
+    case 'dataset_purchase': router.push(`/portal/checkout/dataset/${id.value}`); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { tab: '求上架' } }); break
   }

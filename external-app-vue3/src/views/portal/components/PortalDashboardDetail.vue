@@ -140,7 +140,7 @@ function displayValue(value: string | number | null | undefined): string {
       </div>
     </div>
 
-    <!-- Tab: metrics 指标定义（2 列） -->
+    <!-- Tab: metrics 指标定义（购买前公开，不受内容解锁状态限制） -->
     <div v-else-if="activeTab === 'metrics'" class="grid grid-cols-2 gap-4">
       <div
         v-for="metric in detail.metrics"
@@ -148,22 +148,10 @@ function displayValue(value: string | number | null | undefined): string {
         class="rounded-lg border border-slate-200 p-4"
       >
         <div class="mb-2 text-sm font-semibold text-slate-800">{{ metric.name }}</div>
-        <!-- inline content gate -->
-        <div v-if="gateMode(metric.preview, unlocked) === 'visible'" class="space-y-1.5 text-sm text-slate-500">
-          <div><span class="text-slate-400">定义：</span>{{ metric.definition }}</div>
-          <div><span class="text-slate-400">公式：</span>{{ metric.formula }}</div>
-          <div><span class="text-slate-400">维度：</span>{{ metric.dimensions.join('、') }}</div>
-        </div>
-        <div v-else-if="gateMode(metric.preview, unlocked) === 'masked'" class="space-y-1.5">
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="pt-1 text-xs text-slate-400">🔒 解锁后查看关键内容</div>
-        </div>
-        <div v-else class="flex flex-col items-center py-4">
-          <span class="text-2xl">🔒</span>
-          <div class="mt-1.5 text-sm font-medium text-slate-600">{{ metric.name }}</div>
-          <div class="mt-0.5 text-xs text-slate-400">解锁后可阅读完整内容</div>
+        <div class="space-y-1.5 text-sm text-slate-500">
+          <div><span class="text-slate-400">指标描述：</span>{{ metric.definition }}</div>
+          <div><span class="text-slate-400">计算公式：</span>{{ metric.formula }}</div>
+          <div><span class="text-slate-400">支持维度：</span>{{ metric.dimensions.join('、') }}</div>
         </div>
       </div>
     </div>

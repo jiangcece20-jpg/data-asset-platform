@@ -1,4 +1,4 @@
-import type { EnterpriseAuthStatus, ProductPrice, ProductType } from './domain'
+import type { DatasetOffer, EnterpriseAuthStatus, ProductPrice, ProductType } from './domain'
 
 export type SnapshotSyncState = 'current' | 'stale' | 'sync_failed' | 'unavailable'
 export type SpaceProductSaleStatus = 'published' | 'paused' | 'delisted' | 'unknown'
@@ -19,6 +19,7 @@ export interface TrustedProductSnapshot {
   provider: string
   saleStatus: SpaceProductSaleStatus
   price: ProductPrice
+  datasetOffers?: DatasetOffer[]
   currency: string
   version: number
   spaceUpdatedAt: string
@@ -139,7 +140,15 @@ export interface SpaceOrderReconciliationAudit {
 export interface ApiUsageBillLine {
   id: string
   date: string
+  /** APP 商品，用于从费用明细返回商品与订单上下文。 */
+  appProductId: string
+  /** 可信空间商品编号。 */
+  spaceProductNo: string
+  /** 产生本次调用额度的可信空间采购订单。 */
+  spaceOrderId: string
   apiName: string
+  pricingPlan: string
+  unitPrice: number
   appCredentialId: string
   ownerMemberId: string
   calls: number

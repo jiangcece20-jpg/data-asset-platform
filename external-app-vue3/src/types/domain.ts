@@ -240,6 +240,62 @@ export interface ProductPrice {
   quoteNote?: string
 }
 
+export type DatasetOfferSubject = 'personal' | 'enterprise'
+export type DatasetLicenseKind = 'subscription' | 'snapshot'
+export type DatasetAccessScope = 'personal' | 'named_seats' | 'enterprise_wide'
+export type DatasetDeliveryMode = 'managed_connection' | 'snapshot'
+
+/** APP 统一销售方案：所有商品类型共用主体、交付方式和期限定价。 */
+export type CommerceServiceMode = 'one_time' | 'continuous'
+export type CommerceContentKind =
+  | 'snapshot'
+  | 'current_version'
+  | 'fixed_dashboard'
+  | 'quota_package'
+  | 'continuous_updates'
+  | 'continuous_service'
+
+export interface CommerceOffer {
+  id: string
+  name: string
+  subject: DatasetOfferSubject
+  price: number
+  currency: 'CNY'
+  serviceMode: CommerceServiceMode
+  contentKind: CommerceContentKind
+  /** 持续方案每几个自然月计一次价。 */
+  billingPeriodMonths?: number
+  /** 持续方案允许一次购买的最长月数；不得配置为永久。 */
+  maxTermMonths?: number
+  accessScope?: DatasetAccessScope
+  seats?: number
+  allowDownload?: boolean
+  recommended?: boolean
+  externalPlanCode?: string
+}
+
+/** 数据集销售方案：资产平台来源由 APP 配置；可信空间来源仅同步展示。 */
+export interface DatasetOffer extends CommerceOffer {
+  licenseKind: DatasetLicenseKind
+  /** @deprecated 兼容旧 Mock；新方案使用 billingPeriodMonths + maxTermMonths。 */
+  termMonths?: number
+  accessScope: DatasetAccessScope
+  allowDownload: boolean
+  deliveryMode: DatasetDeliveryMode
+}
+
+export type AssetChangeRisk = 'none' | 'low' | 'medium' | 'high'
+
+/** 资产平台商品绑定的不可变资产版本快照。 */
+export interface AssetProductSnapshotRef {
+  resourceId: string
+  assetVersion: string
+  syncedAt: string
+  lastCheckedAt: string
+  changeRisk: AssetChangeRisk
+  changeSummary?: string
+}
+
 export interface ProductTypeDetail {
   dataset?: DatasetDetail
   api?: ApiDetail
@@ -311,6 +367,12 @@ export interface Product {
   qualityPromise: string
   complianceNote: string
   price: ProductPrice
+  /** APP 内统一销售方案；报告、看板和 API 均可配置个人/企业、一次性/持续方案。 */
+  commerceOffers?: CommerceOffer[]
+  /** 数据集销售方案；兼容数据交付字段，允许同一主体配置多个方案。 */
+  datasetOffers?: DatasetOffer[]
+  /** 资产平台来源商品的版本化绑定与监控摘要。 */
+  assetSnapshot?: AssetProductSnapshotRef
   status: ProductStatus
   tags: string[]
   description: string
@@ -383,10 +445,16 @@ export interface Enterprise {
   expiresAt: string
   members: EnterpriseMember[]
   entitledProductIds: string[]
+  purchasePolicy: {
+    /** 是否允许普通成员以企业主体发起采购。 */
+    memberPurchaseAllowed: boolean
+    /** 普通成员发起企业采购后是否必须由管理员审批。 */
+    memberPurchaseApprovalRequired: boolean
+  }
 }
 
 export type EntitlementSource = 'personal' | 'enterprise'
-export type EntitlementType = 'member' | 'item' | 'seat'
+export type EntitlementType = 'member' | 'item' | 'seat' | 'dataset'
 
 export interface Entitlement {
   id: string
@@ -398,14 +466,34 @@ export interface Entitlement {
   ownerId: string
   validFrom: string
   validTo?: string
+  /** 数据集/报告持续更新截止日；到期停止新版本，已交付内容仍保留。 */
+  updateValidTo?: string
   status: EntitlementStatus
   reverseWorkOrderId?: string
   refundId?: string
+  orderId?: string
+  datasetOfferId?: string
+  commerceOfferId?: string
+  serviceMode?: CommerceServiceMode
+  selectedTermMonths?: number
+  licenseKind?: DatasetLicenseKind
+  assetVersion?: string
+  accessScope?: DatasetAccessScope
+  assignedMemberIds?: string[]
+  allowDownload?: boolean
+  biDeliveryId?: string
 }
 
 export type OrderChannel = 'app'
 export type OrderOwnerType = 'personal' | 'enterprise'
+export type PaymentMethod =
+  | 'personal_online'
+  | 'enterprise_balance'
+  | 'enterprise_contract'
+  | 'enterprise_bank_transfer'
 export type AppOrderStatus =
+  | 'pending_approval'
+  | 'approval_rejected'
   | 'pending_payment'
   | 'payment_cancelled'
   | 'payment_failed'
@@ -425,6 +513,16 @@ export interface Order {
   paidAt?: string
   contractStatus?: 'quoting' | 'contract_signed' | 'payment_confirmed' | 'not_required'
   note?: string
+  productType?: ProductType
+  operatorMemberId?: string
+  datasetOfferId?: string
+  commerceOfferId?: string
+  serviceMode?: CommerceServiceMode
+  selectedTermMonths?: number
+  approvalRequestId?: string
+  paymentMethod?: PaymentMethod
+  entitlementId?: string
+  biDeliveryId?: string
   // 交易售后（§9）新增字段
   idempotencyKey?: string
   entitlementGranted?: boolean

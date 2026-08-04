@@ -5,6 +5,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useUserStore } from '@/stores/user'
+import { statusMeta } from '@/utils/statusMeta'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,6 +19,8 @@ const product = computed(() => catalog.byId(id.value))
 const intentId = computed(() => String(route.query.intent ?? ''))
 const intent = computed(() => purchase.byId(intentId.value))
 const mirror = computed(() => intent.value ? spaceOrders.byIntentId(intent.value.id) : undefined)
+const intentStatusLabel = computed(() => intent.value ? statusMeta('purchaseIntent', intent.value.status).label : '—')
+const mirrorStatusLabel = computed(() => mirror.value ? statusMeta('spaceOrder', mirror.value.displayStatus).label : '—')
 const enterprise = computed(() => user.enterprise)
 const operator = computed(() => user.currentEnterpriseMember)
 const currentTime = inject<() => Date>('trusted-space-now', () => new Date())
@@ -106,11 +109,11 @@ async function reconcileReturnedIntent() {
         <div class="mt-3 text-white/50">经办人</div>
         <div class="mt-1 font-medium">经办人：{{ operator?.name }}</div>
         <div class="mt-3 text-white/50">意图状态</div>
-        <div class="mt-1 font-medium">{{ intent.status }}</div>
+        <div class="mt-1 font-medium">{{ intentStatusLabel }}</div>
       </div>
 
       <div v-if="mirror" class="rounded-xl bg-cyan-400/10 p-3 text-center text-[13px] text-cyan-100">
-        <div>空间订单状态：{{ mirror.displayStatus }}</div>
+        <div>空间订单状态：{{ mirrorStatusLabel }}</div>
         <div v-if="mirror.deliverySummary" class="mt-1 text-[12px] text-cyan-100/70">{{ mirror.deliverySummary }}</div>
       </div>
       <div v-else-if="intent.status === 'returned_pending_sync'" class="rounded-xl bg-amber-400/10 p-3 text-center text-[13px] text-amber-200">

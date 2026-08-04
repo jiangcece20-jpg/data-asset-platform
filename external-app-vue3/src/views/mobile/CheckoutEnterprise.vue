@@ -23,7 +23,7 @@ const enterpriseEligible = computed(() =>
   && Boolean(user.currentEnterpriseMember)
 )
 
-const packagePrice = computed(() => (product.value?.price.itemPrice || 199) * 10)
+const packagePrice = computed(() => checkoutIntent.value?.amount ?? (product.value?.price.itemPrice || 199) * 10)
 
 function returnToReportCheckout() {
   router.replace(`/app/checkout/item/${id.value}`)
@@ -58,14 +58,16 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
         <div v-else class="mb-3 rounded-lg bg-amber-50 p-3 text-[12px] text-amber-700">
           企业购买需由已认证的当前企业成员发起
         </div>
-        <div class="text-[14px] font-semibold text-slate-900">{{ product.name }} · 企业内容套餐</div>
+        <div class="text-[14px] font-semibold text-slate-900">{{ product.name }} · 企业方案</div>
         <div class="mt-1 text-[12px] text-slate-500">企业采购后由管理员在企业中心分配席位，成员即可共享内容</div>
 
         <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-500">
           已确认结算方式：{{ checkoutIntent.mode === 'online' ? '在线支付' : '报价 → 合同 → 对公付款' }}
         </div>
 
-        <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-500">套餐金额：¥{{ packagePrice }} / 年，含 10 席位</div>
+        <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-500">
+          套餐金额：¥{{ packagePrice }}<template v-if="checkoutIntent.selectedTermMonths"> · {{ checkoutIntent.selectedTermMonths }} 个月</template>，企业成员权限由管理员分配
+        </div>
 
         <button data-testid="enterprise-intent-submit" class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50" :disabled="!enterpriseEligible" @click="submit">
           {{ checkoutIntent.mode === 'online' ? `确认以${user.enterprise.name}名义支付` : `确认以${user.enterprise.name}名义提交企业订单` }}

@@ -6,10 +6,12 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import DeadLetterList from '@/components/admin/integration/DeadLetterList.vue'
 import { useIntegrationStore } from '@/stores/integration'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import { useAssetPlatformMonitoringStore } from '@/stores/assetPlatformMonitoring'
 import type { ConnectorEvent } from '@/types/configGovernance'
 
 const integration = useIntegrationStore()
 const spaceOrders = useSpaceOrderStore()
+const assetMonitoring = useAssetPlatformMonitoringStore()
 const now = useResponsiveNow()
 const error = ref('')
 
@@ -44,6 +46,27 @@ function reconcileLongUnlinked(intentId: string) {
   <div>
     <PageHeader title="集成治理" desc="连接器事件、业务版本、重试/死信、审计处置与可信空间主动对账" />
     <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
+
+    <div class="mb-4 rounded-xl border border-blue-200 bg-blue-50/50 p-4" data-testid="asset-monitoring-overview">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[13px] font-medium text-slate-800">资产平台数据变更监控 <span class="ml-1 rounded bg-white px-1.5 py-0.5 text-[10px] text-blue-600">一期架构预留</span></div>
+          <p class="mt-1 text-[12px] text-slate-500">已提供版本、风险与处置状态 mock；真实轮询、告警和自动迁移暂不启用。</p>
+        </div>
+        <div class="flex gap-4 text-right text-[12px]">
+          <div><div class="text-lg font-semibold text-slate-800">{{ assetMonitoring.monitoredProductCount }}</div><div class="text-slate-400">关联商品</div></div>
+          <div><div class="text-lg font-semibold text-red-600">{{ assetMonitoring.highRiskCount }}</div><div class="text-slate-400">高风险</div></div>
+        </div>
+      </div>
+      <div class="mt-3 overflow-hidden rounded-lg border border-blue-100 bg-white">
+        <div v-for="record in assetMonitoring.records" :key="record.id" data-testid="asset-monitor-record" class="grid grid-cols-[1.4fr_.8fr_.5fr_2fr] items-center gap-3 border-t border-slate-100 px-3 py-2 text-[11px] first:border-t-0">
+          <span class="font-medium text-slate-700">{{ record.resourceName }}</span>
+          <span class="text-slate-500">{{ record.previousVersion }} → {{ record.currentVersion }}</span>
+          <span :class="record.risk === 'high' ? 'text-red-600' : record.risk === 'low' ? 'text-amber-600' : 'text-emerald-600'">{{ record.risk === 'high' ? '高风险' : record.risk === 'low' ? '低风险' : '正常' }}</span>
+          <span class="text-slate-500">{{ record.summary }}</span>
+        </div>
+      </div>
+    </div>
 
     <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4" data-testid="long-unlinked-list">
       <div class="mb-2 text-[13px] font-medium text-amber-900">长时间未关联购买意图</div>

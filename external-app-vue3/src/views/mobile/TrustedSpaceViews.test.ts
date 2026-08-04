@@ -12,7 +12,6 @@ import { useApiUsageBillsStore } from '@/stores/apiUsageBills'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { useCatalogStore } from '@/stores/catalog'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import type { UserContext } from '@/types/domain'
 import type { SpaceOrderMirror } from '@/types/trustedSpace'
@@ -45,24 +44,18 @@ function spaceOrderMirror(over: Partial<SpaceOrderMirror> = {}): SpaceOrderMirro
   }
 }
 
-async function mountMine(context: Partial<UserContext> = {}) {
+async function mountMine(context: Partial<UserContext> = {}, path = '/app/mine') {
   const user = useUserStore()
   Object.assign(user.context, context)
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/app/mine', name: 'mine', component: Mine }]
   })
-  await router.push('/app/mine')
+  await router.push(path)
   await router.isReady()
   const wrapper = mount(Mine, { global: { plugins: [router] } })
   await flushPromises()
   return wrapper
-}
-
-async function selectTab(wrapper: ReturnType<typeof mount>, tab: string) {
-  const button = wrapper.findAll('button').find((item) => item.text() === tab)
-  if (!button) throw new Error(`Missing tab: ${tab}`)
-  await button.trigger('click')
 }
 
 async function mountSpaceBridgeWithIntent(options: { linkNow?: string; renderNow?: () => Date; returned?: boolean; redirected?: boolean } = {}) {
@@ -171,7 +164,7 @@ describe('API usage bill views', () => {
     await router.isReady()
 
     const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
-    expect(wrapper.text()).toContain('API 用量账单')
+    expect(wrapper.text()).toContain('API 调用与费用账单')
     await wrapper.get('button[data-testid="api-usage-bills-entry"]').trigger('click')
     await router.isReady()
     await flushPromises()
@@ -189,7 +182,7 @@ describe('API usage bill views', () => {
     await router.isReady()
 
     const wrapper = mount(MineEnterprise, { global: { plugins: [router] } })
-    expect(wrapper.text()).not.toContain('API 用量账单')
+    expect(wrapper.text()).not.toContain('API 调用与费用账单')
   })
 
   it('does not list or provide a detail support entry for a billing month without the member credential', async () => {
@@ -286,6 +279,9 @@ describe('API usage bill views', () => {
     expect(wrapper.text()).toContain('账单网络暂不可用')
     expect(wrapper.text()).toContain('当前展示最近一次成功同步的账单')
     expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
+    expect(wrapper.text()).toContain('space-order-qualification-001')
+    expect(wrapper.text()).toContain('SPACE-API-20415')
+    expect(wrapper.text()).toContain('标准调用方案')
     expect(wrapper.text()).toContain('企业总额')
   })
 })
@@ -308,9 +304,8 @@ describe('mine order views', () => {
     useSpaceOrderStore().mirrors = [spaceOrderMirror()]
 
     const wrapper = await mountMine({ enterpriseAuthStatus: 'none' })
-    await selectTab(wrapper, '企业订单')
 
-    expect(wrapper.text()).toContain('完成企业认证后查看企业订单')
+    expect(wrapper.text()).toContain('企业认证后可查看企业订单')
     expect(wrapper.text()).not.toContain('SP-ORDER-')
   })
 
@@ -324,9 +319,7 @@ describe('mine order views', () => {
 
     user.setEnterpriseContext('ent-another')
     const wrapper = await mountMine()
-    await selectTab(wrapper, '企业订单')
 
-    expect(wrapper.text()).toContain('完成企业认证后查看企业订单')
     expect(wrapper.text()).not.toContain('SP-ORDER-ANOTHER')
   })
 
@@ -359,6 +352,7 @@ describe('mine order views', () => {
         channel: 'app',
         ownerType: 'enterprise',
         ownerId: 'ent-wanlian-logistics',
+        operatorMemberId: 'mem-2',
         productId: 'prod-enterprise',
         productName: '企业 APP 订单',
         amount: 300,
@@ -377,34 +371,28 @@ describe('mine order views', () => {
       enterpriseAuthStatus: 'authenticated',
       role: 'member'
     })
-    await selectTab(wrapper, '个人订单')
     expect(wrapper.text()).toContain('本人个人订单')
     expect(wrapper.text()).not.toContain('其他成员个人订单')
-
-    await selectTab(wrapper, '企业订单')
     expect(wrapper.text()).toContain('企业 APP 订单')
     expect(wrapper.text()).toContain('SP-ORDER-MINE')
     expect(wrapper.text()).not.toContain('SP-ORDER-OTHER')
-    expect(wrapper.text()).toContain('APP 支付')
-    expect(wrapper.text()).toContain('可信空间')
+    expect(wrapper.text()).toContain('APP 内购买')
+    expect(wrapper.text()).toContain('可信空间购买')
   })
 
-  it('shows only the current member personal item and member entitlements in Mine', async () => {
+  it('uses one common Mine entry with only orders and data tabs', async () => {
+    const wrapper = await mountMine()
+    const tabLabels = wrapper.findAll('button').map((button) => button.text()).filter((label) => ['我的订单', '我的数据', '个人订单', '企业订单', '我的账单'].includes(label))
+    expect(tabLabels).toEqual(['我的订单', '我的数据'])
+  })
+
+  it('opens My Orders with the current enterprise filter from Enterprise Center', async () => {
     const user = useUserStore()
-    const entitlements = useEntitlementStore()
-    entitlements.list = []
-    user.context.currentMemberId = 'mem-1'
-    entitlements.grantMember()
-    entitlements.grantItem(useCatalogStore().byId('prod-logistics-monthly')!, 'mem-1')
-    user.context.currentMemberId = 'mem-2'
-    entitlements.grantItem(useCatalogStore().byId('prod-freight-index')!, 'mem-2')
-
-    const wrapper = await mountMine({ currentMemberId: 'mem-2' })
-
-    expect(wrapper.text()).toContain('全国货运价格指数')
-    expect(wrapper.text()).not.toContain('中国公路物流行业月报')
-    expect(wrapper.text()).toContain('尚未开通')
-    expect(wrapper.text()).not.toContain('有效期至')
+    user.completeEnterpriseAuth()
+    const wrapper = await mountMine({}, '/app/mine?tab=orders&subject=enterprise&from=enterprise-center')
+    expect(wrapper.find('[data-testid="enterprise-order-filter-context"]').text()).toContain(user.enterprise.name)
+    expect(wrapper.text()).toContain('order-enterprise-dataset-001')
+    expect(wrapper.text()).not.toContain('order-history-001')
   })
 
   it('shows enterprise content only for the current enterprise active assigned member', async () => {

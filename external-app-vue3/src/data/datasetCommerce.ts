@@ -1,0 +1,61 @@
+import type { BiDatasetDelivery } from '@/types/datasetCommerce'
+
+export const seedBiDatasetDeliveries: BiDatasetDelivery[] = [
+  {
+    id: 'bi-delivery-history-001',
+    orderId: 'order-dataset-history-001',
+    entitlementId: 'ent-dataset-history-001',
+    productId: 'prod-warehouse-turnover-risk',
+    ownerType: 'personal',
+    ownerId: 'mem-1',
+    operatorMemberId: 'mem-1',
+    datasetInstanceId: 'bi-dataset-warehouse-turnover-v232',
+    status: 'delivered',
+    biEntryUrl: '/bi/workbench/dataset/bi-dataset-warehouse-turnover-v232',
+    attemptCount: 1,
+    firstUsedAt: '2026-07-18T11:20:00.000Z',
+    lastUsedAt: '2026-07-30T16:45:00.000Z',
+    lastSuccessfulRefreshAt: '2026-07-28T06:00:00.000Z',
+    createdAt: '2026-07-18T10:01:00.000Z',
+    deliveredAt: '2026-07-18T10:02:00.000Z',
+    updatedAt: '2026-07-28T06:00:00.000Z'
+  },
+  {
+    id: 'bi-delivery-subscription-001',
+    orderId: 'order-dataset-subscription-001',
+    entitlementId: 'ent-dataset-subscription-001',
+    productId: 'prod-truck-trajectory',
+    ownerType: 'personal',
+    ownerId: 'mem-1',
+    operatorMemberId: 'mem-1',
+    datasetInstanceId: 'bi-dataset-truck-trajectory-v320',
+    status: 'delivered',
+    biEntryUrl: '/bi/workbench/dataset/bi-dataset-truck-trajectory-v320',
+    attemptCount: 1,
+    firstUsedAt: '2025-09-30T10:10:00.000Z',
+    lastUsedAt: '2026-08-02T16:20:00.000Z',
+    lastSuccessfulRefreshAt: '2026-08-01T06:00:00.000Z',
+    createdAt: '2025-09-30T09:02:00.000Z',
+    deliveredAt: '2025-09-30T09:10:00.000Z',
+    updatedAt: '2026-08-01T06:00:00.000Z'
+  },
+  {
+    id: 'bi-delivery-enterprise-001',
+    orderId: 'order-enterprise-dataset-001',
+    entitlementId: 'ent-dataset-enterprise-001',
+    productId: 'prod-truck-trajectory',
+    ownerType: 'enterprise',
+    ownerId: 'ent-wanlian-logistics',
+    operatorMemberId: 'mem-1',
+    datasetInstanceId: 'bi-dataset-enterprise-truck-trajectory-v320',
+    status: 'delivered',
+    biEntryUrl: '/bi/workbench/dataset/bi-dataset-enterprise-truck-trajectory-v320',
+    attemptCount: 1,
+    firstUsedAt: '2026-07-29T16:00:00.000Z',
+    lastUsedAt: '2026-08-02T10:30:00.000Z',
+    lastSuccessfulRefreshAt: '2026-07-29T15:35:00.000Z',
+    createdAt: '2026-07-29T15:20:00.000Z',
+    deliveredAt: '2026-07-29T15:35:00.000Z',
+    updatedAt: '2026-07-29T15:35:00.000Z'
+  }
+]

@@ -118,7 +118,7 @@ describe('SpaceBridge direct-entry guard', () => {
     await flushPromises()
 
     expect(useTrustedSpacePurchaseStore().byId('intent-qualification-001')?.status).toBe('linked')
-    expect(wrapper.text()).toContain('空间订单状态：delivered')
+    expect(wrapper.text()).toContain('空间订单状态：已交付')
     expect(wrapper.text()).not.toContain('购买成功')
   })
 })

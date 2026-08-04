@@ -126,7 +126,7 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
         && current.version === snapshot.version
         && current.spaceUpdatedAt === snapshot.spaceUpdatedAt
         ? { ...current, syncedAt: snapshot.syncedAt, syncState: snapshot.syncState }
-        : { ...snapshot, price: { ...snapshot.price } }
+        : { ...snapshot, price: { ...snapshot.price }, datasetOffers: snapshot.datasetOffers?.map((offer) => ({ ...offer })) }
       if (index >= 0) this.snapshots[index] = next
       else this.snapshots.push(next)
       useCatalogStore().applyTrustedSnapshot(next)

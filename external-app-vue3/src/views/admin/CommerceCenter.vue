@@ -12,7 +12,7 @@ const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel 
 
 <template>
   <div>
-    <PageHeader title="商业化中心" desc="会员与单品定价（订单履约已移至订单中心）" />
+    <PageHeader title="商业化中心" desc="会员、内容单品与数据集个人/企业销售方案（订单履约已移至订单中心）" />
 
     <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
       <div class="mb-2 text-[13px] font-medium text-slate-700">会员定价</div>
@@ -20,6 +20,16 @@ const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel 
         <div class="rounded-lg bg-slate-50 px-3 py-2">连续包月 ¥39</div>
         <div class="rounded-lg bg-slate-50 px-3 py-2">年度会员 ¥299（推荐）</div>
         <div class="rounded-lg bg-slate-50 px-3 py-2">单一会员覆盖配置范围内的报告与交互报表</div>
+      </div>
+    </div>
+
+    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4" data-testid="dataset-commerce-offers">
+      <div class="mb-2 text-[13px] font-medium text-slate-700">资产平台数据集销售方案</div>
+      <div v-for="p in itemPricing.filter((item) => item.type === 'dataset' && item.origin === 'asset_platform')" :key="p.id" class="grid grid-cols-[1.4fr_1fr_1fr_.8fr] gap-3 border-t border-slate-100 py-2 text-[12px]">
+        <div><div class="font-medium text-slate-700">{{ p.name }}</div><div class="text-slate-400">绑定 {{ p.assetSnapshot?.assetVersion }} · {{ p.status }}</div></div>
+        <div class="text-slate-500">个人：¥{{ p.datasetOffers?.find((offer) => offer.subject === 'personal')?.price.toLocaleString() || '—' }}</div>
+        <div class="text-slate-500">企业：¥{{ p.datasetOffers?.find((offer) => offer.subject === 'enterprise')?.price.toLocaleString() || '—' }}</div>
+        <div :class="p.assetSnapshot?.changeRisk === 'high' ? 'text-red-600' : 'text-emerald-600'">{{ p.assetSnapshot?.changeRisk === 'high' ? '高风险·暂停新购' : '可销售' }}</div>
       </div>
     </div>
 

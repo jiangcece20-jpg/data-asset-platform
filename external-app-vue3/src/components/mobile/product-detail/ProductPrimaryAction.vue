@@ -14,7 +14,7 @@ function secondaryClick() {
 </script>
 
 <template>
-  <div class="fixed bottom-0 left-1/2 w-[390px] -translate-x-1/2 space-y-2 border-t border-slate-100 bg-white p-3">
+  <div class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-slate-100 bg-white p-3">
     <div v-if="priceText" class="text-center text-[12px] text-slate-400">{{ priceText }}</div>
     <button
       class="w-full rounded-full py-3 text-[14px] font-medium text-white"

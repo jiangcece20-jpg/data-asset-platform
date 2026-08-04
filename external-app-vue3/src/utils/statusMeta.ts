@@ -32,12 +32,30 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     delisted: { label: '已下架', tone: 'slate' }
   },
   appOrder: {
+    pending_approval: { label: '待企业审批', tone: 'amber' },
+    approval_rejected: { label: '审批驳回', tone: 'red' },
     pending_payment: { label: '待支付', tone: 'amber' },
     payment_cancelled: { label: '支付取消', tone: 'slate' },
     payment_failed: { label: '支付失败', tone: 'red' },
     paid: { label: '已支付', tone: 'blue' },
     refunded: { label: '已退款', tone: 'slate' },
     entitlement_active: { label: '权益已生效', tone: 'green' }
+  },
+  biDelivery: {
+    pending: { label: '待创建', tone: 'slate' },
+    provisioning: { label: '交付中', tone: 'blue' },
+    delivered: { label: '已交付', tone: 'green' },
+    failed: { label: '交付失败', tone: 'red' },
+    suspended: { label: '已暂停', tone: 'amber' },
+    expired: { label: '已到期', tone: 'slate' }
+  },
+  entitlementStatus: {
+    pending: { label: '待交付', tone: 'amber' },
+    active: { label: '已生效', tone: 'green' },
+    frozen: { label: '已冻结', tone: 'red' },
+    migrating: { label: '迁移中', tone: 'blue' },
+    expired: { label: '已到期', tone: 'slate' },
+    revoked: { label: '已撤销', tone: 'slate' }
   },
   spaceOrder: {
     accepted: { label: '已受理', tone: 'blue' },

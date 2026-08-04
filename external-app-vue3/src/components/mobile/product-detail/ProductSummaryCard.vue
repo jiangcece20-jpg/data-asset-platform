@@ -14,7 +14,11 @@ defineProps<{ product: Product; title: string }>()
       <StatusBadge dict="availability" :value="product.availability" />
     </div>
     <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
-    <div class="mt-1 text-[13px] text-slate-500">{{ product.subtitle }}</div>
+    <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
+
+    <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+      <span v-for="tag in product.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+    </div>
 
     <div class="mt-3 grid grid-cols-2 gap-2 text-[12px] text-slate-500">
       <div>来源：{{ originMeta[product.origin] }}</div>

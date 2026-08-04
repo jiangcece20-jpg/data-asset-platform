@@ -63,6 +63,9 @@ interface ResourceRow {
   statusColor: string
   isListed: boolean
   productId?: string
+  assetVersion?: string
+  eligibility: string
+  changeRisk?: string
 }
 
 const rows = computed<ResourceRow[]>(() => {
@@ -94,7 +97,10 @@ const rows = computed<ResourceRow[]>(() => {
         ? statusLabels[product.availability]?.color || 'bg-slate-100 text-slate-600'
         : 'bg-slate-100 text-slate-500',
       isListed: !!product,
-      productId: product?.id
+      productId: product?.id,
+      assetVersion: r.assetVersion,
+      eligibility: r.origin !== 'asset_platform' ? '—' : r.commercializable && r.assetStatus === 'published' ? '可商品化' : '不可商品化',
+      changeRisk: r.changeRisk
     }
   })
 })
@@ -116,7 +122,7 @@ function openListModal(resourceId: string) {
 
 function confirmList() {
   try {
-    catalog.listResource(listingResourceId.value, {
+    const created = catalog.listResource(listingResourceId.value, {
       name: listForm.value.name,
       subtitle: listForm.value.subtitle,
       price: { model: listForm.value.price.model, itemPrice: listForm.value.price.itemPrice, unit: listForm.value.price.unit },
@@ -125,6 +131,7 @@ function confirmList() {
       tags: listForm.value.tags
     })
     showListModal.value = false
+    router.push(`/admin/resources/${created.resourceId}`)
   } catch (e: any) {
     alert(e.message)
   }
@@ -178,6 +185,8 @@ function statusLabel(status: string): string {
             <th class="px-4 py-3 font-medium">资源名称</th>
             <th class="px-4 py-3 font-medium">类型</th>
             <th class="px-4 py-3 font-medium">来源</th>
+            <th class="px-4 py-3 font-medium">资产版本</th>
+            <th class="px-4 py-3 font-medium">商业化资格</th>
             <th class="px-4 py-3 font-medium">商品名称</th>
             <th class="px-4 py-3 font-medium">前台状态</th>
             <th class="px-4 py-3 font-medium">操作</th>
@@ -190,6 +199,11 @@ function statusLabel(status: string): string {
               <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{{ typeLabels[row.type] || row.type }}</span>
             </td>
             <td class="px-4 py-3 text-slate-600">{{ originLabels[row.origin] || row.origin }}</td>
+            <td class="px-4 py-3 text-slate-500">{{ row.assetVersion || '—' }}</td>
+            <td class="px-4 py-3">
+              <span :class="row.eligibility === '可商品化' ? 'text-emerald-600' : row.eligibility === '—' ? 'text-slate-400' : 'text-red-500'">{{ row.eligibility }}</span>
+              <span v-if="row.changeRisk === 'high'" class="ml-1 rounded bg-red-50 px-1 py-0.5 text-[10px] text-red-600">高风险</span>
+            </td>
             <td class="px-4 py-3 text-slate-600">{{ row.productName }}</td>
             <td class="px-4 py-3">
               <span class="rounded px-1.5 py-0.5 text-xs font-medium" :class="row.statusColor">{{ statusLabel(row.status) }}</span>
@@ -201,7 +215,7 @@ function statusLabel(status: string): string {
                   class="rounded bg-emerald-600 px-2.5 py-1 text-xs text-white hover:bg-emerald-700"
                   @click="openListModal(row.resourceId)"
                 >
-                  上架
+                  包装为商品
                 </button>
                 <button
                   v-else-if="row.isListed"
@@ -223,10 +237,11 @@ function statusLabel(status: string): string {
       </table>
     </div>
 
-    <!-- 上架弹窗 -->
+    <!-- 商品包装弹窗 -->
     <div v-if="showListModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="showListModal = false">
       <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <h3 class="mb-4 text-lg font-semibold text-slate-800">上架资源</h3>
+        <h3 class="mb-1 text-lg font-semibold text-slate-800">包装为商品</h3>
+        <p class="mb-4 text-xs text-slate-500">创建商品草稿后进入编辑与审核，不会直接在前台发布。</p>
         <div class="space-y-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-600">商品名称</label>
@@ -243,7 +258,7 @@ function statusLabel(status: string): string {
         </div>
         <div class="mt-6 flex justify-end gap-3">
           <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50" @click="showListModal = false">取消</button>
-          <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700" @click="confirmList">确认上架</button>
+          <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700" @click="confirmList">创建商品草稿</button>
         </div>
       </div>
     </div>

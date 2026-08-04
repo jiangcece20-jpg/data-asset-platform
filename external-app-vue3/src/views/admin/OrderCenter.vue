@@ -7,10 +7,16 @@ export interface UnifiedOrderRow {
   operatorMemberId?: string
   productId: string
   productName: string
+  productType?: string
+  planSummary?: string
   amount: number
   currency: string
   status: string
   contractStatus?: string
+  approvalStatus?: string
+  entitlementStatus?: string
+  deliveryStatus?: string
+  deliveryId?: string
   createdAt: string
 }
 </script>
@@ -22,10 +28,17 @@ import StatusBadge from '@/components/StatusBadge.vue'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
+import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useUserStore } from '@/stores/user'
+import { statusMeta } from '@/utils/statusMeta'
 
 const orders = useOrderStore()
 const spaceOrders = useSpaceOrderStore()
 const purchases = useTrustedSpacePurchaseStore()
+const datasetCommerce = useDatasetCommerceStore()
+const entitlements = useEntitlementStore()
+const user = useUserStore()
 
 const filterChannel = ref('')
 const filterOwner = ref('')
@@ -38,12 +51,19 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     channel: 'app' as const,
     ownerType: order.ownerType,
     ownerId: order.ownerId,
+    operatorMemberId: order.operatorMemberId,
     productId: order.productId,
     productName: order.productName,
+    productType: order.productType,
+    planSummary: order.serviceMode === 'continuous' ? `持续服务 · ${order.selectedTermMonths || '—'}个月` : order.serviceMode === 'one_time' ? '一次性交付' : undefined,
     amount: order.amount,
     currency: 'CNY',
     status: order.status,
     contractStatus: order.contractStatus,
+    approvalStatus: datasetCommerce.approvalRequests.find((item) => item.id === order.approvalRequestId)?.status,
+    entitlementStatus: entitlements.list.find((item) => item.id === order.entitlementId)?.status,
+    deliveryStatus: datasetCommerce.deliveries.find((item) => item.id === order.biDeliveryId)?.status,
+    deliveryId: order.biDeliveryId,
     createdAt: order.createdAt,
   })),
   ...spaceOrders.mirrors.map((mirror) => ({
@@ -104,6 +124,14 @@ function reconciliationIntentId(spaceOrderId: string): string | undefined {
 function spaceDetailUrl(row: UnifiedOrderRow): string | undefined {
   return spaceOrders.byId(row.id)?.detailUrl
 }
+
+function operatorName(memberId?: string): string {
+  return user.enterprise.members.find((item) => item.id === memberId)?.name || memberId || '—'
+}
+
+function statusLabel(dict: string, status: string | undefined, fallback: string): string {
+  return status ? statusMeta(dict, status).label : fallback
+}
 </script>
 
 <template>
@@ -132,20 +160,29 @@ function spaceDetailUrl(row: UnifiedOrderRow): string | undefined {
 
     <div class="rounded-xl border border-slate-200 bg-white">
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">客户</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">订单状态</th><th class="px-3 py-2">合同状态</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
+        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">客户/经办人</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">审批/权益/交付</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
         <tbody>
           <tr v-for="order in list" :key="order.id" data-testid="order-row" :data-id="order.id" class="border-t border-slate-100 hover:bg-slate-50">
-            <td class="px-3 py-2 text-slate-700">{{ order.productName }}</td>
+            <td class="px-3 py-2 text-slate-700"><div>{{ order.productName }}</div><div v-if="order.planSummary" class="text-[10px] text-slate-400">{{ order.planSummary }}</div></td>
             <td class="px-3 py-2 text-slate-500">{{ order.channel === 'trusted_space' ? '可信空间（只读镜像）' : 'APP 支付' }}</td>
-            <td class="px-3 py-2 text-slate-500">{{ order.ownerType === 'enterprise' ? '企业' : '个人' }}</td>
+            <td class="px-3 py-2 text-slate-500"><div>{{ order.ownerType === 'enterprise' ? '企业' : '个人' }}</div><div v-if="order.operatorMemberId" class="text-[10px] text-slate-400">经办 {{ operatorName(order.operatorMemberId) }}</div></td>
             <td class="px-3 py-2 text-slate-500">{{ order.currency === 'CNY' ? '¥' : `${order.currency} ` }}{{ order.amount }}</td>
             <td class="px-3 py-2"><StatusBadge :dict="order.channel === 'trusted_space' ? 'spaceOrder' : 'appOrder'" :value="order.status" /></td>
-            <td class="px-3 py-2"><StatusBadge v-if="order.channel === 'app' && order.contractStatus" dict="contract" :value="order.contractStatus" /></td>
+            <td class="px-3 py-2 text-[11px] text-slate-500">
+              <template v-if="order.channel === 'app' && order.productType === 'dataset'">
+                <div>审批：{{ statusLabel('approval', order.approvalStatus, '不需要') }}</div>
+                <div>权益：{{ statusLabel('entitlementStatus', order.entitlementStatus, '未创建') }}</div>
+                <div>用数交付：{{ statusLabel('biDelivery', order.deliveryStatus, '未创建') }}</div>
+              </template>
+              <span v-else-if="order.channel === 'app'">APP 内容权益</span>
+              <span v-else>空间侧权威</span>
+            </td>
             <td class="px-3 py-2 text-slate-400">{{ order.createdAt }}</td>
             <td class="px-3 py-2">
               <template v-if="order.channel === 'app'">
                 <button v-if="order.contractStatus === 'quoting'" class="mr-2 text-brand-600 hover:underline" data-testid="sign" @click="sign(order.id)">标记合同已签署</button>
                 <button v-if="order.contractStatus === 'contract_signed'" class="text-emerald-600 hover:underline" data-testid="confirm-pay" @click="confirmPayment(order.id)">确认付款并开通权益</button>
+                <button v-if="order.deliveryStatus === 'failed' && order.deliveryId" class="text-amber-700 hover:underline" data-testid="retry-bi-delivery" @click="datasetCommerce.retryDelivery(order.deliveryId)">重试用数交付</button>
               </template>
               <template v-else>
                 <button v-if="reconciliationIntentId(order.id)" class="mr-2 text-brand-600 hover:underline disabled:text-slate-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>

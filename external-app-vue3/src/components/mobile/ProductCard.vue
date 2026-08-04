@@ -6,6 +6,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
+import { commerceOffersOf } from '@/domain/commerceOffers'
 
 const props = defineProps<{ product: Product; matchReason?: string }>()
 
@@ -20,6 +21,11 @@ const subtitle = computed(() => props.product.recommendText || props.product.sub
 const access = computed(() => entitlements.accessLevel(props.product))
 
 const priceText = computed(() => {
+  const offers = commerceOffersOf(props.product)
+  if (offers.length) {
+    const min = Math.min(...offers.map((offer) => offer.price))
+    return `¥${min.toLocaleString()} 起`
+  }
   const p = props.product.price
   if (p.model === 'member_free') return '会员免费'
   if (p.model === 'member_discount') return `¥${p.itemPrice} · 会员${(p.memberDiscount! * 10).toFixed(0)}折`
@@ -34,6 +40,7 @@ const actionHint = computed(() => {
   if (props.product.availability === 'candidate') return '可申请上架'
   if (props.product.availability === 'preparing') return '查看进度'
   if (props.product.acquisitions.includes('free')) return '免费查看'
+  if (props.product.type === 'dataset' && props.product.dealChannel === 'app_payment') return '购买数据集'
   if (props.product.dealChannel === 'app_payment') return props.product.memberIncluded ? '会员解锁' : '单品购买'
   if (props.product.dealChannel === 'space_purchase') return user.isEnterpriseAuthenticated ? '空间购买' : '需企业认证'
   return '查看详情'

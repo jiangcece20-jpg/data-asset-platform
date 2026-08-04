@@ -3,6 +3,7 @@ import { seedEntitlements } from '@/data/seed'
 import type { Entitlement, Product } from '@/types/domain'
 import { genId, now } from '@/utils/id'
 import { useUserStore } from './user'
+import { useCatalogStore } from './catalog'
 
 function plusMonths(months: number): string {
   const d = new Date()
@@ -85,9 +86,53 @@ export const useEntitlementStore = defineStore('entitlements', {
         )
       }
     },
+    hasDatasetAccess(state) {
+      return (productId: string, today = todayStr()): 'personal' | 'enterprise' | 'none' => {
+        const user = useUserStore()
+        const personal = state.list.some((entitlement) =>
+          entitlement.type === 'dataset'
+          && entitlement.source === 'personal'
+          && entitlement.ownerId === user.context.currentMemberId
+          && entitlement.productId === productId
+          && isActive(entitlement, today),
+        )
+        if (personal) return 'personal'
+        const enterpriseId = user.context.currentEnterpriseId
+        if (!enterpriseId || user.context.enterpriseAuthStatus !== 'authenticated') return 'none'
+        const memberId = user.context.currentMemberId
+        const enterprise = state.list.some((entitlement) =>
+          entitlement.type === 'dataset'
+          && entitlement.source === 'enterprise'
+          && entitlement.enterpriseId === enterpriseId
+          && entitlement.productId === productId
+          && isActive(entitlement, today)
+          && (entitlement.accessScope === 'enterprise_wide'
+            || user.currentEnterpriseMember?.role === 'admin'
+            || entitlement.assignedMemberIds?.includes(memberId)),
+        )
+        return enterprise ? 'enterprise' : 'none'
+      }
+    },
+    visibleDatasetEntitlements(state): Entitlement[] {
+      const user = useUserStore()
+      const enterpriseId = user.context.currentEnterpriseId
+      return state.list.filter((entitlement) => {
+        if (entitlement.type !== 'dataset') return false
+        if (entitlement.source === 'personal') return entitlement.ownerId === user.context.currentMemberId
+        if (!enterpriseId || entitlement.enterpriseId !== enterpriseId) return false
+        return user.currentEnterpriseMember?.role === 'admin'
+          || entitlement.accessScope === 'enterprise_wide'
+          || entitlement.assignedMemberIds?.includes(user.context.currentMemberId)
+      })
+    },
     // 权益判断顺序：会员（仅当商品包含 member）> 当前版本/期限单品权益 > 企业席位 > 无权限
     accessLevel(state) {
       return (product: Product, today = todayStr()): 'member' | 'item' | 'enterprise' | 'none' => {
+        if (product.type === 'dataset') {
+          const datasetAccess = this.hasDatasetAccess(product.id, today)
+          if (datasetAccess === 'personal') return 'item'
+          if (datasetAccess === 'enterprise') return 'enterprise'
+        }
         if (product.acquisitions.includes('member') && this.hasPersonalMember) return 'member'
         if (this.hasPersonalItem(product, today)) return 'item'
         if (this.hasEnterpriseSeatAccess(product.id)) return 'enterprise'
@@ -109,12 +154,14 @@ export const useEntitlementStore = defineStore('entitlements', {
         status: 'active'
       })
     },
-    grantItem(product: Product, ownerMemberId: string) {
+    grantItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const isReport = product.type === 'report'
       const isDashboard = product.type === 'dashboard'
-      const months = isDashboard && product.entitlementPolicy?.kind === 'term'
+      const months = options?.termMonths || (isDashboard && product.entitlementPolicy?.kind === 'term'
         ? product.entitlementPolicy.months
-        : 12
+        : 12)
+      const continuous = options?.serviceMode === 'continuous'
+      const termEnd = continuous || isDashboard ? plusMonths(months) : undefined
       this.list.push({
         id: genId('ent'),
         source: 'personal',
@@ -122,12 +169,17 @@ export const useEntitlementStore = defineStore('entitlements', {
         ownerId: ownerMemberId,
         productId: product.id,
         productVersion: isReport ? product.typeDetail.report?.version : undefined,
+        orderId: options?.orderId,
+        commerceOfferId: options?.offerId,
+        serviceMode: options?.serviceMode,
+        selectedTermMonths: options?.termMonths,
         validFrom: now(),
-        validTo: isReport ? undefined : plusMonths(months),
+        validTo: isReport ? undefined : (continuous || isDashboard ? termEnd : undefined),
+        updateValidTo: isReport && continuous ? termEnd : undefined,
         status: 'active'
       })
     },
-    grantEnterpriseSeat(productId: string, enterpriseId: string) {
+    grantEnterpriseSeat(productId: string, enterpriseId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const user = useUserStore()
       user.grantEnterpriseEntitlement(productId)
       this.list.push({
@@ -137,10 +189,75 @@ export const useEntitlementStore = defineStore('entitlements', {
         ownerId: enterpriseId,
         productId,
         enterpriseId,
+        orderId: options?.orderId,
+        commerceOfferId: options?.offerId,
+        serviceMode: options?.serviceMode,
+        selectedTermMonths: options?.termMonths,
         validFrom: now(),
-        validTo: user.enterprise.expiresAt,
+        validTo: options?.serviceMode === 'continuous' && options.termMonths ? plusMonths(options.termMonths) : undefined,
         status: 'active'
       })
+    },
+    grantDatasetPending(options: {
+      product: Product
+      orderId: string
+      ownerType: 'personal' | 'enterprise'
+      ownerId: string
+      operatorMemberId: string
+      offerId: string
+      selectedTermMonths?: number
+    }) {
+      const offer = options.product.datasetOffers?.find((item) => item.id === options.offerId)
+      if (!offer) throw new Error('数据集销售方案不存在')
+      const updateValidTo = offer.licenseKind === 'subscription' && (options.selectedTermMonths || offer.termMonths)
+        ? plusMonths(options.selectedTermMonths || offer.termMonths || 12)
+        : undefined
+      const entitlement: Entitlement = {
+        id: genId('ent-dataset'),
+        source: options.ownerType,
+        type: 'dataset',
+        ownerId: options.ownerId,
+        enterpriseId: options.ownerType === 'enterprise' ? options.ownerId : undefined,
+        productId: options.product.id,
+        orderId: options.orderId,
+        datasetOfferId: offer.id,
+        commerceOfferId: offer.id,
+        serviceMode: offer.licenseKind === 'subscription' ? 'continuous' : 'one_time',
+        selectedTermMonths: options.selectedTermMonths,
+        licenseKind: offer.licenseKind,
+        assetVersion: options.product.assetSnapshot?.assetVersion,
+        accessScope: offer.accessScope,
+        assignedMemberIds: [options.operatorMemberId],
+        allowDownload: offer.allowDownload,
+        validFrom: now(),
+        updateValidTo,
+        status: 'pending'
+      }
+      this.list.push(entitlement)
+      return entitlement
+    },
+    activateDataset(entitlementId: string, biDeliveryId: string) {
+      const entitlement = this.list.find((item) => item.id === entitlementId && item.type === 'dataset')
+      if (!entitlement) throw new Error('数据集权益不存在')
+      entitlement.biDeliveryId = biDeliveryId
+      entitlement.status = 'active'
+      if (entitlement.source === 'enterprise' && entitlement.productId) {
+        useUserStore().grantEnterpriseEntitlement(entitlement.productId)
+      }
+      return entitlement
+    },
+    assignDatasetMembers(entitlementId: string, memberIds: string[]) {
+      const entitlement = this.list.find((item) => item.id === entitlementId && item.type === 'dataset')
+      if (!entitlement || entitlement.source !== 'enterprise') throw new Error('仅企业数据权益可分配成员')
+      const user = useUserStore()
+      if (user.currentEnterpriseMember?.role !== 'admin') throw new Error('仅企业管理员可分配数据权益')
+      const activeMemberIds = new Set(user.enterprise.members.filter((item) => item.status === 'active').map((item) => item.id))
+      const next = [...new Set(memberIds)].filter((id) => activeMemberIds.has(id))
+      const product = entitlement.productId ? useCatalogStore().byId(entitlement.productId) : undefined
+      const offer = product?.datasetOffers?.find((item) => item.id === entitlement.datasetOfferId)
+      if (offer?.accessScope === 'named_seats' && offer.seats != null && next.length > offer.seats) throw new Error(`最多可分配 ${offer.seats} 个成员`)
+      entitlement.assignedMemberIds = next
+      return entitlement
     },
     freezeByProduct(productId: string, workOrderId: string) {
       this.list

@@ -8,10 +8,16 @@ describe('four-type product catalog', () => {
     )
   })
 
-  it('routes every dataset and API to trusted-space purchase', () => {
-    for (const product of seedProducts.filter((item) => item.type === 'dataset' || item.type === 'api')) {
+  it('routes trusted-space products to space and asset-platform datasets to APP payment', () => {
+    for (const product of seedProducts.filter((item) => item.origin === 'trusted_space')) {
       expect(product.dealChannel).toBe('space_purchase')
       expect(product.acquisitions).toEqual(['space_purchase'])
+    }
+    for (const product of seedProducts.filter((item) => item.type === 'dataset' && item.origin === 'asset_platform' && item.availability !== 'candidate')) {
+      expect(product.dealChannel).toBe('app_payment')
+      expect(product.acquisitions).toContain('item_purchase')
+      expect(product.datasetOffers?.some((offer) => offer.subject === 'personal')).toBe(true)
+      expect(product.datasetOffers?.some((offer) => offer.subject === 'enterprise')).toBe(true)
     }
   })
 

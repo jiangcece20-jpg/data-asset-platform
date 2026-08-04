@@ -14,8 +14,8 @@ const showTabBar = computed(() => tabs.some((t) => t.path === route.path))
 </script>
 
 <template>
-  <div class="flex justify-center py-8">
-    <div class="relative flex h-[800px] w-[390px] flex-col overflow-hidden rounded-[2.5rem] border-8 border-slate-900 bg-white shadow-2xl">
+  <div class="flex justify-center py-0 sm:py-8">
+    <div class="relative flex h-[calc(100vh-49px)] w-full flex-col overflow-hidden border-0 border-slate-900 bg-white shadow-none sm:h-[800px] sm:w-[390px] sm:rounded-[2.5rem] sm:border-8 sm:shadow-2xl">
       <!-- 状态栏 -->
       <div class="flex shrink-0 items-center justify-between bg-white px-6 pb-1 pt-3 text-[11px] font-medium text-slate-900">
         <span>9:41</span>

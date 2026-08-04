@@ -1,6 +1,6 @@
 # 对外APP问数找数买数 · 交互原型（Vue3）
 
-对应设计文档：`docs/product/2026-07-09-对外APP找数买数-六层次蓝图与产品设计.md`、`docs/superpowers/specs/2026-07-11-external-app-data-discovery-commerce-design.md`。
+对应设计文档：`docs/product/2026-07-09-对外APP找数买数-六层次蓝图与产品设计.md`、`docs/superpowers/specs/2026-07-11-external-app-data-discovery-commerce-design.md`、`docs/superpowers/specs/2026-07-31-asset-platform-dataset-commerce-bi-delivery-design.md`。
 
 技术栈：Vue 3 + TypeScript + Vite + Vue Router + Pinia + Tailwind CSS。移动端与 PC 运营后台共享同一份 Pinia mock 状态，在后台修改商品、审批、企业权益或线索状态后，切换到"移动端原型"即可立即看到变化，无需刷新页面。
 
@@ -31,28 +31,31 @@ npm run dev
 
 | 类型 | 获取方式 | 试用 | 权益 |
 |------|---------|------|------|
-| 数据集 | 仅可信空间购买 | 不提供 | 空间订单交付 |
+| 资产平台数据集 | APP 内个人/企业购买 | 不提供 | APP 订单；支付后交付到 BI 托管数据集 |
+| 可信空间数据集 | 仅认证企业跳空间购买 | 不提供 | 空间订单与空间交付；APP 只做镜像 |
 | API | 仅可信空间购买 | 固定脱敏沙箱 | 空间订单交付 |
 | 行业报告 | 免费 / 会员 / 单品 | — | 单品永久绑定购买时版本 |
 | 自有看板 | 免费 / 会员 / 单品 | — | 单品默认有效 12 个月 |
 
-候选资产可被搜索但不展示样例值、价格或试用入口，支持求上架闭环。
+资产平台未完成商品包装的候选资产仅在运营后台可见，前台不作为商品曝光；搜索无结果仍可进入需求提报/求供给闭环。一期保持“一个商品绑定一个资源”，不设计商品包。
 
-## 六条演示链路
+## 核心演示链路
 
-1. `/#/app/product/prod-enterprise-activity`：已上架数据集四 Tab → 企业认证 → 可信空间购买
-2. `/#/app/product/prod-driver-credit-candidate`：候选数据集 → 求上架 → 我的进度 → PC 推进
-3. `/#/app/product/prod-qualification-api`：接口文档 → 固定脱敏在线调试 → 可信空间购买
-4. `/#/app/product/prod-logistics-monthly`：报告打码 → 开会员或单品购买 → 当前版本解锁
-5. `/#/app/product/prod-freight-index`：看板打码 → 单品购买 → 12 个月权益
-6. `/#/app/product/prod-port-dashboard-free`：免费完整看板
+1. `/#/app/product/prod-truck-trajectory`：资产平台数据集 → 个人/企业主体切换 → APP 下单支付 → BI 交付 → “我的数据”
+2. `/#/app/mine/enterprise`：管理员设置企业采购策略；普通成员提交采购申请、查看进度，审批通过后用企业余额支付
+3. `/#/app/product/prod-enterprise-activity`：可信空间数据集多个同步价格方案 → 企业认证 → 跳空间购买
+4. `/#/app/product/prod-qualification-api`：接口文档 → 固定脱敏在线调试 → 可信空间购买
+5. `/#/app/product/prod-logistics-monthly`：报告打码 → 个人/企业购买 → 当前版本解锁
+6. `/#/app/product/prod-freight-index`：看板打码 → 单品购买 → 12 个月权益
+7. `/#/app/product/prod-port-dashboard-free`：免费完整看板
+8. `/#/admin/approval/integration`：可信空间集成治理 + 资产平台资源变更监控任务（一期占位与 mock 告警）
 
 ## 可信空间闭环演示
 
 可直接访问以下路径（Hash 路由）：
 
 1. `/#/app/product/prod-qualification-api`：资格核验 API。未认证时进入企业认证；提交后点「模拟：审核通过（演示用）」回到商品页，确认购买意图中的企业与经办人后进入可信空间。
-2. `/#/app/mine?tab=企业订单`：查看 APP 企业报告订单与可信空间订单镜像。空间订单仅是镜像，订单、交付和数据/API 权益均以可信空间为准。
+2. `/#/app/mine?tab=orders&subject=enterprise`：从企业中心进入统一“我的订单”，自动筛选当前企业的 APP 订单与可信空间订单镜像。空间订单仅是镜像，订单、交付和数据/API 权益均以可信空间为准。
 3. `/#/app/mine/enterprise/bills`：查看空间 API 用量账单；账单详情可下载完整账单，并通过「账单有疑问」深链回可信空间处理。
 4. `/#/admin/products`：点击「同步空间商品」，观察目录快照和同步状态；快照过期仍可看商品详情，但不能购买。
 5. `/#/admin/orders`：查看 APP 订单与可信空间镜像的统一列表；空间订单不提供 APP 合同/付款动作。
@@ -62,10 +65,10 @@ npm run dev
 
 - 状态保存在内存 mock 中；浏览器刷新会恢复种子数据。页面顶部可在「移动端原型」和「PC 运营后台」之间切换，二者共享当前内存状态。
 - 默认个人是陈静（`mem-1`）；完成企业认证后她是万联供应链管理有限公司的**管理员**，可查看全部企业空间订单、企业账单总额和完整账单下载。
-- 种子成员王涛（`mem-2`）是**普通成员**。原型无 UI mock 开关，成员场景由测试切换（`src/views/mobile/TrustedSpaceViews.test.ts` 的 mock 上下文）：成员只能看到本人经办的空间订单与本人账单范围，页面不显示企业总额。
+- 种子成员王涛（`mem-2`）是**普通成员**。完成企业认证后，可在企业中心顶部用“原型身份”开关切换管理员/普通成员：成员只能查看企业策略和成员列表，不能配置策略、分配席位或邀请成员；可查看本人提交的企业采购并在审批通过后继续企业余额支付。成员只能看到本人经办的空间订单与本人账单范围，页面不显示企业总额。
 - APP 自营报告（例如 `/#/app/checkout/item/prod-logistics-monthly`）在结算页可选择**个人/企业购买主体**：个人产生个人 APP 订单与个人权益；认证企业产生企业 APP 订单与企业权益。该选择不适用于可信空间数据集/API。
 
-浏览器烟测已确认：390×844 和 1440×900 页面均无横向溢出，控制台 warning/error 为 0；认证、SSO 返回同步中、管理员账单、报告双主体购买，以及后台同步/镜像/治理区域均已实测。当前原型没有 UI mock 开关来强制快照过期、切换 `mem-2` 或生成真实空间回调，这三项仍由 Vitest 覆盖并保留为视觉/交互复核风险。
+浏览器烟测已确认：390×844 和 1440×900 页面均无横向溢出；资产平台数据集个人购买及企业“成员申请 → 管理员审批 → 企业余额支付 → BI 交付”、可信空间认证与多方案展示、订单/账单以及后台资源/订单/集成治理均已实测。快照过期和真实空间回调仍由 Vitest/mock 覆盖。
 
 ### 权威边界
 

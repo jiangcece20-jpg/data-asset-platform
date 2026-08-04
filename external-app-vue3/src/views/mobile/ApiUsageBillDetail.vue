@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, inject, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useApiUsageBillsStore } from '@/stores/apiUsageBills'
 import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
+const router = useRouter()
 const user = useUserStore()
 const billsStore = useApiUsageBillsStore()
 const loading = ref(false)
@@ -86,15 +87,25 @@ onMounted(() => { void loadBill() })
       </div>
 
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div class="mb-2 text-[13px] font-medium text-slate-700">按日期与 API 明细</div>
-        <div v-for="line in bill.lines" :key="line.id" class="border-t border-slate-50 py-3 first:border-t-0 first:pt-0">
+        <div class="mb-2 text-[13px] font-medium text-slate-700">订单与 API 费用明细</div>
+        <div v-for="line in bill.lines" :key="line.id" data-testid="api-bill-order-line" class="border-t border-slate-100 py-3 first:border-t-0 first:pt-0">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <div class="text-[13px] text-slate-800">{{ line.apiName }}</div>
-              <div class="mt-1 text-[11px] text-slate-400">{{ line.date }} · 凭证 {{ line.appCredentialId }}</div>
+              <div class="text-[13px] font-medium text-slate-800">{{ line.apiName }}</div>
+              <div class="mt-1 text-[11px] text-slate-400">空间商品号 {{ line.spaceProductNo }}</div>
             </div>
-            <div class="text-right text-[12px] text-slate-600">{{ line.calls }} 次<br><span class="text-[11px] text-slate-400">成功 {{ line.successCalls }}</span></div>
+            <div class="text-right"><div class="text-[13px] font-semibold text-slate-800">¥{{ line.amount.toLocaleString() }}</div><div class="mt-0.5 text-[10px] text-slate-400">¥{{ line.unitPrice }}/次</div></div>
           </div>
+          <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg bg-slate-50 p-2.5 text-[10px] text-slate-500">
+            <div class="col-span-2">关联订单：<span class="font-mono text-slate-700">{{ line.spaceOrderId }}</span></div>
+            <div>计费方案：<span class="text-slate-700">{{ line.pricingPlan }}</span></div>
+            <div>计费日期：<span class="text-slate-700">{{ line.date }}</span></div>
+            <div>调用次数：<span class="text-slate-700">{{ line.calls }}</span></div>
+            <div>成功调用：<span class="text-slate-700">{{ line.successCalls }}</span></div>
+            <div class="col-span-2">调用凭证：<span class="font-mono text-slate-700">{{ line.appCredentialId }}</span></div>
+            <div class="col-span-2">数据量：<span class="text-slate-700">{{ line.dataVolume }}</span></div>
+          </div>
+          <button class="mt-2 text-[11px] text-brand-600" @click="router.push(`/app/product/${line.appProductId}`)">查看 API 商品与订单来源 ›</button>
         </div>
         <div v-if="!bill.lines.length" class="text-[12px] text-slate-400">本账期暂无可见调用明细</div>
       </div>
