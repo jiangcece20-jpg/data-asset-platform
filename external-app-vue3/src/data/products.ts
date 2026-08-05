@@ -40,12 +40,12 @@ export const seedProducts: Product[] = [
         timeRange: '近 3 年，按周粒度',
         updateCycle: '每周一 09:00',
         metrics: [
-          { name: '货运价格指数', definition: '基于平台真实交易样本计算的综合性运价指数', formula: '加权均值 = Σ(线路单价 × 权重)', dimensions: ['省份', '城市对', '车型'], preview: 'visible' },
-          { name: '环比涨跌幅', definition: '本周指数与上周指数的变化百分比', formula: '(本周 - 上周) / 上周 × 100%', dimensions: ['省份', '车型'], preview: 'masked' },
+          { name: '货运价格指数', definition: '基于平台真实交易样本计算的综合性运价指数', formula: '加权均值 = Σ(线路单价 × 权重)', dimensions: ['省份', '城市对', '车型'], preview: 'visible', previewValue: '108.6', previewChange: '较上周 -0.8%' },
+          { name: '环比涨跌幅', definition: '本周指数与上周指数的变化百分比', formula: '(本周 - 上周) / 上周 × 100%', dimensions: ['省份', '车型'], preview: 'visible', previewValue: '-0.8%', previewChange: '降幅收窄 0.3pct' },
           { name: '同比涨跌幅', definition: '本周指数与去年同期指数的变化百分比', formula: '(本周 - 去年同期) / 去年同期 × 100%', dimensions: ['省份', '车型'], preview: 'masked' }
         ],
         panels: [
-          { id: 'panel-trend', title: '全国运价趋势', chartType: 'line', preview: 'visible', summary: '近 12 周运价指数走势' },
+          { id: 'panel-trend', title: '全国运价趋势', chartType: 'line', preview: 'visible', summary: '近 12 周运价指数走势', previewSeries: [101.2, 102.8, 104.1, 103.5, 105.6, 107.2, 109.4, 110.1, 109.3, 108.9, 109.5, 108.6] },
           { id: 'panel-region', title: '区域热力图', chartType: 'bar', preview: 'masked', summary: '各省份运价对比' },
           { id: 'panel-detail', title: '线路明细', chartType: 'number', preview: 'masked', summary: 'TOP 20 线路单价' }
         ],
@@ -85,11 +85,11 @@ export const seedProducts: Product[] = [
         timeRange: '近 12 个月',
         updateCycle: '每日 06:00',
         metrics: [
-          { name: '温控合规率', definition: '温控达标运输次数占比', formula: '达标次数 / 总次数 × 100%', dimensions: ['通道', '企业', '时间'], preview: 'visible' },
+          { name: '温控合规率', definition: '温控达标运输次数占比', formula: '达标次数 / 总次数 × 100%', dimensions: ['通道', '企业', '时间'], preview: 'visible', previewValue: '98.6%', previewChange: '近30天 +0.4pct' },
           { name: '异常事件数', definition: '温控异常事件统计', formula: 'COUNT(异常标记 = true)', dimensions: ['通道', '企业'], preview: 'masked' }
         ],
         panels: [
-          { id: 'panel-compliance', title: '合规率趋势', chartType: 'line', preview: 'visible', summary: '近 30 天合规率走势' },
+          { id: 'panel-compliance', title: '合规率趋势', chartType: 'line', preview: 'visible', summary: '近 30 天合规率走势', previewSeries: [96.8, 97.2, 97.1, 97.9, 98.1, 98.0, 98.6] },
           { id: 'panel-alerts', title: '异常告警', chartType: 'bar', preview: 'masked', summary: '各通道异常次数' }
         ],
         exportRule: '暂不支持导出'
@@ -127,11 +127,11 @@ export const seedProducts: Product[] = [
         timeRange: '近 24 个月',
         updateCycle: '每周五 18:00',
         metrics: [
-          { name: '吞吐量', definition: '港口货物吞吐量（万吨）', formula: 'SUM(货物重量)', dimensions: ['港口', '时间'], preview: 'visible' },
-          { name: '同比增长', definition: '同比变化百分比', formula: '(本期 - 去年同期) / 去年同期 × 100%', dimensions: ['港口'], preview: 'visible' }
+          { name: '吞吐量', definition: '港口货物吞吐量（万吨）', formula: 'SUM(货物重量)', dimensions: ['港口', '时间'], preview: 'visible', previewValue: '8,426 万吨', previewChange: '本周 +2.1%' },
+          { name: '同比增长', definition: '同比变化百分比', formula: '(本期 - 去年同期) / 去年同期 × 100%', dimensions: ['港口'], preview: 'visible', previewValue: '+4.7%', previewChange: '连续3周增长' }
         ],
         panels: [
-          { id: 'panel-throughput', title: '吞吐量趋势', chartType: 'line', preview: 'visible', summary: '近 12 个月吞吐量走势' },
+          { id: 'panel-throughput', title: '吞吐量趋势', chartType: 'line', preview: 'visible', summary: '近 12 个月吞吐量走势', previewSeries: [7210, 7380, 7540, 7490, 7680, 7810, 7920, 8060, 7990, 8180, 8260, 8426] },
           { id: 'panel-ranking', title: '港口排名', chartType: 'bar', preview: 'visible', summary: 'TOP 10 港口吞吐量' }
         ],
         exportRule: '免费看板不支持导出'

@@ -232,12 +232,12 @@ const dashboardDetail = (): DashboardDetail => ({
   updateCycle: '每周更新',
   exportRule: '会员可导出 Excel，非会员仅在线查看',
   metrics: [
-    { name: '景气指数', definition: '综合运量、运价、运力的合成指数', formula: '加权合成（运量40% 运价35% 运力25%）', dimensions: ['时间', '区域'], preview: 'visible' },
+    { name: '景气指数', definition: '综合运量、运价、运力的合成指数', formula: '加权合成（运量40% 运价35% 运力25%）', dimensions: ['时间', '区域'], preview: 'visible', previewValue: '52.4', previewChange: '较上月 +0.6' },
     { name: '运力供需比', definition: '可用运力与货量需求之比', formula: '可用运力 / 货量需求', dimensions: ['时间', '区域', '车型'], preview: 'masked' },
     { name: '重点线路运价', definition: 'TOP 20 线路的加权平均运价', formula: 'Σ(线路运价×货量) / Σ货量', dimensions: ['时间', '线路'], preview: 'masked' }
   ],
   panels: [
-    { id: 'panel-trend', title: '景气指数走势', chartType: 'line', preview: 'visible', summary: '近 12 个月景气指数维持在荣枯线以上，6 月为 52.4' },
+    { id: 'panel-trend', title: '景气指数走势', chartType: 'line', preview: 'visible', summary: '近 12 个月景气指数维持在荣枯线以上，6 月为 52.4', previewSeries: [49.8, 50.2, 50.6, 51.1, 50.9, 51.4, 51.8, 52.0, 51.7, 52.1, 51.8, 52.4] },
     { id: 'panel-region', title: '区域运力供需对比', chartType: 'bar', preview: 'masked', summary: '华东运力偏紧，西南相对宽松' },
     { id: 'panel-kpi', title: '本周核心指标', chartType: 'number', preview: 'masked', summary: '货量环比 +2.1%，运价环比 +0.4%' }
   ]

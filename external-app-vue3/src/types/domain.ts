@@ -205,8 +205,26 @@ export interface ReportDetail {
 export interface DashboardDetail {
   timeRange: string
   updateCycle: string
-  metrics: Array<{ name: string; definition: string; formula: string; dimensions: string[]; preview: PreviewMode }>
-  panels: Array<{ id: string; title: string; chartType: 'line' | 'bar' | 'number'; preview: PreviewMode; summary: string }>
+  metrics: Array<{
+    name: string
+    definition: string
+    formula: string
+    dimensions: string[]
+    preview: PreviewMode
+    /** 商品预览使用的示例/公开值；生产环境由关联看板或用数平台提供。 */
+    previewValue?: string
+    /** 示例/公开值的趋势说明。 */
+    previewChange?: string
+  }>
+  panels: Array<{
+    id: string
+    title: string
+    chartType: 'line' | 'bar' | 'number'
+    preview: PreviewMode
+    summary: string
+    /** 商品预览使用的脱敏趋势序列；生产环境由关联看板或用数平台提供。 */
+    previewSeries?: number[]
+  }>
   exportRule: string
   // 数据源绑定：BI 看板嵌入地址，及在资产/BI 平台的看板编号
   sourceUrl?: string
