@@ -5,6 +5,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import type { PriceModel, AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetOffer, ProductType } from '@/types/domain'
 import { listedAtOf } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,6 +66,15 @@ const productForm = reactive({
   sortWeight: 50,
   recommendSlot: false
 })
+const previewProduct = computed(() => product.value
+  ? {
+      ...product.value,
+      subtitle: productForm.subtitle,
+      description: productForm.description,
+      coverage: productForm.coverage,
+      updateFrequency: productForm.updateFrequency
+    }
+  : null)
 const productSaved = ref(false)
 const workflowMessage = ref('')
 type DashboardMetricForm = {
@@ -308,12 +318,14 @@ function persistDashboardConfig() {
     timeRange: dashboardForm.timeRange.trim(),
     updateCycle: dashboardForm.updateCycle.trim(),
     exportRule: dashboardForm.exportRule.trim(),
-    metrics: dashboardForm.metrics.map((metric) => ({
+    metrics: dashboardForm.metrics.map((metric, index) => ({
       name: metric.name.trim(),
       definition: metric.definition.trim(),
       formula: metric.formula.trim(),
       dimensions: metric.dimensions.split(/[、,，]/).map((item) => item.trim()).filter(Boolean),
-      preview: 'visible'
+      preview: 'visible',
+      previewValue: current.metrics[index]?.previewValue,
+      previewChange: current.metrics[index]?.previewChange
     }))
   })
 }
@@ -492,6 +504,12 @@ function saveProfilingFields() {
               <span class="text-[11px] text-slate-400">仅影响发现页排序与推荐，不在详情页展示</span>
             </div>
           </div>
+        </div>
+
+        <div v-if="previewProduct && (product.type === 'dataset' || product.type === 'api')" class="mb-4 border-t border-slate-100 pt-4">
+          <div class="mb-1 text-xs font-medium text-slate-500">列表内容总结预览</div>
+          <p class="mb-2 text-[11px] text-slate-400">根据详细描述和已配置的类型信息自动摘取，不新增单独摘要字段。</p>
+          <ProductContentPeek :product="previewProduct" />
         </div>
 
         <!-- 运营信息（对应详情页基本信息网格） -->

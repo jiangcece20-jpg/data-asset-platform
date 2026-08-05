@@ -5,18 +5,25 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useCatalogStore } from '@/stores/catalog'
 import ResourceEdit from './ResourceEdit.vue'
 
-async function mountResourceEdit() {
+async function mountResourceEdit(resourceId = 'res-prod-freight-index') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/admin/resources/:id', component: ResourceEdit }]
   })
-  await router.push('/admin/resources/res-prod-freight-index')
+  await router.push(`/admin/resources/${resourceId}`)
   await router.isReady()
   return mount(ResourceEdit, { global: { plugins: [router] } })
 }
 
 describe('ResourceEdit product-detail mapping', () => {
   beforeEach(() => setActivePinia(createPinia()))
+
+  it('previews generated dataset summary without adding a summary input', async () => {
+    const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+
+    expect(wrapper.get('[data-testid="product-content-summary"]').text()).toContain('货车轨迹')
+    expect(wrapper.find('[data-testid="product-content-summary-input"]').exists()).toBe(false)
+  })
 
   it('edits the fallback subtitle and preferred recommendation copy separately', async () => {
     const wrapper = await mountResourceEdit()
