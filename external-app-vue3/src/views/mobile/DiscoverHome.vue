@@ -14,7 +14,7 @@ const ai = useAiStore()
 
 const query = ref('')
 
-const activeMode = ref<'ai' | 'keyword'>('ai')
+const activeMode = ref<'ai' | 'keyword'>('keyword')
 
 // 热门问题与 AI 找数首屏统一为同一份场景化问题
 const hotQuestions = guideQuestions.map((g) => g.text)
