@@ -34,12 +34,13 @@ const dictionaries: Record<string, Record<string, Meta>> = {
   appOrder: {
     pending_approval: { label: '待企业审批', tone: 'amber' },
     approval_rejected: { label: '审批驳回', tone: 'red' },
-    pending_payment: { label: '待支付', tone: 'amber' },
-    payment_cancelled: { label: '支付取消', tone: 'slate' },
-    payment_failed: { label: '支付失败', tone: 'red' },
-    paid: { label: '已支付', tone: 'blue' },
-    refunded: { label: '已退款', tone: 'slate' },
-    entitlement_active: { label: '权益已生效', tone: 'green' }
+   pending_payment: { label: '待支付', tone: 'amber' },
+   payment_cancelled: { label: '支付取消', tone: 'slate' },
+   payment_failed: { label: '支付失败', tone: 'red' },
+    payment_pending_confirmation: { label: '付款确认中', tone: 'amber' },
+   paid: { label: '已支付', tone: 'blue' },
+   refunded: { label: '已退款', tone: 'slate' },
+   entitlement_active: { label: '权益已生效', tone: 'green' }
   },
   biDelivery: {
     pending: { label: '待创建', tone: 'slate' },

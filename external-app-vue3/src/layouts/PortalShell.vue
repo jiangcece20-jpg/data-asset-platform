@@ -7,11 +7,13 @@ const nav = [
   { path: '/portal/home', label: '门户首页', icon: '📊' },
   { path: '/portal/search', label: '搜索发现', icon: '🔍' },
   { path: '/portal/mine', label: '我的', icon: '👤' },
+  { path: '/portal/enterprise', label: '企业中心', icon: '🏢' },
   { path: '/portal/demand', label: '需求提报', icon: '📝' }
 ]
 
 function isActive(path: string) {
   if (path === '/portal/mine' && route.path.startsWith('/portal/bills')) return true
+  if (path === '/portal/enterprise' && route.path.startsWith('/portal/enterprise')) return true
   return route.path.startsWith(path)
 }
 </script>

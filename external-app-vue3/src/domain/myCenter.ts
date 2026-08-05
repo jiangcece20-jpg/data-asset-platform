@@ -135,8 +135,9 @@ function appProgress(status: AppOrderStatus, isDataset: boolean): string {
   const labels: Record<AppOrderStatus, string> = {
     pending_approval: '采购审批待处理，尚未进入付款',
     approval_rejected: '采购审批未通过，订单已关闭',
-    pending_payment: '订单待付款，付款后开始权益与交付处理',
-    payment_cancelled: '付款已取消，未形成权益',
+   pending_payment: '订单待付款，付款后开始权益与交付处理',
+    payment_pending_confirmation: '企业线下付款待运营确认到账',
+   payment_cancelled: '付款已取消，未形成权益',
     payment_failed: '付款失败，未形成权益',
     paid: isDataset ? '付款成功，数据权益与用数交付处理中' : '付款成功，权益开通处理中',
     refunded: '订单已退款，相关权益按售后结果处理',

@@ -14,6 +14,8 @@ const ai = useAiStore()
 
 const query = ref('')
 
+const activeMode = ref<'ai' | 'keyword'>('ai')
+
 // 热门问题与 AI 找数首屏统一为同一份场景化问题
 const hotQuestions = guideQuestions.map((g) => g.text)
 const recentQuestions = computed(() => ai.recentQuestions.slice(0, 3))
@@ -21,11 +23,14 @@ const recommended = computed(() => catalog.recommendSlotProducts.slice(0, 4))
 
 const types: ProductType[] = ['dataset', 'api', 'report', 'dashboard']
 
-// 统一入口：提问即进入「找数结果」页——顶部 AI 摘要 + 下方全文搜索结果列表
 function submit(q?: string) {
   const question = (q ?? query.value).trim()
   if (!question) return
-  router.push({ path: '/app/answer', query: { q: question } })
+  if (activeMode.value === 'keyword') {
+    router.push({ path: '/app/search', query: { q: question } })
+  } else {
+    router.push({ path: '/app/answer', query: { q: question } })
+  }
 }
 
 function goType(type: ProductType) {
@@ -37,13 +42,41 @@ function goType(type: ProductType) {
   <div class="min-h-full bg-slate-50 pb-6">
     <MobileHeader title="找数" :show-back="false" />
 
-    <!-- AI 找数：唯一提问入口，发送即进入对话 -->
+    <!-- 模式切换：关键词搜索 / AI 问答 -->
     <div class="px-4 pt-3">
+      <div class="mb-2 flex gap-2">
+        <button
+          class="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
+          :class="activeMode === 'keyword' ? 'bg-brand-500 text-white shadow-card' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="activeMode = 'keyword'"
+        >
+          🔍 关键词搜索
+        </button>
+        <button
+          class="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
+          :class="activeMode === 'ai' ? 'bg-brand-500 text-white shadow-card' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="activeMode = 'ai'"
+        >
+          🤖 AI 问答
+        </button>
+      </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-card">
-        <div class="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-brand-600">
-          <span>✨</span><span>AI 找数 · 用自然语言提问</span>
+        <div v-if="activeMode === 'ai'" class="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-brand-600">
+          <span>✨</span><span>用自然语言提问，AI 帮你找数</span>
         </div>
+        <div v-else class="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+          <span>🔍</span><span>输入关键词，搜索全部商品</span>
+        </div>
+        <input
+          v-if="activeMode === 'keyword'"
+          v-model="query"
+          type="text"
+          placeholder="搜索数据资产名称、关键词…"
+          class="w-full text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
+          @keydown.enter.prevent="submit()"
+        />
         <textarea
+          v-else
           v-model="query"
           rows="2"
           placeholder="说说你想了解的问题，或描述你需要的数据"

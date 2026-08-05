@@ -43,10 +43,11 @@ describe('dataset commerce views', () => {
     expect(router.currentRoute.value.path).toMatch(/^\/app\/payment\/dataset\/order-dataset-/)
   })
 
-  it('submits an enterprise approval for an ordinary member', async () => {
-    const user = useUserStore()
-    user.context.currentMemberId = 'mem-2'
-    user.completeEnterpriseAuth()
+ it('submits an enterprise approval for an ordinary member', async () => {
+   const user = useUserStore()
+   user.context.currentMemberId = 'mem-2'
+   user.completeEnterpriseAuth()
+    user.enterprise.purchasePolicy.memberPurchaseApprovalRequired = true
     const { wrapper } = await mountRoute('/app/checkout/dataset/prod-truck-trajectory', DatasetCheckout)
     expect(wrapper.find('[data-testid="dataset-subject-enterprise"]').classes()).toContain('border-brand-500')
     await wrapper.find('[data-testid="dataset-create-order"]').trigger('click')

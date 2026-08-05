@@ -5,6 +5,8 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useUserStore } from '@/stores/user'
 import { typeMeta, originMeta, priceDisplay } from '@/utils/productMeta'
 import type { Resource } from '@/types/resource'
+import type { Product } from '@/types/domain'
+import { productCardSummary } from '@/domain/productCardSummary'
 
 const router = useRouter()
 const catalog = useCatalogStore()
@@ -30,6 +32,13 @@ function goProduct(id: string) {
 function openExternalView(view: Resource) {
   const url = view.typeDetail.userView?.externalUrl
   if (url) window.open(url, '_blank')
+}
+
+function cardSummary(product: Product) {
+  if (product.type === 'dataset' || product.type === 'api') {
+    return productCardSummary(product).lead
+  }
+  return product.recommendText || product.subtitle
 }
 </script>
 
@@ -74,7 +83,7 @@ function openExternalView(view: Resource) {
             <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-600">🏪市场</span>
           </div>
           <div class="mt-2 text-sm font-semibold text-slate-800">{{ p.name }}</div>
-          <div class="mt-1 text-xs text-slate-400">{{ p.subtitle }}</div>
+          <div class="mt-1 line-clamp-2 text-xs text-slate-400">{{ cardSummary(p) }}</div>
           <div class="mt-2 text-sm font-medium" :class="priceDisplay(p).tone">
             {{ priceDisplay(p).label }}
           </div>

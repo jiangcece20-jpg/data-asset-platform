@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types/domain'
 import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 export interface InfoItem {
   label: string
@@ -136,6 +137,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
     <!-- 在线阅读：左侧目录侧边栏 + 右侧正文区 -->
     <div v-else-if="activeTab === 'reader'" class="grid grid-cols-[180px_1fr] gap-4">
+      <ProductContentPeek :product="product" class="col-span-2" />
       <!-- 左侧目录侧边栏 -->
       <div class="sticky top-20 self-start">
         <div class="mb-2 text-xs font-medium text-slate-400">目录</div>

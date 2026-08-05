@@ -410,8 +410,8 @@ function handleAction(key: ProductActionKey) {
       <div v-else-if="product.type !== 'dataset' && product.type !== 'dashboard'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
     </div>
 
-    <!-- 交易承接：用户看过内容后再了解报价、方案与购买资格。 -->
-    <div v-if="pricingInfo" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
+   <!-- 交易承接：用户看过内容后再了解报价、方案与购买资格。 -->
+    <div v-if="pricingInfo && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
       <div class="flex items-start justify-between gap-4">
         <div>
           <div class="text-[11px] text-slate-400">报价方式</div>
@@ -422,7 +422,7 @@ function handleAction(key: ProductActionKey) {
       <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
     </div>
 
-    <div v-if="commerceOffers.length" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
+    <div v-if="commerceOffers.length && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
       <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">价格方案</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : '购买时可切换主体' }}</span></div>
       <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
         <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }}</div></div>

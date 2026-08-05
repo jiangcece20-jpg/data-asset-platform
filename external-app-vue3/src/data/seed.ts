@@ -29,7 +29,7 @@ export const seedEnterprise: Enterprise = {
   entitledProductIds: [],
   purchasePolicy: {
     memberPurchaseAllowed: true,
-    memberPurchaseApprovalRequired: true
+    memberPurchaseApprovalRequired: false
   },
   members: [
     { id: 'mem-1', name: '陈静', phone: '138****2201', role: 'admin', seatAssigned: false, status: 'active' },
@@ -72,30 +72,9 @@ export const seedEntitlements: Entitlement[] = [
     ownerId: 'mem-1',
     validFrom: '2026-07-18',
     status: 'active'
-  },
+ },
   {
-    id: 'ent-dataset-subscription-001',
-    source: 'personal',
-    type: 'dataset',
-    productId: 'prod-truck-trajectory',
-    orderId: 'order-dataset-subscription-001',
-    datasetOfferId: 'offer-truck-personal-updates',
-    commerceOfferId: 'offer-truck-personal-updates',
-    serviceMode: 'continuous',
-    selectedTermMonths: 12,
-    licenseKind: 'subscription',
-    assetVersion: 'v3.2.0',
-    accessScope: 'personal',
-    assignedMemberIds: ['mem-1'],
-    allowDownload: false,
-    biDeliveryId: 'bi-delivery-subscription-001',
-    ownerId: 'mem-1',
-    validFrom: '2025-09-30',
-    updateValidTo: '2026-09-29',
-    status: 'active'
-  },
-  {
-    id: 'ent-dataset-enterprise-001',
+   id: 'ent-dataset-enterprise-001',
     source: 'enterprise',
     type: 'dataset',
     productId: 'prod-truck-trajectory',
@@ -154,29 +133,7 @@ export const seedOrders: Order[] = [
     paidAt: '2026-07-18T10:01:00.000Z'
   },
   {
-    id: 'order-dataset-subscription-001',
-    channel: 'app',
-    ownerType: 'personal',
-    ownerId: 'mem-1',
-    operatorMemberId: 'mem-1',
-    productId: 'prod-truck-trajectory',
-    productName: '全国货车轨迹热力数据集',
-    productType: 'dataset',
-    datasetOfferId: 'offer-truck-personal-updates',
-    commerceOfferId: 'offer-truck-personal-updates',
-    serviceMode: 'continuous',
-    selectedTermMonths: 12,
-    paymentMethod: 'personal_online',
-    entitlementId: 'ent-dataset-subscription-001',
-    biDeliveryId: 'bi-delivery-subscription-001',
-    amount: 999,
-    status: 'entitlement_active',
-    entitlementGranted: true,
-    createdAt: '2025-09-30T09:00:00.000Z',
-    paidAt: '2025-09-30T09:02:00.000Z'
-  },
-  {
-    id: 'order-enterprise-dataset-001',
+   id: 'order-enterprise-dataset-001',
     channel: 'app',
     ownerType: 'enterprise',
     ownerId: 'ent-wanlian-logistics',
@@ -195,6 +152,24 @@ export const seedOrders: Order[] = [
     entitlementGranted: true,
     createdAt: '2026-07-29T09:30:00.000Z',
     paidAt: '2026-07-29T15:20:00.000Z'
+  },
+  {
+    id: 'order-enterprise-dataset-pending-confirmation',
+    channel: 'app',
+    ownerType: 'enterprise',
+    ownerId: 'ent-wanlian-logistics',
+    operatorMemberId: 'mem-2',
+    productId: 'prod-truck-trajectory',
+    productName: '全国货车轨迹热力数据集',
+    productType: 'dataset',
+    datasetOfferId: 'offer-truck-enterprise-snapshot',
+    commerceOfferId: 'offer-truck-enterprise-snapshot',
+    serviceMode: 'one_time',
+    paymentMethod: 'enterprise_bank_transfer',
+    amount: 3800,
+    status: 'payment_pending_confirmation',
+    entitlementGranted: false,
+    createdAt: '2026-08-04T14:00:00.000Z'
   }
 ]
 

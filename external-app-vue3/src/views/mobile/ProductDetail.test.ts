@@ -136,7 +136,6 @@ describe('ProductDetail dashboard overview', () => {
 
     expect(wrapper.get(`[role="tab"][data-tab="${tab}"]`).attributes('aria-selected')).toBe('true')
   })
-
   it('opens with dashboard data before pricing, while keeping overview information aligned', async () => {
     const wrapper = await mountProductDetail('/app/product/prod-freight-index')
     const preview = wrapper.get('[data-testid="content-first-preview"]')

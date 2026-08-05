@@ -20,8 +20,8 @@ const deliveryStatusLabel = computed(() => delivery.value ? statusMeta('biDelive
 const paymentOptions: Array<{ value: PaymentMethod; label: string; note: string }> = [
   { value: 'personal_online', label: '个人在线支付', note: '仅个人订单可用；模拟跳转个人收银台' },
   { value: 'enterprise_balance', label: '企业余额', note: '使用企业账户余额，模拟即时确认' },
-  { value: 'enterprise_contract', label: '合同支付', note: '模拟合同确认后完成企业付款' },
-  { value: 'enterprise_bank_transfer', label: '公对公转账', note: '模拟上传转账凭证并确认到账' }
+  { value: 'enterprise_contract', label: '合同支付', note: '提交后进入付款确认中，运营确认后开通' },
+  { value: 'enterprise_bank_transfer', label: '公对公转账', note: '提交后进入付款确认中，运营确认到账后开通' }
 ]
 const availablePaymentOptions = computed(() => paymentOptions.filter((item) =>
   order.value?.ownerType === 'enterprise' ? item.value !== 'personal_online' : item.value === 'personal_online'
@@ -29,8 +29,8 @@ const availablePaymentOptions = computed(() => paymentOptions.filter((item) =>
 const selectedPaymentMethod = ref<PaymentMethod>(order.value?.paymentMethod || 'personal_online')
 const selectedPaymentLabel = computed(() => paymentOptions.find((item) => item.value === selectedPaymentMethod.value)?.label || '—')
 const payButtonLabel = computed(() => {
-  if (selectedPaymentMethod.value === 'enterprise_contract') return '提交合同付款并模拟确认'
-  if (selectedPaymentMethod.value === 'enterprise_bank_transfer') return '提交公对公转账并模拟到账'
+  if (selectedPaymentMethod.value === 'enterprise_contract') return '提交合同付款申请'
+  if (selectedPaymentMethod.value === 'enterprise_bank_transfer') return '提交转账凭证，等待确认到账'
   return '确认支付并交付至用数模块'
 })
 
@@ -103,7 +103,13 @@ function goMyData() {
         <template v-if="order.status === 'pending_payment'">
           <button data-testid="dataset-pay" class="mt-5 w-full rounded-lg bg-brand-500 py-3 text-sm font-medium text-white" @click="pay(false)">{{ payButtonLabel }}</button>
           <button data-testid="dataset-pay-fail-delivery" class="mt-2 w-full rounded-lg border border-slate-200 py-2.5 text-xs text-slate-500" @click="pay(true)">演示：支付成功，但用数模块首次交付失败</button>
-        </template>
+       </template>
+
+        <div v-else-if="order.status === 'payment_pending_confirmation'" data-testid="dataset-payment-pending-confirmation" class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
+          <div class="text-base font-medium text-amber-900">付款确认中</div>
+          <p class="mt-1 text-sm text-amber-700">订单已提交，等待运营确认{{ selectedPaymentLabel }}到账。确认完成后权益自动开通，你将在"我的数据"中看到交付结果。</p>
+          <div class="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-slate-500">订单编号 {{ order.id }} · 金额 ¥{{ order.amount.toLocaleString() }}</div>
+        </div>
 
         <div v-else-if="delivery?.status === 'failed'" data-testid="dataset-delivery-failed" class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
           <div class="text-base font-medium text-amber-900">支付已成功，用数模块交付待重试</div>

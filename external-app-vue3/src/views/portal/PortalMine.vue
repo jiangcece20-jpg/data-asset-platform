@@ -135,10 +135,11 @@ function renew(entitlement: Entitlement) {
         <h1 class="text-xl font-semibold text-slate-900">我的</h1>
         <p class="mt-1 text-sm text-slate-500">统一管理个人与企业的购买订单，以及已交付数据集。</p>
       </div>
-      <div class="text-right text-xs text-slate-400">
-        <div class="font-medium text-slate-700">{{ user.context.name }}</div>
-        <div class="mt-1">{{ user.isEnterpriseAuthenticated ? user.enterprise.name : '当前为个人身份' }}</div>
-      </div>
+     <div class="text-right text-xs text-slate-400">
+       <div class="font-medium text-slate-700">{{ user.context.name }}</div>
+       <div class="mt-1">{{ user.isEnterpriseAuthenticated ? user.enterprise.name : '当前为个人身份' }}</div>
+        <button v-if="user.isEnterpriseAuthenticated" class="mt-2 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600" @click="router.push('/portal/enterprise')">企业中心 ›</button>
+     </div>
     </div>
 
     <div class="mb-5 flex w-fit gap-1 rounded-xl bg-slate-100 p-1 text-sm">

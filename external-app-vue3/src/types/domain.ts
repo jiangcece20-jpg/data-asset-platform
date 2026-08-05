@@ -515,6 +515,7 @@ export type AppOrderStatus =
   | 'pending_payment'
   | 'payment_cancelled'
   | 'payment_failed'
+  | 'payment_pending_confirmation'
   | 'paid'
   | 'refunded'
   | 'entitlement_active'
@@ -546,6 +547,8 @@ export interface Order {
   entitlementGranted?: boolean
   entitlementGrantAttempts?: number
   entitlementPendingManual?: boolean
+  // 运营确认线下付款时的开通日期；为空表示按确认时间开通
+  activationDate?: string
 }
 
 export type TrialStatus = 'not_applied' | 'pending' | 'approved' | 'rejected' | 'exhausted' | 'expired'

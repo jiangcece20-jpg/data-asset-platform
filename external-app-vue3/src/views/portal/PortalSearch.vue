@@ -6,7 +6,7 @@ import { useAiStore } from '@/stores/ai'
 import { typeMeta, priceDisplay } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
 import type { Resource } from '@/types/resource'
-import ProductContentPeek from '@/components/ProductContentPeek.vue'
+import { productCardSummary } from '@/domain/productCardSummary'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,6 +56,13 @@ const mixedResults = computed<MixedResult[]>(() => {
   }))
   return [...products, ...views]
 })
+
+function cardSummary(product: Product) {
+  if (product.type === 'dataset' || product.type === 'api') {
+    return productCardSummary(product).lead
+  }
+  return product.recommendText || product.subtitle
+}
 
 function handleSearch() {
   if (mode.value === 'ai' && query.value.trim()) {
@@ -166,11 +173,10 @@ function switchMode(m: SearchMode) {
           <span v-if="item.type === 'product'" class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">{{ item.label }}</span>
         </div>
         <!-- 名称 + 描述 -->
-        <div class="flex-1">
+        <div class="min-w-0 flex-1">
           <div class="text-sm font-semibold text-slate-800">{{ (item.data as any).name || (item.data as any).resourceName }}</div>
-          <div v-if="item.type === 'product'" class="mt-0.5 text-xs text-slate-400">{{ (item.data as Product).subtitle }}</div>
+          <div v-if="item.type === 'product'" class="mt-0.5 line-clamp-2 text-xs text-slate-400">{{ cardSummary(item.data as Product) }}</div>
           <div v-else class="mt-0.5 text-xs text-slate-400">{{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}</div>
-          <ProductContentPeek v-if="item.type === 'product'" :product="item.data as Product" class="mt-2" />
         </div>
         <!-- 价格/操作 -->
         <div class="shrink-0 text-right">

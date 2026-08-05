@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Product, PreviewMode } from '@/types/domain'
 import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 export interface InfoItem {
   label: string
@@ -113,6 +114,7 @@ function displayValue(value: string | number | null | undefined): string {
 
     <!-- Tab: preview 看板预览（2 列） -->
     <div v-else-if="activeTab === 'preview'" class="grid grid-cols-2 gap-4">
+      <ProductContentPeek :product="product" class="col-span-2" />
       <div
         v-for="panel in detail.panels"
         :key="panel.id"

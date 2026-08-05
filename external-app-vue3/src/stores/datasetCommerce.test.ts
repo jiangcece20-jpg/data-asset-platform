@@ -52,10 +52,11 @@ describe('dataset commerce closed loop', () => {
     )).toThrow('最长 36 个月')
   })
 
-  it('ordinary enterprise member submits approval before enterprise-balance payment', () => {
-    const user = useUserStore()
-    user.context.currentMemberId = 'mem-2'
-    user.completeEnterpriseAuth()
+ it('ordinary enterprise member submits approval before enterprise-balance payment', () => {
+   const user = useUserStore()
+   user.context.currentMemberId = 'mem-2'
+   user.completeEnterpriseAuth()
+    user.enterprise.purchasePolicy.memberPurchaseApprovalRequired = true
     const commerce = useDatasetCommerceStore()
     const { order, approvalRequest } = commerce.createOrder('prod-truck-trajectory', 'enterprise')
     expect(order.status).toBe('pending_approval')

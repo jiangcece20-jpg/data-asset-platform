@@ -55,8 +55,9 @@ const router = createRouter({
     { path: '/portal/checkout/:id', name: 'portal-checkout', component: () => import('@/views/portal/PortalCheckout.vue'), meta: { title: '购买结算' } },
     { path: '/portal/checkout/dataset/:id', name: 'portal-checkout-dataset', component: () => import('@/views/shared/DatasetCheckout.vue'), meta: { title: '数据集购买' } },
     { path: '/portal/payment/dataset/:orderId', name: 'portal-payment-dataset', component: () => import('@/views/shared/DatasetPayment.vue'), meta: { title: '数据集支付' } },
-    { path: '/portal/mine', name: 'portal-mine', component: () => import('@/views/portal/PortalMine.vue'), meta: { title: '我的' } },
-    { path: '/portal/bills', name: 'portal-bills', component: () => import('@/views/portal/PortalBills.vue'), meta: { title: 'API账单' } },
+   { path: '/portal/mine', name: 'portal-mine', component: () => import('@/views/portal/PortalMine.vue'), meta: { title: '我的' } },
+    { path: '/portal/enterprise', name: 'portal-enterprise', component: () => import('@/views/portal/PortalEnterprise.vue'), meta: { title: '企业中心' } },
+   { path: '/portal/bills', name: 'portal-bills', component: () => import('@/views/portal/PortalBills.vue'), meta: { title: 'API账单' } },
     { path: '/portal/demand', name: 'portal-demand', component: () => import('@/views/portal/PortalDemand.vue'), meta: { title: '需求提报' } }
   ]
 })

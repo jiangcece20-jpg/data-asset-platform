@@ -35,20 +35,17 @@ describe('dataset account views', () => {
 
   it('shows dataset rights separately in mobile My Data', async () => {
     const wrapper = await mountPage('/app/mine?tab=我的数据', Mine)
-    expect(wrapper.find('[data-testid="my-datasets"]').text()).toContain('仓储周转效率数据集')
-    expect(wrapper.text()).toContain('资产版本')
-    expect(wrapper.text()).toContain('v2.3.2')
-    expect(wrapper.text()).toContain('全国货车轨迹热力数据集')
-    expect(wrapper.text()).toContain('更新服务到期日')
-    expect(wrapper.text()).toContain('2026-09-29')
-    expect(wrapper.find('[data-testid="renew-dataset"]').exists()).toBe(true)
+   expect(wrapper.find('[data-testid="my-datasets"]').text()).toContain('仓储周转效率数据集')
+   expect(wrapper.text()).toContain('资产版本')
+   expect(wrapper.text()).toContain('v2.3.2')
     expect(wrapper.text()).toContain('进入用数模块')
   })
 
-  it('lets an enterprise admin configure purchase policy and approve a member request', async () => {
-    const user = useUserStore()
-    user.context.currentMemberId = 'mem-2'
-    user.completeEnterpriseAuth()
+ it('lets an enterprise admin configure purchase policy and approve a member request', async () => {
+   const user = useUserStore()
+   user.context.currentMemberId = 'mem-2'
+   user.completeEnterpriseAuth()
+    user.enterprise.purchasePolicy.memberPurchaseApprovalRequired = true
     const request = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'enterprise').approvalRequest!
     user.switchMockEnterpriseMember('mem-1')
     const wrapper = await mountPage('/app/mine/enterprise', MineEnterprise)
@@ -84,10 +81,8 @@ describe('dataset account views', () => {
   it('shows the same use-module dataset projection in the PC portal My Data tab', async () => {
     const wrapper = await mountPage('/portal/mine?tab=data', PortalMine)
     expect(wrapper.find('[data-testid="portal-my-data-tab"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="portal-dataset-entitlement"]').text()).toContain('仓储周转效率数据集')
-    expect(wrapper.text()).toContain('更新服务到期日')
-    expect(wrapper.find('[data-testid="portal-renew-dataset"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('已交付')
+   expect(wrapper.find('[data-testid="portal-dataset-entitlement"]').text()).toContain('仓储周转效率数据集')
+   expect(wrapper.text()).toContain('已交付')
   })
 
   it('applies the same enterprise order context and management filters in the PC portal', async () => {

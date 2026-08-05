@@ -44,6 +44,8 @@ const filterChannel = ref('')
 const filterOwner = ref('')
 const keyword = ref('')
 const reconcilingId = ref('')
+const confirmingOrderId = ref('')
+const activationDate = ref('')
 
 const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
   ...orders.list.map((order) => ({
@@ -95,6 +97,7 @@ const list = computed(() => {
 const total = computed(() => unifiedOrders.value.length)
 const gmv = computed(() => unifiedOrders.value.reduce((sum, order) => sum + (order.amount || 0), 0))
 const pendingContracts = computed(() => orders.list.filter((order) => order.contractStatus === 'quoting' || order.contractStatus === 'contract_signed').length)
+const pendingConfirmations = computed(() => orders.list.filter((order) => order.status === 'payment_pending_confirmation').length)
 
 function sign(orderId: string) {
   orders.signContract(orderId)
@@ -102,6 +105,26 @@ function sign(orderId: string) {
 
 function confirmPayment(orderId: string) {
   orders.confirmEnterpriseContract(orderId)
+}
+
+const confirmingOrder = computed(() => orders.list.find((item) => item.id === confirmingOrderId.value))
+const isContinuousPlan = computed(() => {
+  const order = confirmingOrder.value
+  return order?.serviceMode === 'continuous'
+})
+
+function startConfirmOffline(orderId: string) {
+  confirmingOrderId.value = orderId
+  activationDate.value = ''
+}
+
+function submitConfirmOffline() {
+  if (!confirmingOrderId.value) return
+  datasetCommerce.confirmOfflinePayment(confirmingOrderId.value, {
+    activationDate: activationDate.value || undefined
+  })
+  confirmingOrderId.value = ''
+  activationDate.value = ''
 }
 
 async function reconcile(row: UnifiedOrderRow) {
@@ -141,7 +164,8 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
     <div class="mb-4 flex gap-3">
       <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px]"><span class="text-slate-400">订单总数</span><span class="ml-2 font-semibold text-slate-700">{{ total }}</span></div>
       <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px]"><span class="text-slate-400">累计金额</span><span class="ml-2 font-semibold text-slate-700">¥{{ gmv }}</span></div>
-      <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px]"><span class="text-slate-400">待处理合同</span><span class="ml-2 font-semibold" :class="pendingContracts ? 'text-amber-600' : 'text-slate-700'">{{ pendingContracts }}</span></div>
+     <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px]"><span class="text-slate-400">待处理合同</span><span class="ml-2 font-semibold" :class="pendingContracts ? 'text-amber-600' : 'text-slate-700'">{{ pendingContracts }}</span></div>
+      <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[13px]"><span class="text-slate-400">待确认到账</span><span class="ml-2 font-semibold" :class="pendingConfirmations ? 'text-amber-600' : 'text-slate-700'">{{ pendingConfirmations }}</span></div>
     </div>
 
     <div class="mb-3 flex flex-wrap gap-2">
@@ -181,8 +205,9 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
             <td class="px-3 py-2">
               <template v-if="order.channel === 'app'">
                 <button v-if="order.contractStatus === 'quoting'" class="mr-2 text-brand-600 hover:underline" data-testid="sign" @click="sign(order.id)">标记合同已签署</button>
-                <button v-if="order.contractStatus === 'contract_signed'" class="text-emerald-600 hover:underline" data-testid="confirm-pay" @click="confirmPayment(order.id)">确认付款并开通权益</button>
-                <button v-if="order.deliveryStatus === 'failed' && order.deliveryId" class="text-amber-700 hover:underline" data-testid="retry-bi-delivery" @click="datasetCommerce.retryDelivery(order.deliveryId)">重试用数交付</button>
+               <button v-if="order.contractStatus === 'contract_signed'" class="text-emerald-600 hover:underline" data-testid="confirm-pay" @click="confirmPayment(order.id)">确认付款并开通权益</button>
+                <button v-if="order.status === 'payment_pending_confirmation'" class="text-emerald-600 hover:underline" data-testid="confirm-offline-payment" @click="startConfirmOffline(order.id)">确认到账并开通</button>
+               <button v-if="order.deliveryStatus === 'failed' && order.deliveryId" class="text-amber-700 hover:underline" data-testid="retry-bi-delivery" @click="datasetCommerce.retryDelivery(order.deliveryId)">重试用数交付</button>
               </template>
               <template v-else>
                 <button v-if="reconciliationIntentId(order.id)" class="mr-2 text-brand-600 hover:underline disabled:text-slate-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>
@@ -193,6 +218,23 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
         </tbody>
       </table>
       <div v-if="!list.length" class="py-6 text-center text-[12px] text-slate-400">暂无订单</div>
+   </div>
+    <!-- 确认线下付款弹窗 -->
+    <div v-if="confirmingOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" data-testid="confirm-offline-modal">
+      <div class="w-[420px] rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+        <div class="text-[15px] font-semibold text-slate-900">确认线下付款到账</div>
+        <div class="mt-3 text-[13px] text-slate-500">订单 {{ confirmingOrder.id }} · {{ confirmingOrder.productName }} · ¥{{ confirmingOrder.amount.toLocaleString() }}</div>
+        <div class="mt-4">
+          <label class="text-[13px] font-medium text-slate-700">生效日期（可选）</label>
+          <p v-if="isContinuousPlan" class="mt-1 text-[11px] text-slate-400">持续更新方案：填写后从该日期开始计期；留空则按确认时间开通。</p>
+          <p v-else class="mt-1 text-[11px] text-slate-400">一次性快照方案：填写后从该日期开始计算权益有效期；留空则按确认时间开通。</p>
+          <input v-model="activationDate" type="date" data-testid="activation-date-input" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
+        </div>
+        <div class="mt-5 flex justify-end gap-2">
+          <button data-testid="cancel-confirm-offline" class="rounded-lg border border-slate-200 px-4 py-2 text-[13px] text-slate-500" @click="confirmingOrderId = ''">取消</button>
+          <button data-testid="submit-confirm-offline" class="rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white" @click="submitConfirmOffline">确认到账并开通</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

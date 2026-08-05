@@ -10,6 +10,12 @@ import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
 import { seedBiDatasetDeliveries } from '@/data/datasetCommerce'
 import { datasetOfferToCommerce, normalizeOfferTerm, offerAmount } from '@/domain/commerceOffers'
 
+function plusMonthsFrom(dateStr: string, months: number): string {
+  const d = new Date(dateStr)
+  d.setMonth(d.getMonth() + months)
+  return d.toISOString().slice(0, 10)
+}
+
 function requireDatasetProduct(productId: string): Product {
   const product = useCatalogStore().byId(productId)
   if (!product || product.type !== 'dataset' || product.origin !== 'asset_platform' || product.dealChannel !== 'app_payment') {
@@ -161,14 +167,22 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
         if (order.entitlementId) return order
         throw new Error('订单当前不可支付')
       }
-      const product = requireDatasetProduct(order.productId)
-      const offer = requireOffer(product, order.ownerType, order.datasetOfferId)
-      if (!order.paymentMethod || !paymentMethodsBySubject[order.ownerType].includes(order.paymentMethod)) {
-        throw new Error('支付方式与购买主体不匹配')
-      }
+     const product = requireDatasetProduct(order.productId)
+     const offer = requireOffer(product, order.ownerType, order.datasetOfferId)
+     if (!order.paymentMethod || !paymentMethodsBySubject[order.ownerType].includes(order.paymentMethod)) {
+       throw new Error('支付方式与购买主体不匹配')
+     }
 
-      orders.applyCharge(order.id, order.amount, `dataset-charge-${order.id}`)
-      if (order.paymentMethod === 'enterprise_contract') order.contractStatus = 'payment_confirmed'
+     orders.applyCharge(order.id, order.amount, `dataset-charge-${order.id}`)
+     // 公对公转账和合同支付走线下确认：提交后进入付款确认中，等运营确认到账
+     const isOffline = order.paymentMethod === 'enterprise_bank_transfer' || order.paymentMethod === 'enterprise_contract'
+     if (isOffline) {
+       order.status = 'payment_pending_confirmation'
+       if (order.paymentMethod === 'enterprise_contract') order.contractStatus = 'payment_confirmed'
+       return order
+     }
+     // 企业余额和个人在线支付：即时确认，直接创建权益和交付
+     if (order.paymentMethod === 'enterprise_contract') order.contractStatus = 'payment_confirmed'
       const entitlement = useEntitlementStore().grantDatasetPending({
         product,
         orderId: order.id,
@@ -195,6 +209,54 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
       order.entitlementId = entitlement.id
       order.biDeliveryId = delivery.id
       if (simulateDeliveryFailure) mockBiDeliveryAdapter.failNext()
+     this.provision(delivery.id)
+     return order
+   },
+    // 运营后台：确认线下付款到账，创建权益和交付
+    confirmOfflinePayment(orderId: string, options?: { activationDate?: string; simulateDeliveryFailure?: boolean }) {
+      const orders = useOrderStore()
+      const order = orders.list.find((item) => item.id === orderId)
+      if (!order || order.productType !== 'dataset') throw new Error('数据集订单不存在')
+      if (order.status !== 'payment_pending_confirmation') throw new Error('仅付款确认中订单可确认到账')
+      const product = requireDatasetProduct(order.productId)
+      const offer = requireOffer(product, order.ownerType, order.datasetOfferId)
+      const user = useUserStore()
+      const entitlement = useEntitlementStore().grantDatasetPending({
+        product,
+        orderId: order.id,
+        ownerType: order.ownerType,
+        ownerId: order.ownerId,
+        operatorMemberId: order.operatorMemberId || user.context.currentMemberId,
+        offerId: offer.id,
+        selectedTermMonths: order.selectedTermMonths
+      })
+      // 运营可配置生效时间：覆盖权益 validFrom 并重算 updateValidTo
+      if (options?.activationDate) {
+        entitlement.validFrom = options.activationDate
+        if (entitlement.updateValidTo) {
+          const months = order.selectedTermMonths || offer.termMonths || 12
+          entitlement.updateValidTo = plusMonthsFrom(options.activationDate, months)
+        }
+        order.activationDate = options.activationDate
+      }
+      const delivery: BiDatasetDelivery = {
+        id: genId('bi-delivery'),
+        orderId: order.id,
+        entitlementId: entitlement.id,
+        productId: product.id,
+        ownerType: order.ownerType,
+        ownerId: order.ownerId,
+        operatorMemberId: order.operatorMemberId || user.context.currentMemberId,
+        status: 'pending',
+        attemptCount: 0,
+        createdAt: now(),
+        updatedAt: now()
+      }
+      this.deliveries.push(delivery)
+      order.entitlementId = entitlement.id
+      order.biDeliveryId = delivery.id
+      order.status = 'paid'
+      if (options?.simulateDeliveryFailure) mockBiDeliveryAdapter.failNext()
       this.provision(delivery.id)
       return order
     },
