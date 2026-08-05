@@ -6,6 +6,7 @@ import { useAiStore } from '@/stores/ai'
 import { typeMeta, priceDisplay } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
 import type { Resource } from '@/types/resource'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -169,6 +170,7 @@ function switchMode(m: SearchMode) {
           <div class="text-sm font-semibold text-slate-800">{{ (item.data as any).name || (item.data as any).resourceName }}</div>
           <div v-if="item.type === 'product'" class="mt-0.5 text-xs text-slate-400">{{ (item.data as Product).subtitle }}</div>
           <div v-else class="mt-0.5 text-xs text-slate-400">{{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}</div>
+          <ProductContentPeek v-if="item.type === 'product'" :product="item.data as Product" class="mt-2" />
         </div>
         <!-- 价格/操作 -->
         <div class="shrink-0 text-right">

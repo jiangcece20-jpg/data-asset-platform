@@ -7,6 +7,7 @@ import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const props = defineProps<{ product: Product; matchReason?: string }>()
 
@@ -68,6 +69,7 @@ function toggleFav(e: MouseEvent) {
     <div class="text-[15px] font-semibold leading-snug text-slate-900">{{ title }}</div>
     <div class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-500">{{ subtitle }}</div>
     <div v-if="matchReason" class="mt-1.5 rounded-lg bg-brand-50 px-2 py-1 text-[12px] text-brand-700">匹配原因：{{ matchReason }}</div>
+    <ProductContentPeek :product="product" class="mt-2.5" />
     <div class="mt-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 text-[11px] text-slate-400">
         <span>{{ product.provider }}</span>
