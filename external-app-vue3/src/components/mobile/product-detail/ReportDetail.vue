@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const props = defineProps<{
   product: Product
@@ -82,6 +83,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
     <!-- 在线阅读 -->
     <div v-else-if="activeTab === 'reader'" class="space-y-3">
+      <ProductContentPeek :product="product" />
       <div
         v-for="block in readerBlocks"
         :key="block.id"

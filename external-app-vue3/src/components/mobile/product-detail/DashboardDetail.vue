@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import ContentGate from './ContentGate.vue'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const props = defineProps<{
   product: Product
@@ -32,6 +33,7 @@ const basicItems = computed<InfoItem[]>(() => {
 
     <!-- 看板预览 -->
     <div v-else-if="activeTab === 'preview'" class="space-y-3">
+      <ProductContentPeek :product="product" />
       <div v-for="panel in detail.panels" :key="panel.id" class="rounded-xl border border-slate-100 p-3">
         <div class="mb-1.5 flex items-center justify-between">
           <span class="text-[13px] font-semibold text-slate-800">{{ panel.title }}</span>
