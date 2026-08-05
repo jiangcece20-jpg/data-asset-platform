@@ -111,8 +111,8 @@ const spaceGate = ref<'login' | 'auth-notice' | 'browse-mock' | null>(null)
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
     { key: 'basic', label: '基本信息' },
-    { key: 'fields', label: '字段信息' },
     { key: 'samples', label: '样例数据' },
+    { key: 'fields', label: '字段信息' },
     { key: 'profiling', label: '探查报告' }
   ],
   api: [
@@ -122,14 +122,14 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
-    { key: 'overview', label: '报告介绍' },
+    { key: 'reader', label: '在线阅读' },
     { key: 'catalog', label: '目录' },
-    { key: 'reader', label: '在线阅读' }
+    { key: 'overview', label: '报告介绍' }
   ],
   dashboard: [
-    { key: 'overview', label: '基本信息' },
     { key: 'preview', label: '看板预览' },
     { key: 'metrics', label: '指标定义' },
+    { key: 'overview', label: '基本信息' },
     { key: 'updates', label: '更新与导出' }
   ]
 }

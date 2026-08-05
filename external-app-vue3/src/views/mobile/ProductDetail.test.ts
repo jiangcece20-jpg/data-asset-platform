@@ -128,8 +128,27 @@ describe('ProductDetail dashboard overview', () => {
   beforeEach(() => setActivePinia(createPinia()))
   afterEach(() => vi.restoreAllMocks())
 
-  it('places dashboard information directly after basic information and before the product manual', async () => {
+  it.each([
+    ['prod-truck-trajectory', 'basic'],
+    ['prod-qualification-api', 'basic']
+  ])('opens %s in basic information', async (productId, tab) => {
+    const wrapper = await mountProductDetail(`/app/product/${productId}`)
+
+    expect(wrapper.get(`[role="tab"][data-tab="${tab}"]`).attributes('aria-selected')).toBe('true')
+  })
+
+  it('opens with dashboard data before pricing, while keeping overview information aligned', async () => {
     const wrapper = await mountProductDetail('/app/product/prod-freight-index')
+    const preview = wrapper.get('[data-testid="content-first-preview"]')
+    const pricing = wrapper.get('[data-testid="pricing-method"]')
+
+    expect(wrapper.get('button[data-tab="preview"]').attributes('aria-selected')).toBe('true')
+    expect(preview.text()).toContain('108.6')
+    expect(
+      preview.element.compareDocumentPosition(pricing.element) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    await wrapper.get('button[data-tab="overview"]').trigger('click')
     const basic = wrapper.get('[data-testid="product-basic-info"]')
     const dashboard = wrapper.get('[data-testid="dashboard-overview-info"]')
     const manual = wrapper.get('[data-testid="product-manual"]')
@@ -140,6 +159,14 @@ describe('ProductDetail dashboard overview', () => {
     ).toBeTruthy()
     expect(dashboard.text()).toContain('看板信息')
     expect(dashboard.text()).toContain('导出规则')
+  })
+
+  it('opens a report in online reading with a visible report preview', async () => {
+    const wrapper = await mountProductDetail('/app/product/prod-logistics-monthly')
+
+    expect(wrapper.get('button[data-tab="reader"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.get('[data-testid="content-first-preview"]').text()).toContain('行业运行总览')
+    expect(wrapper.text()).toContain('2026年6月，全国公路物流运行总体平稳')
   })
 
   it('shows every metric definition before purchase without an unlock gate', async () => {

@@ -1,0 +1,33 @@
+import { mount, flushPromises } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import PortalDetailTabs from '@/views/portal/components/PortalDetailTabs.vue'
+import PortalProductDetail from './PortalProductDetail.vue'
+
+async function mountProductDetail(productId: string) {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/portal/product/:id', component: PortalProductDetail }]
+  })
+  await router.push(`/portal/product/${productId}`)
+  await router.isReady()
+  const wrapper = mount(PortalProductDetail, { global: { plugins: [router] } })
+  await flushPromises()
+  return wrapper
+}
+
+describe('PortalProductDetail default tabs', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it.each([
+    ['prod-truck-trajectory', 'basic'],
+    ['prod-qualification-api', 'basic'],
+    ['prod-logistics-monthly', 'reader'],
+    ['prod-freight-index', 'preview']
+  ])('opens %s in %s', async (productId, expectedTab) => {
+    const wrapper = await mountProductDetail(productId)
+
+    expect(wrapper.findComponent(PortalDetailTabs).props('modelValue')).toBe(expectedTab)
+  })
+})

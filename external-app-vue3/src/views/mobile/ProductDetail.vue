@@ -141,8 +141,8 @@ const trustedPurchaseEligibility = computed(() => {
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
     { key: 'basic', label: '基本信息' },
-    { key: 'fields', label: '字段信息' },
     { key: 'samples', label: '样例数据' },
+    { key: 'fields', label: '字段信息' },
     { key: 'profiling', label: '探查报告' }
   ],
   api: [
@@ -152,14 +152,14 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
-    { key: 'overview', label: '报告介绍' },
+    { key: 'reader', label: '在线阅读' },
     { key: 'catalog', label: '目录' },
-    { key: 'reader', label: '在线阅读' }
+    { key: 'overview', label: '报告介绍' }
   ],
   dashboard: [
-    { key: 'overview', label: '基本信息' },
     { key: 'preview', label: '看板预览' },
     { key: 'metrics', label: '指标定义' },
+    { key: 'overview', label: '基本信息' },
     { key: 'updates', label: '更新与导出' }
   ]
 }
@@ -194,8 +194,14 @@ const hasDeclarations = computed(() => {
   if (!m) return false
   return !!(m.complianceDeclarationUrl || m.dataSourceDeclarationUrl || m.dataSampleUrl || m.securityClassificationUrl || m.qualityAssessmentUrl)
 })
-// 第一个 tab（基本信息/概览）：在此并入「商品说明书」，避免单独一张卡把 tab 挤到下面
-const isOverviewTab = computed(() => currentTabs.value.length > 0 && activeTab.value === currentTabs.value[0].key)
+// 概览页并入「商品说明书」；内容优先后概览不再是默认首个页签。
+const overviewTabByType: Record<ProductType, string> = {
+  dataset: 'basic',
+  api: 'basic',
+  report: 'overview',
+  dashboard: 'overview'
+}
+const isOverviewTab = computed(() => product.value != null && activeTab.value === overviewTabByType[product.value.type])
 
 watch(id, () => {
   const p = product.value
@@ -319,42 +325,7 @@ function handleAction(key: ProductActionKey) {
       <ServiceStatusNotice :availability="product.availability" :service-status="product.serviceStatus" :has-access="owned" />
     </div>
 
-    <div v-if="pricingInfo" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <div class="text-[11px] text-slate-400">报价方式</div>
-          <div class="mt-0.5 text-[14px] font-semibold text-slate-800">{{ pricingInfo.label }}</div>
-        </div>
-        <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] text-blue-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
-      </div>
-      <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
-    </div>
-
-    <div v-if="commerceOffers.length" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
-      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">价格方案</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : '购买时可切换主体' }}</span></div>
-      <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
-        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }}</div></div>
-        <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
-      </div>
-    </div>
-
-    <div
-      v-if="trustedPurchaseEligibility"
-      class="mx-4 mt-3 rounded-2xl border p-4"
-      :class="trustedPurchaseEligibility.tone"
-      data-testid="trusted-space-purchase-eligibility"
-    >
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-[11px] text-slate-500">购买资格</div>
-        <span class="rounded-full px-2 py-0.5 text-[10px]" :class="trustedPurchaseEligibility.badgeTone">
-          {{ trustedPurchaseEligibility.badge }}
-        </span>
-      </div>
-      <div class="mt-2 text-[13px] font-semibold text-slate-800">{{ trustedPurchaseEligibility.title }}</div>
-      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ trustedPurchaseEligibility.description }}</div>
-    </div>
-
-    <!-- Tab 导航（紧跟摘要卡，吸附在头部下方） -->
+    <!-- 内容优先：标题后直接进入样例、接口、阅读或看板预览。 -->
     <ProductDetailTabs v-model="activeTab" :tabs="currentTabs" class="mt-3" />
 
     <!-- Tab 内容 -->
@@ -437,6 +408,42 @@ function handleAction(key: ProductActionKey) {
       />
       <DashboardDetail v-else-if="product.type === 'dashboard' && activeTab !== 'overview'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
       <div v-else-if="product.type !== 'dataset' && product.type !== 'dashboard'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+    </div>
+
+    <!-- 交易承接：用户看过内容后再了解报价、方案与购买资格。 -->
+    <div v-if="pricingInfo" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-[11px] text-slate-400">报价方式</div>
+          <div class="mt-0.5 text-[14px] font-semibold text-slate-800">{{ pricingInfo.label }}</div>
+        </div>
+        <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] text-blue-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
+      </div>
+      <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
+    </div>
+
+    <div v-if="commerceOffers.length" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
+      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">价格方案</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : '购买时可切换主体' }}</span></div>
+      <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
+        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }}</div></div>
+        <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
+      </div>
+    </div>
+
+    <div
+      v-if="trustedPurchaseEligibility"
+      class="mx-4 mt-3 rounded-2xl border p-4"
+      :class="trustedPurchaseEligibility.tone"
+      data-testid="trusted-space-purchase-eligibility"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-[11px] text-slate-500">购买资格</div>
+        <span class="rounded-full px-2 py-0.5 text-[10px]" :class="trustedPurchaseEligibility.badgeTone">
+          {{ trustedPurchaseEligibility.badge }}
+        </span>
+      </div>
+      <div class="mt-2 text-[13px] font-semibold text-slate-800">{{ trustedPurchaseEligibility.title }}</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ trustedPurchaseEligibility.description }}</div>
     </div>
 
     <!-- 已拥有权益 -->
