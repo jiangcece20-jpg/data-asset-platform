@@ -1,6 +1,7 @@
 import type {
   ApiUsageBillMirror,
   EnterpriseSpaceBinding,
+  SpaceOrderMirror,
   SpaceOrderEvent,
   TrustedProductSnapshot
 } from '@/types/trustedSpace'
@@ -46,7 +47,7 @@ export const seedTrustedProductSnapshots: TrustedProductSnapshot[] = [
     saleStatus: 'published',
     price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
     datasetOffers: [
-      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' },
       { id: 'space-ds-year', externalPlanCode: 'DS-10893-YEAR', name: '年度订阅版', subject: 'enterprise', price: 29800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
       { id: 'space-ds-custom', externalPlanCode: 'DS-10893-PLUS', name: '扩展覆盖版', subject: 'enterprise', price: 49800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' }
     ],
@@ -106,9 +107,51 @@ export const seedSpaceOrderRecords: SeedSpaceOrderRecord[] = [
     amount: 6800,
     currency: 'CNY',
     occurredAt: '2026-07-27T08:10:00.000Z',
-    deliverySummary: '数据集交付处理中',
+   deliverySummary: '数据集交付处理中',
+   detailUrl: 'https://trusted-space.mock/orders/space-order-activity-001',
+   operatorMemberId: 'mem-2'
+  }
+]
+
+export const seedSpaceOrderMirrors: SpaceOrderMirror[] = [
+  {
+    spaceOrderId: 'space-order-qualification-001',
+    purchaseIntentId: 'intent-qualification-001',
+    appEnterpriseId: 'ent-wanlian-logistics',
+    spaceEnterpriseId: 'space-ent-wanlian',
+    operatorMemberId: 'mem-1',
+    appProductId: 'prod-qualification-api',
+    spaceProductNo: 'SPACE-API-20415',
+    productName: '道路运输从业人员资格核验 API',
+    rawStatus: 'DELIVERED',
+    displayStatus: 'delivered',
+    amount: 1280,
+    currency: 'CNY',
+    eventVersion: 3,
+    spaceUpdatedAt: '2026-07-26T15:30:00.000Z',
+    syncedAt: '2026-07-27T10:00:00.000Z',
+    deliverySummary: '已开通资格核验 API 凭证',
+    detailUrl: 'https://trusted-space.mock/orders/space-order-qualification-001'
+  },
+  {
+    spaceOrderId: 'space-order-activity-001',
+    purchaseIntentId: 'intent-activity-001',
+    appEnterpriseId: 'ent-wanlian-logistics',
+    spaceEnterpriseId: 'space-ent-wanlian',
+    operatorMemberId: 'mem-2',
+    appProductId: 'prod-enterprise-activity',
+    spaceProductNo: 'SPACE-DS-10893',
+    productName: '企业物流活跃度数据集',
+    rawStatus: 'DELIVERED',
+    displayStatus: 'delivered',
+    amount: 9800,
+    currency: 'CNY',
+    eventVersion: 3,
+    spaceUpdatedAt: '2026-07-28T10:00:00.000Z',
+    syncedAt: '2026-07-28T10:30:00.000Z',
+    deliverySummary: '数据集已交付，支持下载或前往可信空间使用',
     detailUrl: 'https://trusted-space.mock/orders/space-order-activity-001',
-    operatorMemberId: 'mem-2'
+   downloadUrl: 'https://trusted-space.mock/downloads/space-order-activity-001'
   }
 ]
 

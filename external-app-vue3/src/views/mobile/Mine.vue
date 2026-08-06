@@ -265,8 +265,9 @@ function openBills() {
         <div v-if="isRenewable(entitlement)" class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-700">到期后停止接收新版本，最近已交付版本仍可使用；续订后延长更新服务。</div>
 
         <div class="mt-3 flex gap-2">
-          <a v-if="deliveryFor(entitlement.id)?.biEntryUrl" :href="deliveryFor(entitlement.id)?.biEntryUrl" class="flex-1 rounded-full bg-brand-500 py-2.5 text-center text-[11px] font-medium text-white">进入用数模块</a>
-          <button v-if="isRenewable(entitlement)" data-testid="renew-dataset" class="rounded-full border border-brand-500 px-4 py-2.5 text-[11px] font-medium text-brand-600" @click="renew(entitlement)">续订</button>
+         <a v-if="deliveryFor(entitlement.id)?.biEntryUrl" :href="deliveryFor(entitlement.id)?.biEntryUrl" class="flex-1 rounded-full bg-brand-500 py-2.5 text-center text-[11px] font-medium text-white">进入用数模块</a>
+         <a v-if="deliveryFor(entitlement.id)?.downloadUrl" :href="deliveryFor(entitlement.id)?.downloadUrl" class="flex-1 rounded-full border border-brand-500 py-2.5 text-center text-[11px] font-medium text-brand-600">下载数据</a>
+         <button v-if="isRenewable(entitlement)" data-testid="renew-dataset" class="rounded-full border border-brand-500 px-4 py-2.5 text-[11px] font-medium text-brand-600" @click="renew(entitlement)">续订</button>
         </div>
       </article>
       <EmptyState v-if="!datasetEntitlements.length" icon="🗂️" title="暂无可用数据" desc="已购买并完成交付的数据集会显示在这里" />

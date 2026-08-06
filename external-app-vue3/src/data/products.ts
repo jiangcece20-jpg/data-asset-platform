@@ -470,7 +470,7 @@ export const seedProducts: Product[] = [
     complianceNote: '企业维度脱敏样本，正式使用需企业认证与空间订单',
     price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
     datasetOffers: [
-      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' },
+      { id: 'space-ds-basic', externalPlanCode: 'DS-10893-BASIC', name: '基础快照版', subject: 'enterprise', price: 9800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' },
       { id: 'space-ds-year', externalPlanCode: 'DS-10893-YEAR', name: '年度订阅版', subject: 'enterprise', price: 29800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
       { id: 'space-ds-custom', externalPlanCode: 'DS-10893-PLUS', name: '扩展覆盖版', subject: 'enterprise', price: 49800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, licenseKind: 'subscription', termMonths: 12, accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' }
     ],
@@ -634,10 +634,10 @@ export const seedProducts: Product[] = [
     complianceNote: '轨迹已聚合脱敏，不提供车辆级明细样本',
     price: { model: 'item_only', itemPrice: 399, unit: '元起' },
     datasetOffers: [
-      { id: 'offer-truck-personal-snapshot', name: '个人快照版', subject: 'personal', price: 399, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
-      { id: 'offer-truck-personal-updates', name: '个人持续更新版', subject: 'personal', price: 999, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'personal', allowDownload: false, deliveryMode: 'managed_connection', recommended: true },
-      { id: 'offer-truck-enterprise-snapshot', name: '企业快照版', subject: 'enterprise', price: 3800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'snapshot' },
-      { id: 'offer-truck-enterprise-updates', name: '企业持续更新版', subject: 'enterprise', price: 6800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'managed_connection', recommended: true }
+      { id: 'offer-truck-personal-snapshot', name: '个人快照版', subject: 'personal', price: 399, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: true, deliveryMode: 'snapshot' },
+      { id: 'offer-truck-personal-updates', name: '个人持续更新版', subject: 'personal', price: 999, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'personal', allowDownload: true, deliveryMode: 'managed_connection', recommended: true },
+      { id: 'offer-truck-enterprise-snapshot', name: '企业快照版', subject: 'enterprise', price: 3800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'named_seats', seats: 10, allowDownload: true, deliveryMode: 'snapshot' },
+      { id: 'offer-truck-enterprise-updates', name: '企业持续更新版', subject: 'enterprise', price: 6800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 10, allowDownload: true, deliveryMode: 'managed_connection', recommended: true }
     ],
     assetSnapshot: { resourceId: 'asset-truck-trajectory', assetVersion: 'v3.2.0', syncedAt: '2026-07-30 09:20', lastCheckedAt: '2026-07-31 08:00', changeRisk: 'none' },
     status: 'published',
@@ -688,8 +688,8 @@ export const seedProducts: Product[] = [
     complianceNote: '字段结构调整待重新评估',
     price: { model: 'item_only', itemPrice: 599, unit: '元起' },
     datasetOffers: [
-      { id: 'offer-warehouse-personal', name: '个人快照版', subject: 'personal', price: 599, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
-      { id: 'offer-warehouse-enterprise', name: '企业年度订阅', subject: 'enterprise', price: 8800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 20, allowDownload: false, deliveryMode: 'managed_connection' }
+      { id: 'offer-warehouse-personal', name: '个人快照版', subject: 'personal', price: 599, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: true, deliveryMode: 'snapshot' },
+      { id: 'offer-warehouse-enterprise', name: '企业年度订阅', subject: 'enterprise', price: 8800, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 20, allowDownload: true, deliveryMode: 'managed_connection' }
     ],
     assetSnapshot: { resourceId: 'asset-warehouse-turnover', assetVersion: 'v2.4.0', syncedAt: '2026-07-28 18:20', lastCheckedAt: '2026-07-31 08:00', changeRisk: 'high', changeSummary: '关键字段 turnover_days 类型发生变化，等待运营确认版本迁移。' },
     status: 'paused',

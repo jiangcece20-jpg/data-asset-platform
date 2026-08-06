@@ -63,11 +63,15 @@ const allOrders = computed<MyOrderCard[]>(() => {
       if (!enterpriseContext || order.ownerId !== enterpriseContext.currentEnterpriseId) return false
       return enterpriseContext.role === 'admin' || order.operatorMemberId === enterpriseContext.currentMemberId
     })
-    .map((order) => {
-      const card = appOrderCard(order, user.enterprise.name)
-      card.productType ||= catalog.byId(order.productId)?.type
-      return card
-    })
+   .map((order) => {
+     const card = appOrderCard(order, user.enterprise.name)
+     card.productType ||= catalog.byId(order.productId)?.type
+     if (order.productType === 'dataset' && order.entitlementId) {
+       const delivery = datasetCommerce.deliveries.find((item) => item.entitlementId === order.entitlementId)
+       if (delivery?.downloadUrl) card.downloadUrl = delivery.downloadUrl
+     }
+     return card
+   })
   const spaceCards = enterpriseContext
     ? spaceOrders.visibleFor(enterpriseContext).map((order) => spaceOrderCard(order, catalog.byId(order.appProductId)?.type, user.enterprise.name))
     : []
@@ -207,8 +211,9 @@ function renew(entitlement: Entitlement) {
             <div class="flex shrink-0 gap-2">
               <button class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600" @click="goProduct(order.productId)">查看商品</button>
               <button v-if="order.canPay && order.productType === 'dataset'" class="rounded-lg bg-brand-500 px-3 py-2 text-xs text-white" @click="pay(order)">继续付款</button>
-              <button v-if="order.productType === 'dataset' && order.filter === 'completed'" class="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-600" @click="selectTab('data')">查看我的数据</button>
-              <button v-if="order.productType === 'api'" class="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-600" @click="router.push('/portal/bills')">查看 API 账单</button>
+             <button v-if="order.productType === 'dataset' && order.filter === 'completed'" class="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-600" @click="selectTab('data')">查看我的数据</button>
+             <a v-if="order.downloadUrl" :href="order.downloadUrl" class="rounded-lg border border-brand-500 px-3 py-2 text-xs text-brand-600">下载数据</a>
+             <button v-if="order.productType === 'api'" class="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-600" @click="router.push('/portal/bills')">查看 API 账单</button>
               <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-slate-800 px-3 py-2 text-xs text-white">前往可信空间</a>
             </div>
           </div>
@@ -241,8 +246,9 @@ function renew(entitlement: Entitlement) {
           </div>
           <div v-if="isRenewable(entitlement)" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">到期后停止接收新版本，最近已交付版本仍可使用。</div>
           <div class="mt-4 flex gap-2">
-            <a v-if="deliveryFor(entitlement.id)?.biEntryUrl" :href="deliveryFor(entitlement.id)?.biEntryUrl" class="rounded-lg bg-brand-500 px-4 py-2 text-xs text-white">进入用数模块</a>
-            <button v-if="isRenewable(entitlement)" data-testid="portal-renew-dataset" class="rounded-lg border border-brand-500 px-4 py-2 text-xs text-brand-600" @click="renew(entitlement)">续订</button>
+           <a v-if="deliveryFor(entitlement.id)?.biEntryUrl" :href="deliveryFor(entitlement.id)?.biEntryUrl" class="rounded-lg bg-brand-500 px-4 py-2 text-xs text-white">进入用数模块</a>
+           <a v-if="deliveryFor(entitlement.id)?.downloadUrl" :href="deliveryFor(entitlement.id)?.downloadUrl" class="rounded-lg border border-brand-500 px-4 py-2 text-xs text-brand-600">下载数据</a>
+           <button v-if="isRenewable(entitlement)" data-testid="portal-renew-dataset" class="rounded-lg border border-brand-500 px-4 py-2 text-xs text-brand-600" @click="renew(entitlement)">续订</button>
             <button v-if="entitlement.productId" class="rounded-lg border border-slate-200 px-4 py-2 text-xs text-slate-600" @click="goProduct(entitlement.productId)">查看商品</button>
           </div>
         </article>

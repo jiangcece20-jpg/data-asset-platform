@@ -65,8 +65,8 @@ export function commerceOffersOf(product: Product): CommerceOffer[] {
     maxTermMonths: serviceMode === 'continuous' ? 36 : undefined,
     accessScope: subject === 'personal' ? 'personal' : 'named_seats',
     seats: subject === 'enterprise' ? 10 : undefined,
-    allowDownload: product.type === 'report',
-    recommended: subject === 'enterprise' && serviceMode === 'continuous'
+    allowDownload: product.type === 'report' || product.type === 'dataset',
+   recommended: subject === 'enterprise' && serviceMode === 'continuous'
   })
 
   return [

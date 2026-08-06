@@ -29,9 +29,10 @@ export interface BiDatasetDelivery {
   ownerId: string
   operatorMemberId: string
   datasetInstanceId?: string
-  status: BiDeliveryStatus
-  biEntryUrl?: string
-  attemptCount: number
+ status: BiDeliveryStatus
+ biEntryUrl?: string
+ downloadUrl?: string
+ attemptCount: number
   failureReason?: string
   firstUsedAt?: string
   lastUsedAt?: string
@@ -58,6 +59,7 @@ export interface BiProvisionInput {
 export interface BiProvisionResult {
   datasetInstanceId: string
   biEntryUrl: string
+  downloadUrl?: string
   deliveredAt: string
   lastSuccessfulRefreshAt: string
 }
