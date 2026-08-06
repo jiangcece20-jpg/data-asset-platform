@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { canApplySpaceOrderEvent, mapSpaceOrderStatus } from '@/domain/trustedSpacePolicy'
+import { seedSpaceOrderMirrors } from '@/data/trustedSpace'
 import { trustedSpaceAdapter, type TrustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import type { ConnectorEvent, PipelineDecision } from '@/types/configGovernance'
 import type { UserContext } from '@/types/domain'
@@ -58,9 +59,9 @@ function incomingSpaceOrderEvent(event: SpaceOrderEvent) {
 }
 
 export const useSpaceOrderStore = defineStore('space-orders', {
-  state: () => ({
-    mirrors: [] as SpaceOrderMirror[],
-    reconciliationAudits: [] as SpaceOrderReconciliationAudit[],
+ state: () => ({
+   mirrors: seedSpaceOrderMirrors.map((m) => ({ ...m })) as SpaceOrderMirror[],
+   reconciliationAudits: [] as SpaceOrderReconciliationAudit[],
     reconciliationGeneration: 0
   }),
   getters: {
@@ -301,9 +302,10 @@ export const useSpaceOrderStore = defineStore('space-orders', {
         eventVersion: event.eventVersion,
         spaceUpdatedAt: event.occurredAt,
         syncedAt: new Date().toISOString(),
-        deliverySummary: event.deliverySummary,
-        detailUrl: event.detailUrl
-      }
+       deliverySummary: event.deliverySummary,
+       detailUrl: event.detailUrl,
+       downloadUrl: event.downloadUrl
+     }
       const index = this.mirrors.findIndex((item) => item.spaceOrderId === event.spaceOrderId)
       if (index >= 0) this.mirrors[index] = mirror
       else this.mirrors.push(mirror)

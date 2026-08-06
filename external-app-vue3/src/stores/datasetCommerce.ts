@@ -286,11 +286,12 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
           seats: offer.seats,
           allowDownload: offer.allowDownload
         })
-        delivery.datasetInstanceId = result.datasetInstanceId
-        delivery.biEntryUrl = result.biEntryUrl
-        delivery.deliveredAt = result.deliveredAt
-        delivery.lastSuccessfulRefreshAt = result.lastSuccessfulRefreshAt
-        delivery.status = 'delivered'
+       delivery.datasetInstanceId = result.datasetInstanceId
+       delivery.biEntryUrl = result.biEntryUrl
+       delivery.downloadUrl = result.downloadUrl
+       delivery.deliveredAt = result.deliveredAt
+       delivery.lastSuccessfulRefreshAt = result.lastSuccessfulRefreshAt
+       delivery.status = 'delivered'
         delivery.updatedAt = now()
         useEntitlementStore().activateDataset(entitlement.id, delivery.id)
         order.status = 'entitlement_active'

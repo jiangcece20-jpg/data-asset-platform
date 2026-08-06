@@ -43,12 +43,13 @@ describe('OrderCenter', () => {
 
   it('lists all orders and filters by owner type', async () => {
     const store = useOrderStore()
-    store.list = [
-      order({ id: 'o1', ownerType: 'personal' }),
-      order({ id: 'o2', ownerType: 'enterprise', channel: 'app', contractStatus: 'quoting', status: 'pending_payment' })
-    ]
-    const wrapper = await mountView()
-    expect(wrapper.findAll('[data-testid="order-row"]')).toHaveLength(2)
+   store.list = [
+     order({ id: 'o1', ownerType: 'personal' }),
+     order({ id: 'o2', ownerType: 'enterprise', channel: 'app', contractStatus: 'quoting', status: 'pending_payment' })
+   ]
+   useSpaceOrderStore().clearMirrors()
+   const wrapper = await mountView()
+   expect(wrapper.findAll('[data-testid="order-row"]')).toHaveLength(2)
     await wrapper.find('[data-testid="filter-owner"]').setValue('enterprise')
     await flushPromises()
     expect(wrapper.findAll('[data-testid="order-row"]')).toHaveLength(1)

@@ -82,9 +82,10 @@ export interface SpaceOrderEvent {
   rawStatus: string
   amount: number
   currency: string
-  occurredAt: string
-  deliverySummary?: string
-  detailUrl?: string
+ occurredAt: string
+deliverySummary?: string
+ downloadUrl?: string
+detailUrl?: string
 }
 
 export interface SpaceOrderEventAssociation {
@@ -109,9 +110,10 @@ export interface SpaceOrderMirror {
   currency: string
   eventVersion: number
   spaceUpdatedAt: string
-  syncedAt: string
-  deliverySummary?: string
-  detailUrl?: string
+ syncedAt: string
+deliverySummary?: string
+ downloadUrl?: string
+detailUrl?: string
 }
 
 export interface SpaceOrderReconciliationAudit {

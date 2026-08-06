@@ -24,10 +24,11 @@ export interface MyOrderCard {
   progressSummary: string
   entitlementId?: string
   canPay: boolean
-  paymentPath?: string
-  detailUrl?: string
-  syncedAt?: string
-  spaceProductNo?: string
+ paymentPath?: string
+ detailUrl?: string
+ downloadUrl?: string
+ syncedAt?: string
+ spaceProductNo?: string
 }
 
 export const productTypeLabels: Record<ProductType, string> = {
@@ -110,10 +111,11 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
     createdAt: order.spaceUpdatedAt,
     paymentLabel: '空间侧支付',
     progressSummary: order.deliverySummary || spaceProgress(order.displayStatus),
-    canPay: false,
-    detailUrl: order.detailUrl,
-    syncedAt: order.syncedAt,
-    spaceProductNo: order.spaceProductNo
+   canPay: false,
+   detailUrl: order.detailUrl,
+   downloadUrl: order.downloadUrl,
+   syncedAt: order.syncedAt,
+   spaceProductNo: order.spaceProductNo
   }
 }
 
