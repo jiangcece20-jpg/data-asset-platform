@@ -90,6 +90,15 @@ const dashboardForm = reactive({
   metrics: [] as DashboardMetricForm[]
 })
 const dashboardConfigSaved = ref(false)
+const reportForm = reactive({
+  publishedAt: '',
+  pageCount: 0,
+  author: '',
+  version: '',
+  audience: '',
+  license: ''
+})
+const reportConfigSaved = ref(false)
 type CommerceOfferForm = {
   id: string
   name: string
@@ -199,6 +208,15 @@ function syncFormFromStore() {
     }))
   )
 
+  // 报告介绍配置：对应前台「报告介绍」类型特有字段。
+  const report = p.typeDetail.report
+  reportForm.publishedAt = report?.publishedAt ?? ''
+  reportForm.pageCount = report?.pageCount ?? 0
+  reportForm.author = report?.author ?? ''
+  reportForm.version = report?.version ?? ''
+  reportForm.audience = report?.audience ?? ''
+  reportForm.license = report?.license ?? ''
+
   // 探查字段
   profilingSelection.value = (p.typeDetail.dataset?.fields ?? [])
     .filter((f) => f.profilingEnabled)
@@ -206,6 +224,7 @@ function syncFormFromStore() {
 
   productSaved.value = false
   dashboardConfigSaved.value = false
+  reportConfigSaved.value = false
   profilingSaved.value = false
 }
 
@@ -269,6 +288,7 @@ function saveProduct() {
     datasetOffers
   })
   if (p.type === 'dashboard') persistDashboardConfig()
+  if (p.type === 'report') persistReportConfig()
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
 }
@@ -334,6 +354,28 @@ function saveDashboardConfig() {
   persistDashboardConfig()
   dashboardConfigSaved.value = true
   setTimeout(() => { dashboardConfigSaved.value = false }, 3000)
+}
+
+function persistReportConfig() {
+  const p = product.value
+  const current = p?.typeDetail.report
+  if (!p || !current) return
+  const pageCount = Number(reportForm.pageCount)
+  catalog.updateReportDetail(p.id, {
+    ...current,
+    publishedAt: reportForm.publishedAt.trim(),
+    pageCount: Number.isFinite(pageCount) && pageCount > 0 ? pageCount : undefined,
+    author: reportForm.author.trim(),
+    version: reportForm.version.trim(),
+    audience: reportForm.audience.trim(),
+    license: reportForm.license.trim()
+  })
+}
+
+function saveReportConfig() {
+  persistReportConfig()
+  reportConfigSaved.value = true
+  setTimeout(() => { reportConfigSaved.value = false }, 3000)
 }
 
 function submitReview() {
@@ -442,14 +484,18 @@ function saveProfilingFields() {
       </div>
     </div>
 
-    <!-- 类型特有区块：报告 -->
+    <!-- 类型特有区块：报告（资源摘要只读） -->
     <div v-if="resource.type === 'report' && resource.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">报告详情</h2>
+      <div class="mb-3 flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700">报告资源摘要</h2>
+        <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">结构只读</span>
+      </div>
+      <p class="mb-4 text-xs leading-relaxed text-slate-400">目录与正文块来自内容稿；发布日期、机构、版本等展示口径在下方「报告介绍配置」维护。</p>
       <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">作者：</span>{{ resource.typeDetail.report.author }}</div>
-        <div><span class="text-slate-500">版本：</span>{{ resource.typeDetail.report.version }}</div>
-        <div><span class="text-slate-500">受众：</span>{{ resource.typeDetail.report.audience }}</div>
-        <div><span class="text-slate-500">内容区块：</span>{{ resource.typeDetail.report.blocks?.length }}</div>
+        <div><span class="text-slate-500">当前版本：</span>{{ resource.typeDetail.report.version }}</div>
+        <div><span class="text-slate-500">研究机构：</span>{{ resource.typeDetail.report.author }}</div>
+        <div><span class="text-slate-500">目录章节：</span>{{ resource.typeDetail.report.catalog?.length ?? 0 }}</div>
+        <div><span class="text-slate-500">内容区块：</span>{{ resource.typeDetail.report.blocks?.length ?? 0 }}</div>
       </div>
     </div>
 
@@ -677,6 +723,38 @@ function saveProfilingFields() {
         <div class="flex items-center gap-3">
           <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-product" @click="saveProduct">保存</button>
           <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+
+      <!-- 报告介绍配置 -->
+      <div v-if="resource.type === 'report' && product.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-700">报告介绍配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-slate-400">对应前台「报告介绍」中的类型特有字段；通用运营信息（提供方、更新频率等）仍在上方商品信息中维护。来源与上架时间为系统事实，只读展示。</p>
+          </div>
+          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+          <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
+          <div><span class="text-slate-500">上架时间：</span>{{ listedAtOf(product) || '未上架' }}</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">发布日期</span><input v-model="reportForm.publishedAt" data-testid="report-published-at" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" placeholder="YYYY-MM-DD" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告页数</span><input v-model.number="reportForm.pageCount" type="number" min="1" data-testid="report-page-count" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">研究机构</span><input v-model="reportForm.author" data-testid="report-author" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告版本</span><input v-model="reportForm.version" data-testid="report-version" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">适用读者</span><input v-model="reportForm.audience" data-testid="report-audience" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+        </div>
+
+        <p class="mt-4 text-[11px] leading-relaxed text-slate-400">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-report-config" type="button" @click="saveReportConfig">保存报告配置</button>
+          <span v-if="reportConfigSaved" class="text-sm text-emerald-600">已同步到资源摘要和前台详情</span>
         </div>
       </div>
 
