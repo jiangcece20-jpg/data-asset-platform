@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
-import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail } from '@/types/domain'
+import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail, ReportDetail } from '@/types/domain'
 import type { Resource, ListResourceForm } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
@@ -214,6 +214,29 @@ export const useCatalogStore = defineStore('catalog', {
       const resource = this.resources.find((item) => item.id === product.resourceId)
       if (resource) {
         resource.typeDetail = { ...resource.typeDetail, dashboard: cloneDetail() }
+        resource.updatedAt = now()
+      }
+    },
+    /**
+     * 报告介绍元数据同时写回商品与关联资源；目录与正文块保留现有结构，不在此覆盖。
+     */
+    updateReportDetail(productId: string, detail: ReportDetail) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.type !== 'report') return
+      const cloneDetail = (): ReportDetail => ({
+        ...detail,
+        catalog: detail.catalog.map((item) => ({ ...item })),
+        blocks: detail.blocks.map((block) => ({ ...block }))
+      })
+      product.typeDetail = { ...product.typeDetail, report: cloneDetail() }
+      product.updatedAt = now()
+      if (product.entitlementPolicy?.kind === 'report_version') {
+        product.entitlementPolicy = { kind: 'report_version', version: detail.version }
+      }
+
+      const resource = this.resources.find((item) => item.id === product.resourceId)
+      if (resource) {
+        resource.typeDetail = { ...resource.typeDetail, report: cloneDetail() }
         resource.updatedAt = now()
       }
     },

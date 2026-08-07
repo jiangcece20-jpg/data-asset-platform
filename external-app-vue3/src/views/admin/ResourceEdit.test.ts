@@ -56,6 +56,36 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(resource?.typeDetail.dashboard?.timeRange).toBe('近 5 年')
   })
 
+  it('configures report intro fields and syncs product and resource summaries', async () => {
+    const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
+
+    expect(wrapper.get('[data-testid="report-config-editor"]').text()).toContain('来源')
+    expect(wrapper.get('[data-testid="report-config-editor"]').text()).toContain('上架时间')
+
+    await wrapper.get('[data-testid="report-published-at"]').setValue('2026-08-05')
+    await wrapper.get('[data-testid="report-page-count"]').setValue('32')
+    await wrapper.get('[data-testid="report-author"]').setValue('公路物流研究中心')
+    await wrapper.get('[data-testid="report-version"]').setValue('V2026-08')
+    await wrapper.get('[data-testid="report-audience"]').setValue('企业战略与采购负责人')
+    await wrapper.get('[data-testid="report-license"]').setValue('仅限企业内部传阅')
+    await wrapper.get('[data-testid="save-report-config"]').trigger('click')
+
+    const catalog = useCatalogStore()
+    const product = catalog.byId('prod-logistics-monthly')
+    const resource = catalog.resourceById('res-prod-logistics-monthly')
+    expect(product?.typeDetail.report).toMatchObject({
+      publishedAt: '2026-08-05',
+      pageCount: 32,
+      author: '公路物流研究中心',
+      version: 'V2026-08',
+      audience: '企业战略与采购负责人',
+      license: '仅限企业内部传阅'
+    })
+    expect(product?.entitlementPolicy).toEqual({ kind: 'report_version', version: 'V2026-08' })
+    expect(resource?.typeDetail.report?.version).toBe('V2026-08')
+    expect(resource?.typeDetail.report?.author).toBe('公路物流研究中心')
+  })
+
   it('configures personal and enterprise one-time and finite continuous plans for a dashboard', async () => {
     const wrapper = await mountResourceEdit()
     const planForms = wrapper.findAll('[data-testid^="commerce-offer-form-"]')

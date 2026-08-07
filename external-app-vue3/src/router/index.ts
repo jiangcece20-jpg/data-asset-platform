@@ -46,6 +46,7 @@ const router = createRouter({
     { path: '/admin/approval/after-sales', name: 'admin-after-sales', component: () => import('@/views/admin/AfterSalesList.vue'), meta: { title: '交易售后' } },
     { path: '/admin/approval/after-sales/:id', name: 'admin-after-sales-detail', component: () => import('@/views/admin/AfterSalesDetail.vue'), meta: { title: '交易售后详情' } },
     { path: '/admin/approval/integration', name: 'admin-integration-governance', component: () => import('@/views/admin/IntegrationGovernance.vue'), meta: { title: '集成治理' } },
+    { path: '/admin/permissions', name: 'admin-permissions', component: () => import('@/views/admin/PermissionManagement.vue'), meta: { title: '权限管理' } },
 
     // ---------------- PC 门户 ----------------
     { path: '/portal', redirect: '/portal/home' },
