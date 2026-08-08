@@ -64,3 +64,30 @@ describe('MineShell pay callback', () => {
     expect(dataButton.find('[data-testid="mine-menu-data"]').exists()).toBe(true)
   })
 })
+
+describe('MineShell defaults & placeholders', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('defaults to buy-data orders', async () => {
+    const { wrapper } = await mountMineShell('mobile', '/app/mine')
+    expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-placeholder"]').exists()).toBe(false)
+  })
+
+  it('shows placeholder for VIP menu entry', async () => {
+    const { wrapper } = await mountMineShell('mobile', '/app/mine?menu=vip')
+    expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('该模块由其它产品负责')
+  })
+
+  it('shows purchased data by default when switching to the data menu', async () => {
+    const { wrapper } = await mountMineShell('mobile', '/app/mine?menu=data')
+    expect(wrapper.find('[data-testid="data-tab-purchased"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-placeholder"]').exists()).toBe(false)
+  })
+
+  it('resolves legacy ?tab=我的数据 to the data menu', async () => {
+    const { wrapper } = await mountMineShell('mobile', '/app/mine?tab=我的数据')
+    expect(wrapper.find('[data-testid="mine-menu-data"]').classes().join(' ')).toContain('bg-brand-50')
+  })
+})

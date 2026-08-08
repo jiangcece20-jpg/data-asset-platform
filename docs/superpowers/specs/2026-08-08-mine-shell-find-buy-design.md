@@ -3,7 +3,7 @@
 - 日期：2026-08-08
 - 分支：`bugfix/search-find-buy`
 - 范围：`external-app-vue3`（移动端 `/app/mine`、门户 `/portal/mine`）
-- 状态：已对齐，待实现计划
+- 状态：已落地（Task 1–9 完成，全量回归通过）
 
 ## 背景
 
