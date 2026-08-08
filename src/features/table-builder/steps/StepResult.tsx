@@ -20,6 +20,11 @@ type StepResultProps = {
   onRestart: () => void;
 };
 
+function formatCreatedAt(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 export function StepResult({
   outcome,
   engine,
@@ -30,7 +35,14 @@ export function StepResult({
   onRestart,
 }: StepResultProps) {
   const [copyState, setCopyState] = useState<CopyState>('idle');
+  // 原型演示：结果页首次渲染即视为「建表」发生的时刻，仅用于成功摘要展示，不代表真实建表时间。
+  const [createdAt] = useState(() => new Date());
   const isFailure = outcome === 'failure';
+  const hasDraftStarted = recommendations.some((row) => row.status === 'draft_started');
+
+  const goToDataStandard = () => {
+    window.location.hash = '#data-standard';
+  };
 
   const tableRecommend = recommendTable(table);
   const tableNameEn = table.nameEn.trim() || tableRecommend.nameEn;
@@ -104,6 +116,12 @@ export function StepResult({
         <span>
           字段数：<strong>{recommendations.length}</strong>
         </span>
+        {isFailure ? null : (
+          <span>
+            创建时间：<strong>{formatCreatedAt(createdAt)}</strong>
+            <span className="tb-recommend__table-bar-en">（演示时间，非真实建表时间）</span>
+          </span>
+        )}
       </div>
 
       <div className="tb-result__ddl">
@@ -122,6 +140,9 @@ export function StepResult({
             返回修改
           </Button>
         ) : null}
+        <Button variant="default" onClick={goToDataStandard}>
+          {hasDraftStarted ? '查看相关草稿' : '去数据标准（原型演示）'}
+        </Button>
         <Button variant="primary" onClick={onRestart}>
           重新建表
         </Button>

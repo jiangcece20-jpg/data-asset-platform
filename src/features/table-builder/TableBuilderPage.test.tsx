@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TableBuilderPage } from './TableBuilderPage';
+import { DataStandardDraftPage } from '../data-standard/DataStandardDraftPage';
 import { recommendFields } from './recommend';
 import { clearWizard, createDefaultWizard, saveWizard } from './wizardStore';
 
@@ -85,6 +86,41 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
 
     await user.click(within(missingRow).getByRole('button', { name: '新建标准草稿' }));
     expect(window.location.hash).toBe('#data-standard/draft');
+  });
+
+  it('completes cross-page E2E flow: missing field → draft handoff → data-standard save → back to Step3 shows 草稿已发起', async () => {
+    const user = userEvent.setup();
+    const state = createDefaultWizard();
+    state.step = 2;
+    state.engine = 'Hive';
+    state.database = 'dwd';
+    state.table = { nameZh: '客户维表', nameEn: '', description: '客户主体' };
+    state.fields = [
+      { id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' },
+      { id: 'f2', nameZh: '优惠券编码', nameEn: '', comment: '' },
+    ];
+    saveWizard(state);
+
+    const { unmount: unmountBuilder } = render(<TableBuilderPage />);
+    await user.click(screen.getByRole('button', { name: '下一步' }));
+
+    const missingRow = findRowByText('优惠券编码');
+    expect(within(missingRow).getByText('缺标')).toBeInTheDocument();
+    await user.click(within(missingRow).getByRole('button', { name: '新建标准草稿' }));
+    expect(window.location.hash).toBe('#data-standard/draft');
+    unmountBuilder();
+
+    // 跳转数据标准草稿页：应携带缺标字段信息预填表单。
+    const { unmount: unmountDraft } = render(<DataStandardDraftPage />);
+    expect(screen.getByDisplayValue('优惠券编码')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '保存草稿' }));
+    expect(window.location.hash).toBe('#table-builder');
+    unmountDraft();
+
+    // 回到建表工具 Step3：该字段状态应更新为「草稿已发起」。
+    render(<TableBuilderPage />);
+    const draftRow = findRowByText('优惠券编码');
+    expect(within(draftRow).getByText('草稿已发起')).toBeInTheDocument();
   });
 
   it('clears standard-derived attributes when ignoring a matched field', async () => {
@@ -205,6 +241,10 @@ describe('TableBuilderPage step 4 result page', () => {
 
     expect(screen.getByText('建表成功（演示）')).toBeInTheDocument();
     expect(screen.getByText(/dwd\.dim_customer 建表语句已生成/)).toBeInTheDocument();
+    // 成功摘要需展示（演示用）创建时间。
+    expect(screen.getByText(/创建时间：/)).toBeInTheDocument();
+    // 无缺标草稿在途时，仍展示可选的「去数据标准」入口（原型演示语义清晰）。
+    expect(screen.getByRole('button', { name: '去数据标准（原型演示）' })).toBeInTheDocument();
     const ddlNode = screen.getByText(/CREATE TABLE/i);
     expect(ddlNode.textContent).toContain('dwd.dim_customer');
     expect(ddlNode.textContent).toContain('customer_code');
@@ -216,6 +256,21 @@ describe('TableBuilderPage step 4 result page', () => {
 
     // 建表结果页不应触发任何真实建表网络请求（原型演示约束）。
     expect(screen.queryByText(/无权限/)).not.toBeInTheDocument();
+  });
+
+  it('shows 查看相关草稿 and navigates to #data-standard when a draft has been started', async () => {
+    const user = userEvent.setup();
+    const state = stateAtRecommend();
+    state.recommendations = state.recommendations.map((row) => ({ ...row, status: 'draft_started' as const }));
+    saveWizard(state);
+    render(<TableBuilderPage />);
+
+    await user.click(screen.getByRole('button', { name: '确认建表' }));
+    expect(screen.getByText('建表成功（演示）')).toBeInTheDocument();
+
+    const draftLink = screen.getByRole('button', { name: '查看相关草稿' });
+    await user.click(draftLink);
+    expect(window.location.hash).toBe('#data-standard');
   });
 
   it('simulates a failure demo without touching real create-table flow', async () => {
