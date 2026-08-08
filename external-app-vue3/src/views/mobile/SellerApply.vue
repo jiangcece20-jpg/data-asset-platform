@@ -5,6 +5,12 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { useUserStore } from '@/stores/user'
 
+const props = defineProps<{
+  embedded?: boolean
+  variant?: 'mobile' | 'portal'
+}>()
+const emit = defineEmits<{ done: [] }>()
+
 const router = useRouter()
 const seller = useSellerMarketStore()
 const user = useUserStore()
@@ -23,7 +29,8 @@ function submit() {
   submitting.value = true
   try {
     seller.applyAccess({ ...form })
-    router.replace('/app/seller')
+    if (props.embedded) emit('done')
+    else router.replace('/app/seller')
   } finally {
     submitting.value = false
   }
@@ -31,9 +38,9 @@ function submit() {
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 pb-8">
-    <MobileHeader title="入驻商家申请" />
-    <div class="space-y-3 px-4 pt-3">
+  <div :class="embedded ? 'mt-3 space-y-3' : 'min-h-full bg-slate-50 pb-8'">
+    <MobileHeader v-if="!embedded" title="入驻商家申请" />
+    <div :class="embedded ? 'space-y-3' : 'space-y-3 px-4 pt-3'">
       <div class="rounded-2xl border border-orange-100 bg-orange-50 p-3 text-[12px] text-orange-800">
         MVP 校验 L1（身份+收款）与 L2（合规声明）。L3 材料规划保留，本页可不强制。
       </div>
