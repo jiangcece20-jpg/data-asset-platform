@@ -11,6 +11,8 @@ import { ResourceDiscoveryPage } from '../features/resource-discovery/ResourceDi
 import { ResourceManagementPage } from '../features/resource-management/ResourceManagementPage';
 import { DataSourceListPage } from '../features/datasource/DataSourceListPage';
 import { DataSourceDetailPage } from '../features/datasource/DataSourceDetailPage';
+import { DataStandardShellPage } from '../features/data-standard/DataStandardShellPage';
+import { DataStandardDraftPage } from '../features/data-standard/DataStandardDraftPage';
 import { AppShell } from './AppShell';
 import {
   getDataSourceIdFromHash,
@@ -21,7 +23,7 @@ import {
 } from './routes';
 
 /**
- * 原型占位：Task 5/6 将替换为真实的数据标准壳与建表向导页面。
+ * 原型占位：Task 6 将替换为真实的建表向导页面。
  */
 function PrototypePlaceholder({ title, note }: { title: string; note: string }) {
   return (
@@ -77,9 +79,9 @@ export function App() {
           <DataSourceListPage />
         )
       ) : activeRoute === 'data-standard' ? (
-        <PrototypePlaceholder title="数据标准" note="标准集与已发布标准的轻量壳将在后续任务中接入" />
+        <DataStandardShellPage />
       ) : activeRoute === 'data-standard-draft' ? (
-        <PrototypePlaceholder title="新建标准草稿" note="接收建表工具缺标交接并保存草稿的页面将在后续任务中接入" />
+        <DataStandardDraftPage />
       ) : activeRoute === 'table-builder' ? (
         <PrototypePlaceholder title="建表工具" note="选库建表 + 标准推荐四步向导将在后续任务中接入" />
       ) : (
