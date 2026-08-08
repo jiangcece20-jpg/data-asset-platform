@@ -33,8 +33,9 @@ describe('AppShell', () => {
     );
 
     expect(container.querySelector('.app-shell__logo')).toHaveTextContent('数据标准');
+    expect(screen.getByRole('link', { name: '标准集' })).toHaveAttribute('href', '#data-standard');
     expect(screen.getByRole('link', { name: '数据标准' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: '新建标准草稿' })).toHaveAttribute('href', '#data-standard/draft');
+    expect(screen.getByRole('link', { name: '新建草稿' })).toHaveAttribute('href', '#data-standard/draft');
   });
 
   it('renders 建表工具 logo and navigation for the table-builder product line', () => {

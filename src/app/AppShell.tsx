@@ -69,6 +69,13 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
               href="#data-standard"
               aria-current={activeRoute === 'data-standard' ? 'page' : undefined}
             >
+              标准集
+            </a>
+            <a
+              className={activeRoute === 'data-standard' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#data-standard"
+              aria-current={activeRoute === 'data-standard' ? 'page' : undefined}
+            >
               数据标准
             </a>
             <a
@@ -78,7 +85,7 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
               href="#data-standard/draft"
               aria-current={activeRoute === 'data-standard-draft' ? 'page' : undefined}
             >
-              新建标准草稿
+              新建草稿
             </a>
           </nav>
         )}
