@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recommendFields, recommendTable } from './recommend';
+import { recommendFields, recommendTable, recommendationsMatchFields } from './recommend';
 
 describe('recommendTable', () => {
   it('recommends a standard-like English name from Chinese table name', () => {
@@ -60,5 +60,33 @@ describe('recommendFields', () => {
     expect(row.standard?.nameEn).toBe('customer_gender');
     expect(row.rationale).toContain('customer_gender');
     expect(row.rationale).toContain('注释');
+  });
+});
+
+describe('recommendationsMatchFields', () => {
+  it('returns true when field ids and count are unchanged', () => {
+    const fields = [
+      { id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' },
+      { id: 'f2', nameZh: '客户性别', nameEn: '', comment: '' },
+    ];
+    const recommendations = recommendFields(fields);
+    expect(recommendationsMatchFields(fields, recommendations)).toBe(true);
+  });
+
+  it('returns false when a field is added or removed', () => {
+    const fields = [{ id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' }];
+    const recommendations = recommendFields(fields);
+    const changedFields = [
+      ...fields,
+      { id: 'f2', nameZh: '客户性别', nameEn: '', comment: '' },
+    ];
+    expect(recommendationsMatchFields(changedFields, recommendations)).toBe(false);
+  });
+
+  it('returns false when field ids differ even with the same count', () => {
+    const fields = [{ id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' }];
+    const recommendations = recommendFields(fields);
+    const replacedFields = [{ id: 'f2', nameZh: '客户编号', nameEn: '', comment: '' }];
+    expect(recommendationsMatchFields(replacedFields, recommendations)).toBe(false);
   });
 });

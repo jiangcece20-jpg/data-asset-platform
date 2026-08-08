@@ -134,6 +134,24 @@ function buildFieldResult(field: FieldInput, match: StandardMatch): FieldRecomme
   };
 }
 
+/**
+ * 未落标字段的技术属性默认值：不再挂载任何标准派生的技术属性（类型/长度/精度/主键/
+ * 可空/码表/分类密级），供「缺标」与「忽略」两种状态复用，避免忽略后残留旧标准痕迹。
+ */
+export const UNSTANDARDIZED_TECH_DEFAULTS: Pick<
+  FieldRecommendResult,
+  'dataType' | 'length' | 'precision' | 'nullable' | 'primaryKey' | 'codeTable' | 'classificationPath' | 'grade'
+> = {
+  dataType: 'VARCHAR',
+  length: 64,
+  precision: undefined,
+  nullable: true,
+  primaryKey: undefined,
+  codeTable: undefined,
+  classificationPath: '待分类',
+  grade: '待定',
+};
+
 function buildMissingFieldResult(field: FieldInput): FieldRecommendResult {
   const suggestedNameEn = suggestEnglishName(field.nameZh);
   return {
@@ -143,14 +161,23 @@ function buildMissingFieldResult(field: FieldInput): FieldRecommendResult {
     comment: field.comment,
     status: 'missing',
     confidence: 'low',
-    dataType: 'VARCHAR',
-    length: 64,
-    nullable: true,
-    classificationPath: '待分类',
-    grade: '待定',
+    ...UNSTANDARDIZED_TECH_DEFAULTS,
     rationale: `未在已发布标准集中找到与「${field.nameZh}」匹配的标准，建议新建标准或手工选择。`,
     suggestedNameEn,
   };
+}
+
+/**
+ * 判断已有推荐结果是否仍与当前字段集合一一对应（数量与 id 集合均一致）。
+ * 只要字段被新增/删除/替换导致 id 集合变化，即视为推荐结果已过期，需要重新生成。
+ */
+export function recommendationsMatchFields(
+  fields: FieldInput[],
+  recommendations: FieldRecommendResult[],
+): boolean {
+  if (fields.length !== recommendations.length) return false;
+  const fieldIds = new Set(fields.map((field) => field.id));
+  return recommendations.every((rec) => fieldIds.has(rec.id));
 }
 
 export function recommendTable(input: TableInput): TableRecommendResult {

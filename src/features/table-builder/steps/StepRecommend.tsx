@@ -8,7 +8,13 @@ import type {
 import { Button } from '../../../components/base/Button';
 import { Modal } from '../../../components/feedback/Modal';
 import { Tag } from '../../../components/base/Tag';
-import { PUBLISHED_STANDARDS, recommendFields, recommendTable } from '../recommend';
+import {
+  PUBLISHED_STANDARDS,
+  UNSTANDARDIZED_TECH_DEFAULTS,
+  recommendFields,
+  recommendTable,
+  recommendationsMatchFields,
+} from '../recommend';
 import { setDraftHandoff } from '../wizardStore';
 import '../table-builder.css';
 
@@ -23,15 +29,15 @@ type StepRecommendProps = {
 type TagTone = 'blue' | 'success' | 'warning' | 'danger' | 'gray' | 'purple' | 'cyan';
 
 /**
- * 概览行使用的是产品约定的状态词汇（已采纳/已改选/已忽略/未落标/草稿已发起），
- * 行内标签则使用同义表述，避免同一状态多行重复出现导致同一关键词分散在多个独立节点上。
+ * 状态标签统一使用产品设计词汇（已采纳/已改选/已忽略/缺标/草稿已发起），
+ * 概览行与字段行的状态单元格保持一致文案，不再依赖概览专属的同义词。
  */
-const STATUS_META: Record<FieldRecommendStatus, { overviewLabel: string; rowLabel: string; tone: TagTone }> = {
-  adopted: { overviewLabel: '已采纳', rowLabel: '标准匹配', tone: 'success' },
-  reselected: { overviewLabel: '已改选', rowLabel: '人工改选', tone: 'blue' },
-  ignored: { overviewLabel: '已忽略', rowLabel: '已跳过', tone: 'gray' },
-  missing: { overviewLabel: '未落标', rowLabel: '待补标准', tone: 'warning' },
-  draft_started: { overviewLabel: '草稿已发起', rowLabel: '草稿处理中', tone: 'purple' },
+const STATUS_META: Record<FieldRecommendStatus, { label: string; tone: TagTone }> = {
+  adopted: { label: '已采纳', tone: 'success' },
+  reselected: { label: '已改选', tone: 'blue' },
+  ignored: { label: '已忽略', tone: 'gray' },
+  missing: { label: '缺标', tone: 'warning' },
+  draft_started: { label: '草稿已发起', tone: 'purple' },
 };
 
 const CONFIDENCE_LABELS: Record<FieldRecommendResult['confidence'], string> = {
@@ -72,15 +78,17 @@ export function StepRecommend({
   const [reselectCode, setReselectCode] = useState<string>(PUBLISHED_STANDARDS[0]?.code ?? '');
 
   useEffect(() => {
-    if (recommendations.length > 0 || fields.length === 0) return;
+    if (fields.length === 0) return;
+    // 尚无推荐结果，或字段集合（数量/id）已与既有推荐结果不一致（Step2 编辑/增删字段后
+    // 未能及时清空、或数据被直接篡改）时都需要重新生成，避免残留过期的标准匹配结果。
+    if (recommendations.length > 0 && recommendationsMatchFields(fields, recommendations)) return;
     const tableRec = recommendTable(table);
     if (!table.nameEn.trim()) {
       onTableChange({ nameEn: tableRec.nameEn });
     }
     onRecommendationsChange(recommendFields(fields));
-    // 仅在进入 Step3 且尚无推荐结果时执行一次；已生成推荐后交由用户操作驱动更新。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recommendations.length, fields, table]);
+  }, [recommendations, fields, table]);
 
   const tableRecommend = recommendTable(table);
   const missingRows = recommendations.filter((row) => row.status === 'missing');
@@ -92,14 +100,19 @@ export function StepRecommend({
 
   const handleIgnore = (row: FieldRecommendResult) => {
     const original = fields.find((f) => f.id === row.id);
+    // 忽略必须清除全部标准派生的技术属性（类型/长度/精度/主键/可空/码表/分类密级），
+    // 否则字段会保留改选/自动采纳时写入的标准痕迹，与「未落标」的语义矛盾。
+    // 用户手工录入的中文名/英文名/注释则保持不变。
     updateRow(row.id, {
+      ...UNSTANDARDIZED_TECH_DEFAULTS,
       status: 'ignored',
       standard: undefined,
       confidence: 'low',
       nameZh: original?.nameZh ?? row.nameZh,
       nameEn: original?.nameEn ?? '',
       comment: original?.comment ?? row.comment,
-      rationale: '已跳过标准匹配，保留原始录入内容。',
+      suggestedNameEn: row.suggestedNameEn,
+      rationale: '已忽略标准匹配，标准派生的技术属性已重置为未落标状态，原始录入内容保留。',
     });
   };
 
@@ -165,7 +178,7 @@ export function StepRecommend({
       </div>
 
       <p className="tb-recommend__overview">
-        {`推荐概览：已采纳 ${counts.adopted} · 已改选 ${counts.reselected} · 已忽略 ${counts.ignored} · 未落标 ${counts.missing} · 草稿已发起 ${counts.draft_started}`}
+        {`推荐概览：已采纳 ${counts.adopted} · 已改选 ${counts.reselected} · 已忽略 ${counts.ignored} · 缺标 ${counts.missing} · 草稿已发起 ${counts.draft_started}`}
       </p>
 
       <div className="tb-fields-table-wrap">
@@ -212,7 +225,8 @@ export function StepRecommend({
                   <td>{CONFIDENCE_LABELS[row.confidence]}</td>
                   <td className="tb-recommend-table__rationale">{row.rationale}</td>
                   <td>
-                    <Tag tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].rowLabel}</Tag>
+                    <Tag tone={STATUS_META[row.status].tone}>{STATUS_META[row.status].label}</Tag>
+                    {row.status === 'ignored' ? <Tag tone="warning">未落标</Tag> : null}
                   </td>
                   <td className="tb-recommend-table__actions">
                     <Button variant="text" size="sm" onClick={() => openReselect(row)}>

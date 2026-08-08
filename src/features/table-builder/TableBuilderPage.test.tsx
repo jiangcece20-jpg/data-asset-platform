@@ -1,9 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TableBuilderPage } from './TableBuilderPage';
 import { recommendFields } from './recommend';
 import { clearWizard, createDefaultWizard, saveWizard } from './wizardStore';
+
+function findRowByText(text: string): HTMLElement {
+  const row = screen.getAllByRole('row').find((r) => within(r).queryByText(text));
+  if (!row) {
+    throw new Error(`row containing "${text}" not found`);
+  }
+  return row;
+}
 
 describe('TableBuilderPage steps 1-2', () => {
   beforeEach(() => {
@@ -60,12 +68,88 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
     render(<TableBuilderPage />);
     await user.click(screen.getByRole('button', { name: '下一步' }));
     expect(screen.getByText('客户编号')).toBeInTheDocument();
-    expect(screen.getByText(/已采纳/)).toBeInTheDocument();
-    expect(screen.getByText(/缺标/)).toBeInTheDocument();
-    await user.click(screen.getAllByRole('button', { name: '忽略' })[0]);
-    expect(screen.getByText(/已忽略|未落标/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '新建标准草稿' }));
+
+    const adoptedRow = findRowByText('客户编号');
+    expect(within(adoptedRow).getByText('已采纳')).toBeInTheDocument();
+    expect(within(adoptedRow).getByText('主键')).toBeInTheDocument();
+
+    const missingRow = findRowByText('优惠券编码');
+    expect(within(missingRow).getByText('缺标')).toBeInTheDocument();
+
+    await user.click(within(adoptedRow).getByRole('button', { name: '忽略' }));
+    const ignoredRow = findRowByText('客户编号');
+    expect(within(ignoredRow).getByText('已忽略')).toBeInTheDocument();
+    expect(within(ignoredRow).getByText('未落标')).toBeInTheDocument();
+    // 忽略后标准派生的技术属性（主键等）应被清空，仅保留用户原始录入内容。
+    expect(within(ignoredRow).queryByText('主键')).not.toBeInTheDocument();
+
+    await user.click(within(missingRow).getByRole('button', { name: '新建标准草稿' }));
     expect(window.location.hash).toBe('#data-standard/draft');
+  });
+
+  it('clears standard-derived attributes when ignoring a matched field', async () => {
+    const user = userEvent.setup();
+    const state = createDefaultWizard();
+    state.step = 3;
+    state.engine = 'Hive';
+    state.database = 'dwd';
+    state.table = { nameZh: '客户维表', nameEn: 'dim_customer', description: '' };
+    state.fields = [{ id: 'f1', nameZh: '客户性别', nameEn: '', comment: '' }];
+    state.recommendations = recommendFields(state.fields);
+    saveWizard(state);
+    render(<TableBuilderPage />);
+
+    const row = findRowByText('客户性别');
+    expect(within(row).getByText('性别码表')).toBeInTheDocument();
+    expect(within(row).getByText(/CHAR/)).toBeInTheDocument();
+
+    await user.click(within(row).getByRole('button', { name: '忽略' }));
+
+    const ignoredRow = findRowByText('客户性别');
+    expect(within(ignoredRow).getByText('已忽略')).toBeInTheDocument();
+    expect(within(ignoredRow).getByText('未落标')).toBeInTheDocument();
+    expect(within(ignoredRow).queryByText('性别码表')).not.toBeInTheDocument(); // 码表已清空
+    expect(within(ignoredRow).getByText(/待分类/)).toBeInTheDocument();
+    expect(within(ignoredRow).getByText(/待定/)).toBeInTheDocument();
+    expect(within(ignoredRow).getByText(/VARCHAR/)).toBeInTheDocument();
+  });
+
+  it('clears stale recommendations after editing fields on Step2 so Step3 regenerates', async () => {
+    const user = userEvent.setup();
+    const state = createDefaultWizard();
+    state.step = 2;
+    state.engine = 'Hive';
+    state.database = 'dwd';
+    state.table = { nameZh: '客户维表', nameEn: 'dim_customer', description: '' };
+    state.fields = [{ id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' }];
+    state.recommendations = recommendFields(state.fields);
+    saveWizard(state);
+    render(<TableBuilderPage />);
+
+    const nameInput = screen.getByLabelText('字段1中文名');
+    await user.clear(nameInput);
+    await user.type(nameInput, '客户性别');
+    await user.click(screen.getByRole('button', { name: '下一步' }));
+
+    const row = findRowByText('客户性别');
+    expect(within(row).getByText('已采纳')).toBeInTheDocument();
+    expect(within(row).getByText('CLT_CUS_002 客户性别')).toBeInTheDocument();
+    expect(screen.queryByText(/CLT_CUS_001/)).not.toBeInTheDocument();
+  });
+
+  it('regenerates recommendations when recommendation ids no longer match current fields', () => {
+    const state = createDefaultWizard();
+    state.step = 3;
+    state.engine = 'Hive';
+    state.database = 'dwd';
+    state.table = { nameZh: '客户维表', nameEn: 'dim_customer', description: '' };
+    state.fields = [{ id: 'f2', nameZh: '客户性别', nameEn: '', comment: '' }];
+    state.recommendations = recommendFields([{ id: 'f1', nameZh: '客户编号', nameEn: '', comment: '' }]);
+    saveWizard(state);
+    render(<TableBuilderPage />);
+
+    expect(screen.getByText('客户性别')).toBeInTheDocument();
+    expect(screen.queryByText('客户编号')).not.toBeInTheDocument();
   });
 
   it('blocks confirm create when english names duplicate', async () => {

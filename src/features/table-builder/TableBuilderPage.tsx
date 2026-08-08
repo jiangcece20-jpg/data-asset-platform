@@ -78,12 +78,22 @@ export function TableBuilderPage() {
 
   const handleTableChange = (patch: Partial<TableInput>) => {
     setStepError(null);
-    setState((prev) => ({ ...prev, table: { ...prev.table, ...patch } }));
+    setState((prev) => {
+      const table = { ...prev.table, ...patch };
+      // 仅在 Step2 录入阶段编辑表名/描述时才需要清空推荐结果；Step3「采纳建议英文表名」
+      // 等操作复用同一个 handler，但不应使已生成的字段推荐结果失效。
+      if (prev.step === 2 && prev.recommendations.length > 0) {
+        return { ...prev, table, recommendations: [] };
+      }
+      return { ...prev, table };
+    });
   };
 
   const handleFieldsChange = (fields: FieldInput[]) => {
     setStepError(null);
-    setState((prev) => ({ ...prev, fields }));
+    // 字段列表在 Step2 发生任何变化（编辑/新增/删除/粘贴）后，此前生成的推荐结果即视为
+    // 过期，清空后交由 Step3 的进入逻辑重新生成，避免残留旧字段的标准匹配结果。
+    setState((prev) => ({ ...prev, fields, recommendations: [] }));
   };
 
   const handleRecommendationsChange = (recommendations: FieldRecommendResult[]) => {
