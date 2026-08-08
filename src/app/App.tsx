@@ -20,6 +20,18 @@ import {
   type ProductLineKey,
 } from './routes';
 
+/**
+ * 原型占位：Task 5/6 将替换为真实的数据标准壳与建表向导页面。
+ */
+function PrototypePlaceholder({ title, note }: { title: string; note: string }) {
+  return (
+    <div style={{ padding: 32 }}>
+      <h1>{title}（原型占位）</h1>
+      <p>{note}</p>
+    </div>
+  );
+}
+
 export function App() {
   const [activeRoute, setActiveRoute] = useState<AppRouteKey>(() => getRouteFromHash(window.location.hash));
   const [productLine, setProductLine] = useState<ProductLineKey>(() => getProductLineFromHash(window.location.hash));
@@ -64,6 +76,12 @@ export function App() {
         ) : (
           <DataSourceListPage />
         )
+      ) : activeRoute === 'data-standard' ? (
+        <PrototypePlaceholder title="数据标准" note="标准集与已发布标准的轻量壳将在后续任务中接入" />
+      ) : activeRoute === 'data-standard-draft' ? (
+        <PrototypePlaceholder title="新建标准草稿" note="接收建表工具缺标交接并保存草稿的页面将在后续任务中接入" />
+      ) : activeRoute === 'table-builder' ? (
+        <PrototypePlaceholder title="建表工具" note="选库建表 + 标准推荐四步向导将在后续任务中接入" />
       ) : (
         <ProductPage route={activeRoute} />
       )}
