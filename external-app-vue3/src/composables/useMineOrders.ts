@@ -3,6 +3,7 @@ import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useCatalogStore } from '@/stores/catalog'
+import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { appOrderCard, spaceOrderCard, type MyOrderCard, type MyOrderFilter } from '@/domain/myCenter'
 
 export type MineOrderSubjectFilter = 'all' | 'personal' | 'enterprise'
@@ -29,6 +30,7 @@ export function useMineOrders() {
   const orders = useOrderStore()
   const spaceOrders = useSpaceOrderStore()
   const catalog = useCatalogStore()
+  const datasetCommerce = useDatasetCommerceStore()
 
   const enterpriseMember = computed(() => user.currentEnterpriseMember)
   const enterpriseOrderUser = computed(() => {
@@ -52,6 +54,10 @@ export function useMineOrders() {
       .map((order) => {
         const card = appOrderCard(order, user.enterprise.name)
         card.productType ||= catalog.byId(order.productId)?.type
+        if (order.productType === 'dataset' && order.entitlementId) {
+          const delivery = datasetCommerce.deliveries.find((item) => item.entitlementId === order.entitlementId)
+          if (delivery?.downloadUrl) card.downloadUrl = delivery.downloadUrl
+        }
         return card
       })
 

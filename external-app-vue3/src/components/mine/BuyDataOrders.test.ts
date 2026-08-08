@@ -85,5 +85,10 @@ describe('BuyDataOrders', () => {
     expect(wrapper.find('[data-testid="export-enterprise-orders"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="经办人筛选"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(false)
+
+    // order-enterprise-dataset-001 已交付且有 downloadUrl，需在 portal 视图展示"下载数据"入口
+    const downloadLink = wrapper.findAll('a').find((link) => link.text() === '下载数据')
+    expect(downloadLink).toBeTruthy()
+    expect(downloadLink!.attributes('href')).toContain('/download/dataset/')
   })
 })
