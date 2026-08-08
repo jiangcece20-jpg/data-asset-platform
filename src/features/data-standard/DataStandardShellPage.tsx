@@ -10,7 +10,7 @@ export function DataStandardShellPage() {
       <div className="dstd-header">
         <div>
           <h1 className="dstd-header__title">数据标准</h1>
-          <p className="dstd-header__note">原型：标准分组与已发布标准仅作演示，暂不支持真实审批发布</p>
+          <p className="dstd-header__note">原型：标准集与已发布标准仅作演示，暂不支持真实审批发布</p>
         </div>
         <Button
           variant="primary"
@@ -21,12 +21,12 @@ export function DataStandardShellPage() {
       </div>
 
       <div className="dstd-section">
-        <h2 className="dstd-section__title">标准分组</h2>
+        <h2 className="dstd-section__title">标准集</h2>
         <div className="dstd-table-wrap">
           <table className="dstd-table">
             <thead>
               <tr>
-                <th>分组名称</th>
+                <th>标准集名称</th>
                 <th>所属域</th>
                 <th>标准数</th>
                 <th>已发布</th>

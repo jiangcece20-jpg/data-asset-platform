@@ -14,7 +14,7 @@ export type StandardSet = {
 export const STANDARD_SETS: StandardSet[] = [
   {
     id: 'set-customer',
-    name: '客户主题标准组',
+    name: '客户主题标准集',
     domain: '客户域',
     standardCount: 12,
     publishedCount: 5,
@@ -24,7 +24,7 @@ export const STANDARD_SETS: StandardSet[] = [
   },
   {
     id: 'set-order',
-    name: '交易主题标准组',
+    name: '交易主题标准集',
     domain: '交易域',
     standardCount: 18,
     publishedCount: 15,
@@ -34,7 +34,7 @@ export const STANDARD_SETS: StandardSet[] = [
   },
   {
     id: 'set-marketing',
-    name: '营销主题标准组',
+    name: '营销主题标准集',
     domain: '营销域',
     standardCount: 6,
     publishedCount: 2,

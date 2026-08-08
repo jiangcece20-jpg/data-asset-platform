@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../../components/base/Button';
 import { Tag } from '../../components/base/Tag';
-import { consumeDraftHandoff, markFieldDraftStarted } from '../table-builder/wizardStore';
+import { consumeDraftHandoff, markFieldDraftStarted, peekDraftHandoff } from '../table-builder/wizardStore';
 import './data-standard.css';
 
 type DraftForm = {
@@ -16,7 +16,7 @@ type DraftForm = {
 const DATA_TYPES = ['VARCHAR', 'CHAR', 'STRING', 'INT', 'BIGINT', 'DECIMAL', 'DATE', 'DATETIME', 'BOOLEAN'];
 
 function buildInitialForm(): DraftForm {
-  const handoff = consumeDraftHandoff();
+  const handoff = peekDraftHandoff();
   if (!handoff) {
     return {
       fieldId: null,
@@ -39,6 +39,15 @@ function buildInitialForm(): DraftForm {
 
 export function DataStandardDraftPage() {
   const [form, setForm] = useState<DraftForm>(buildInitialForm);
+
+  // Consume (delete) the handoff once the component has actually mounted, so
+  // React 18 StrictMode's double-invoke of the `useState` initializer never
+  // clears sessionStorage before the real render can read it. Re-running this
+  // effect on a StrictMode remount is safe: consumeDraftHandoff() is a no-op
+  // once the payload has already been removed.
+  useEffect(() => {
+    consumeDraftHandoff();
+  }, []);
 
   const goBackToTableBuilder = () => {
     window.location.hash = '#table-builder';

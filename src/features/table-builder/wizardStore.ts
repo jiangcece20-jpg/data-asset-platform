@@ -62,17 +62,24 @@ export function setDraftHandoff(payload: StandardDraftHandoff): void {
   sessionStorage.setItem(DRAFT_HANDOFF_STORAGE_KEY, JSON.stringify(payload));
 }
 
-export function consumeDraftHandoff(): StandardDraftHandoff | null {
+export function peekDraftHandoff(): StandardDraftHandoff | null {
   const text = sessionStorage.getItem(DRAFT_HANDOFF_STORAGE_KEY);
   if (!text) {
     return null;
   }
-  sessionStorage.removeItem(DRAFT_HANDOFF_STORAGE_KEY);
   try {
     return JSON.parse(text) as StandardDraftHandoff;
   } catch {
     return null;
   }
+}
+
+export function consumeDraftHandoff(): StandardDraftHandoff | null {
+  const handoff = peekDraftHandoff();
+  if (handoff) {
+    sessionStorage.removeItem(DRAFT_HANDOFF_STORAGE_KEY);
+  }
+  return handoff;
 }
 
 export function markFieldDraftStarted(fieldId: string): void {
