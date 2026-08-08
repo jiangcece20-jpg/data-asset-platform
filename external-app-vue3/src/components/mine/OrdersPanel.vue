@@ -38,6 +38,8 @@ function selectTab(next: OrderTab) {
         v-for="item in tabs"
         :key="item.value"
         :data-testid="`order-tab-${item.value}`"
+        class="border-b-2 px-1 py-2 transition"
+        :class="orderTab === item.value ? 'border-brand-500 font-medium text-brand-600' : 'border-transparent text-slate-500'"
         @click="selectTab(item.value)"
       >{{ item.label }}</button>
     </div>

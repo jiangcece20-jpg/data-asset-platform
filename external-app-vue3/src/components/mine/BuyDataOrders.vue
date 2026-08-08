@@ -65,7 +65,7 @@ function exportEnterpriseOrders() {
 </script>
 
 <template>
-  <section v-if="variant === 'mobile'" class="mt-3 space-y-3 px-4" data-testid="my-orders">
+  <section v-if="variant === 'mobile'" class="mt-3 space-y-3" data-testid="my-orders">
     <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2 text-[11px] text-violet-700" data-testid="enterprise-order-filter-context">
       <span>当前仅显示 {{ user.enterprise.name }} 的可见订单</span>
       <button class="font-medium" @click="setSubjectFilter('all')">查看全部</button>
@@ -194,7 +194,7 @@ function exportEnterpriseOrders() {
           <div class="text-xs text-emerald-700">{{ order.progressSummary }}<span v-if="order.source === 'space'" class="ml-2 text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</span></div>
           <div class="flex shrink-0 gap-2">
             <button class="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600" @click="goProduct(order)">查看商品</button>
-            <button v-if="order.canPay" class="rounded-lg bg-brand-500 px-3 py-2 text-xs text-white" @click="pay(order)">继续付款</button>
+            <button v-if="order.canPay && order.paymentPath" class="rounded-lg bg-brand-500 px-3 py-2 text-xs text-white" @click="pay(order)">继续付款</button>
             <button v-if="order.filter === 'completed'" class="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-600" @click="goData">查看我的数据</button>
             <a v-if="order.downloadUrl" :href="order.downloadUrl" class="rounded-lg border border-brand-500 px-3 py-2 text-xs text-brand-600">下载数据</a>
             <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-slate-800 px-3 py-2 text-xs text-white">前往可信空间</a>

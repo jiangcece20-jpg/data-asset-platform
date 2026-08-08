@@ -43,6 +43,18 @@ describe('OrdersPanel', () => {
     expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['view'])
   })
 
+  it('gives the active tab a distinguishing selected class', () => {
+    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    const selected = wrapper.get('[data-testid="order-tab-buy"]')
+    const unselectedVip = wrapper.get('[data-testid="order-tab-vip"]')
+    const unselectedView = wrapper.get('[data-testid="order-tab-view"]')
+
+    expect(selected.classes()).toContain('border-brand-500')
+    expect(selected.classes()).toContain('text-brand-600')
+    expect(unselectedVip.classes()).not.toContain('border-brand-500')
+    expect(unselectedView.classes()).not.toContain('border-brand-500')
+  })
+
   it('shows VIP placeholder when orderTab is vip', () => {
     const { wrapper } = mountOrdersPanel({ orderTab: 'vip' })
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(false)
