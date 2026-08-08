@@ -33,4 +33,32 @@ describe('recommendFields', () => {
     expect(row.standard).toBeUndefined();
     expect(row.suggestedNameEn).toMatch(/coupon/i);
   });
+
+  it('adopts standard names when user English name differs', () => {
+    const [row] = recommendFields([
+      { id: 'f4', nameZh: '客户编号', nameEn: 'cust_no', comment: '' },
+    ]);
+    expect(row.status).toBe('adopted');
+    expect(row.nameZh).toBe('客户编号');
+    expect(row.nameEn).toBe('customer_code');
+    expect(row.nameEn).not.toBe('cust_no');
+  });
+
+  it('reports alias keyword in rationale when matched via 客户号', () => {
+    const [row] = recommendFields([{ id: 'f5', nameZh: '客户号', nameEn: '', comment: '' }]);
+    expect(row.status).toBe('adopted');
+    expect(row.nameZh).toBe('客户编号');
+    expect(row.rationale).toContain('客户号');
+    expect(row.rationale).not.toContain('关键词匹配「客户编号」');
+  });
+
+  it('reports comment keyword in rationale when matched via comment', () => {
+    const [row] = recommendFields([
+      { id: 'f6', nameZh: '字段A', nameEn: '', comment: '存储 customer_gender 枚举' },
+    ]);
+    expect(row.status).toBe('adopted');
+    expect(row.standard?.nameEn).toBe('customer_gender');
+    expect(row.rationale).toContain('customer_gender');
+    expect(row.rationale).toContain('注释');
+  });
 });

@@ -39,14 +39,37 @@ function normalizeText(text: string): string {
   return text.trim().toLowerCase();
 }
 
-function matchStandard(field: FieldInput): { standard: PublishedStandard; confidence: 'high' | 'medium' } | null {
-  const haystack = normalizeText(`${field.nameZh} ${field.nameEn} ${field.comment}`);
+type StandardMatch = {
+  standard: PublishedStandard;
+  confidence: 'high' | 'medium';
+  matchedKeyword: string;
+  matchedSource: 'nameZh' | 'nameEn' | 'comment';
+};
 
+const MATCH_SOURCE_LABELS: Record<StandardMatch['matchedSource'], string> = {
+  nameZh: '中文名',
+  nameEn: '英文名',
+  comment: '注释',
+};
+
+function fieldContainsKeyword(text: string, needle: string): boolean {
+  const normalized = normalizeText(text);
+  return normalized === needle || normalized.includes(needle);
+}
+
+function matchStandard(field: FieldInput): StandardMatch | null {
   for (const standard of PUBLISHED_STANDARDS) {
     for (const keyword of standard.keywords) {
       const needle = normalizeText(keyword);
-      if (haystack === needle || haystack.includes(needle) || normalizeText(field.nameZh) === needle) {
-        return { standard, confidence: 'high' };
+
+      if (fieldContainsKeyword(field.nameZh, needle)) {
+        return { standard, confidence: 'high', matchedKeyword: keyword, matchedSource: 'nameZh' };
+      }
+      if (field.nameEn && fieldContainsKeyword(field.nameEn, needle)) {
+        return { standard, confidence: 'high', matchedKeyword: keyword, matchedSource: 'nameEn' };
+      }
+      if (field.comment && fieldContainsKeyword(field.comment, needle)) {
+        return { standard, confidence: 'high', matchedKeyword: keyword, matchedSource: 'comment' };
       }
     }
   }
@@ -88,12 +111,13 @@ function inferTableEnglishName(nameZh: string): string {
   return 'biz_table';
 }
 
-function buildFieldResult(field: FieldInput, match: { standard: PublishedStandard; confidence: 'high' | 'medium' }): FieldRecommendResult {
-  const { standard, confidence } = match;
+function buildFieldResult(field: FieldInput, match: StandardMatch): FieldRecommendResult {
+  const { standard, confidence, matchedKeyword, matchedSource } = match;
+  const sourceLabel = MATCH_SOURCE_LABELS[matchedSource];
   return {
     id: field.id,
-    nameZh: field.nameZh,
-    nameEn: field.nameEn || standard.nameEn,
+    nameZh: standard.nameZh,
+    nameEn: standard.nameEn,
     comment: field.comment,
     status: 'adopted',
     standard,
@@ -106,7 +130,7 @@ function buildFieldResult(field: FieldInput, match: { standard: PublishedStandar
     codeTable: standard.codeTable,
     classificationPath: standard.classificationPath,
     grade: standard.grade,
-    rationale: `命中已发布标准 ${standard.code}（${standard.nameZh}），关键词匹配「${standard.nameZh}」。`,
+    rationale: `命中已发布标准 ${standard.code}（${standard.nameZh}），${sourceLabel}匹配关键词「${matchedKeyword}」。`,
   };
 }
 
