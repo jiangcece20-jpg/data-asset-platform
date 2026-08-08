@@ -88,6 +88,7 @@ describe('MineShell defaults & placeholders', () => {
 
   it('resolves legacy ?tab=我的数据 to the data menu', async () => {
     const { wrapper } = await mountMineShell('mobile', '/app/mine?tab=我的数据')
-    expect(wrapper.find('[data-testid="mine-menu-data"]').classes().join(' ')).toContain('bg-brand-50')
+    expect(wrapper.find('[data-testid="mine-menu-data"]').classes().join(' ')).toContain('text-brand-600')
+    expect(wrapper.find('[data-testid="my-datasets"]').exists()).toBe(true)
   })
 })

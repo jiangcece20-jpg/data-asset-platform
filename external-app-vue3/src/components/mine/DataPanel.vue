@@ -24,13 +24,13 @@ function selectTab(next: DataTab) {
 
 <template>
   <div>
-    <div class="mb-3 flex w-fit gap-1 rounded-xl bg-slate-100 p-1 text-[13px]">
+    <div class="mb-3 flex gap-4 border-b border-slate-100 px-1 text-[13px]">
       <button
         v-for="item in tabs"
         :key="item.value"
         :data-testid="`data-tab-${item.value}`"
-        class="rounded-lg px-4 py-2 transition"
-        :class="dataTab === item.value ? 'bg-white font-medium text-brand-600 shadow-sm' : 'text-slate-500'"
+        class="border-b-2 px-1 py-2 transition"
+        :class="dataTab === item.value ? 'border-brand-500 font-medium text-brand-600' : 'border-transparent text-slate-500'"
         @click="selectTab(item.value)"
       >{{ item.label }}</button>
     </div>
