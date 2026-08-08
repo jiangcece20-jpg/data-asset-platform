@@ -91,4 +91,30 @@ describe('MineShell defaults & placeholders', () => {
     expect(wrapper.find('[data-testid="mine-menu-data"]').classes().join(' ')).toContain('text-brand-600')
     expect(wrapper.find('[data-testid="my-datasets"]').exists()).toBe(true)
   })
+
+  it('shows seller panel with function tabs on mobile and portal', async () => {
+    const mobile = await mountMineShell('mobile', '/app/mine?menu=seller')
+    expect(mobile.wrapper.find('[data-testid="mine-menu-seller"]').exists()).toBe(true)
+    expect(mobile.wrapper.find('[data-testid="seller-panel"]').exists()).toBe(true)
+    expect(mobile.wrapper.find('[data-testid="seller-tab-listings"]').exists()).toBe(true)
+    expect(mobile.wrapper.find('[data-testid="seller-center-entry"]').exists()).toBe(false)
+
+    const portal = await mountMineShell('portal', '/portal/mine?menu=seller&sellerTab=apply')
+    expect(portal.wrapper.find('[data-testid="mine-menu-seller"]').exists()).toBe(true)
+    expect(portal.wrapper.find('[data-testid="seller-panel"]').exists()).toBe(true)
+    expect(portal.wrapper.find('[data-testid="seller-tab-apply"]').classes().join(' ')).toContain('text-brand-600')
+  })
+
+  it('shows personal report list action that deep-links to seller listing', async () => {
+    const { wrapper, router } = await mountMineShell('mobile', '/app/mine?menu=data')
+    const listBtn = wrapper.find('[data-testid="list-personal-report"]')
+    expect(listBtn.exists()).toBe(true)
+    await listBtn.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toMatchObject({
+      menu: 'seller',
+      sellerTab: 'listing',
+      productId: 'prod-logistics-monthly'
+    })
+  })
 })

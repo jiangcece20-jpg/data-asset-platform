@@ -162,7 +162,7 @@ function matchReason(): string {
           </div>
           <button
             class="mt-2 w-full rounded-lg border border-orange-200 bg-orange-50 py-1.5 text-[11px] font-medium text-orange-700"
-            @click.stop="router.push('/app/seller/listing')"
+            @click.stop="router.push({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listing' } })"
           >
             申请上架到 APP（入驻商家）
           </button>

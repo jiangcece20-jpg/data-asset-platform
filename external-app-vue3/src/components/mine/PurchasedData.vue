@@ -7,6 +7,7 @@ import MineEntityCard from './MineEntityCard.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useUserStore } from '@/stores/user'
 import type { Entitlement } from '@/types/domain'
 
 const props = defineProps<{ variant: 'mobile' | 'portal' }>()
@@ -15,8 +16,23 @@ const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const datasetCommerce = useDatasetCommerceStore()
+const user = useUserStore()
+
+const minePath = computed(() => (props.variant === 'portal' ? '/portal/mine' : '/app/mine'))
 
 const datasetEntitlements = computed(() => entitlements.visibleDatasetEntitlements)
+
+const personalReportEntitlements = computed(() =>
+  entitlements.list.filter((entitlement) => {
+    if (entitlement.type !== 'item' || entitlement.source !== 'personal') return false
+    if (entitlement.ownerId !== user.context.currentMemberId) return false
+    const product = catalog.byId(entitlement.productId || '')
+    return product?.type === 'report'
+  })
+)
+
+const hasAny = computed(() => datasetEntitlements.value.length > 0 || personalReportEntitlements.value.length > 0)
+
 const deliveryFor = (entitlementId: string) => datasetCommerce.deliveries.find((item) => item.entitlementId === entitlementId)
 const effectiveExpiry = (entitlement: Entitlement) => entitlement.updateValidTo || entitlement.validTo
 const isRenewable = (entitlement: Entitlement) => entitlement.licenseKind === 'subscription' || entitlement.serviceMode === 'continuous'
@@ -45,6 +61,18 @@ function goProduct(productId: string) {
   router.push(`${basePath}/product/${productId}`)
 }
 
+function listReport(entitlement: Entitlement) {
+  if (!entitlement.productId) return
+  router.push({
+    path: minePath.value,
+    query: {
+      menu: 'seller',
+      sellerTab: 'listing',
+      productId: entitlement.productId
+    }
+  })
+}
+
 const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600'
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
 const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px] text-brand-600'
@@ -59,16 +87,44 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
       <template v-if="variant === 'portal'">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <div class="text-sm font-medium text-blue-900">已交付数据集</div>
-            <div class="mt-1 text-xs text-blue-700">管理交付状态、更新服务到期日与续订；用数模块内部能力不在本期范围。</div>
+            <div class="text-sm font-medium text-blue-900">已购数据与个人报告</div>
+            <div class="mt-1 text-xs text-blue-700">管理交付状态、更新服务到期日与续订；个人报告可申请上架到卖家中心。</div>
           </div>
-          <div class="shrink-0 text-sm font-semibold text-blue-900">{{ datasetEntitlements.length }} 项</div>
+          <div class="shrink-0 text-sm font-semibold text-blue-900">{{ datasetEntitlements.length + personalReportEntitlements.length }} 项</div>
         </div>
       </template>
       <template v-else>
-        这里管理已购数据集的交付与有效期；报告、看板和 API 的使用入口从“我的订单”进入。
+        这里管理已购数据集与个人报告；个人报告可一键跳转卖家中心新建上架单。
       </template>
     </div>
+
+    <MineEntityCard
+      v-for="entitlement in personalReportEntitlements"
+      :key="entitlement.id"
+      :variant="variant"
+      data-testid="personal-report-entitlement"
+    >
+      <template #badges>
+        <span class="rounded-full bg-violet-50 px-2 py-0.5 text-violet-600">个人报告</span>
+        <span class="text-slate-400">订单 {{ entitlement.orderId || '—' }}</span>
+      </template>
+      <template #title>{{ catalog.byId(entitlement.productId || '')?.name || '未知报告' }}</template>
+      <template #status><StatusBadge dict="entitlementStatus" :value="entitlement.status" /></template>
+      <template #meta>
+        <div><span class="text-slate-400">版本</span><div class="mt-0.5 text-slate-700">{{ entitlement.productVersion || '—' }}</div></div>
+        <div><span class="text-slate-400">生效日</span><div class="mt-0.5 text-slate-700">{{ entitlement.validFrom || '—' }}</div></div>
+        <div><span class="text-slate-400">有效期</span><div class="mt-0.5 text-slate-700">{{ entitlement.validTo || '长期有效' }}</div></div>
+        <div><span class="text-slate-400">来源</span><div class="mt-0.5 text-slate-700">个人购买</div></div>
+      </template>
+      <template #actions>
+        <button
+          data-testid="list-personal-report"
+          :class="actionPrimary"
+          @click="listReport(entitlement)"
+        >上架</button>
+        <button v-if="entitlement.productId" :class="actionBtn" @click="goProduct(entitlement.productId!)">查看商品</button>
+      </template>
+    </MineEntityCard>
 
     <MineEntityCard
       v-for="entitlement in datasetEntitlements"
@@ -113,7 +169,7 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
       </template>
     </MineEntityCard>
 
-    <EmptyState v-if="variant === 'mobile' && !datasetEntitlements.length" icon="🗂️" title="暂无可用数据" desc="已购买并完成交付的数据集会显示在这里" />
-    <div v-else-if="!datasetEntitlements.length" class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-sm text-slate-400 shadow-card">暂无已交付数据集</div>
+    <EmptyState v-if="variant === 'mobile' && !hasAny" icon="🗂️" title="暂无可用数据" desc="已购买并完成交付的数据集与个人报告会显示在这里" />
+    <div v-else-if="!hasAny" class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-sm text-slate-400 shadow-card">暂无已购数据</div>
   </section>
 </template>

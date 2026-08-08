@@ -6,7 +6,8 @@ describe('mineQuery', () => {
     expect(parseMineQuery({})).toEqual({
       menu: 'orders',
       orderTab: 'buy',
-      dataTab: 'purchased'
+      dataTab: 'purchased',
+      sellerTab: 'listings'
     })
   })
 
@@ -14,6 +15,13 @@ describe('mineQuery', () => {
     expect(parseMineQuery({ tab: '我的数据' })).toMatchObject({
       menu: 'data',
       dataTab: 'purchased'
+    })
+  })
+
+  it('maps legacy tab=求上架 to seller menu', () => {
+    expect(parseMineQuery({ tab: '求上架' })).toMatchObject({
+      menu: 'seller',
+      sellerTab: 'listings'
     })
   })
 
@@ -39,5 +47,15 @@ describe('mineQuery', () => {
     expect(patch.dataTab).toBe('purchased')
     expect(patch.tab).toBeUndefined()
     expect(patch.subject).toBe('enterprise')
+  })
+
+  it('writes sellerTab only when menu is seller', () => {
+    const patch = mineQueryPatch(
+      { menu: 'seller', sellerTab: 'listing' },
+      { menu: 'orders', orderTab: 'buy' }
+    )
+    expect(patch.menu).toBe('seller')
+    expect(patch.sellerTab).toBe('listing')
+    expect(patch.orderTab).toBeUndefined()
   })
 })

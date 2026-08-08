@@ -3,9 +3,18 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrdersPanel from './OrdersPanel.vue'
 import DataPanel from './DataPanel.vue'
+import SellerPanel from './SellerPanel.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import { useUserStore } from '@/stores/user'
-import { parseMineQuery, mineQueryPatch, type MineMenu, type OrderTab, type DataTab, type MineSubject } from '@/domain/mineQuery'
+import {
+  parseMineQuery,
+  mineQueryPatch,
+  type MineMenu,
+  type OrderTab,
+  type DataTab,
+  type SellerTab,
+  type MineSubject
+} from '@/domain/mineQuery'
 import type { MyOrderCard } from '@/domain/myCenter'
 import type { MineOrderSubjectFilter } from '@/composables/useMineOrders'
 
@@ -23,7 +32,8 @@ const menus: Array<{ value: MineMenu; label: string; icon: string }> = [
   { value: 'messages', label: '消息中心', icon: '💬' },
   { value: 'favorites', label: '我的收藏', icon: '⭐' },
   { value: 'profile', label: '个人信息', icon: '🙍' },
-  { value: 'data', label: '我的数据', icon: '🗂️' }
+  { value: 'data', label: '我的数据', icon: '🗂️' },
+  { value: 'seller', label: '卖家中心', icon: '🏪' }
 ]
 
 const menuLabel = computed(() => menus.find((item) => item.value === state.value.menu)?.label)
@@ -38,6 +48,10 @@ function selectOrderTab(next: OrderTab) {
 
 function selectDataTab(next: DataTab) {
   void router.replace({ query: mineQueryPatch({ dataTab: next }, route.query) })
+}
+
+function selectSellerTab(next: SellerTab) {
+  void router.replace({ query: mineQueryPatch({ sellerTab: next }, route.query) })
 }
 
 const subjectFilter = computed<MineOrderSubjectFilter>(() => state.value.subject ?? 'all')
@@ -111,18 +125,6 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
           </button>
         </div>
       </div>
-
-      <button
-        data-testid="seller-center-entry"
-        class="mt-2 flex w-full items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-left"
-        @click="router.push('/app/seller')"
-      >
-        <div>
-          <div class="text-[13px] font-medium text-orange-800">卖家中心 · 入驻商家</div>
-          <div class="mt-0.5 text-[11px] text-orange-700/80">上架用数看板 · 自收款确认 · 卖家订单</div>
-        </div>
-        <span class="text-orange-600">›</span>
-      </button>
     </div>
 
     <div class="mt-3">
@@ -145,6 +147,13 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :data-tab="state.dataTab"
         variant="mobile"
         @update:data-tab="selectDataTab"
+      />
+      <SellerPanel
+        v-else-if="state.menu === 'seller'"
+        class="px-4"
+        :seller-tab="state.sellerTab"
+        variant="mobile"
+        @update:seller-tab="selectSellerTab"
       />
       <PlaceholderPanel v-else class="mx-4" :title="menuLabel" />
     </div>
@@ -205,6 +214,12 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :data-tab="state.dataTab"
         variant="portal"
         @update:data-tab="selectDataTab"
+      />
+      <SellerPanel
+        v-else-if="state.menu === 'seller'"
+        :seller-tab="state.sellerTab"
+        variant="portal"
+        @update:seller-tab="selectSellerTab"
       />
       <PlaceholderPanel v-else :title="menuLabel" />
     </section>

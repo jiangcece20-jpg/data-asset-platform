@@ -63,7 +63,7 @@ function submit() {
       complianceSummary: complianceSummary.value.trim()
     })
     if (props.embedded) emit('done')
-    else router.replace('/app/seller')
+    else router.replace({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listings' } })
   } catch (e) {
     error.value = e instanceof Error ? e.message : '提交失败'
   } finally {

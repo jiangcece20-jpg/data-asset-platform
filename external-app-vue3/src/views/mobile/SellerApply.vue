@@ -30,7 +30,7 @@ function submit() {
   try {
     seller.applyAccess({ ...form })
     if (props.embedded) emit('done')
-    else router.replace('/app/seller')
+    else router.replace({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listings' } })
   } finally {
     submitting.value = false
   }
