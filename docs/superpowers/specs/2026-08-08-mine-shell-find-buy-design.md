@@ -1,9 +1,9 @@
-# 我的中心壳重构（买数 / 我购买的数据）设计
+# 我的中心壳重构（买数 / 我购买的数据 / 卖家中心）设计
 
 - 日期：2026-08-08
-- 分支：`bugfix/search-find-buy`
+- 分支：`bugfix/search-find-buy`（已合入 `main`）
 - 范围：`external-app-vue3`（移动端 `/app/mine`、门户 `/portal/mine`）
-- 状态：已落地（Task 1–9 完成，全量回归通过）
+- 状态：已落地并部署 Cloudflare；产品口径已回写功能说明 PRD V2.6
 
 ## 背景
 
@@ -12,16 +12,18 @@
 - 缺少与截图对齐的一级入口区（成为 VIP、我的订单、消息中心等）
 - 「我的订单」无 VIP / 买数 / 看数 品类 Tab
 - 「我的数据」无「我购买的数据 / 我生产的数据」子 Tab
+- 卖家中心原为 APP 独立枢纽大卡片页，且 PC 遗漏
 - 买数订单与已购权益能力已存在，主要是信息架构重组
 
 ## 目标
 
-1. 落地统一「我的」壳：一级入口与「我的订单 / 我的数据」同级
+1. 落地统一「我的」壳：一级入口与「我的订单 / 我的数据 / 卖家中心」同级
 2. 我方主责内容落入：
    - **我的订单 → 买数**
-   - **我的数据 → 我购买的数据**
+   - **我的数据 → 我购买的数据**（含数据集 + 个人报告上架入口）
+   - **卖家中心 → 功能菜单**（入驻申请 / 新建上架 / 卖家订单 / 我的上架单）
 3. 非主责模块仅做入口壳 + Tab 切换 + 占位文案
-4. 移动端对齐产品截图；PC 采用左栏一级导航 + 右栏内容
+4. 移动端对齐产品截图；PC 采用左栏一级导航 + 右栏内容（含卖家）
 
 ## 非目标
 
@@ -29,6 +31,7 @@
 - 不改找数、下单、支付主链路（仅调整成功/入口回跳目标）
 - 不拆独立子路由（仍用现有 `/app/mine`、`/portal/mine` + query）
 - 不改内部 React 治理平台「我的」
+- 不把报告成品改为本期上架 SKU（上架对象仍为用数可上架对象）
 
 ## 信息架构
 
@@ -40,14 +43,20 @@
 │   ├─ 消息中心（占位）
 │   ├─ 我的收藏（占位）
 │   ├─ 个人信息（占位）
-│   └─ 我的数据（与「我的订单」同级）
+│   ├─ 我的数据
+│   └─ 卖家中心
 ├─ 我的订单
 │   ├─ VIP（占位）
 │   ├─ 买数（真内容）
 │   └─ 看数（占位）
-└─ 我的数据
-    ├─ 我购买的数据（真内容）
-    └─ 我生产的数据（占位）
+├─ 我的数据
+│   ├─ 我购买的数据（真内容：数据集 + 个人报告「上架」）
+│   └─ 我生产的数据（占位）
+└─ 卖家中心
+    ├─ 入驻申请
+    ├─ 新建上架
+    ├─ 卖家订单
+    └─ 我的上架单
 ```
 
 ### 默认入口
@@ -64,98 +73,72 @@
 | 我的订单 · 看数 | `?menu=orders&orderTab=view` |
 | 我的数据 · 我购买的数据 | `?menu=data&dataTab=purchased` |
 | 我的数据 · 我生产的数据 | `?menu=data&dataTab=produced` |
+| 卖家中心 · 我的上架单（默认） | `?menu=seller&sellerTab=listings` |
+| 卖家中心 · 新建上架 | `?menu=seller&sellerTab=listing`（可带 `productId`） |
+| 卖家中心 · 入驻申请 / 卖家订单 | `?menu=seller&sellerTab=apply\|orders` |
 | 占位一级入口 | `?menu=vip\|messages\|favorites\|profile`（仅展示占位内容） |
 
 兼容映射：
 
 - `tab=orders` → `menu=orders`（`orderTab` 缺省为 `buy`）
 - `tab=data` / `tab=我的数据` → `menu=data&dataTab=purchased`
+- `tab=求上架` → `menu=seller`
+- 旧 `/app/seller` 引导至 `menu=seller`
 
 深链约定：
 
 - 支付成功、「查看我的数据」→ `menu=data&dataTab=purchased`
 - 需要看买数履约状态 → `menu=orders&orderTab=buy`
+- 个人报告「上架」→ `menu=seller&sellerTab=listing&productId=...`
 
 ## 布局
 
 ### 移动端
 
-对齐产品截图：
-
-1. 顶部用户头区（头像、昵称、手机号、会员徽章）
-2. 一级入口图标宫格（含「我的数据」）
-3. 选中「我的订单 / 我的数据」后展示对应二级 Tab
+1. 顶部用户头区
+2. 一级入口横滑（含卖家中心）
+3. 选中订单/数据/卖家后展示对应二级 Tab
 4. 内容区：真内容或统一占位
 
-### PC（已选方案 A）
+### PC
 
-1. 左栏：用户卡 + 一级入口列表（我的订单、我的数据、其它占位入口）
-2. 右栏顶：二级 Tab（订单：VIP|买数|看数；数据：我购买的|我生产的）
+1. 左栏：用户卡 + 一级入口列表（含卖家中心）
+2. 右栏顶：二级 Tab
 3. 右栏主体：筛选 + 列表，或占位文案
 
-## 组件结构（方案 3）
+## 组件结构
 
 ```
-MineShell（共享壳：头区 + 一级入口 + 内容槽 + query 同步）
-├─ OrdersPanel
-│   ├─ 二级 Tab：VIP | 买数 | 看数
-│   ├─ BuyDataOrders（真内容）
-│   └─ PlaceholderPanel
-└─ DataPanel
-    ├─ 二级 Tab：我购买的数据 | 我生产的数据
-    ├─ PurchasedData（真内容）
-    └─ PlaceholderPanel
+MineShell
+├─ OrdersPanel → BuyDataOrders / PlaceholderPanel
+├─ DataPanel → PurchasedData / PlaceholderPanel
+└─ SellerPanel → SellerApply / SellerListingApply / SellerOrders / SellerListingsPanel
 ```
 
-页面组装：
+## 真内容规格（增量）
 
-- `Mine.vue` = PhoneShell + MineShell（移动布局变体）
-- `PortalMine.vue` = PortalShell + MineShell（PC 左栏变体）
+### 我购买的数据
 
-业务逻辑下沉到 `BuyDataOrders` / `PurchasedData`；壳只负责菜单切换与 URL 同步。
+- 数据集：沿用 `visibleDatasetEntitlements` 与交付展示
+- 个人报告：展示个人 `item` + catalog `report`；「上架」跳转卖家新建上架单
 
-## 真内容规格
+### 卖家中心
 
-### 买数（BuyDataOrders）
-
-- 数据源：沿用现有 `orders` + `spaceOrders` 投影（`domain/myCenter`）
-- 过滤：仅买数相关订单（`productType === 'dataset'`，含空间侧 dataset 镜像）
-- 交互：沿用现有状态筛（全部/待付款/处理中/已完成/已关闭）、主体、渠道等能力
-- 不再在买数 Tab 内提供「商品类型」切到报告/看板等（那些归「看数」占位范围）
-
-### 我购买的数据（PurchasedData）
-
-- 数据源：沿用现有 `visibleDatasetEntitlements` 与交付展示
-- 能力：交付状态、版本、到期/续订、BI/下载等保持现状迁入
-
-### 占位（PlaceholderPanel）
-
-统一文案：「该模块由其它产品负责」
+- 功能菜单拆分，不做枢纽大卡片
+- 未准入时闸门提示去入驻申请
 
 ## 验收标准
 
-1. 移动端呈现统一「我的」壳：用户头区 + 一级入口（含我的订单 / 我的数据）
-2. PC 为左栏一级 + 右栏内容
-3. 默认进入「我的订单 → 买数」，且保留现有状态/主体/渠道等筛选
-4. 「我的数据 → 我购买的数据」展示现有已购数据集权益/交付
-5. VIP / 看数 / 我生产的数据 / 成为 VIP / 消息中心 / 我的收藏 / 个人信息：可切换，内容为统一占位
-6. 旧 query（`tab=orders|data|我的数据`）映射正确
-7. 支付成功 / 「查看我的数据」深链落到「我购买的数据」
-
-## 测试关注点
-
-- 更新/扩展 `TrustedSpaceViews.test.ts`、`DatasetAccountViews.test.ts` 等对顶层 Tab 与默认入口的断言
-- 覆盖新旧 query 兼容与深链回跳
-- 买数列表仅含 dataset 类订单；会员单不混入买数 Tab
+1. 移动/PC 一级入口含卖家中心；无橙色独立入口条
+2. 卖家二级功能可独立切换
+3. 个人报告可见「上架」并落到新建上架单
+4. 其余买数/已购数据集验收保持不变
 
 ## 决策记录
 
 | 决策 | 选择 | 说明 |
 |------|------|------|
-| 范围 | 整页统一壳 | 非仅改内部 Tab |
-| 非主责模块 | 壳 + 占位 | 不填真实业务 |
-| 买数列表 | 沿用现有筛选 | 收口到买数 Tab |
-| 默认入口 | 原型买数 | 文档标注正式规划可能改为 VIP 等 |
-| 实现结构 | 共享 MineShell | 移动/PC 同构，内容插槽 |
-| PC 布局 | 左栏一级 + 右栏内容 | 对照方案 A |
-| 路由 | query 嵌套 | 不拆新 path |
+| 卖家入口 | 「我的」一级 | 非独立 APP 枢纽页 |
+| 卖家布局 | 功能菜单 | 非大卡片 hub |
+| PC 卖家 | 本期同步 | 不再标后续增强 |
+| 报告上架按钮 | 发起入口 | SKU 边界仍按规划仅看板 |
