@@ -52,7 +52,9 @@ function goProduct(order: MyOrderCard) {
 }
 
 function pay(order: MyOrderCard) {
-  if (order.paymentPath) router.push(order.paymentPath)
+  if (!order.paymentPath) return
+  const path = props.layout === 'portal' ? order.paymentPath.replace(/^\/app\//, '/portal/') : order.paymentPath
+  router.push(path)
 }
 
 function openBills() {
@@ -165,17 +167,17 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
       </div>
 
       <nav class="space-y-1 rounded-2xl border border-slate-200 bg-white p-2">
-        <div v-for="item in menus" :key="item.value" :data-testid="portalLegacyTestId[item.value]">
-          <button
-            :data-testid="`mine-menu-${item.value}`"
-            class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition"
-            :class="state.menu === item.value ? 'bg-brand-50 font-medium text-brand-600' : 'text-slate-600 hover:bg-slate-50'"
-            @click="selectMenu(item.value)"
-          >
-            <span class="text-base leading-none">{{ item.icon }}</span>
-            <span>{{ item.label }}</span>
-          </button>
-        </div>
+        <button
+          v-for="item in menus"
+          :key="item.value"
+          :data-testid="portalLegacyTestId[item.value] ?? `mine-menu-${item.value}`"
+          class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition"
+          :class="state.menu === item.value ? 'bg-brand-50 font-medium text-brand-600' : 'text-slate-600 hover:bg-slate-50'"
+          @click="selectMenu(item.value)"
+        >
+          <span class="text-base leading-none">{{ item.icon }}</span>
+          <span :data-testid="portalLegacyTestId[item.value] ? `mine-menu-${item.value}` : undefined">{{ item.label }}</span>
+        </button>
       </nav>
     </aside>
 
