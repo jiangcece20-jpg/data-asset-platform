@@ -330,7 +330,7 @@ describe('mine order views', () => {
         channel: 'app',
         ownerType: 'personal',
         ownerId: 'mem-1',
-        productId: 'prod-other',
+        productId: 'prod-truck-trajectory',
         productName: '其他成员个人订单',
         amount: 100,
         status: 'paid',
@@ -341,7 +341,7 @@ describe('mine order views', () => {
         channel: 'app',
         ownerType: 'personal',
         ownerId: 'mem-2',
-        productId: 'prod-current',
+        productId: 'prod-truck-trajectory',
         productName: '本人个人订单',
         amount: 200,
         status: 'paid',
@@ -353,7 +353,7 @@ describe('mine order views', () => {
         ownerType: 'enterprise',
         ownerId: 'ent-wanlian-logistics',
         operatorMemberId: 'mem-2',
-        productId: 'prod-enterprise',
+        productId: 'prod-truck-trajectory',
         productName: '企业 APP 订单',
         amount: 300,
         status: 'paid',
@@ -361,8 +361,8 @@ describe('mine order views', () => {
       }
     )
     useSpaceOrderStore().mirrors = [
-      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-OTHER', operatorMemberId: 'mem-1' }),
-      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-MINE', operatorMemberId: 'mem-2' })
+      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-OTHER', operatorMemberId: 'mem-1', appProductId: 'prod-truck-trajectory' }),
+      spaceOrderMirror({ spaceOrderId: 'SP-ORDER-MINE', operatorMemberId: 'mem-2', appProductId: 'prod-truck-trajectory' })
     ]
 
     const wrapper = await mountMine({
@@ -380,10 +380,12 @@ describe('mine order views', () => {
     expect(wrapper.text()).toContain('可信空间购买')
   })
 
-  it('uses one common Mine entry with only orders and data tabs', async () => {
+  it('exposes orders/data as primary mine menus with buy default', async () => {
     const wrapper = await mountMine()
-    const tabLabels = wrapper.findAll('button').map((button) => button.text()).filter((label) => ['我的订单', '我的数据', '个人订单', '企业订单', '我的账单'].includes(label))
-    expect(tabLabels).toEqual(['我的订单', '我的数据'])
+    expect(wrapper.find('[data-testid="mine-menu-orders"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
   })
 
   it('opens My Orders with the current enterprise filter from Enterprise Center', async () => {
