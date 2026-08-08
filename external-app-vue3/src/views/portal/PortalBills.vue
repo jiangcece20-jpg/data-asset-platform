@@ -61,7 +61,7 @@ onMounted(() => { void loadBills() })
   <div class="mx-auto max-w-7xl">
     <div class="mb-5 flex items-center justify-between">
       <div>
-        <button class="mb-2 text-xs text-brand-600" @click="router.push('/portal/mine?tab=orders')">← 返回我的订单</button>
+        <button class="mb-2 text-xs text-brand-600" @click="router.push({ path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } })">← 返回我的订单</button>
         <h1 class="text-xl font-semibold text-slate-900">API 调用与费用账单</h1>
         <p class="mt-1 text-sm text-slate-500">每笔费用均关联到采购订单、API 商品、计费方案和调用凭证。</p>
       </div>

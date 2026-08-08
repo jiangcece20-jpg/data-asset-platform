@@ -97,7 +97,7 @@ function invite() {
 }
 
 function goEnterpriseOrders() {
-  router.push({ path: '/portal/mine', query: { subject: 'enterprise' } })
+  router.push({ path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy', subject: 'enterprise' } })
 }
 
 function continueDatasetPayment(orderId: string) {
