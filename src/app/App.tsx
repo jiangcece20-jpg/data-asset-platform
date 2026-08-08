@@ -13,6 +13,7 @@ import { DataSourceListPage } from '../features/datasource/DataSourceListPage';
 import { DataSourceDetailPage } from '../features/datasource/DataSourceDetailPage';
 import { DataStandardShellPage } from '../features/data-standard/DataStandardShellPage';
 import { DataStandardDraftPage } from '../features/data-standard/DataStandardDraftPage';
+import { TableBuilderPage } from '../features/table-builder/TableBuilderPage';
 import { AppShell } from './AppShell';
 import {
   getDataSourceIdFromHash,
@@ -21,18 +22,6 @@ import {
   type AppRouteKey,
   type ProductLineKey,
 } from './routes';
-
-/**
- * 原型占位：Task 6 将替换为真实的建表向导页面。
- */
-function PrototypePlaceholder({ title, note }: { title: string; note: string }) {
-  return (
-    <div style={{ padding: 32 }}>
-      <h1>{title}（原型占位）</h1>
-      <p>{note}</p>
-    </div>
-  );
-}
 
 export function App() {
   const [activeRoute, setActiveRoute] = useState<AppRouteKey>(() => getRouteFromHash(window.location.hash));
@@ -83,7 +72,7 @@ export function App() {
       ) : activeRoute === 'data-standard-draft' ? (
         <DataStandardDraftPage />
       ) : activeRoute === 'table-builder' ? (
-        <PrototypePlaceholder title="建表工具" note="选库建表 + 标准推荐四步向导将在后续任务中接入" />
+        <TableBuilderPage />
       ) : (
         <ProductPage route={activeRoute} />
       )}

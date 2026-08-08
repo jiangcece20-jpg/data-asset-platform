@@ -1,4 +1,14 @@
 import type { PublishedStandard } from '../../types/tableBuilder';
+import type { EngineType } from './ddlTemplates';
+
+/**
+ * 原型演示：按引擎类型模拟目标库列表（ods/dwd/dim 风格分层库），不连接真实数据源。
+ */
+export const DEMO_DATABASES: Record<EngineType, string[]> = {
+  Hive: ['ods', 'dwd', 'dim'],
+  MaxCompute: ['ods_mc', 'dwd_mc', 'dim_mc'],
+  MySQL: ['ods_mysql', 'dwd_mysql', 'dim_mysql'],
+};
 
 export const PUBLISHED_STANDARDS: PublishedStandard[] = [
   {
