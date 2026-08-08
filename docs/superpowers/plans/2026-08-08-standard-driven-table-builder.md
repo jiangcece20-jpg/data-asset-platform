@@ -10,6 +10,22 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-08-standard-driven-table-builder-design.md`
 
+**Prototype status:** Tasks 1–8 已在分支 `feature/standard-driven-table-builder`（HEAD `2c4dd73`）落地；Task 9 文档同步于 2026-08-08。
+
+## Acceptance Evidence（spec §9）
+
+| §9 验收项 | 证据（测试 / 提交） |
+| --- | --- |
+| 产品切换可进入「建表工具」「数据标准」 | `routes.test.ts`（hash 解析 + 建设中状态）；`AppShell.test.tsx`（两产品线导航）；`0e5d196`、`270d7b8` |
+| 不选库无法进入录入；无字段或表名皆空无法进入推荐 | `TableBuilderPage.test.tsx`：`blocks entering fields step without database`；`allows paste then requires table name before recommend` |
+| 推荐后展示完整标准相关列；缺标不阻断建表 | `recommend.test.ts`（命中/缺标/码表）；`auto-adopts recommendations and allows ignore / draft jump` |
+| 改选 / 忽略 / 发起草稿可见且状态正确 | `auto-adopts...`；`clears standard-derived attributes when ignoring a matched field` |
+| 保存标准草稿后回到同一建表上下文 | `completes cross-page E2E flow...草稿已发起`；`DataStandardPage.test.tsx`：`prefills draft from handoff and returns to table builder after save` |
+| 成功页展示库/定稿字段/可复制 DDL；失败态可演示 | `confirms create and shows success result with DDL preview + copy`；`simulates a failure demo...`；`shows 查看相关草稿...` |
+| 全程无真实网络建表请求 | `walks through the failure demo path end-to-end without any real network create-table`；`table-builder` feature 无 fetch/API 调用 |
+
+**回归：** `npm test -- src/features/table-builder src/features/data-standard src/app/routes.test.ts src/app/AppShell.test.tsx` → 8 files / 45 tests PASS（2026-08-08）。
+
 ## Global Constraints
 
 - 仅原型：不接真实数据源、不执行真实 DDL、不发真实网络建表请求。
@@ -849,8 +865,8 @@ EOF
 - Modify: `docs/superpowers/plans/2026-08-08-standard-driven-table-builder.md`（勾选完成项，若执行时维护）
 - Optional: 在 spec 顶部状态改为「已实现原型」仅当验收通过后
 
-- [ ] **Step 1: 对照 spec §9 验收清单逐项勾选并记录证据（测试名或截图说明）**
-- [ ] **Step 2: `git add -f` 更新后的 plan/spec 状态并 commit**
+- [x] **Step 1: 对照 spec §9 验收清单逐项勾选并记录证据（测试名或截图说明）** — 见上文 **Acceptance Evidence**
+- [x] **Step 2: `git add -f` 更新后的 plan/spec 状态并 commit**
 
 ```bash
 git add -f docs/superpowers/plans/2026-08-08-standard-driven-table-builder.md docs/superpowers/specs/2026-08-08-standard-driven-table-builder-design.md
