@@ -80,7 +80,9 @@ function submit() {
 }
 
 function goApprovalCenter() {
-  router.push(isPortal.value ? '/portal/mine?tab=orders' : '/app/mine/enterprise?tab=purchase')
+  router.push(isPortal.value
+    ? { path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } }
+    : '/app/mine/enterprise?tab=purchase')
 }
 </script>
 

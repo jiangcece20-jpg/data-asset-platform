@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
+import { useCatalogStore } from '@/stores/catalog'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 
+const props = defineProps<{
+  embedded?: boolean
+  variant?: 'mobile' | 'portal'
+}>()
+const emit = defineEmits<{ done: [] }>()
+
+const route = useRoute()
 const router = useRouter()
 const seller = useSellerMarketStore()
+const catalog = useCatalogStore()
 
 const artifactId = ref(seller.listableArtifacts[0]?.id || '')
 const title = ref('')
@@ -16,11 +25,26 @@ const error = ref('')
 const submitting = ref(false)
 
 const artifact = computed(() => seller.listableArtifacts.find((a) => a.id === artifactId.value))
+const sourceProduct = computed(() => {
+  const id = String(route.query.productId || '')
+  return id ? catalog.byId(id) : undefined
+})
 
 watch(artifact, (a) => {
   if (!a) return
+  if (sourceProduct.value?.type === 'report') {
+    title.value = `${sourceProduct.value.name} · 衍生看板`
+    subtitle.value = `基于已购报告 ${sourceProduct.value.typeDetail.report?.version || ''} 加工`
+    return
+  }
   title.value = a.name
   subtitle.value = `用数对象 ${a.version} · ${a.dataProvenance === 'owned' ? '自有数据' : '已购衍生'}`
+}, { immediate: true })
+
+watch(sourceProduct, (product) => {
+  if (!product || product.type !== 'report') return
+  title.value = `${product.name} · 衍生看板`
+  subtitle.value = `基于已购报告 ${product.typeDetail.report?.version || ''} 加工`
 }, { immediate: true })
 
 function submit() {
@@ -38,7 +62,8 @@ function submit() {
       price: Number(price.value),
       complianceSummary: complianceSummary.value.trim()
     })
-    router.replace('/app/seller')
+    if (props.embedded) emit('done')
+    else router.replace({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listings' } })
   } catch (e) {
     error.value = e instanceof Error ? e.message : '提交失败'
   } finally {
@@ -48,11 +73,16 @@ function submit() {
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 pb-8">
-    <MobileHeader title="上架申请" />
-    <div class="space-y-3 px-4 pt-3">
+  <div :class="embedded ? 'mt-3 space-y-3' : 'min-h-full bg-slate-50 pb-8'">
+    <MobileHeader v-if="!embedded" title="上架申请" />
+    <div :class="embedded ? 'space-y-3' : 'space-y-3 px-4 pt-3'">
       <div class="rounded-2xl border border-slate-100 bg-white p-3 text-[12px] text-slate-600 shadow-card">
-        双入口演示：本页为 APP 卖家中心入口。用数侧「申请上架到 APP」会落到同一审核权威。
+        <template v-if="sourceProduct?.type === 'report'">
+          来自「我的数据」个人报告：{{ sourceProduct.name }}。可选择用数对象后提交上架审核。
+        </template>
+        <template v-else>
+          双入口演示：本页为卖家上架入口。用数侧「申请上架到 APP」会落到同一审核权威。
+        </template>
       </div>
 
       <div class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">

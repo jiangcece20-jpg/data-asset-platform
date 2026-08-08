@@ -62,7 +62,10 @@ function retry() {
 }
 
 function goMyData() {
-  router.push(isPortal.value ? '/portal/mine?tab=data' : '/app/mine?tab=我的数据')
+  router.push({
+    path: isPortal.value ? '/portal/mine' : '/app/mine',
+    query: { menu: 'data', dataTab: 'purchased' }
+  })
 }
 </script>
 

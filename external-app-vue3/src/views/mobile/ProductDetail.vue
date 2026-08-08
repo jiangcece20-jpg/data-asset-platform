@@ -258,7 +258,7 @@ function handleAction(key: ProductActionKey) {
     case 'view':
     case 'free_view':
       router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
-        ? { path: '/app/mine', query: { tab: '我的数据' } }
+        ? { path: '/app/mine', query: { menu: 'data', dataTab: 'purchased' } }
         : '/app/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break
@@ -267,7 +267,7 @@ function handleAction(key: ProductActionKey) {
     case 'item_purchase': goItem(); break
     case 'dataset_purchase': router.push(`/app/checkout/dataset/${id.value}`); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
-    case 'listing_progress': router.push({ path: '/app/mine', query: { tab: '求上架' } }); break
+    case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
   }
 }
 </script>

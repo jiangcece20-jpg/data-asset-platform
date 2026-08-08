@@ -84,13 +84,16 @@ function continueDatasetPayment(orderId: string) {
 }
 
 function goMyData() {
-  router.push('/app/mine?tab=data')
+  router.push({
+    path: '/app/mine',
+    query: { menu: 'data', dataTab: 'purchased' }
+  })
 }
 
 function goEnterpriseOrders() {
   router.push({
     path: '/app/mine',
-    query: { tab: 'orders', subject: 'enterprise', from: 'enterprise-center' }
+    query: { menu: 'orders', orderTab: 'buy', subject: 'enterprise', from: 'enterprise-center' }
   })
 }
 </script>

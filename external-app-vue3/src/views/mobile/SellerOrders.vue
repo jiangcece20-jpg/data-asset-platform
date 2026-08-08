@@ -4,6 +4,11 @@ import { useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 
+const props = defineProps<{
+  embedded?: boolean
+  variant?: 'mobile' | 'portal'
+}>()
+
 const router = useRouter()
 const seller = useSellerMarketStore()
 const filter = ref<'all' | 'pending' | 'done'>('all')
@@ -44,12 +49,17 @@ function dispute(orderId: string) {
     message.value = e instanceof Error ? e.message : '操作失败'
   }
 }
+
+function goProduct(productId: string) {
+  const base = props.variant === 'portal' ? '/portal' : '/app'
+  router.push(`${base}/product/${productId}`)
+}
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 pb-8">
-    <MobileHeader title="卖家订单" />
-    <div class="space-y-3 px-4 pt-3">
+  <div :class="embedded ? 'mt-3 space-y-3' : 'min-h-full bg-slate-50 pb-8'">
+    <MobileHeader v-if="!embedded" title="卖家订单" />
+    <div :class="embedded ? 'space-y-3' : 'space-y-3 px-4 pt-3'">
       <div class="rounded-2xl border border-orange-100 bg-orange-50 p-3 text-[12px] leading-relaxed text-orange-900">
         <div class="font-medium">状态说明（自收款 MVP）</div>
         <div class="mt-1">待确认到账 = 买家声称已付，请核对待收款账户后再确认。确认后系统开通买家看板权益。平台不垫资。</div>
@@ -96,7 +106,7 @@ function dispute(orderId: string) {
           <button class="rounded-xl bg-orange-500 py-2 text-[12px] font-medium text-white" @click="confirm(order.id)">确认到账</button>
           <button class="rounded-xl border border-slate-200 py-2 text-[12px] text-slate-600" @click="dispute(order.id)">未收到</button>
         </div>
-        <button class="mt-2 text-[11px] text-brand-600" @click="router.push(`/app/product/${order.productId}`)">查看商品 ›</button>
+        <button class="mt-2 text-[11px] text-brand-600" @click="goProduct(order.productId)">查看商品 ›</button>
       </div>
     </div>
   </div>
