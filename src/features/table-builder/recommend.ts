@@ -193,6 +193,16 @@ export function recommendTable(input: TableInput): TableRecommendResult {
   };
 }
 
+/**
+ * 将字段的类型/长度/精度格式化为单一展示字符串，供推荐表格与结果页 DDL 预览复用。
+ */
+export function formatFieldType(row: Pick<FieldRecommendResult, 'dataType' | 'length' | 'precision'>): string {
+  if (!row.length) return row.dataType;
+  return row.precision !== undefined
+    ? `${row.dataType}(${row.length},${row.precision})`
+    : `${row.dataType}(${row.length})`;
+}
+
 export function recommendFields(fields: FieldInput[]): FieldRecommendResult[] {
   return fields.map((field) => {
     const match = matchStandard(field);

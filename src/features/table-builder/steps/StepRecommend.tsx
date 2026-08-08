@@ -11,6 +11,7 @@ import { Tag } from '../../../components/base/Tag';
 import {
   PUBLISHED_STANDARDS,
   UNSTANDARDIZED_TECH_DEFAULTS,
+  formatFieldType,
   recommendFields,
   recommendTable,
   recommendationsMatchFields,
@@ -45,13 +46,6 @@ const CONFIDENCE_LABELS: Record<FieldRecommendResult['confidence'], string> = {
   medium: '中',
   low: '低',
 };
-
-function formatType(row: FieldRecommendResult): string {
-  if (!row.length) return row.dataType;
-  return row.precision !== undefined
-    ? `${row.dataType}(${row.length},${row.precision})`
-    : `${row.dataType}(${row.length})`;
-}
 
 function countByStatus(recommendations: FieldRecommendResult[]): Record<FieldRecommendStatus, number> {
   const counts: Record<FieldRecommendStatus, number> = {
@@ -210,7 +204,7 @@ export function StepRecommend({
                 <tr key={row.id}>
                   <td>{row.nameZh}</td>
                   <td className="tb-form__input--mono">{row.nameEn || '（待补充英文名）'}</td>
-                  <td>{formatType(row)}</td>
+                  <td>{formatFieldType(row)}</td>
                   <td className="tb-recommend-table__constraints">
                     {row.primaryKey ? <Tag tone="purple">主键</Tag> : null}
                     <Tag tone={row.nullable ? 'gray' : 'warning'}>{row.nullable ? '可空' : '必填'}</Tag>

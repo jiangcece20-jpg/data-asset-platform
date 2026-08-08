@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import type { FieldInput, FieldRecommendResult, TableInput } from '../../types/tableBuilder';
 import { Button } from '../../components/base/Button';
 import type { EngineType } from './ddlTemplates';
-import { loadWizard, saveWizard, type WizardState, type WizardStep } from './wizardStore';
+import { clearWizard, createDefaultWizard, loadWizard, saveWizard, type WizardState, type WizardStep } from './wizardStore';
 import { canConfirmCreate, canEnterFields, canEnterRecommend } from './stepGates';
 import { StepTarget } from './steps/StepTarget';
 import { StepFields } from './steps/StepFields';
 import { StepRecommend } from './steps/StepRecommend';
+import { StepResult } from './steps/StepResult';
 import './table-builder.css';
 
 const STEP_LABELS: { step: WizardStep; label: string }[] = [
@@ -64,6 +65,22 @@ export function TableBuilderPage() {
     }
     setStepError(null);
     setState((prev) => ({ ...prev, step: nextStepOf(prev.step) }));
+  };
+
+  const handleSimulateFailure = () => {
+    const error = canConfirmCreate(state);
+    if (error) {
+      setStepError(error);
+      return;
+    }
+    setStepError(null);
+    setState((prev) => ({ ...prev, step: 4, createOutcome: 'failure' }));
+  };
+
+  const handleRestart = () => {
+    setStepError(null);
+    clearWizard();
+    setState(createDefaultWizard());
   };
 
   const handleEngineChange = (engine: EngineType) => {
@@ -150,9 +167,15 @@ export function TableBuilderPage() {
             onRecommendationsChange={handleRecommendationsChange}
           />
         ) : (
-          <div className="tb-step tb-step--stub">
-            <p>建表结果（DDL 预览与提交）将在下一阶段接入。</p>
-          </div>
+          <StepResult
+            outcome={state.createOutcome}
+            engine={state.engine}
+            database={state.database}
+            table={state.table}
+            recommendations={state.recommendations}
+            onBackToRecommend={goPrev}
+            onRestart={handleRestart}
+          />
         )}
       </div>
 
@@ -166,9 +189,16 @@ export function TableBuilderPage() {
         <Button variant="default" onClick={goPrev} disabled={state.step === 1}>
           上一步
         </Button>
-        <Button variant="primary" onClick={goNext} disabled={state.step === 4}>
-          {state.step === 4 ? '完成' : state.step === 3 ? '确认建表' : '下一步'}
-        </Button>
+        {state.step === 3 ? (
+          <Button variant="danger" onClick={handleSimulateFailure}>
+            模拟失败（演示）
+          </Button>
+        ) : null}
+        {state.step !== 4 ? (
+          <Button variant="primary" onClick={goNext}>
+            {state.step === 3 ? '确认建表' : '下一步'}
+          </Button>
+        ) : null}
       </div>
     </section>
   );
