@@ -23,3 +23,27 @@ export function canEnterRecommend(state: Pick<WizardState, 'fields' | 'table'>):
   }
   return null;
 }
+
+/**
+ * 判断一组字段（或推荐结果）的英文名是否存在重复（忽略大小写与首尾空白，空值不参与比较）。
+ */
+export function hasDuplicateEnglishNames(items: { nameEn: string }[]): boolean {
+  const seen = new Set<string>();
+  for (const item of items) {
+    const key = item.nameEn.trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
+/**
+ * Step3 → Step4 门禁：缺标字段不阻塞建表，但英文名重复必须先修正。
+ */
+export function canConfirmCreate(state: Pick<WizardState, 'recommendations'>): string | null {
+  if (hasDuplicateEnglishNames(state.recommendations)) {
+    return '存在重复的英文名，请先调整改选/忽略结果后再确认建表';
+  }
+  return null;
+}

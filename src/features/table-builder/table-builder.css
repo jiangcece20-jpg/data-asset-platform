@@ -293,6 +293,82 @@
   margin-top: 4px;
 }
 
+/* ── 推荐确认 ───────────────────────────────────────────── */
+
+.tb-recommend__table-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+}
+
+.tb-recommend__table-bar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+}
+
+.tb-recommend__table-bar-en {
+  margin-left: 4px;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--text-tertiary);
+}
+
+.tb-recommend__overview {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.tb-recommend-table th,
+.tb-recommend-table td {
+  white-space: normal;
+  vertical-align: top;
+}
+
+.tb-recommend-table__rationale {
+  max-width: 260px;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.tb-recommend-table__constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tb-recommend-table__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.tb-recommend__missing {
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+}
+
+.tb-recommend__missing-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.tb-reselect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 360px;
+}
+
 /* ── 底部导航 ───────────────────────────────────────────── */
 
 .tb-step-error {

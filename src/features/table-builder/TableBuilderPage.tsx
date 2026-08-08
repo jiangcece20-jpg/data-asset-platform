@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { FieldInput, TableInput } from '../../types/tableBuilder';
+import type { FieldInput, FieldRecommendResult, TableInput } from '../../types/tableBuilder';
 import { Button } from '../../components/base/Button';
 import type { EngineType } from './ddlTemplates';
 import { loadWizard, saveWizard, type WizardState, type WizardStep } from './wizardStore';
-import { canEnterFields, canEnterRecommend } from './stepGates';
+import { canConfirmCreate, canEnterFields, canEnterRecommend } from './stepGates';
 import { StepTarget } from './steps/StepTarget';
 import { StepFields } from './steps/StepFields';
+import { StepRecommend } from './steps/StepRecommend';
 import './table-builder.css';
 
 const STEP_LABELS: { step: WizardStep; label: string }[] = [
@@ -51,6 +52,16 @@ export function TableBuilderPage() {
         return;
       }
     }
+    if (state.step === 3) {
+      const error = canConfirmCreate(state);
+      if (error) {
+        setStepError(error);
+        return;
+      }
+      setStepError(null);
+      setState((prev) => ({ ...prev, step: 4, createOutcome: 'success' }));
+      return;
+    }
     setStepError(null);
     setState((prev) => ({ ...prev, step: nextStepOf(prev.step) }));
   };
@@ -73,6 +84,11 @@ export function TableBuilderPage() {
   const handleFieldsChange = (fields: FieldInput[]) => {
     setStepError(null);
     setState((prev) => ({ ...prev, fields }));
+  };
+
+  const handleRecommendationsChange = (recommendations: FieldRecommendResult[]) => {
+    setStepError(null);
+    setState((prev) => ({ ...prev, recommendations }));
   };
 
   return (
@@ -116,9 +132,13 @@ export function TableBuilderPage() {
             onFieldsChange={handleFieldsChange}
           />
         ) : state.step === 3 ? (
-          <div className="tb-step tb-step--stub">
-            <p>标准推荐与确认将在下一阶段接入，敬请期待。</p>
-          </div>
+          <StepRecommend
+            table={state.table}
+            fields={state.fields}
+            recommendations={state.recommendations}
+            onTableChange={handleTableChange}
+            onRecommendationsChange={handleRecommendationsChange}
+          />
         ) : (
           <div className="tb-step tb-step--stub">
             <p>建表结果（DDL 预览与提交）将在下一阶段接入。</p>
@@ -137,7 +157,7 @@ export function TableBuilderPage() {
           上一步
         </Button>
         <Button variant="primary" onClick={goNext} disabled={state.step === 4}>
-          {state.step === 4 ? '完成' : '下一步'}
+          {state.step === 4 ? '完成' : state.step === 3 ? '确认建表' : '下一步'}
         </Button>
       </div>
     </section>
