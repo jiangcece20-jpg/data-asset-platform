@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { seedEnterprise } from '@/data/seed'
-import type { Enterprise, UserContext } from '@/types/domain'
+import type { Enterprise, MemberTier, UserContext } from '@/types/domain'
 import { now } from '@/utils/id'
 import { useApiUsageBillsStore } from './apiUsageBills'
 import { useSpaceOrderStore } from './spaceOrders'
@@ -41,8 +41,11 @@ export const useUserStore = defineStore('user', {
     }
   },
   actions: {
-    grantPersonalMember(months = 12) {
+    grantPersonalMember(months = 12, tier: MemberTier = 'standard') {
       this.context.personalMember = true
+      this.context.personalMemberTier = tier === 'premium' || this.context.personalMemberTier === 'premium'
+        ? 'premium'
+        : tier
       const d = new Date()
       d.setMonth(d.getMonth() + months)
       this.context.memberExpiresAt = d.toISOString().slice(0, 10)

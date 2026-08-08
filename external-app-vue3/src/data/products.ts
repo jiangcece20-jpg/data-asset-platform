@@ -19,7 +19,7 @@ export const seedProducts: Product[] = [
     updateFrequency: '每周一更新',
     qualityPromise: '数据来源于平台真实交易样本，月度校准',
     complianceNote: '已脱敏，仅展示指数与趋势，不含企业级明细',
-    price: { model: 'member_discount', itemPrice: 299, memberDiscount: 0, unit: '元/12个月' },
+    price: { model: 'member_free', itemPrice: 299, unit: '元/12个月' },
     commerceOffers: [
       { id: 'offer-freight-personal-fixed', name: '个人固定版', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'one_time', contentKind: 'fixed_dashboard', accessScope: 'personal', allowDownload: false },
       { id: 'offer-freight-personal-updates', name: '个人持续更新版', subject: 'personal', price: 299, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, accessScope: 'personal', allowDownload: false, recommended: true },
@@ -32,6 +32,10 @@ export const seedProducts: Product[] = [
     valueProposition: '帮助物流企业和货主实时掌握运价波动，辅助采购与报价决策。',
     deliveryMethod: 'APP 在线看板，支持导出会员专享',
     memberIncluded: true,
+    memberBenefits: [
+      { tier: 'standard', mode: 'free' },
+      { tier: 'premium', mode: 'discount', discount: 0.8 }
+    ],
     listedAt: '2026-05-20',
     updatedAt: '2026-07-10',
     serviceStatus: 'normal',
@@ -76,7 +80,7 @@ export const seedProducts: Product[] = [
     description: '监测冷链运输过程中的温控合规情况，支持按通道、企业、时间维度分析异常率。',
     valueProposition: '帮助冷链企业及时发现温控异常，降低货损与合规风险。',
     deliveryMethod: 'APP 在线看板',
-    memberIncluded: true,
+    memberIncluded: false,
     listedAt: '2026-04-15',
     updatedAt: '2026-06-28',
     serviceStatus: 'normal',
@@ -169,6 +173,10 @@ export const seedProducts: Product[] = [
     valueProposition: '为企业战略规划和采购决策提供权威、及时的行业洞察。',
     deliveryMethod: 'APP 阅读器在线阅读，会员可合规下载 PDF',
     memberIncluded: true,
+    memberBenefits: [
+      { tier: 'standard', mode: 'discount', discount: 0.6 },
+      { tier: 'premium', mode: 'free' }
+    ],
     listedAt: '2026-06-01',
     updatedAt: '2026-07-05',
     serviceStatus: 'normal',
@@ -521,18 +529,19 @@ export const seedProducts: Product[] = [
         qualityUpdatedAt: '2026-07-01',
         fields: [
           { name: 'enterprise_id', dataType: 'string', meaning: '企业唯一标识（脱敏哈希）', description: '不可逆哈希值，用于跨数据集关联', primaryKey: true, nullable: false, sensitivity: 'L2', sampleValue: 'ENT-8A12' },
+          { name: 'stat_month', dataType: 'date', meaning: '统计月份', description: '活跃度指标所属自然月，格式 YYYY-MM-01', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '2026-06-01' },
           { name: 'order_frequency', dataType: 'integer', meaning: '月度发单频次', description: '该企业当月通过平台发起的物流订单总数', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '156' },
           { name: 'fulfillment_rate', dataType: 'decimal', meaning: '履约完成率', description: '成功完成 / 总订单数 × 100%', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '0.94' },
           { name: 'coverage_region', dataType: 'string', meaning: '主要覆盖区域', description: '发单/收单最频繁的 3 个省份', primaryKey: false, nullable: true, profilingEnabled: true, sampleValue: '广东,浙江,江苏' },
           { name: 'activity_level', dataType: 'string', meaning: '活跃等级', description: 'A/B/C/D 四级，基于发单频次和履约率综合评定', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: 'A' }
         ],
-        sampleColumns: ['enterprise_id', 'order_frequency', 'fulfillment_rate', 'coverage_region', 'activity_level'],
+        sampleColumns: ['enterprise_id', 'stat_month', 'order_frequency', 'fulfillment_rate', 'coverage_region', 'activity_level'],
         sampleRows: [
-          { enterprise_id: 'ENT-8A12', order_frequency: 156, fulfillment_rate: 0.94, coverage_region: '广东,浙江,江苏', activity_level: 'A' },
-          { enterprise_id: 'ENT-2C31', order_frequency: 89, fulfillment_rate: 0.87, coverage_region: '上海,江苏,安徽', activity_level: 'B' },
-          { enterprise_id: 'ENT-5F90', order_frequency: 42, fulfillment_rate: 0.76, coverage_region: '四川,重庆', activity_level: 'C' },
-          { enterprise_id: 'ENT-1D47', order_frequency: 203, fulfillment_rate: 0.91, coverage_region: '北京,河北,山东', activity_level: 'A' },
-          { enterprise_id: 'ENT-9E33', order_frequency: 28, fulfillment_rate: 0.68, coverage_region: '湖北,湖南', activity_level: 'D' }
+          { enterprise_id: 'ENT-8A12', stat_month: '2026-06-01', order_frequency: 156, fulfillment_rate: 0.94, coverage_region: '广东,浙江,江苏', activity_level: 'A' },
+          { enterprise_id: 'ENT-2C31', stat_month: '2026-06-01', order_frequency: 89, fulfillment_rate: 0.87, coverage_region: '上海,江苏,安徽', activity_level: 'B' },
+          { enterprise_id: 'ENT-5F90', stat_month: '2026-05-01', order_frequency: 42, fulfillment_rate: 0.76, coverage_region: '四川,重庆', activity_level: 'C' },
+          { enterprise_id: 'ENT-1D47', stat_month: '2026-06-01', order_frequency: 203, fulfillment_rate: 0.91, coverage_region: '北京,河北,山东', activity_level: 'A' },
+          { enterprise_id: 'ENT-9E33', stat_month: '2026-04-01', order_frequency: 28, fulfillment_rate: 0.68, coverage_region: '湖北,湖南', activity_level: 'D' }
         ],
         sampleGeneratedAt: '2026-07-01',
         profiling: {
@@ -545,6 +554,24 @@ export const seedProducts: Product[] = [
           updatedAt: '2026-07-01'
         },
         fieldProfiling: [
+          {
+            fieldName: 'stat_month',
+            kind: 'datetime',
+            nullRate: '0%',
+            distinctCount: 30,
+            minDate: '2024-01-01',
+            maxDate: '2026-06-01',
+            span: '2 年 6 个月',
+            distribution: [
+              { label: '2024 H1', count: 520000, percent: 20 },
+              { label: '2024 H2', count: 546000, percent: 21 },
+              { label: '2025 H1', count: 572000, percent: 22 },
+              { label: '2025 H2', count: 546000, percent: 21 },
+              { label: '2026 H1', count: 416000, percent: 16 }
+            ],
+            anomalies: '2026-02 春节窗口企业活跃记录偏少，已按业务日历标注',
+            updatedAt: '2026-07-01'
+          },
           {
             fieldName: 'order_frequency',
             kind: 'numeric',
@@ -656,8 +683,8 @@ export const seedProducts: Product[] = [
       dataset: {
         granularity: '区县 × 小时', timeRange: '近 12 个月', rowCount: 18600000, classification: '聚合运营数据（L2）', qualityUpdatedAt: '2026-07-30',
         fields: [
-          { name: 'district_code', dataType: 'string', meaning: '区县编码', description: '国家统计区划编码', primaryKey: true, nullable: false, sampleValue: '310115' },
-          { name: 'time_bucket', dataType: 'datetime', meaning: '小时窗口', description: '轨迹聚合时间窗口', primaryKey: true, nullable: false, sampleValue: '2026-07-30 08:00' },
+          { name: 'district_code', dataType: 'string', meaning: '区县编码', description: '国家统计区划编码', primaryKey: true, nullable: false, profilingEnabled: true, sampleValue: '310115' },
+          { name: 'time_bucket', dataType: 'datetime', meaning: '小时窗口', description: '轨迹聚合时间窗口', primaryKey: true, nullable: false, profilingEnabled: true, sampleValue: '2026-07-30 08:00' },
           { name: 'vehicle_heat', dataType: 'integer', meaning: '车辆热度', description: '窗口内脱敏聚合热度', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '862' }
         ],
         sampleColumns: ['district_code', 'time_bucket', 'vehicle_heat'],
@@ -666,7 +693,54 @@ export const seedProducts: Product[] = [
           { district_code: '320115', time_bucket: '2026-07-30 08:00', vehicle_heat: 641 }
         ],
         sampleGeneratedAt: '2026-07-30',
-        profiling: { completeness: '98.6%', uniqueness: '联合主键唯一性 100%', nullRate: '1.4%', distribution: '东部干线占 48%', anomalies: '节假日波动已标注', conclusion: '适合区域热力和趋势分析', updatedAt: '2026-07-30' }
+        profiling: { completeness: '98.6%', uniqueness: '联合主键唯一性 100%', nullRate: '1.4%', distribution: '东部干线占 48%', anomalies: '节假日波动已标注', conclusion: '适合区域热力和趋势分析', updatedAt: '2026-07-30' },
+        fieldProfiling: [
+          {
+            fieldName: 'district_code',
+            kind: 'identifier',
+            nullRate: '0%',
+            distinctCount: 2846,
+            uniqueness: '100%',
+            samplePattern: '6 位国家统计区划编码，如 310115',
+            updatedAt: '2026-07-30'
+          },
+          {
+            fieldName: 'time_bucket',
+            kind: 'datetime',
+            nullRate: '0%',
+            distinctCount: 8760,
+            minDate: '2025-07-31',
+            maxDate: '2026-07-30',
+            span: '12 个月',
+            distribution: [
+              { label: '工作日白天', count: 7440000, percent: 40 },
+              { label: '工作日夜间', count: 3720000, percent: 20 },
+              { label: '周末白天', count: 3720000, percent: 20 },
+              { label: '周末夜间', count: 3720000, percent: 20 }
+            ],
+            updatedAt: '2026-07-30'
+          },
+          {
+            fieldName: 'vehicle_heat',
+            kind: 'numeric',
+            nullRate: '1.4%',
+            distinctCount: 2156,
+            min: '12',
+            max: '4,860',
+            avg: '428',
+            median: '316',
+            p25: '142',
+            p75: '580',
+            histogram: [
+              { label: '12-100', count: 3906000, percent: 21 },
+              { label: '101-300', count: 5580000, percent: 30 },
+              { label: '301-600', count: 5208000, percent: 28 },
+              { label: '600 以上', count: 3906000, percent: 21 }
+            ],
+            anomalies: '节假日窗口热度波动已标注',
+            updatedAt: '2026-07-30'
+          }
+        ]
       }
     }
   },

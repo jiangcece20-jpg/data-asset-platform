@@ -99,4 +99,32 @@ describe('ResourceEdit product-detail mapping', () => {
       ?.find((item) => item.subject === 'personal' && item.serviceMode === 'continuous')
     expect(plan).toMatchObject({ billingPeriodMonths: 12, maxTermMonths: 24 })
   })
+
+  it('configures standard and premium member benefits with same-tier mutual exclusion', async () => {
+    const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
+
+    await wrapper.get('[data-testid="member-standard-free"]').setValue(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-discount"]').element.checked).toBe(false)
+
+    await wrapper.get('[data-testid="member-standard-discount"]').setValue(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-free"]').element.checked).toBe(false)
+    expect(wrapper.get('[data-testid="member-standard-zhe"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="member-standard-zhe"]').setValue('7')
+
+    await wrapper.get('[data-testid="member-premium-free"]').setValue(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-discount"]').element.checked).toBe(true)
+    expect(wrapper.find('[data-testid="member-premium-zhe"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-logistics-monthly')
+    expect(product?.memberBenefits).toEqual([
+      { tier: 'standard', mode: 'discount', discount: 0.7 },
+      { tier: 'premium', mode: 'free' }
+    ])
+    expect(product?.memberIncluded).toBe(true)
+    expect(product?.price.model).toBe('member_discount')
+    expect(product?.price.memberDiscount).toBe(0.7)
+    expect(product?.acquisitions).toContain('member')
+  })
 })

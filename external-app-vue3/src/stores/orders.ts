@@ -80,7 +80,7 @@ export const useOrderStore = defineStore('orders', {
   },
   actions: {
     // 会员购买（即时支付成功，简化收银台）
-    purchaseMember(months = 12) {
+    purchaseMember(months = 12, tier: 'standard' | 'premium' = 'standard') {
       const entitlements = useEntitlementStore()
       const user = useUserStore()
       const order: Order = {
@@ -89,14 +89,16 @@ export const useOrderStore = defineStore('orders', {
         ownerType: 'personal',
         ownerId: user.context.currentMemberId,
         productId: 'membership',
-        productName: `个人会员 · ${months} 个月`,
-        amount: months === 12 ? 299 : 39,
+        productName: `${tier === 'premium' ? '高级' : '普通'}会员 · ${months} 个月`,
+        amount: tier === 'premium'
+          ? (months === 12 ? 599 : 79)
+          : (months === 12 ? 299 : 39),
         status: 'entitlement_active',
         createdAt: now(),
         paidAt: now()
       }
       this.list.push(order)
-      entitlements.grantMember(months)
+      entitlements.grantMember(months, tier)
       return order
     },
     // 单品购买

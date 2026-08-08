@@ -3,11 +3,18 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import type { Product } from '@/types/domain'
+import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
 
 const router = useRouter()
 const catalog = useCatalogStore()
 
 const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel === 'app_payment'))
+
+function formatMemberCell(product: Product) {
+  const label = formatMemberBenefitsLabel(resolveMemberBenefits(product))
+  return label || '不纳入会员'
+}
 </script>
 
 <template>
@@ -16,10 +23,10 @@ const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel 
 
     <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
       <div class="mb-2 text-[13px] font-medium text-slate-700">会员定价</div>
-      <div class="flex gap-3 text-[13px] text-slate-600">
-        <div class="rounded-lg bg-slate-50 px-3 py-2">连续包月 ¥39</div>
-        <div class="rounded-lg bg-slate-50 px-3 py-2">年度会员 ¥299（推荐）</div>
-        <div class="rounded-lg bg-slate-50 px-3 py-2">单一会员覆盖配置范围内的报告与交互报表</div>
+      <div class="flex flex-wrap gap-3 text-[13px] text-slate-600">
+        <div class="rounded-lg bg-slate-50 px-3 py-2">普通年费 ¥299 / 月费 ¥39</div>
+        <div class="rounded-lg bg-slate-50 px-3 py-2">高级年费 ¥599 / 月费 ¥79</div>
+        <div class="rounded-lg bg-slate-50 px-3 py-2">商品按普通/高级配置免费或折扣；同级互斥、跨级独立</div>
       </div>
     </div>
 
@@ -45,7 +52,7 @@ const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel 
             <td class="py-1.5 text-slate-700">{{ p.name }}</td>
             <td class="py-1.5 text-slate-500">¥{{ p.price.itemPrice }}</td>
             <td class="py-1.5 text-slate-500">{{ p.price.memberDiscount ? (p.price.memberDiscount * 10).toFixed(0) + ' 折' : '—' }}</td>
-            <td class="py-1.5 text-slate-500">{{ p.price.model === 'member_free' ? '会员免费' : p.price.model === 'member_discount' ? '会员折扣' : '不纳入会员' }}</td>
+            <td class="py-1.5 text-slate-500">{{ formatMemberCell(p) }}</td>
           </tr>
         </tbody>
       </table>

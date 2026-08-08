@@ -33,4 +33,17 @@ describe('four-type product catalog', () => {
       expect(product.typeDetail.dataset?.sampleRows.length).toBeLessThanOrEqual(10)
     }
   })
+
+  it('gives published datasets fieldProfiling for every profilingEnabled field', () => {
+    for (const product of seedProducts.filter((item) => item.type === 'dataset' && item.availability === 'published')) {
+      const dataset = product.typeDetail.dataset
+      expect(dataset).toBeTruthy()
+      const enabled = (dataset?.fields ?? []).filter((f) => f.profilingEnabled).map((f) => f.name)
+      const stats = new Set((dataset?.fieldProfiling ?? []).map((s) => s.fieldName))
+      expect(enabled.length).toBeGreaterThan(0)
+      for (const name of enabled) {
+        expect(stats.has(name)).toBe(true)
+      }
+    }
+  })
 })

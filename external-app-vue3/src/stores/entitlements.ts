@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { seedEntitlements } from '@/data/seed'
-import type { Entitlement, Product } from '@/types/domain'
+import type { Entitlement, MemberTier, Product } from '@/types/domain'
 import { genId, now } from '@/utils/id'
+import { memberTierCoversFree } from '@/domain/memberBenefits'
 import { useUserStore } from './user'
 import { useCatalogStore } from './catalog'
 
@@ -33,6 +34,21 @@ export const useEntitlementStore = defineStore('entitlements', {
         && e.ownerId === user.context.currentMemberId
         && isActive(e, today),
       )
+    },
+    personalMemberTier(state): MemberTier | null {
+      const user = useUserStore()
+      const today = todayStr()
+      const tiers = state.list
+        .filter((e) =>
+          e.source === 'personal'
+          && e.type === 'member'
+          && e.ownerId === user.context.currentMemberId
+          && isActive(e, today),
+        )
+        .map((e) => e.memberTier || 'standard')
+      if (tiers.includes('premium')) return 'premium'
+      if (tiers.includes('standard')) return 'standard'
+      return null
     },
     hasPersonalItem(state) {
       return (product: Product, today = todayStr()): boolean => {
@@ -133,7 +149,7 @@ export const useEntitlementStore = defineStore('entitlements', {
           if (datasetAccess === 'personal') return 'item'
           if (datasetAccess === 'enterprise') return 'enterprise'
         }
-        if (product.acquisitions.includes('member') && this.hasPersonalMember) return 'member'
+        if (product.acquisitions.includes('member') && this.hasPersonalMember && memberTierCoversFree(product, this.personalMemberTier)) return 'member'
         if (this.hasPersonalItem(product, today)) return 'item'
         if (this.hasEnterpriseSeatAccess(product.id)) return 'enterprise'
         return 'none'
@@ -141,13 +157,14 @@ export const useEntitlementStore = defineStore('entitlements', {
     }
   },
   actions: {
-    grantMember(months = 12) {
+    grantMember(months = 12, tier: MemberTier = 'standard') {
       const user = useUserStore()
-      user.grantPersonalMember(months)
+      user.grantPersonalMember(months, tier)
       this.list.push({
         id: genId('ent'),
         source: 'personal',
         type: 'member',
+        memberTier: tier,
         ownerId: user.context.currentMemberId,
         validFrom: now(),
         validTo: plusMonths(months),

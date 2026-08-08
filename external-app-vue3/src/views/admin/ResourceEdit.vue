@@ -2,9 +2,17 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import type { PriceModel, AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetOffer, ProductType } from '@/types/domain'
+import type { PriceModel, AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetOffer, MemberTier, ProductType } from '@/types/domain'
 import { listedAtOf } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
+import {
+  deriveLegacyMemberFields,
+  discountToZhe,
+  MEMBER_TIER_LABELS,
+  normalizeDiscountFactor,
+  normalizeMemberBenefits,
+  resolveMemberBenefits
+} from '@/domain/memberBenefits'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 const route = useRoute()
@@ -52,8 +60,12 @@ const productForm = reactive({
   memberDiscount: 0.6,
   memberIncluded: false,
   acquiFree: false,
-  acquiMember: false,
   acquiItem: false,
+  /** 普通/高级会员：同级免费与折扣互斥 */
+  standardMemberMode: 'none' as 'none' | 'free' | 'discount',
+  standardMemberZhe: 6,
+  premiumMemberMode: 'none' as 'none' | 'free' | 'discount',
+  premiumMemberZhe: 6,
   coverage: '',
   updateFrequency: '',
   deliveryMethod: '',
@@ -161,9 +173,15 @@ function syncFormFromStore() {
   productForm.priceModel = p.price.model
   productForm.itemPrice = p.price.itemPrice ?? 0
   productForm.memberDiscount = p.price.memberDiscount ?? 0.6
-  productForm.memberIncluded = p.memberIncluded
+  const benefits = resolveMemberBenefits(p)
+  const standard = benefits.find((item) => item.tier === 'standard')
+  const premium = benefits.find((item) => item.tier === 'premium')
+  productForm.standardMemberMode = standard ? standard.mode : 'none'
+  productForm.standardMemberZhe = discountToZhe(standard?.discount ?? p.price.memberDiscount)
+  productForm.premiumMemberMode = premium ? premium.mode : 'none'
+  productForm.premiumMemberZhe = discountToZhe(premium?.discount ?? p.price.premiumMemberDiscount)
+  productForm.memberIncluded = benefits.some((item) => item.mode === 'free')
   productForm.acquiFree = p.acquisitions.includes('free')
-  productForm.acquiMember = p.acquisitions.includes('member')
   productForm.acquiItem = p.acquisitions.includes('item_purchase')
   productForm.coverage = p.coverage
   productForm.updateFrequency = p.updateFrequency
@@ -254,6 +272,16 @@ function saveProduct() {
   const personalStartingPrice = appOffers
     .filter((offer) => offer.subject === 'personal')
     .reduce((min, offer) => Math.min(min, offer.price), Number.POSITIVE_INFINITY)
+  const memberBenefits = isAssetDataset ? [] : buildMemberBenefitsFromForm()
+  const legacyMember = deriveLegacyMemberFields(
+    memberBenefits,
+    {
+      ...p.price,
+      itemPrice: Number(productForm.itemPrice) || (Number.isFinite(personalStartingPrice) ? personalStartingPrice : p.price.itemPrice)
+    },
+    productForm.acquiFree,
+    productForm.acquiItem
+  )
   catalog.updateProduct(p.id, {
     name: productForm.name,
     subtitle: productForm.subtitle,
@@ -266,19 +294,16 @@ function saveProduct() {
     provider: productForm.provider,
     qualityPromise: productForm.qualityPromise,
     complianceNote: productForm.complianceNote,
-    memberIncluded: isAssetDataset ? false : productForm.memberIncluded,
-    acquisitions: isAssetDataset ? ['item_purchase'] : buildAcquisitions(),
+    memberIncluded: isAssetDataset ? false : legacyMember.memberIncluded,
+    memberBenefits: isAssetDataset ? undefined : memberBenefits,
+    acquisitions: isAssetDataset ? ['item_purchase'] : buildAcquisitions(memberBenefits.length > 0),
     price: isAssetDataset ? {
       ...p.price,
       model: 'item_only',
       itemPrice: Number.isFinite(personalStartingPrice) ? personalStartingPrice : p.price.itemPrice,
-      memberDiscount: undefined
-    } : {
-      ...p.price,
-      model: productForm.priceModel,
-      itemPrice: Number(productForm.itemPrice),
-      memberDiscount: Number(productForm.memberDiscount)
-    },
+      memberDiscount: undefined,
+      premiumMemberDiscount: undefined
+    } : legacyMember.price,
     // 运营增强字段
     recommendText: productForm.recommendText,
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
@@ -291,6 +316,37 @@ function saveProduct() {
   if (p.type === 'report') persistReportConfig()
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
+}
+
+function buildMemberBenefitsFromForm() {
+  const list = []
+  if (productForm.standardMemberMode === 'free') list.push({ tier: 'standard' as MemberTier, mode: 'free' as const })
+  if (productForm.standardMemberMode === 'discount') {
+    list.push({
+      tier: 'standard' as MemberTier,
+      mode: 'discount' as const,
+      discount: normalizeDiscountFactor(productForm.standardMemberZhe)
+    })
+  }
+  if (productForm.premiumMemberMode === 'free') list.push({ tier: 'premium' as MemberTier, mode: 'free' as const })
+  if (productForm.premiumMemberMode === 'discount') {
+    list.push({
+      tier: 'premium' as MemberTier,
+      mode: 'discount' as const,
+      discount: normalizeDiscountFactor(productForm.premiumMemberZhe)
+    })
+  }
+  return normalizeMemberBenefits(list)
+}
+
+function setMemberMode(tier: MemberTier, mode: 'none' | 'free' | 'discount') {
+  if (tier === 'standard') {
+    productForm.standardMemberMode = mode
+    if (mode === 'discount' && !productForm.standardMemberZhe) productForm.standardMemberZhe = 6
+  } else {
+    productForm.premiumMemberMode = mode
+    if (mode === 'discount' && !productForm.premiumMemberZhe) productForm.premiumMemberZhe = 6
+  }
 }
 
 function contentKindFor(type: ProductType, serviceMode: 'one_time' | 'continuous'): CommerceContentKind {
@@ -391,10 +447,10 @@ function approveAndPublish() {
   workflowMessage.value = '审核通过，商品已发布'
 }
 
-function buildAcquisitions(): AcquisitionOption[] {
+function buildAcquisitions(hasMemberBenefit: boolean): AcquisitionOption[] {
   const list: AcquisitionOption[] = []
   if (productForm.acquiFree) list.push('free')
-  if (productForm.acquiMember) list.push('member')
+  if (hasMemberBenefit) list.push('member')
   if (productForm.acquiItem) list.push('item_purchase')
   return list
 }
@@ -670,40 +726,115 @@ function saveProfilingFields() {
         </div>
 
         <!-- APP 统一价格方案：四类商品共同使用，可信空间价格只读同步。 -->
-        <div v-if="product.dealChannel === 'app_payment' && product.acquisitions.includes('item_purchase')" class="mb-4 border-t border-slate-100 pt-4" data-testid="commerce-offer-editor">
-          <div class="mb-1 flex items-center justify-between gap-3">
-            <div class="text-xs font-medium text-slate-600">统一价格方案</div>
-            <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
-          </div>
-          <p class="mb-3 text-[11px] leading-relaxed text-slate-400">个人、企业均可分别配置一次性交付与持续服务。持续方案必须设置计价周期和最长购买期限，不允许永久更新。</p>
-          <div class="grid grid-cols-2 gap-3">
-            <div v-for="(offer, index) in commerceOfferForm.offers" :key="offer.id" class="rounded-lg border border-slate-200 p-3" :data-testid="`commerce-offer-form-${index}`">
-              <div class="mb-2 flex items-center justify-between">
-                <span class="text-xs font-medium text-slate-700">{{ offer.subject === 'personal' ? '个人' : '企业' }} · {{ offer.serviceMode === 'one_time' ? '一次性交付' : '持续服务' }}</span>
-                <label class="flex items-center gap-1 text-[11px] text-slate-400"><input v-model="offer.recommended" type="checkbox" />推荐</label>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <label class="col-span-2 text-xs text-slate-400">方案名称<input v-model="offer.name" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
-                <label class="text-xs text-slate-400">购买主体<select v-model="offer.subject" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="personal">个人</option><option value="enterprise">企业</option></select></label>
-                <label class="text-xs text-slate-400">交付方式<select v-model="offer.serviceMode" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="one_time">一次性交付</option><option value="continuous">持续服务</option></select></label>
-                <label class="text-xs text-slate-400">价格 ¥<input v-model.number="offer.price" type="number" min="0" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
-                <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">计价周期（月）<input v-model.number="offer.billingPeriodMonths" data-testid="billing-period-months" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
-                <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">最长购买（月）<input v-model.number="offer.maxTermMonths" data-testid="max-term-months" type="number" :min="offer.billingPeriodMonths" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
-                <template v-if="offer.subject === 'enterprise'">
-                  <label class="text-xs text-slate-400">授权范围<select v-model="offer.accessScope" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="named_seats">指定成员</option><option value="enterprise_wide">企业全员</option></select></label>
-                  <label v-if="offer.accessScope === 'named_seats'" class="text-xs text-slate-400">席位数<input v-model.number="offer.seats" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
-                </template>
-              </div>
-              <label class="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500"><input v-model="offer.allowDownload" type="checkbox" />允许下载 / 导出</label>
+        <div v-if="product.dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="commerce-offer-editor">
+          <template v-if="commerceOfferForm.offers.length">
+            <div class="mb-1 flex items-center justify-between gap-3">
+              <div class="text-xs font-medium text-slate-600">统一价格方案</div>
+              <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
             </div>
-          </div>
-          <div class="mt-3">
+            <p class="mb-3 text-[11px] leading-relaxed text-slate-400">个人、企业均可分别配置一次性交付与持续服务。持续方案必须设置计价周期和最长购买期限，不允许永久更新。</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div v-for="(offer, index) in commerceOfferForm.offers" :key="offer.id" class="rounded-lg border border-slate-200 p-3" :data-testid="`commerce-offer-form-${index}`">
+                <div class="mb-2 flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-700">{{ offer.subject === 'personal' ? '个人' : '企业' }} · {{ offer.serviceMode === 'one_time' ? '一次性交付' : '持续服务' }}</span>
+                  <label class="flex items-center gap-1 text-[11px] text-slate-400"><input v-model="offer.recommended" type="checkbox" />推荐</label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="col-span-2 text-xs text-slate-400">方案名称<input v-model="offer.name" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                  <label class="text-xs text-slate-400">购买主体<select v-model="offer.subject" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="personal">个人</option><option value="enterprise">企业</option></select></label>
+                  <label class="text-xs text-slate-400">交付方式<select v-model="offer.serviceMode" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="one_time">一次性交付</option><option value="continuous">持续服务</option></select></label>
+                  <label class="text-xs text-slate-400">价格 ¥<input v-model.number="offer.price" type="number" min="0" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                  <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">计价周期（月）<input v-model.number="offer.billingPeriodMonths" data-testid="billing-period-months" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                  <label v-if="offer.serviceMode === 'continuous'" class="text-xs text-slate-400">最长购买（月）<input v-model.number="offer.maxTermMonths" data-testid="max-term-months" type="number" :min="offer.billingPeriodMonths" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                  <template v-if="offer.subject === 'enterprise'">
+                    <label class="text-xs text-slate-400">授权范围<select v-model="offer.accessScope" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700"><option value="named_seats">指定成员</option><option value="enterprise_wide">企业全员</option></select></label>
+                    <label v-if="offer.accessScope === 'named_seats'" class="text-xs text-slate-400">席位数<input v-model.number="offer.seats" type="number" min="1" class="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700" /></label>
+                  </template>
+                </div>
+                <label class="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500"><input v-model="offer.allowDownload" type="checkbox" />允许下载 / 导出</label>
+              </div>
+            </div>
+          </template>
+          <div class="mt-3" data-testid="acquisition-options">
             <span class="mb-1 block text-xs text-slate-400">其它获取方式</span>
-            <div class="flex flex-wrap gap-3 text-xs text-slate-600">
-              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiFree" type="checkbox" />免费</label>
-              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiMember" type="checkbox" />会员</label>
-              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" />单品购买</label>
-              <label v-if="product.type !== 'dataset'" class="flex items-center gap-1.5"><input v-model="productForm.memberIncluded" type="checkbox" />会员权益包含</label>
+            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiFree" type="checkbox" data-testid="acqui-free" />免费</label>
+              <label class="flex items-center gap-1.5"><input v-model="productForm.acquiItem" type="checkbox" data-testid="acqui-item" />单品购买</label>
+            </div>
+
+            <div v-if="product.type !== 'dataset'" class="mt-3 space-y-2" data-testid="member-tier-benefits">
+              <div class="text-xs font-medium text-slate-600">会员权益（按等级）</div>
+              <p class="text-[11px] leading-relaxed text-slate-400">
+                同级「免费」与「折扣」互斥；不同等级互不影响。例如可选普通会员折扣，同时再选高级会员免费或高级会员折扣之一。
+              </p>
+
+              <div
+                v-for="tier in (['standard', 'premium'] as const)"
+                :key="tier"
+                class="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                :data-testid="`member-tier-${tier}`"
+              >
+                <div class="mb-2 text-[11px] font-medium text-slate-700">{{ MEMBER_TIER_LABELS[tier] }}</div>
+                <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                  <label class="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      :name="`member-mode-${tier}`"
+                      :checked="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'none'"
+                      :data-testid="`member-${tier}-none`"
+                      @change="setMemberMode(tier, 'none')"
+                    />
+                    不纳入
+                  </label>
+                  <label class="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      :name="`member-mode-${tier}`"
+                      :checked="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'free'"
+                      :data-testid="`member-${tier}-free`"
+                      @change="setMemberMode(tier, 'free')"
+                    />
+                    {{ MEMBER_TIER_LABELS[tier] }}免费
+                  </label>
+                  <label class="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      :name="`member-mode-${tier}`"
+                      :checked="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'discount'"
+                      :data-testid="`member-${tier}-discount`"
+                      @change="setMemberMode(tier, 'discount')"
+                    />
+                    {{ MEMBER_TIER_LABELS[tier] }}折扣
+                  </label>
+                  <label
+                    v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'discount'"
+                    class="flex items-center gap-1.5"
+                  >
+                    <span class="text-slate-400">打</span>
+                    <input
+                      v-if="tier === 'standard'"
+                      v-model.number="productForm.standardMemberZhe"
+                      type="number"
+                      min="1"
+                      max="9.9"
+                      step="0.1"
+                      data-testid="member-standard-zhe"
+                      class="w-16 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700"
+                    />
+                    <input
+                      v-else
+                      v-model.number="productForm.premiumMemberZhe"
+                      type="number"
+                      min="1"
+                      max="9.9"
+                      step="0.1"
+                      data-testid="member-premium-zhe"
+                      class="w-16 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700"
+                    />
+                    <span class="text-slate-400">折</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>

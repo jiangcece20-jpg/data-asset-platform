@@ -7,6 +7,7 @@ import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
+import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
 import { productCardSummary } from '@/domain/productCardSummary'
 
 const props = defineProps<{ product: Product; matchReason?: string }>()
@@ -33,8 +34,8 @@ const priceText = computed(() => {
     return `¥${min.toLocaleString()} 起`
   }
   const p = props.product.price
-  if (p.model === 'member_free') return '会员免费'
-  if (p.model === 'member_discount') return `¥${p.itemPrice} · 会员${(p.memberDiscount! * 10).toFixed(0)}折`
+  const memberLabel = formatMemberBenefitsLabel(resolveMemberBenefits(props.product))
+  if (memberLabel) return p.itemPrice ? `¥${p.itemPrice} · ${memberLabel}` : memberLabel
   if (p.model === 'item_only') return `¥${p.itemPrice}`
   return p.quoteNote || '询价'
 })

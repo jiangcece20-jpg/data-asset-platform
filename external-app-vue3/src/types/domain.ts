@@ -250,10 +250,24 @@ export type TrialMode = 'unsupported' | 'self_service' | 'apply'
 
 export type PriceModel = 'free' | 'member_free' | 'member_discount' | 'item_only' | 'quote'
 
+/** 个人会员等级：普通会员 / 高级会员 */
+export type MemberTier = 'standard' | 'premium'
+
+/** 商品对某一会员等级的权益：同级仅允许免费或折扣其一 */
+export interface MemberBenefitConfig {
+  tier: MemberTier
+  mode: 'free' | 'discount'
+  /** 折扣系数 0~1，仅 mode=discount 时有效；如 0.6 表示 6 折 */
+  discount?: number
+}
+
 export interface ProductPrice {
   model: PriceModel
   itemPrice?: number
+  /** 兼容字段：优先表示普通会员折扣；多等级以 memberBenefits 为准 */
   memberDiscount?: number
+  /** 高级会员折扣系数；无 memberBenefits 时的兼容字段 */
+  premiumMemberDiscount?: number
   unit?: string
   quoteNote?: string
 }
@@ -396,7 +410,10 @@ export interface Product {
   description: string
   valueProposition: string
   deliveryMethod: string
+  /** @deprecated 请以 memberBenefits 为准；任一等级配置免费时为 true */
   memberIncluded: boolean
+  /** 按会员等级配置的免费/折扣权益；同级互斥，跨级独立 */
+  memberBenefits?: MemberBenefitConfig[]
   spaceProductNo?: string
   spaceSyncedAt?: string
   /** 可信空间同步的描述/合规层元数据（space_purchase 商品只读展示，PRD §11） */
@@ -435,6 +452,8 @@ export interface UserContext {
   name: string
   phone: string
   personalMember: boolean
+  /** 当前个人会员等级；无会员时为空 */
+  personalMemberTier?: MemberTier
   memberExpiresAt?: string
   currentEnterpriseId?: string
   currentMemberId: string
@@ -482,6 +501,8 @@ export interface Entitlement {
   productVersion?: string
   enterpriseId?: string
   ownerId: string
+  /** 会员权益对应的等级；仅 type=member 使用 */
+  memberTier?: MemberTier
   validFrom: string
   validTo?: string
   /** 数据集/报告持续更新截止日；到期停止新版本，已交付内容仍保留。 */

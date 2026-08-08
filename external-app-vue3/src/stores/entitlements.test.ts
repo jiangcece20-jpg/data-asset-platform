@@ -54,19 +54,20 @@ describe('item entitlement policies', () => {
   it('isolates personal membership entitlements by the current member owner', () => {
     const store = useEntitlementStore()
     const user = useUserStore()
-    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    const dashboard = seedProducts.find((product) => product.id === 'prod-freight-index')!
     store.list = []
     user.context.currentMemberId = 'mem-1'
-    store.grantMember()
+    store.grantMember(12, 'standard')
 
     user.context.currentMemberId = 'mem-2'
     expect(user.context.personalMember).toBe(true)
     expect(store.hasPersonalMember).toBe(false)
-    expect(store.accessLevel(report)).toBe('none')
+    expect(store.accessLevel(dashboard)).toBe('none')
 
     user.context.currentMemberId = 'mem-1'
     expect(store.hasPersonalMember).toBe(true)
-    expect(store.accessLevel(report)).toBe('member')
+    expect(store.personalMemberTier).toBe('standard')
+    expect(store.accessLevel(dashboard)).toBe('member')
   })
 
   it('scopes enterprise seat access to the current enterprise and its active assigned member', () => {
