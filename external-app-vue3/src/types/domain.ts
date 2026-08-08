@@ -7,7 +7,9 @@ import type { ServiceStatus, EntitlementStatus } from './reverseFlow'
 // 新增类型原语（Task 1 先定义，Task 2 完成替换）
 // ---------------------------------------------------------------------------
 export type StandardProductType = 'dataset' | 'api' | 'report' | 'dashboard'
-export type ProductOrigin = 'asset_platform' | 'app_content' | 'trusted_space' | 'user_created'
+export type ProductOrigin = 'asset_platform' | 'app_content' | 'trusted_space' | 'user_created' | 'seller_market'
+export type SettlementMode = 'platform_collect' | 'seller_self'
+export type DataProvenance = 'owned' | 'derived'
 export type AvailabilityStatus = 'candidate' | 'preparing' | 'published' | 'paused' | 'delisted'
 export type AcquisitionOption = 'free' | 'member' | 'item_purchase' | 'space_purchase'
 export type PreviewMode = 'visible' | 'masked' | 'locked'
@@ -110,9 +112,19 @@ export type FieldProfiling =
   | BooleanFieldProfiling
 
 export interface DatasetDetail {
-  granularity: string
-  timeRange: string
-  rowCount: number
+  /** 数据粒度（运营配置，非必填；空则前台不展示） */
+  granularity?: string
+  /** 时间范围（运营配置，非必填；空则前台不展示） */
+  timeRange?: string
+  /** 数据行数（运营配置，非必填；空则前台不展示） */
+  rowCount?: number
+  /**
+   * 字段数展示口径（运营配置，非必填）。
+   * - undefined：未配置，有字段清单时回落为 fields.length
+   * - null：运营明确留空，前台不展示
+   * - number：按配置展示
+   */
+  fieldCount?: number | null
   classification: string
   qualityUpdatedAt: string
   fields: DatasetField[]
@@ -337,8 +349,27 @@ export interface ProductTypeDetail {
 
 /** 可信空间元数据同步字段：空间侧为权威源，本地只读不可编辑 */
 export interface SpaceSyncMeta {
+  // --- 基本信息（可售空间必填，同步只读） ---
+  /** 数据资源名 */
+  resourceName?: string
+  /** 资源类型（如 数据集 / API / 报告） */
+  resourceType?: string
+  /** 资源描述 */
+  resourceDescription?: string
+  /** 部门 */
+  department?: string
+  /** 所属行业 */
   industryCategory?: string
+  /** 数据范围（行政区划等，如 广东省 / 云浮市 / 新兴县） */
   regionCategory?: string
+  /** 覆盖时间范围（如 2023-01 至今） */
+  coverageTimeRange?: string
+  /** 交付方式（空间侧枚举，如 API传输 / 数据表交付 / 文件下载） */
+  deliveryMode?: string
+  /** 交付方式说明（文件链接） */
+  deliveryNoteUrl?: string
+  /** 应用场景（空间侧单值） */
+  applicationScenario?: string
   /** 数据主体：企业数据 / 个人数据 / 公共数据 */
   dataSubject?: string
   personalInfo?: boolean
@@ -350,6 +381,12 @@ export interface SpaceSyncMeta {
   dataVolume?: string
   /** 计费模式说明（如：数据表类产品采用一次性价格模式） */
   billingNote?: string
+  /** 计费规则明细（空间侧多条说明，如按结果计费、电子账单） */
+  billingRules?: string[]
+  /** 接口描述（空间侧富文本，API 类型专属，并入接口文档页签） */
+  apiDescription?: string
+  /** 产品介绍（空间侧富文本，独立页签展示） */
+  productIntroduction?: string
   // --- 声明信息 ---
   /** 合法合规声明（文件链接） */
   complianceDeclarationUrl?: string
@@ -372,7 +409,7 @@ export interface SpaceSyncMeta {
   providerBrief?: string
   /** 授权委托书（文件链接） */
   authorizationLetterUrl?: string
-  // --- 分类分级 ---
+  // --- 分类分级（可售空间必填，同步只读） ---
   /** 分类标准（如"政务数据分类标准"） */
   classificationStandard?: string
   /** 分类路径（如"政务数据分类标准 / 组织数据 / 企事业单位"） */
@@ -394,6 +431,14 @@ export interface Product {
   entitlementPolicy?: EntitlementPolicy
   scenarios: string[]
   provider: string
+  /** 入驻商家卖家档案 ID（origin=seller_market） */
+  sellerId?: string
+  /** 前台卖家展示名 */
+  sellerName?: string
+  /** 数据来源声明：自有 / 已购衍生 */
+  dataProvenance?: DataProvenance
+  /** 默认结算模式；入驻商家 MVP 为 seller_self */
+  settlementModeDefault?: SettlementMode
   coverage: string
   updateFrequency: string
   qualityPromise: string
@@ -570,6 +615,16 @@ export interface Order {
   entitlementPendingManual?: boolean
   // 运营确认线下付款时的开通日期；为空表示按确认时间开通
   activationDate?: string
+  /** 入驻商家订单：卖家 ID */
+  sellerId?: string
+  /** 结算模式；入驻商家 MVP 为 seller_self */
+  settlementMode?: SettlementMode
+  /** 买家声称已付款时间（自收款） */
+  buyerPaidClaimedAt?: string
+  /** 卖家确认到账时间 */
+  sellerConfirmedAt?: string
+  /** 卖家拒认/争议原因 */
+  disputeReason?: string
 }
 
 export type TrialStatus = 'not_applied' | 'pending' | 'approved' | 'rejected' | 'exhausted' | 'expired'

@@ -14,6 +14,7 @@ import {
   resolveMemberBenefits
 } from '@/domain/memberBenefits'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,7 +36,8 @@ const originLabels: Record<string, string> = {
   asset_platform: '资产平台',
   app_content: 'APP内容',
   trusted_space: '可信空间',
-  user_created: '用户创建'
+  user_created: '用户创建',
+  seller_market: '入驻商家'
 }
 
 function goBack() {
@@ -102,6 +104,13 @@ const dashboardForm = reactive({
   metrics: [] as DashboardMetricForm[]
 })
 const dashboardConfigSaved = ref(false)
+/** 数据集关键指标：运营配置、非必填；空则前台不展示 */
+const datasetForm = reactive({
+  granularity: '',
+  timeRange: '',
+  rowCount: '' as string,
+  fieldCount: '' as string
+})
 const reportForm = reactive({
   publishedAt: '',
   pageCount: 0,
@@ -226,6 +235,20 @@ function syncFormFromStore() {
     }))
   )
 
+  // 数据集关键指标（运营配置）
+  const dataset = p.typeDetail.dataset
+  datasetForm.granularity = dataset?.granularity ?? ''
+  datasetForm.timeRange = dataset?.timeRange ?? ''
+  datasetForm.rowCount = dataset?.rowCount != null ? String(dataset.rowCount) : ''
+  datasetForm.fieldCount =
+    dataset?.fieldCount != null
+      ? String(dataset.fieldCount)
+      : dataset?.fieldCount === null
+        ? ''
+        : dataset?.fields?.length
+          ? String(dataset.fields.length)
+          : ''
+
   // 报告介绍配置：对应前台「报告介绍」类型特有字段。
   const report = p.typeDetail.report
   reportForm.publishedAt = report?.publishedAt ?? ''
@@ -314,8 +337,29 @@ function saveProduct() {
   })
   if (p.type === 'dashboard') persistDashboardConfig()
   if (p.type === 'report') persistReportConfig()
+  if (p.type === 'dataset') persistDatasetMetrics()
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
+}
+
+function parseOptionalCount(raw: string): number | undefined {
+  const t = raw.trim()
+  if (!t) return undefined
+  const n = Number(t.replace(/,/g, ''))
+  return Number.isFinite(n) ? n : undefined
+}
+
+function persistDatasetMetrics() {
+  const p = product.value
+  if (!p?.typeDetail.dataset) return
+  const fieldRaw = datasetForm.fieldCount.trim()
+  catalog.updateDatasetMetrics(p.id, {
+    granularity: datasetForm.granularity.trim() || undefined,
+    timeRange: datasetForm.timeRange.trim() || undefined,
+    rowCount: parseOptionalCount(datasetForm.rowCount),
+    // 留空 → null（明确不展示）；有值 → number
+    fieldCount: fieldRaw ? parseOptionalCount(datasetForm.fieldCount) ?? null : null
+  })
 }
 
 function buildMemberBenefitsFromForm() {
@@ -518,15 +562,42 @@ function saveProfilingFields() {
       </div>
     </div>
 
-    <!-- 类型特有区块：数据集 -->
-    <div v-if="resource.type === 'dataset' && resource.typeDetail.dataset" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">数据集详情</h2>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">粒度：</span>{{ resource.typeDetail.dataset.granularity }}</div>
-        <div><span class="text-slate-500">时间范围：</span>{{ resource.typeDetail.dataset.timeRange }}</div>
-        <div><span class="text-slate-500">行数：</span>{{ resource.typeDetail.dataset.rowCount?.toLocaleString() }}</div>
-        <div><span class="text-slate-500">字段数：</span>{{ resource.typeDetail.dataset.fields?.length }}</div>
+    <!-- 类型特有区块：数据集关键指标（运营配置，非必填） -->
+    <div v-if="resource.type === 'dataset'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div class="mb-3 flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700">数据集详情</h2>
+        <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">运营配置 · 非必填</span>
       </div>
+      <p class="mb-4 text-xs leading-relaxed text-slate-400">
+        粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
+      </p>
+      <template v-if="product">
+        <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
+            <input v-model="datasetForm.granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">时间范围</span>
+            <input v-model="datasetForm.timeRange" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">数据行数</span>
+            <input v-model="datasetForm.rowCount" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">字段数</span>
+            <input v-model="datasetForm.fieldCount" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+        </div>
+      </template>
+      <div v-else-if="resource.typeDetail.dataset" class="grid grid-cols-2 gap-4 text-sm text-slate-600">
+        <div><span class="text-slate-500">粒度：</span>{{ resource.typeDetail.dataset.granularity || '—' }}</div>
+        <div><span class="text-slate-500">时间范围：</span>{{ resource.typeDetail.dataset.timeRange || '—' }}</div>
+        <div><span class="text-slate-500">行数：</span>{{ resource.typeDetail.dataset.rowCount?.toLocaleString() ?? '—' }}</div>
+        <div><span class="text-slate-500">字段数：</span>{{ resource.typeDetail.dataset.fieldCount ?? resource.typeDetail.dataset.fields?.length ?? '—' }}</div>
+      </div>
+      <p v-else class="text-sm text-slate-400">尚未包装为商品，指标可在上架后配置。</p>
     </div>
 
     <!-- 类型特有区块：API -->
@@ -614,90 +685,20 @@ function saveProfilingFields() {
           <ProductContentPeek :product="previewProduct" />
         </div>
 
-        <!-- 运营信息（对应详情页基本信息网格） -->
+        <!-- 运营信息：空间商品整体只读同步，与详情页「资源信息 / 合规与授权」同源 -->
         <div class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 flex items-center gap-2">
-            <span class="text-xs font-medium text-slate-500">运营信息</span>
-            <span v-if="product.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
-          </div>
-          <div class="space-y-3">
+          <template v-if="product.dealChannel === 'space_purchase'">
+            <ProductInfoSections :product="product" :columns="2" include-department />
+          </template>
+          <template v-else>
+            <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
             <div class="grid grid-cols-2 gap-3">
-              <!-- 提供方：空间商品只读 -->
-              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-                <span class="text-xs text-slate-400">提供方 <span class="text-blue-500">· 同步</span></span>
-                <div class="mt-0.5 text-sm text-slate-700">{{ product.provider }}</div>
-              </div>
-              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <!-- 更新频率：空间商品只读 -->
-              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-                <span class="text-xs text-slate-400">更新频率 <span class="text-blue-500">· 同步</span></span>
-                <div class="mt-0.5 text-sm text-slate-700">{{ product.updateFrequency }}</div>
-              </div>
-              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <!-- 覆盖范围（时间覆盖范围）：空间商品只读 -->
-              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-                <span class="text-xs text-slate-400">覆盖时间范围 <span class="text-blue-500">· 同步</span></span>
-                <div class="mt-0.5 text-sm text-slate-700">{{ product.coverage || '—' }}</div>
-              </div>
-              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <!-- 交付方式：空间商品只读 -->
-              <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-                <span class="text-xs text-slate-400">交付方式 <span class="text-blue-500">· 同步</span></span>
-                <div class="mt-0.5 text-sm text-slate-700">{{ product.deliveryMethod }}</div>
-              </div>
-              <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             </div>
-          </div>
-        </div>
-
-        <!-- 可信空间同步信息（只读，仅 space_purchase 商品有 spaceMeta 时展示） -->
-        <div v-if="product.spaceMeta" class="mb-4 border-t border-slate-100 pt-4">
-          <div class="mb-2 flex items-center gap-2">
-            <span class="text-xs font-medium text-slate-500">合规与分类信息</span>
-            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">来自可信空间同步 · 不可编辑</span>
-          </div>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div v-if="product.spaceMeta.industryCategory" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">行业分类</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.industryCategory }}</div>
-            </div>
-            <div v-if="product.spaceMeta.regionCategory" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">地域分类</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.regionCategory }}</div>
-            </div>
-            <div v-if="product.spaceMeta.dataSubject" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">数据主体</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.dataSubject }}</div>
-            </div>
-            <div v-if="product.spaceMeta.personalInfo != null" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">是否涉及个人信息</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.personalInfo ? '是' : '否' }}</div>
-            </div>
-            <div v-if="product.spaceMeta.authorizedUse != null" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">授权使用</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.authorizedUse ? '是' : '否' }}</div>
-            </div>
-            <div v-if="product.spaceMeta.dataVolume" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">数据规模</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.dataVolume }}</div>
-            </div>
-            <div v-if="product.spaceMeta.usageRestrictions?.length" class="col-span-2 rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">使用限制</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.usageRestrictions.join('、') }}<template v-if="product.spaceMeta.restrictionNote">；其他说明：{{ product.spaceMeta.restrictionNote }}</template></div>
-            </div>
-            <div v-if="product.spaceMeta.classificationStandard" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">分类标准</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationStandard }}</div>
-            </div>
-            <div v-if="product.spaceMeta.classificationLevel != null" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">分级</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationLevel }} 级</div>
-            </div>
-            <div v-if="product.spaceMeta.classificationPath" class="col-span-2 rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">分类路径</span>
-              <div class="mt-0.5 text-slate-700">{{ product.spaceMeta.classificationPath }}</div>
-            </div>
-          </div>
+          </template>
         </div>
 
         <!-- 商品说明书（对应详情页商品说明书区） -->

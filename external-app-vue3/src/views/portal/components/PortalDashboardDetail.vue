@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Product, PreviewMode } from '@/types/domain'
-import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 export interface InfoItem {
@@ -14,7 +14,6 @@ const props = defineProps<{
   product: Product
   activeTab: string
   unlocked: boolean
-  baseInfoItems: InfoItem[]
 }>()
 
 const detail = computed(() => props.product.typeDetail.dashboard)
@@ -53,23 +52,7 @@ function displayValue(value: string | number | null | undefined): string {
   <div v-if="detail">
     <!-- Tab: overview 基本信息 -->
     <div v-if="activeTab === 'overview'" class="space-y-5">
-      <!-- 基本信息（3 列） -->
-      <div>
-        <h3 class="mb-3 text-sm font-semibold text-slate-800">基本信息</h3>
-        <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
-          <div
-            v-for="(item, i) in baseInfoItems"
-            :key="`base-${item.label}-${i}`"
-            class="bg-white p-3"
-            :class="item.full ? 'col-span-3' : ''"
-          >
-            <div class="text-xs text-slate-400">{{ item.label }}</div>
-            <div class="mt-1 text-sm font-semibold text-slate-900">{{ displayValue(item.value) }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 看板信息（3 列） -->
+      <!-- 关键指标（看板专属） -->
       <div>
         <h3 class="mb-3 text-sm font-semibold text-slate-800">看板信息</h3>
         <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
@@ -85,6 +68,9 @@ function displayValue(value: string | number | null | undefined): string {
         </div>
       </div>
 
+      <!-- 资源信息 + 合规与授权 + 提供方 -->
+      <ProductInfoSections :product="product" />
+
       <!-- 商品说明书 -->
       <div class="rounded-lg border border-slate-200 p-4">
         <h3 class="mb-3 text-sm font-semibold text-slate-800">商品说明书</h3>
@@ -96,20 +82,14 @@ function displayValue(value: string | number | null | undefined): string {
         </div>
       </div>
 
-      <!-- 应用场景 -->
-      <div v-if="product.scenarios?.length">
-        <h3 class="mb-2 text-sm font-semibold text-slate-800">应用场景</h3>
-        <div class="flex flex-wrap gap-1.5">
-          <span
-            v-for="s in product.scenarios"
-            :key="s"
-            class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
-          >{{ s }}</span>
+      <!-- 产品介绍（空间同步富文本） -->
+      <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">产品介绍</h3>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
         </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
-
-      <!-- 声明信息 + 提供方信息（仅空间商品） -->
-      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- Tab: preview 看板预览（2 列） -->

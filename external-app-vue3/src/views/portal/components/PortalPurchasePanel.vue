@@ -6,6 +6,7 @@ import type { Product } from '@/types/domain'
 import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription } from '@/domain/commerceOffers'
+import { billingRuleNotes } from '@/domain/productDetailFields'
 import { useUserStore } from '@/stores/user'
 
 const props = defineProps<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{ action: [key: ProductActionKey] }>()
 const router = useRouter()
 const user = useUserStore()
 const pricingInfo = computed(() => pricingPresentation(props.product))
+const billingRules = computed(() => billingRuleNotes(props.product))
 
 const trustedPurchaseEligibility = computed(() => {
   if (props.product.dealChannel !== 'space_purchase') return null
@@ -165,12 +167,14 @@ function goBills() {
         </div>
       </div>
 
-      <!-- 可信空间同步的计费模式说明 -->
+      <!-- 可信空间同步的计费规则说明 -->
       <div
-        v-if="product.spaceMeta?.billingNote"
-        class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500"
+        v-if="billingRules.length"
+        class="mt-2 space-y-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-500"
+        data-testid="space-billing-rules"
       >
-        💡 {{ product.spaceMeta.billingNote }}
+        <div class="text-[11px] text-slate-400">计费规则 · 来自可信空间</div>
+        <div v-for="rule in billingRules" :key="rule">💡 {{ rule }}</div>
       </div>
 
       <div

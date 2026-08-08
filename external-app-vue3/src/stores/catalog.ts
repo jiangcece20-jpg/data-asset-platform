@@ -8,10 +8,24 @@ import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { genId, now } from '@/utils/id'
 
+function cloneProducts(): Product[] {
+  return [...seedProducts, ...mockProducts].map((p) => ({
+    ...p,
+    scenarios: [...(p.scenarios || [])],
+    tags: [...(p.tags || [])],
+    acquisitions: [...(p.acquisitions || [])],
+    spaceMeta: p.spaceMeta ? { ...p.spaceMeta } : undefined
+  }))
+}
+
+function cloneResources(): Resource[] {
+  return [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({ ...r }))
+}
+
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
-    products: [...seedProducts, ...mockProducts].map((p) => ({ ...p })) as Product[],
-    resources: [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({ ...r })) as Resource[]
+    products: cloneProducts(),
+    resources: cloneResources()
   }),
   getters: {
     discoverable(state): Product[] {
@@ -68,7 +82,14 @@ export const useCatalogStore = defineStore('catalog', {
         availability: 'preparing',
         acquisitions: form.acquisitions,
         scenarios: form.scenarios,
-        provider: resource.origin === 'asset_platform' ? '万联数据资产平台' : 'APP 自营内容',
+        provider:
+          resource.origin === 'asset_platform'
+            ? '万联数据资产平台'
+            : resource.origin === 'seller_market'
+              ? '入驻商家'
+              : resource.origin === 'trusted_space'
+                ? '可信空间'
+                : 'APP 自营内容',
         coverage: '',
         updateFrequency: '',
         qualityPromise: '',
@@ -135,14 +156,15 @@ export const useCatalogStore = defineStore('catalog', {
         return r.resourceName.toLowerCase().includes(q)
       })
     },
-    search(query: string, opts?: { type?: string; dealChannel?: string; scenario?: string }): Product[] {
+    search(query: string, opts?: { type?: string; dealChannel?: string; scenario?: string; origin?: string }): Product[] {
       const q = query.trim().toLowerCase()
       return this.discoverable.filter((p) => {
         if (opts?.type && p.type !== opts.type) return false
         if (opts?.dealChannel && p.dealChannel !== opts.dealChannel) return false
+        if (opts?.origin && p.origin !== opts.origin) return false
         if (opts?.scenario && !p.scenarios.includes(opts.scenario)) return false
         if (!q) return true
-        const haystack = [p.name, p.subtitle, p.description, p.recommendText, ...p.tags, ...p.scenarios]
+        const haystack = [p.name, p.subtitle, p.description, p.recommendText, p.provider, p.sellerName, ...p.tags, ...p.scenarios]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -198,8 +220,45 @@ export const useCatalogStore = defineStore('catalog', {
       }
     },
     /**
-     * 看板展示配置同时写回商品与关联资源，确保后台资源摘要和前台详情使用同一份口径。
+     * 数据集关键指标（粒度/时间范围/行数/字段数）写回商品与关联资源。
+     * 由运营配置，非必填；空值前台不展示。
      */
+    updateDatasetMetrics(
+      productId: string,
+      metrics: {
+        granularity?: string
+        timeRange?: string
+        rowCount?: number
+        fieldCount?: number | null
+      }
+    ) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product?.typeDetail.dataset) return
+      const next = {
+        ...product.typeDetail.dataset,
+        granularity: metrics.granularity,
+        timeRange: metrics.timeRange,
+        rowCount: metrics.rowCount,
+        fieldCount: metrics.fieldCount
+      }
+      product.typeDetail = { ...product.typeDetail, dataset: next }
+      product.updatedAt = now()
+
+      const resource = this.resources.find((item) => item.id === product.resourceId)
+      if (resource?.typeDetail.dataset) {
+        resource.typeDetail = {
+          ...resource.typeDetail,
+          dataset: {
+            ...resource.typeDetail.dataset,
+            granularity: metrics.granularity,
+            timeRange: metrics.timeRange,
+            rowCount: metrics.rowCount,
+            fieldCount: metrics.fieldCount
+          }
+        }
+        resource.updatedAt = now()
+      }
+    },
     updateDashboardDetail(productId: string, detail: DashboardDetail) {
       const product = this.products.find((item) => item.id === productId)
       if (!product || product.type !== 'dashboard') return
@@ -297,6 +356,17 @@ export const useCatalogStore = defineStore('catalog', {
         p.salesReviewOwner = undefined
         p.salesReviewAt = undefined
       }
+    },
+    /** 开发态：种子/mock 变更后重载目录（保留运行时改动以外的最新元数据） */
+    reloadSeedCatalog() {
+      this.products = cloneProducts()
+      this.resources = cloneResources()
     }
   }
 })
+
+if (import.meta.hot) {
+  import.meta.hot.accept(['@/data/mockProducts', '@/data/seed'], () => {
+    useCatalogStore().reloadSeedCatalog()
+  })
+}

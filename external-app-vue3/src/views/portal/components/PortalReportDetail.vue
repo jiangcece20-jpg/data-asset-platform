@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types/domain'
-import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
 
 export interface InfoItem {
@@ -14,7 +14,6 @@ const props = defineProps<{
   product: Product
   activeTab: string
   unlocked: boolean
-  baseInfoItems: InfoItem[]
 }>()
 
 const emit = defineEmits<{ unlock: [] }>()
@@ -79,11 +78,12 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
   <div v-if="detail">
     <!-- 报告介绍 -->
     <div v-if="activeTab === 'overview'" class="space-y-5">
+      <!-- 关键指标（报告专属） -->
       <div>
-        <div class="mb-2 text-sm font-semibold text-slate-800">基础信息</div>
+        <div class="mb-2 text-sm font-semibold text-slate-800">报告信息</div>
         <dl class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
           <div
-            v-for="(item, idx) in [...baseInfoItems, ...reportItems]"
+            v-for="(item, idx) in reportItems"
             :key="`${item.label}-${idx}`"
             class="bg-white px-3 py-2.5"
             :class="item.full ? 'col-span-3' : ''"
@@ -93,6 +93,9 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
           </div>
         </dl>
       </div>
+
+      <!-- 资源信息 + 合规与授权 + 提供方 -->
+      <ProductInfoSections :product="product" />
 
       <div
         v-if="product.entitlementPolicy?.kind === 'report_version'"
@@ -109,12 +112,14 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
         <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
       </div>
 
-      <div v-if="product.scenarios?.length" class="flex flex-wrap gap-1.5">
-        <span v-for="s in product.scenarios" :key="s" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ s }}</span>
+      <!-- 产品介绍（空间同步富文本） -->
+      <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-slate-800">产品介绍</span>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+        </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
-
-      <!-- 声明信息 + 提供方信息（仅空间商品） -->
-      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
     </div>
 
     <!-- 目录 -->

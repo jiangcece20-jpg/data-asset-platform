@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
-import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 
 export interface InfoItem {
   label: string
@@ -12,7 +12,6 @@ export interface InfoItem {
 const props = defineProps<{
   product: Product
   activeTab: string
-  baseInfoItems: InfoItem[]
 }>()
 
 const detail = computed(() => props.product.typeDetail.api)
@@ -66,20 +65,8 @@ function simulateFail() {
   <div v-if="detail">
     <!-- =================== Tab 1: basic =================== -->
     <div v-if="activeTab === 'basic'" class="space-y-4">
-      <!-- 3-column info grid -->
-      <div class="overflow-hidden rounded-xl border border-slate-200">
-        <div class="grid grid-cols-3 gap-px bg-slate-100">
-          <div
-            v-for="(item, idx) in baseInfoItems"
-            :key="idx"
-            class="bg-white px-4 py-3"
-            :class="{ 'col-span-3': item.full }"
-          >
-            <div class="text-xs text-slate-400">{{ item.label }}</div>
-            <div class="mt-1 text-sm text-slate-800">{{ item.value ?? '-' }}</div>
-          </div>
-        </div>
-      </div>
+      <!-- 资源信息 + 合规与授权 + 提供方 -->
+      <ProductInfoSections :product="product" />
 
       <!-- 商品说明书 -->
       <div class="rounded-xl border border-slate-200 bg-white p-5">
@@ -90,21 +77,29 @@ function simulateFail() {
           <div><span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}</div>
           <div><span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}</div>
         </div>
-        <div v-if="product.scenarios?.length" class="mt-3 flex flex-wrap gap-1.5">
-          <span
-            v-for="s in product.scenarios"
-            :key="s"
-            class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
-          >{{ s }}</span>
-        </div>
       </div>
 
-      <!-- 声明信息 + 提供方信息（仅空间商品） -->
-      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
+      <!-- 产品介绍（空间同步富文本） -->
+      <div v-if="product.spaceMeta?.productIntroduction" class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="mb-2 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">产品介绍</h3>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+        </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+      </div>
     </div>
 
     <!-- =================== Tab 2: docs =================== -->
     <div v-if="activeTab === 'docs'" class="space-y-4">
+      <!-- 接口描述（空间同步富文本） -->
+      <div v-if="product.spaceMeta?.apiDescription" class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="mb-2 flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">接口描述</h3>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+        </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.apiDescription }}</p>
+      </div>
+
       <!-- 接口基础信息 -->
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h3 class="mb-3 text-sm font-semibold text-slate-800">接口基础信息</h3>

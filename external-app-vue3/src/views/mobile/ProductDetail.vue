@@ -3,15 +3,15 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta, originMeta, listedAtOf } from '@/utils/productMeta'
+import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
-import InfoGrid, { type InfoItem } from '@/components/mobile/product-detail/InfoGrid.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
 import DatasetDetail from '@/components/mobile/product-detail/DatasetDetail.vue'
 import ApiDetail from '@/components/mobile/product-detail/ApiDetail.vue'
 import ReportDetail from '@/components/mobile/product-detail/ReportDetail.vue'
 import DashboardDetail from '@/components/mobile/product-detail/DashboardDetail.vue'
 import ServiceStatusNotice from '@/components/mobile/ServiceStatusNotice.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
@@ -22,6 +22,7 @@ import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapte
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription } from '@/domain/commerceOffers'
+import { billingRuleNotes } from '@/domain/productDetailFields'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
@@ -40,6 +41,7 @@ const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
+const billingRules = computed(() => billingRuleNotes(product.value))
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
@@ -164,36 +166,8 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
   ]
 }
 
-/** 概览页公共基础信息，按两列信息表展示 */
-const baseInfoItems = computed<InfoItem[]>(() => {
-  const p = product.value
-  if (!p) return []
-  const items: InfoItem[] = [
-    { label: '提供方', value: p.provider },
-    { label: '更新频率', value: p.updateFrequency },
-    { label: '覆盖范围', value: p.coverage },
-    { label: '交付方式', value: p.deliveryMethod },
-    { label: '来源', value: originMeta[p.origin] },
-    { label: '上架时间', value: listedAtOf(p) }
-  ]
-  if (p.assetSnapshot) {
-    items.push(
-      { label: '资产版本', value: p.assetSnapshot.assetVersion },
-      { label: '最后监测', value: p.assetSnapshot.lastCheckedAt },
-    )
-  }
-  return items
-})
-
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
-
-/** 是否存在声明信息链接 */
-const hasDeclarations = computed(() => {
-  const m = product.value?.spaceMeta
-  if (!m) return false
-  return !!(m.complianceDeclarationUrl || m.dataSourceDeclarationUrl || m.dataSampleUrl || m.securityClassificationUrl || m.qualityAssessmentUrl)
-})
 // 概览页并入「商品说明书」；内容优先后概览不再是默认首个页签。
 const overviewTabByType: Record<ProductType, string> = {
   dataset: 'basic',
@@ -331,7 +305,7 @@ function handleAction(key: ProductActionKey) {
     <!-- Tab 内容 -->
     <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
       <!-- dataset 类型：表格+分类分级放在最前面 -->
-      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" :base-info-items="baseInfoItems" />
+      <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" />
 
       <!-- 概览页：基础信息 + 商品说明书（从 hero 下沉至此） -->
       <div
@@ -343,21 +317,14 @@ function handleAction(key: ProductActionKey) {
             ? ''
             : 'mb-4 border-b border-slate-100 pb-4'"
       >
-        <!-- dataset 类型的基础信息已合并到 DatasetDetail 中，此处跳过 -->
-        <div v-if="product.type !== 'dataset'" data-testid="product-basic-info">
-          <div class="mb-2 text-[13px] font-semibold text-slate-800">基本信息</div>
-          <InfoGrid :items="baseInfoItems" />
-          <div v-if="product.type === 'dashboard'" class="mt-4" data-testid="dashboard-overview-info">
-            <div class="mb-2 text-[13px] font-semibold text-slate-800">看板信息</div>
-            <DashboardDetail :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
-          </div>
-          <div class="mt-2 flex flex-wrap gap-1.5">
-            <span v-for="s in product.scenarios" :key="s" class="tag-chip">{{ s }}</span>
-          </div>
-          <div v-if="product.spaceProductNo" class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
-            空间商品编号 {{ product.spaceProductNo }}（只读，来自可信空间，同步于 {{ product.spaceSyncedAt }}）
-          </div>
+        <!-- 看板关键指标（其余类型的关键指标在各自 tab 内） -->
+        <div v-if="product.type === 'dashboard'" data-testid="dashboard-overview-info">
+          <div class="mb-2 text-[13px] font-semibold text-slate-800">看板信息</div>
+          <DashboardDetail :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
         </div>
+
+        <!-- 资源信息 + 合规与授权 + 提供方 -->
+        <ProductInfoSections :product="product" variant="mobile" data-testid="product-basic-info" />
 
         <div class="space-y-2 text-[13px] leading-relaxed" data-testid="product-manual">
           <div class="text-[13px] font-semibold text-slate-800">商品说明书</div>
@@ -367,34 +334,13 @@ function handleAction(key: ProductActionKey) {
           <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
         </div>
 
-        <!-- 声明信息（仅空间商品且有数据时展示） -->
-        <div v-if="product.spaceMeta && hasDeclarations" class="space-y-2">
+        <!-- 产品介绍（空间同步富文本） -->
+        <div v-if="product.spaceMeta?.productIntroduction" class="space-y-1.5">
           <div class="flex items-center gap-2">
-            <span class="text-[12px] font-semibold text-slate-800">声明信息</span>
+            <span class="text-[13px] font-semibold text-slate-800">产品介绍</span>
             <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-[12px]">
-            <a v-if="product.spaceMeta.complianceDeclarationUrl" :href="product.spaceMeta.complianceDeclarationUrl" target="_blank" class="text-blue-600">合法合规声明 →</a>
-            <a v-if="product.spaceMeta.dataSourceDeclarationUrl" :href="product.spaceMeta.dataSourceDeclarationUrl" target="_blank" class="text-blue-600">数据来源声明 →</a>
-            <a v-if="product.spaceMeta.dataSampleUrl" :href="product.spaceMeta.dataSampleUrl" target="_blank" class="text-blue-600">数据样例 →</a>
-            <a v-if="product.spaceMeta.securityClassificationUrl" :href="product.spaceMeta.securityClassificationUrl" target="_blank" class="text-blue-600">安全分类分级 →</a>
-            <a v-if="product.spaceMeta.qualityAssessmentUrl" :href="product.spaceMeta.qualityAssessmentUrl" target="_blank" class="col-span-2 text-blue-600">数据质量评估报告 →</a>
-          </div>
-        </div>
-
-        <!-- 提供方信息（仅空间商品且有提供方名称时展示） -->
-        <div v-if="product.spaceMeta?.providerName" class="space-y-2">
-          <div class="flex items-center gap-2">
-            <span class="text-[12px] font-semibold text-slate-800">提供方信息</span>
-            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
-          </div>
-          <div class="space-y-1 text-[12px] text-slate-700">
-            <div><span class="text-slate-400">提供方：</span>{{ product.spaceMeta.providerName }}</div>
-            <div v-if="product.spaceMeta.providerEntityType"><span class="text-slate-400">主体类型：</span>{{ product.spaceMeta.providerEntityType }}</div>
-            <div v-if="product.spaceMeta.providerEntityInfo"><span class="text-slate-400">主体信息：</span>{{ product.spaceMeta.providerEntityInfo }}</div>
-            <div v-if="product.spaceMeta.providerBrief"><span class="text-slate-400">简介：</span>{{ product.spaceMeta.providerBrief }}</div>
-            <a v-if="product.spaceMeta.authorizationLetterUrl" :href="product.spaceMeta.authorizationLetterUrl" target="_blank" class="text-blue-600">授权委托书 →</a>
-          </div>
+          <p class="whitespace-pre-line text-[13px] leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
         </div>
       </div>
 
@@ -420,6 +366,10 @@ function handleAction(key: ProductActionKey) {
         <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] text-blue-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
       </div>
       <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
+      <div v-if="billingRules.length" class="mt-2 space-y-1 border-t border-slate-50 pt-2" data-testid="space-billing-rules">
+        <div class="text-[10px] text-slate-400">计费规则 · 来自可信空间</div>
+        <div v-for="rule in billingRules" :key="rule" class="text-[11px] leading-relaxed text-slate-500">💡 {{ rule }}</div>
+      </div>
     </div>
 
     <div v-if="commerceOffers.length && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">

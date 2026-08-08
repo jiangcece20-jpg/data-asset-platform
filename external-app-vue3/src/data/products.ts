@@ -278,14 +278,28 @@ export const seedProducts: Product[] = [
     spaceProductNo: 'SPACE-API-20415',
     spaceSyncedAt: '2026-07-09 08:30',
     spaceMeta: {
+      resourceName: '道路运输从业人员资格核验数据资源',
+      resourceType: 'API',
+      resourceDescription: '面向司机准入与承运商审核的从业资格证有效性核验能力，返回是否有效与准驾类型。',
+      department: '交通运输认证机构',
       industryCategory: '交通运输',
       regionCategory: '全国',
+      applicationScenario: '司机合规核验',
+      coverageTimeRange: '2021-01 至今',
+      deliveryMode: 'API传输',
+      deliveryNoteUrl: 'https://space.example.com/docs/delivery-api-20415.pdf',
       dataSubject: '个人数据',
       personalInfo: true,
       authorizedUse: true,
       usageRestrictions: ['仅限合规核验用途', '禁止二次转售', '禁止留存原始数据'],
       restrictionNote: '需取得被核验人授权后方可调用',
       billingNote: 'API 类产品按调用量阶梯计费',
+      billingRules: [
+        '发起查询请求后，只有查询获得结果才计费，无业务数据返回不计费',
+        '基于核算结果自动生成详细电子账单，供你核对与留存'
+      ],
+      apiDescription: '支持按身份证号 + 证件编号核验从业资格证有效性，返回是否有效、准驾类型与核验时间；单次请求仅返回结论，不返回证件影像。',
+      productIntroduction: '面向道路运输企业的司机准入合规能力，覆盖全国从业资格证数据，秒级返回核验结论，支持批量与单条两种调用方式。',
       complianceDeclarationUrl: 'https://space.example.com/docs/compliance-api-20415.pdf',
       dataSourceDeclarationUrl: 'https://space.example.com/docs/source-api-20415.pdf',
       dataSampleUrl: 'https://space.example.com/docs/sample-api-20415.pdf',
@@ -386,13 +400,27 @@ export const seedProducts: Product[] = [
     spaceProductNo: 'SPACE-PIR-40217',
     spaceSyncedAt: '2026-07-06 10:00',
     spaceMeta: {
+      resourceName: '企业资质隐私核验数据资源',
+      resourceType: 'API',
+      resourceDescription: '基于 PIR 的企业资质匹配核验，在不暴露明文库的前提下完成匹配判定。',
+      department: '企业服务数据中心',
       industryCategory: '企业服务',
       regionCategory: '全国',
+      applicationScenario: '企业准入审核',
+      coverageTimeRange: '2022-01 至今',
+      deliveryMode: 'API传输',
+      deliveryNoteUrl: 'https://space.example.com/docs/delivery-pir-40217.pdf',
       dataSubject: '企业数据',
       personalInfo: false,
       authorizedUse: false,
       usageRestrictions: ['仅返回匹配结果', '禁止二次转售', '仅限内部使用'],
       billingNote: '隐私核验类产品按核验次数报价',
+      billingRules: [
+        '发起核验请求后，只有匹配得到结论才计费',
+        '基于核算结果自动生成详细电子账单，供你核对与留存'
+      ],
+      apiDescription: '基于 PIR 的双向匿名匹配：请求方不暴露查询条件，数据方不暴露明文库，接口仅返回匹配结论与有效期判定。',
+      productIntroduction: '面向供应商准入场景的隐私核验能力，适合在不共享明文名单的前提下完成资质比对。',
       complianceDeclarationUrl: 'https://space.example.com/docs/compliance-pir-40217.pdf',
       dataSourceDeclarationUrl: 'https://space.example.com/docs/source-pir-40217.pdf',
       securityClassificationUrl: 'https://space.example.com/docs/classification-pir-40217.pdf',
@@ -401,7 +429,10 @@ export const seedProducts: Product[] = [
       providerEntityType: 'LEGAL',
       providerEntityInfo: '四川省雅安市经济开发区永兴大道南；法定代表人：可信test3；成立日期：2026-06-09；注册资本：1500万元',
       providerBrief: '专注企业数据服务与隐私计算，提供多方安全计算核验能力。',
-      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-pir-40217.pdf'
+      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-pir-40217.pdf',
+      classificationStandard: '政务数据分类标准',
+      classificationPath: '政务数据分类标准 / 组织数据 / 企事业单位',
+      classificationLevel: 2
     },
     listedAt: '2026-06-05',
     updatedAt: '2026-07-06',
@@ -491,8 +522,16 @@ export const seedProducts: Product[] = [
     spaceProductNo: 'SPACE-DS-10893',
     spaceSyncedAt: '2026-07-08 21:10',
     spaceMeta: {
+      resourceName: '全国公路货运企业活跃度数据集',
+      resourceType: '数据集',
+      resourceDescription: '覆盖全国公路货运企业活跃度、运力结构与区域热力的可交易数据集。',
+      department: '大数据局',
       industryCategory: '物流',
-      regionCategory: '全国',
+      regionCategory: '广东省 / 云浮市 / 新兴县',
+      applicationScenario: '城市管理',
+      coverageTimeRange: '2024-01 至 2026-06',
+      deliveryMode: '数据表交付',
+      deliveryNoteUrl: 'https://space.example.com/docs/delivery-ds-10893.pdf',
       dataSubject: '企业数据',
       personalInfo: false,
       authorizedUse: false,
@@ -500,6 +539,11 @@ export const seedProducts: Product[] = [
       restrictionNote: '跨境传输需另行合规评估',
       dataVolume: '约 3.2 GB',
       billingNote: '数据表类产品采用一次性价格模式',
+      billingRules: [
+        '一次性价格模式，购买后按约定周期交付全量数据表',
+        '基于核算结果自动生成详细电子账单，供你核对与留存'
+      ],
+      productIntroduction: '覆盖全国 260 万家公路货运企业的活跃度画像，含运力结构与区域热力，可用于城市管理与产业分析。',
       complianceDeclarationUrl: 'https://space.example.com/docs/compliance-ds-10893.pdf',
       dataSourceDeclarationUrl: 'https://space.example.com/docs/source-ds-10893.pdf',
       dataSampleUrl: 'https://space.example.com/docs/sample-ds-10893.pdf',
@@ -836,5 +880,109 @@ export const seedProducts: Product[] = [
         }
       }
     }
+  },
+  // ── 入驻商家看板 ──────────────────────────────────────────
+  {
+    id: 'prod-seller-route-board',
+    resourceId: 'res-prod-seller-route-board',
+    name: '华东干线时效看板',
+    subtitle: '入驻商家提供的干线到达时效与延误分析看板',
+    type: 'dashboard',
+    origin: 'seller_market',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['item_purchase'],
+    entitlementPolicy: { kind: 'term', months: 12 },
+    scenarios: ['线路时效分析', '延误预警'],
+    provider: '入驻商家 · 陈静',
+    sellerId: 'seller-chenjing',
+    sellerName: '陈静',
+    dataProvenance: 'owned',
+    settlementModeDefault: 'seller_self',
+    coverage: '沪苏浙皖主要干线 86 条',
+    updateFrequency: '每日更新',
+    qualityPromise: '基于卖家自有运单样本，口径见看板说明',
+    complianceNote: '已脱敏企业与司机明细；不含个人信息对外售卖',
+    price: { model: 'item_only', itemPrice: 199, unit: '元/12个月' },
+    commerceOffers: [
+      { id: 'offer-seller-route-personal', name: '个人版', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, accessScope: 'personal', allowDownload: false, recommended: true }
+    ],
+    status: 'published',
+    tags: ['入驻商家', '干线', '时效'],
+    description: '展示华东干线准点率、平均时效与延误热点，支持按线路与车型筛选。由入驻商家基于用数成果上架。',
+    valueProposition: '帮助货主与承运商快速定位延误瓶颈。',
+    deliveryMethod: 'APP 在线看板（卖家确认到账后开通）',
+    memberIncluded: false,
+    listedAt: '2026-08-01',
+    updatedAt: '2026-08-08',
+    serviceStatus: 'normal',
+    recommendSlot: true,
+    recommendText: '入驻商家 · 干线时效',
+    sortWeight: 80,
+    typeDetail: {
+      dashboard: {
+        timeRange: '近 12 个月',
+        updateCycle: '每日 08:00',
+        metrics: [
+          { name: '准点率', definition: '按时到达运单占比', formula: '准点单量 / 总单量 × 100%', dimensions: ['线路', '车型'], preview: 'visible', previewValue: '91.2%', previewChange: '较上月 +1.1pct' },
+          { name: '平均时效(小时)', definition: '发车到签收平均时长', formula: 'AVG(签收时间 - 发车时间)', dimensions: ['线路'], preview: 'visible', previewValue: '18.6h', previewChange: '较上月 -0.4h' },
+          { name: '延误热点', definition: '延误次数 Top 线路', formula: 'COUNT(延误标记)', dimensions: ['线路'], preview: 'masked' }
+        ],
+        panels: [
+          { id: 'panel-otp', title: '准点率趋势', chartType: 'line', preview: 'visible', summary: '近 30 天准点率', previewSeries: [88.1, 89.0, 89.4, 90.1, 90.6, 91.0, 91.2] },
+          { id: 'panel-delay', title: '延误分布', chartType: 'bar', preview: 'masked', summary: '各线路延误次数' }
+        ],
+        exportRule: '购买后可在线查看，暂不支持导出'
+      }
+    }
+  },
+  {
+    id: 'prod-seller-warehouse-board',
+    resourceId: 'res-prod-seller-warehouse-board',
+    name: '仓网周转健康看板',
+    subtitle: '入驻商家仓网周转与积压风险看板',
+    type: 'dashboard',
+    origin: 'seller_market',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['item_purchase'],
+    entitlementPolicy: { kind: 'term', months: 6 },
+    scenarios: ['仓储运营'],
+    provider: '入驻商家 · 张数',
+    sellerId: 'seller-zhangshu',
+    sellerName: '张数',
+    dataProvenance: 'derived',
+    settlementModeDefault: 'seller_self',
+    coverage: '华东 12 仓',
+    updateFrequency: '每周更新',
+    qualityPromise: '基于已购数据集二次加工，受源许可约束',
+    complianceNote: '衍生数据；使用受限，禁止再转售明细',
+    price: { model: 'item_only', itemPrice: 129, unit: '元/6个月' },
+    commerceOffers: [
+      { id: 'offer-seller-wh-personal', name: '个人版', subject: 'personal', price: 129, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 6, maxTermMonths: 6, accessScope: 'personal', allowDownload: false, recommended: true }
+    ],
+    status: 'published',
+    tags: ['入驻商家', '仓储'],
+    description: '仓网周转天数、积压 SKU 与补货建议看板，来源为入驻商家衍生加工成果。',
+    valueProposition: '快速识别高积压仓与滞销品类。',
+    deliveryMethod: 'APP 在线看板（卖家确认到账后开通）',
+    memberIncluded: false,
+    listedAt: '2026-08-05',
+    updatedAt: '2026-08-08',
+    serviceStatus: 'normal',
+    typeDetail: {
+      dashboard: {
+        timeRange: '近 6 个月',
+        updateCycle: '每周一',
+        metrics: [
+          { name: '平均周转天数', definition: '库存周转天数', formula: '库存量 / 日出库量', dimensions: ['仓库'], preview: 'visible', previewValue: '14.2', previewChange: '较上周 -0.6' }
+        ],
+        panels: [
+          { id: 'panel-turn', title: '周转趋势', chartType: 'line', preview: 'visible', summary: '近 8 周转势', previewSeries: [16.1, 15.8, 15.2, 14.9, 14.7, 14.5, 14.3, 14.2] }
+        ],
+        exportRule: '不支持导出'
+      }
+    }
   }
+
 ]

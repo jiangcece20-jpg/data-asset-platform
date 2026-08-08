@@ -4,8 +4,9 @@ import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 import ScrollTable, { type ScrollColumn } from './ScrollTable.vue'
 import FieldProfilingPanel from './FieldProfilingPanel.vue'
+import { datasetKeyMetrics } from '@/domain/datasetMetrics'
 
-const props = defineProps<{ product: Product; activeTab: 'basic' | 'fields' | 'samples' | 'profiling'; baseInfoItems: InfoItem[] }>()
+const props = defineProps<{ product: Product; activeTab: 'basic' | 'fields' | 'samples' | 'profiling' }>()
 
 const detail = computed(() => props.product.typeDetail.dataset)
 
@@ -35,47 +36,25 @@ const sampleColumns = computed<ScrollColumn[]>(() =>
   (detail.value?.sampleColumns ?? []).map((col) => ({ key: col, label: col }))
 )
 
-/** 合并基础信息 + 数据集特有指标为一个表格 */
-const combinedItems = computed<InfoItem[]>(() => {
+/** 仅已配置的关键指标；空值不展示（质量/样本时间等同理过滤） */
+const datasetItems = computed<InfoItem[]>(() => {
   const d = detail.value
-  if (!d) return props.baseInfoItems
-  return [
-    ...props.baseInfoItems,
-    { label: '数据粒度', value: d.granularity },
-    { label: '时间范围', value: d.timeRange },
-    { label: '数据行数', value: d.rowCount },
-    { label: '字段数', value: d.fields.length ? `${d.fields.length} 个` : undefined },
-    { label: '质量更新时间', value: d.qualityUpdatedAt },
-    { label: '样本生成时间', value: d.sampleGeneratedAt }
-  ]
+  if (!d) return []
+  const items: InfoItem[] = datasetKeyMetrics(d).map((item) => ({ label: item.label, value: item.value }))
+  if (d.qualityUpdatedAt?.trim()) items.push({ label: '质量更新时间', value: d.qualityUpdatedAt })
+  if (d.sampleGeneratedAt?.trim()) items.push({ label: '样本生成时间', value: d.sampleGeneratedAt })
+  return items
 })
 </script>
 
 <template>
   <div v-if="detail">
-    <!-- 基本信息（合并基础信息 + 数据集指标） -->
+    <!-- 关键指标（数据集专属，仅已配置项） -->
     <template v-if="activeTab === 'basic'">
-      <InfoGrid :items="combinedItems" />
-
-      <div class="mt-2 flex flex-wrap gap-1.5">
-        <span v-for="s in product.scenarios" :key="s" class="tag-chip">{{ s }}</span>
-      </div>
-      <div v-if="product.spaceProductNo" class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
-        空间商品编号 {{ product.spaceProductNo }}（只读，来自可信空间，同步于 {{ product.spaceSyncedAt }}）
-      </div>
-
-      <!-- 空间分类分级（结构化） -->
-      <div v-if="product.spaceMeta?.classificationStandard" class="mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
-        <div class="mb-1.5 flex items-center gap-2">
-          <span class="text-[12px] font-medium text-slate-500">分类分级</span>
-          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
-        </div>
-        <div class="space-y-1 text-[12px] text-slate-700">
-          <div><span class="text-slate-400">分类标准：</span>{{ product.spaceMeta.classificationStandard }}</div>
-          <div><span class="text-slate-400">分类路径：</span>{{ product.spaceMeta.classificationPath }}</div>
-          <div><span class="text-slate-400">分级：</span>{{ product.spaceMeta.classificationLevel }} 级</div>
-        </div>
-      </div>
+      <template v-if="datasetItems.length">
+        <div class="mb-2 text-[13px] font-semibold text-slate-800">关键指标</div>
+        <InfoGrid :items="datasetItems" />
+      </template>
     </template>
 
     <!-- 字段信息：横向滑动，首列字段名吸附 -->

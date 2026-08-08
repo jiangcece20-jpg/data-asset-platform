@@ -67,6 +67,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
       ? '一次性交付'
       : '按商品订单约定'
   const isDataset = order.productType === 'dataset'
+  const isSellerSelf = order.settlementMode === 'seller_self'
   return {
     source: 'app',
     id: order.id,
@@ -76,7 +77,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ownerType: order.ownerType,
     ownerLabel: order.ownerType === 'enterprise' ? enterpriseName : '个人',
     operatorMemberId: order.operatorMemberId,
-    channelLabel: 'APP 内购买',
+    channelLabel: isSellerSelf ? '入驻商家自收款' : 'APP 内购买',
     status: order.status,
     statusDict: 'appOrder',
     filter: appOrderFilter(order.status),
@@ -84,8 +85,14 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     amountText: `¥${order.amount.toLocaleString()}`,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
-    paymentLabel: order.paymentMethod ? paymentLabels[order.paymentMethod] : order.status === 'pending_payment' ? '待选择' : '—',
-    progressSummary: appProgress(order.status, isDataset),
+    paymentLabel: order.paymentMethod
+      ? paymentLabels[order.paymentMethod]
+      : isSellerSelf && order.status === 'payment_pending_confirmation'
+        ? '待卖家确认到账'
+        : order.status === 'pending_payment'
+          ? '待选择'
+          : '—',
+    progressSummary: appProgress(order.status, isDataset, isSellerSelf),
     entitlementId: order.entitlementId,
     canPay: order.status === 'pending_payment',
     paymentPath: isDataset ? `/app/payment/dataset/${order.id}` : undefined
@@ -121,7 +128,7 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
 
 function appOrderFilter(status: AppOrderStatus): MyOrderFilter {
   if (status === 'pending_payment') return 'pending_payment'
-  if (['pending_approval', 'paid'].includes(status)) return 'processing'
+  if (['pending_approval', 'paid', 'payment_pending_confirmation'].includes(status)) return 'processing'
   if (status === 'entitlement_active') return 'completed'
   return 'closed'
 }
@@ -133,7 +140,16 @@ function spaceOrderFilter(status: SpaceOrderDisplayStatus): MyOrderFilter {
   return 'closed'
 }
 
-function appProgress(status: AppOrderStatus, isDataset: boolean): string {
+function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerSelf = false): string {
+  if (isSellerSelf && status === 'payment_pending_confirmation') {
+    return '买家已标记付款，待入驻商家确认到账后开通看板'
+  }
+  if (isSellerSelf && status === 'payment_failed') {
+    return '卖家未确认到账或已发起争议，权益未开通'
+  }
+  if (isSellerSelf && status === 'entitlement_active') {
+    return '卖家已确认到账 · 看板权益已生效'
+  }
   const labels: Record<AppOrderStatus, string> = {
     pending_approval: '采购审批待处理，尚未进入付款',
     approval_rejected: '采购审批未通过，订单已关闭',

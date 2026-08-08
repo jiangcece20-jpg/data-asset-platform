@@ -12,18 +12,14 @@ export interface InfoItem {
 
 const props = defineProps<{ items: InfoItem[] }>()
 
-/** 过滤掉没有 label 的脏数据，并把空值标准化为 — */
+/** 过滤掉无 label / 空值项（空值不展示，而非回落为 —） */
 const rows = computed(() =>
   props.items
     .filter((item) => item.label)
+    .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
     .map((item) => ({
       ...item,
-      display:
-        item.value === null || item.value === undefined || item.value === ''
-          ? '—'
-          : typeof item.value === 'number'
-            ? item.value.toLocaleString()
-            : item.value
+      display: typeof item.value === 'number' ? item.value.toLocaleString() : String(item.value)
     }))
 )
 </script>

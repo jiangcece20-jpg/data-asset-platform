@@ -154,6 +154,17 @@ function openBills() {
         </div>
         <button class="rounded-full bg-white/15 px-3 py-1.5 text-[11px]" @click="router.push('/app/mine/enterprise')">企业中心 ›</button>
       </div>
+      <button
+        data-testid="seller-center-entry"
+        class="mt-2 flex w-full items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-left"
+        @click="router.push('/app/seller')"
+      >
+        <div>
+          <div class="text-[13px] font-medium text-orange-800">卖家中心 · 入驻商家</div>
+          <div class="mt-0.5 text-[11px] text-orange-700/80">上架用数看板 · 自收款确认 · 卖家订单</div>
+        </div>
+        <span class="text-orange-600">›</span>
+      </button>
     </div>
 
     <div class="mx-4 mt-3 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-[13px]">

@@ -97,6 +97,27 @@ export const seedEntitlements: Entitlement[] = [
 
 export const seedOrders: Order[] = [
   {
+    id: 'order-seller-pending-001',
+    channel: 'app',
+    ownerType: 'personal',
+    ownerId: 'mem-buyer-demo',
+    productId: 'prod-seller-route-board',
+    productName: '华东干线时效看板',
+    productType: 'dashboard',
+    commerceOfferId: 'offer-seller-route-personal',
+    serviceMode: 'continuous',
+    selectedTermMonths: 12,
+    amount: 199,
+    status: 'payment_pending_confirmation',
+    entitlementGranted: false,
+    sellerId: 'seller-chenjing',
+    settlementMode: 'seller_self',
+    buyerPaidClaimedAt: '2026-08-08T08:30:00.000Z',
+    createdAt: '2026-08-08T08:30:00.000Z',
+    note: '买家已标记付款，待卖家确认到账后开通看板权益'
+  },
+
+  {
     id: 'order-history-001',
     channel: 'app',
     ownerType: 'personal',

@@ -5,6 +5,7 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
+import { useSellerMarketStore } from '@/stores/sellerMarket'
 import type { PurchaseSubject } from '@/stores/orders'
 import { commerceOffersOf, normalizeOfferTerm, offerAmount, offerDescription, offerTermOptions } from '@/domain/commerceOffers'
 
@@ -13,17 +14,21 @@ const router = useRouter()
 const catalog = useCatalogStore()
 const orders = useOrderStore()
 const user = useUserStore()
+const sellerMarket = useSellerMarketStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
+const isSellerMarket = computed(() => product.value?.origin === 'seller_market')
 const checkoutAllowed = computed(() => product.value?.dealChannel === 'app_payment' && product.value.acquisitions.includes('item_purchase'))
 const paid = ref(false)
 const submitting = ref(false)
 const enterpriseEligible = computed(() =>
-  user.isEnterpriseAuthenticated
+  !isSellerMarket.value
+  && user.isEnterpriseAuthenticated
   && Boolean(user.context.currentEnterpriseId)
   && Boolean(user.currentEnterpriseMember)
 )
+// enterpriseEligible 已排除入驻商家，入驻商家商品自然落到个人主体
 const subject = ref<PurchaseSubject>(enterpriseEligible.value ? 'enterprise' : 'personal')
 const enterpriseMode = ref<'online' | 'contract'>('online')
 const confirmationSubject = ref<PurchaseSubject | null>(null)
@@ -79,6 +84,15 @@ function confirmPurchase() {
   submitting.value = true
   confirmationSubject.value = null
   try {
+    if (isSellerMarket.value) {
+      sellerMarket.purchaseSellerProduct(
+        id.value,
+        offer.value.id,
+        normalizeOfferTerm(offer.value, selectedTermMonths.value)
+      )
+      paid.value = true
+      return
+    }
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
       const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
         offerId: offer.value.id,
@@ -126,6 +140,9 @@ function goBackToContext() {
         <div class="mt-3 rounded-lg bg-slate-50 p-3 text-[12px] leading-relaxed text-slate-500">
           访问期限：{{ entitlementNote }} · 下载/导出：{{ product.type === 'report' ? '会员可合规下载 PDF' : '暂不支持导出' }} · 授权范围：{{ product.deliveryMethod }}
         </div>
+        <div v-if="isSellerMarket" class="mt-3 rounded-lg border border-orange-100 bg-orange-50 p-3 text-[12px] leading-relaxed text-orange-800">
+          入驻商家自收款：你标记付款后，需卖家确认到账才会开通看板权益。平台不代收、不垫资。
+        </div>
         <template>
           <div class="mt-3">
             <div class="text-[12px] font-medium text-slate-700">购买主体</div>
@@ -141,6 +158,7 @@ function goBackToContext() {
                 <div class="mt-1 text-[12px] text-slate-500">{{ user.context.name }}</div>
               </button>
               <button
+                v-if="!isSellerMarket"
                 data-testid="purchase-subject-enterprise"
                 class="rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-50"
                 :class="subject === 'enterprise' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
@@ -221,10 +239,12 @@ function goBackToContext() {
         </template>
       </div>
       <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
-        <div class="text-3xl">🎉</div>
-        <div class="mt-2 text-[14px] font-medium text-emerald-700">支付成功，已解锁本商品</div>
-        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="goBackToContext">
-          {{ returnQ ? '回到原问题解锁完整回答' : '查看内容' }}
+        <div class="text-3xl">{{ isSellerMarket ? '⏳' : '🎉' }}</div>
+        <div class="mt-2 text-[14px] font-medium text-emerald-700">
+          {{ isSellerMarket ? '已提交付款，待卖家确认到账后开通' : '支付成功，已解锁本商品' }}
+        </div>
+        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="isSellerMarket ? router.replace('/app/mine') : goBackToContext()">
+          {{ isSellerMarket ? '查看我的订单' : returnQ ? '回到原问题解锁完整回答' : '查看内容' }}
         </button>
       </div>
     </div>

@@ -9,7 +9,8 @@ import type {
   DashboardDetail,
   ProductTypeDetail,
   ProductPrice,
-  AvailabilityStatus
+  AvailabilityStatus,
+  SpaceSyncMeta
 } from '@/types/domain'
 
 // ── 各类型最小可用 typeDetail 桩 ──────────────────────────
@@ -264,6 +265,43 @@ interface MockInput {
   memberIncluded?: boolean
 }
 
+/** 可信空间可售资源表单必填项（与空间「新建资源」对齐，APP 只读展示） */
+function spaceMetaForMock(input: MockInput): SpaceSyncMeta {
+  const isApi = input.type === 'api'
+  const resourceType = input.type === 'dataset' ? '数据集' : isApi ? 'API 服务' : input.type === 'report' ? '报告' : '看板'
+  return {
+    resourceName: input.name,
+    resourceType,
+    resourceDescription: input.subtitle,
+    department: input.provider.includes('研究院') ? '研究院' : '大数据局',
+    industryCategory: '交通运输',
+    regionCategory: '全国',
+    coverageTimeRange: '2024-01 至 2026-06',
+    deliveryMode: isApi ? 'API传输' : '数据表交付',
+    deliveryNoteUrl: `https://space.example.com/docs/delivery-${input.id}.pdf`,
+    applicationScenario: input.scenarios.join('、') || input.subtitle,
+    classificationStandard: '政务数据分类标准',
+    classificationPath: '政务数据分类标准 / 组织数据 / 企事业单位',
+    classificationLevel: 2,
+    dataSubject: '企业数据',
+    personalInfo: false,
+    authorizedUse: true,
+    dataVolume: input.type === 'dataset' ? '约 12 万行' : '按调用计量',
+    usageRestrictions: ['禁止二次转售'],
+    billingNote: input.price.model === 'quote' ? '按需询价，以可信空间报价为准' : undefined,
+    billingRules: isApi
+      ? [
+          '发起查询请求后，只有查询获得结果才计费，无业务数据返回不计费',
+          '基于核算结果自动生成详细电子账单，供你核对与留存'
+        ]
+      : ['一次性价格模式，购买后按约定周期交付全量数据表'],
+    apiDescription: isApi
+      ? `${input.name} 支持按业务主键实时查询，返回指标值与同比环比；请求与响应字段见下方接口文档。`
+      : undefined,
+    productIntroduction: `${input.subtitle}。数据来自${input.provider}，更新频率${input.updateFrequency}。`
+  }
+}
+
 function makeMock(input: MockInput): Product {
   const isTradeInSpace = input.type === 'dataset' || input.type === 'api'
   const availability = input.availability ?? 'published'
@@ -300,6 +338,8 @@ function makeMock(input: MockInput): Product {
       ? `SP-${input.id.replace(/[^a-z]/gi, '').slice(-6).toUpperCase()}`
       : undefined,
     spaceSyncedAt: isTradeInSpace ? '2026-07-10' : undefined,
+    spaceMeta: isTradeInSpace ? spaceMetaForMock(input) : undefined,
+    listedAt: isTradeInSpace && availability === 'published' ? '2026-07-10' : undefined,
     updatedAt: '2026-07-10',
     typeDetail: typeDetailFor(input.type),
     serviceStatus: 'normal'

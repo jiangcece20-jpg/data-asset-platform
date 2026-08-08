@@ -36,6 +36,10 @@ function submit(q?: string) {
 function goType(type: ProductType) {
   router.push({ path: '/app/search', query: { type } })
 }
+
+function goSellerMarket() {
+  router.push({ path: '/app/search', query: { origin: 'seller_market', type: 'dashboard' } })
+}
 </script>
 
 <template>
@@ -137,9 +141,16 @@ function goType(type: ProductType) {
       <div class="grid grid-cols-4 gap-2">
         <button v-for="t in types" :key="t" class="flex flex-col items-center gap-1 rounded-xl bg-white py-2.5 shadow-card" @click="goType(t)">
           <span class="text-lg">{{ typeMeta[t].icon }}</span>
-          <span class="text-[11px] text-slate-500">{{ typeMeta[t].label }}</span>
+          <span class="text-[11px] text-slate-600">{{ typeMeta[t].label }}</span>
         </button>
       </div>
+      <button class="mt-2 flex w-full items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2.5 text-left" @click="goSellerMarket">
+        <div>
+          <div class="text-[13px] font-medium text-orange-800">入驻商家看板</div>
+          <div class="mt-0.5 text-[11px] text-orange-700/80">来源筛选 · 卖家自收款开通</div>
+        </div>
+        <span class="text-orange-600">›</span>
+      </button>
     </div>
   </div>
 </template>

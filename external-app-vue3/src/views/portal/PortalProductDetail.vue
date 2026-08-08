@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta, originMeta, listedAtOf } from '@/utils/productMeta'
+import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
 import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
 import PortalPurchasePanel from './components/PortalPurchasePanel.vue'
 import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
@@ -20,13 +20,6 @@ import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapte
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
-
-/** 与 4 个类型详情组件的 InfoItem 结构兼容 */
-interface InfoItem {
-  label: string
-  value?: string | number | null
-  full?: boolean
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -133,46 +126,6 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'updates', label: '更新与导出' }
   ]
 }
-
-/** 概览页公共基础信息，传给各类型详情组件的信息网格 */
-const baseInfoItems = computed<InfoItem[]>(() => {
-  const p = product.value
-  if (!p) return []
-  const items: InfoItem[] = [
-    { label: '提供方', value: p.provider },
-    { label: '更新频率', value: p.updateFrequency },
-    { label: '覆盖范围', value: p.coverage },
-    { label: '交付方式', value: p.deliveryMethod },
-    { label: '来源', value: originMeta[p.origin] },
-    { label: '上架时间', value: listedAtOf(p) }
-  ]
-  if (p.assetSnapshot) {
-    items.push(
-      { label: '资产版本', value: p.assetSnapshot.assetVersion },
-      { label: '最后监测', value: p.assetSnapshot.lastCheckedAt }
-    )
-  }
-  // 可信空间同步元数据（PRD §11）：合规三要素 + 行业/地域 + 数据规模 + 结构化使用限制
-  const m = p.spaceMeta
-  if (m) {
-    items.push(
-      { label: '行业分类', value: m.industryCategory },
-      { label: '地域分类', value: m.regionCategory },
-      { label: '数据主体', value: m.dataSubject },
-      { label: '是否涉及个人信息', value: m.personalInfo == null ? null : (m.personalInfo ? '是' : '否') },
-      { label: '授权使用', value: m.authorizedUse == null ? null : (m.authorizedUse ? '是' : '否') },
-      { label: '数据规模', value: m.dataVolume }
-    )
-    if (m.usageRestrictions?.length) {
-      items.push({
-        label: '使用限制',
-        value: m.usageRestrictions.join('、') + (m.restrictionNote ? `；其他说明：${m.restrictionNote}` : ''),
-        full: true
-      })
-    }
-  }
-  return items
-})
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
@@ -341,20 +294,17 @@ function handleAction(key: ProductActionKey) {
               v-if="product.type === 'dataset'"
               :product="product"
               :active-tab="activeTab"
-              :base-info-items="baseInfoItems"
             />
             <PortalApiDetail
               v-else-if="product.type === 'api'"
               :product="product"
               :active-tab="activeTab"
-              :base-info-items="baseInfoItems"
             />
             <PortalReportDetail
               v-else-if="product.type === 'report'"
               :product="product"
               :active-tab="activeTab"
               :unlocked="contentUnlocked"
-              :base-info-items="baseInfoItems"
               @unlock="handleUnlock"
             />
             <PortalDashboardDetail
@@ -362,7 +312,6 @@ function handleAction(key: ProductActionKey) {
               :product="product"
               :active-tab="activeTab"
               :unlocked="contentUnlocked"
-              :base-info-items="baseInfoItems"
             />
             <div v-else class="py-8 text-center text-sm text-slate-400">资料准备中</div>
           </div>

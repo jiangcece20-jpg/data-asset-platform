@@ -5,7 +5,7 @@ import type { Product } from '@/types/domain'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
-import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
+import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
 import { productCardSummary } from '@/domain/productCardSummary'
@@ -69,6 +69,7 @@ function toggleFav(e: MouseEvent) {
     <div class="mb-1.5 flex items-center gap-1.5 pr-6">
       <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
       <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
+      <span v-if="product.origin === 'seller_market'" class="rounded-full bg-orange-50 px-2 py-0.5 text-xs text-orange-700">{{ originMeta.seller_market }}</span>
       <span v-if="product.availability === 'candidate'" class="tag-chip">可申请上架</span>
       <span v-if="product.availability === 'preparing'" class="tag-chip">准备中</span>
     </div>

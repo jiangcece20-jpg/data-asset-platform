@@ -42,7 +42,8 @@ const originLabels: Record<string, string> = {
   asset_platform: '资产平台',
   app_content: 'APP内容',
   trusted_space: '可信空间',
-  user_created: '用户创建'
+  user_created: '用户创建',
+  seller_market: '入驻商家'
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {

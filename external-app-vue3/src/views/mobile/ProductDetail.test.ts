@@ -152,9 +152,12 @@ describe('ProductDetail dashboard overview', () => {
     const dashboard = wrapper.get('[data-testid="dashboard-overview-info"]')
     const manual = wrapper.get('[data-testid="product-manual"]')
 
-    expect(basic.element.contains(dashboard.element)).toBe(true)
+    // 概览页顺序：看板关键指标 → 资源信息 → 商品说明书
     expect(
-      dashboard.element.compareDocumentPosition(manual.element) & Node.DOCUMENT_POSITION_FOLLOWING
+      dashboard.element.compareDocumentPosition(basic.element) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    expect(
+      basic.element.compareDocumentPosition(manual.element) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
     expect(dashboard.text()).toContain('看板信息')
     expect(dashboard.text()).toContain('导出规则')

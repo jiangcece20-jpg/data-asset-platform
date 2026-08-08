@@ -16,17 +16,19 @@ describe('InfoGrid', () => {
     expect(wrapper.findAll('dd').map((n) => n.text())).toEqual(['2026-07-05', '28 页'])
   })
 
-  it('falls back to a dash for empty values', () => {
+  it('hides empty values instead of showing a dash', () => {
     const wrapper = mount(InfoGrid, {
       props: {
         items: [
           { label: '空字符串', value: '' },
           { label: '未定义' },
-          { label: '空值', value: null }
+          { label: '空值', value: null },
+          { label: '有值', value: '全国' }
         ]
       }
     })
-    expect(wrapper.findAll('dd').map((n) => n.text())).toEqual(['—', '—', '—'])
+    expect(wrapper.findAll('dt').map((n) => n.text())).toEqual(['有值'])
+    expect(wrapper.findAll('dd').map((n) => n.text())).toEqual(['全国'])
   })
 
   it('formats numbers with thousand separators', () => {

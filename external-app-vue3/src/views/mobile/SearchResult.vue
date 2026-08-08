@@ -5,8 +5,8 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import EmptyState from '@/components/mobile/EmptyState.vue'
 import { useCatalogStore } from '@/stores/catalog'
-import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
-import type { ProductType, DealChannel } from '@/types/domain'
+import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
+import type { ProductType, DealChannel, ProductOrigin } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 
 const route = useRoute()
@@ -16,6 +16,7 @@ const catalog = useCatalogStore()
 const query = ref(String(route.query.q || ''))
 const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
 const activeChannel = ref<DealChannel | ''>('')
+const activeOrigin = ref<ProductOrigin | ''>((route.query.origin as ProductOrigin) || '')
 
 watch(
   () => route.query.q,
@@ -25,14 +26,20 @@ watch(
   () => route.query.type,
   (t) => (activeType.value = (t as ProductType) || '')
 )
+watch(
+  () => route.query.origin,
+  (o) => (activeOrigin.value = (o as ProductOrigin) || '')
+)
 
 const types: ProductType[] = ['dataset', 'api', 'report', 'dashboard']
 const channels: DealChannel[] = ['app_payment', 'space_purchase']
+const origins: Array<ProductOrigin | ''> = ['', 'app_content', 'asset_platform', 'trusted_space', 'seller_market']
 
 const results = computed(() =>
   catalog.search(query.value, {
     type: activeType.value || undefined,
-    dealChannel: activeChannel.value || undefined
+    dealChannel: activeChannel.value || undefined,
+    origin: activeOrigin.value || undefined
   })
 )
 
@@ -54,6 +61,7 @@ function matchReason(): string {
   if (query.value) parts.push(`关键词“${query.value}”`)
   if (activeType.value) parts.push(typeMeta[activeType.value].label)
   if (activeChannel.value) parts.push(dealChannelMeta[activeChannel.value].label)
+  if (activeOrigin.value) parts.push(originMeta[activeOrigin.value])
   return parts.length ? parts.join(' · ') : '综合排序'
 }
 </script>
@@ -106,6 +114,17 @@ function matchReason(): string {
           {{ dealChannelMeta[c].label }}
         </button>
       </div>
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          v-for="o in origins"
+          :key="o || 'all'"
+          class="rounded-full px-2.5 py-1 text-[11px]"
+          :class="activeOrigin === o ? 'bg-orange-500 text-white' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="activeOrigin = o"
+        >
+          {{ o ? originMeta[o] : '全部来源' }}
+        </button>
+      </div>
     </div>
 
     <div class="mt-3 px-4 text-[11px] text-slate-400">共 {{ results.length }} 个结果 · 匹配原因：{{ matchReason() }}</div>
@@ -124,10 +143,9 @@ function matchReason(): string {
         <div
           v-for="view in internalViews"
           :key="view.id"
-          class="rounded-xl border border-slate-200 bg-white p-3 active:bg-slate-50"
-          @click="openExternalView(view)"
+          class="rounded-xl border border-slate-200 bg-white p-3"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between" @click="openExternalView(view)">
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-slate-800">{{ view.resourceName }}</span>
@@ -142,6 +160,12 @@ function matchReason(): string {
             </div>
             <span class="text-slate-300">›</span>
           </div>
+          <button
+            class="mt-2 w-full rounded-lg border border-orange-200 bg-orange-50 py-1.5 text-[11px] font-medium text-orange-700"
+            @click.stop="router.push('/app/seller/listing')"
+          >
+            申请上架到 APP（入驻商家）
+          </button>
         </div>
       </div>
     </div>

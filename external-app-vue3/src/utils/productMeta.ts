@@ -16,7 +16,8 @@ export const originMeta = {
   asset_platform: '资产平台',
   app_content: 'APP 自有内容',
   trusted_space: '可信空间',
-  user_created: '用户创建'
+  user_created: '用户创建',
+  seller_market: '入驻商家'
 } satisfies Record<ProductOrigin, string>
 
 export interface PriceDisplay {

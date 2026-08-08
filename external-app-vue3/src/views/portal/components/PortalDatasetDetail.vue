@@ -11,7 +11,8 @@ import type {
   BooleanFieldProfiling,
   DistributionBucket
 } from '@/types/domain'
-import SpaceDeclarationProvider from './SpaceDeclarationProvider.vue'
+import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import { datasetKeyMetrics } from '@/domain/datasetMetrics'
 
 export interface InfoItem {
   label: string
@@ -22,22 +23,12 @@ export interface InfoItem {
 const props = defineProps<{
   product: Product
   activeTab: string
-  baseInfoItems: InfoItem[]
 }>()
 
 const detail = computed<DatasetDetail | undefined>(() => props.product.typeDetail.dataset)
 
-/** 数据集关键指标（用户判断数据适用性的核心信息，顶部醒目展示） */
-const datasetItems = computed<InfoItem[]>(() => {
-  const d = detail.value
-  if (!d) return []
-  return [
-    { label: '数据粒度', value: d.granularity },
-    { label: '时间范围', value: d.timeRange },
-    { label: '数据行数', value: d.rowCount },
-    { label: '字段数', value: d.fields.length ? `${d.fields.length} 个` : null }
-  ]
-})
+/** 仅已配置的关键指标；空值不展示 */
+const datasetItems = computed(() => datasetKeyMetrics(detail.value))
 
 // ---- 空值标准化 ----
 function displayValue(v: string | number | null | undefined): string {
@@ -170,8 +161,12 @@ const booleanBar = computed(() => {
   <div v-if="detail">
     <!-- ==================== Tab 1: 基本信息 ==================== -->
     <div v-if="activeTab === 'basic'" class="space-y-6">
-      <!-- 数据集关键指标：粒度/时间范围/行数/字段数，高亮卡置顶 -->
-      <div class="grid grid-cols-4 gap-3">
+      <!-- 数据集关键指标：仅展示已配置项 -->
+      <div
+        v-if="datasetItems.length"
+        class="grid gap-3"
+        :class="datasetItems.length >= 4 ? 'grid-cols-4' : datasetItems.length === 3 ? 'grid-cols-3' : datasetItems.length === 2 ? 'grid-cols-2' : 'grid-cols-1'"
+      >
         <div
           v-for="item in datasetItems"
           :key="item.label"
@@ -182,29 +177,11 @@ const booleanBar = computed(() => {
         </div>
       </div>
 
-      <!-- 分类分级（仅空间商品有数据时展示） -->
-      <div v-if="product.spaceMeta?.classificationStandard" class="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50/60 px-4 py-3">
-        <span class="shrink-0 text-xs font-medium text-slate-500">分类分级</span>
-        <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">来自可信空间</span>
-        <span class="text-sm text-slate-700">{{ product.spaceMeta.classificationPath }}</span>
-        <span class="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">{{ product.spaceMeta.classificationLevel }} 级</span>
-      </div>
-
-      <!-- 3列信息网格 -->
-      <div class="grid grid-cols-3 gap-px bg-slate-100">
-        <div
-          v-for="(item, idx) in baseInfoItems"
-          :key="`${item.label}-${idx}`"
-          class="bg-white px-4 py-3"
-          :class="item.full ? 'col-span-3' : ''"
-        >
-          <div class="text-xs text-slate-400">{{ item.label }}</div>
-          <div class="mt-1 text-sm font-semibold text-slate-900">{{ displayValue(item.value) }}</div>
-        </div>
-      </div>
+      <!-- 资源信息 + 合规与授权 + 提供方 -->
+      <ProductInfoSections :product="product" />
 
       <!-- 商品说明书 -->
-      <div class="space-y-4">
+      <div class="space-y-3">
         <h3 class="text-sm font-semibold text-slate-800">商品说明书</h3>
         <div class="space-y-3 text-sm leading-relaxed text-slate-600">
           <div>
@@ -220,17 +197,16 @@ const booleanBar = computed(() => {
             <span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}
           </div>
         </div>
-        <div v-if="product.scenarios?.length" class="flex flex-wrap gap-2">
-          <span
-            v-for="s in product.scenarios"
-            :key="s"
-            class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600"
-          >{{ s }}</span>
-        </div>
       </div>
 
-      <!-- 声明信息 + 提供方信息（仅空间商品） -->
-      <SpaceDeclarationProvider :space-meta="product.spaceMeta" />
+      <!-- 产品介绍（空间同步富文本） -->
+      <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">产品介绍</h3>
+          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+        </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+      </div>
     </div>
 
     <!-- ==================== Tab 2: 字段信息 ==================== -->
