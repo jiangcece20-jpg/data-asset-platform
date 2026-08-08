@@ -13,6 +13,20 @@ describe('parsePastedFields', () => {
     }
   });
 
+  it('preserves empty first column when line starts with tab', () => {
+    const text = '\tcustomer_code\t客户编号';
+    const result = parsePastedFields(text);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0]).toEqual({
+        nameZh: '',
+        nameEn: 'customer_code',
+        comment: '客户编号',
+      });
+    }
+  });
+
   it('rejects empty paste with example hint', () => {
     const result = parsePastedFields('   ');
     expect(result.ok).toBe(false);

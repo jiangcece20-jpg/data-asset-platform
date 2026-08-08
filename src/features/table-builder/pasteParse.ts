@@ -5,7 +5,7 @@ const EXAMPLE_HINT = '客户编号,customer_code,客户唯一编号';
 export function parsePastedFields(
   text: string,
 ): { ok: true; rows: ParsedFieldRow[] } | { ok: false; message: string } {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
 
   if (lines.length === 0) {
     return {
