@@ -3,17 +3,17 @@ import type { FieldInput, FieldRecommendResult, TableInput } from '../../types/t
 import { Button } from '../../components/base/Button';
 import type { EngineType } from './ddlTemplates';
 import { clearWizard, createDefaultWizard, loadWizard, saveWizard, type WizardState, type WizardStep } from './wizardStore';
-import { canConfirmCreate, canEnterFields, canEnterRecommend } from './stepGates';
+import { canConfirmCreate, canEnterFieldConfig, canEnterTableInfo } from './stepGates';
 import { StepTarget } from './steps/StepTarget';
-import { StepFields } from './steps/StepFields';
-import { StepRecommend } from './steps/StepRecommend';
+import { StepTableInfo } from './steps/StepTableInfo';
+import { StepFieldConfig } from './steps/StepFieldConfig';
 import { StepResult } from './steps/StepResult';
 import './table-builder.css';
 
 const STEP_LABELS: { step: WizardStep; label: string }[] = [
   { step: 1, label: '选库' },
-  { step: 2, label: '录入' },
-  { step: 3, label: '推荐确认' },
+  { step: 2, label: '表名信息' },
+  { step: 3, label: '字段配置' },
   { step: 4, label: '结果' },
 ];
 
@@ -40,14 +40,14 @@ export function TableBuilderPage() {
 
   const goNext = () => {
     if (state.step === 1) {
-      const error = canEnterFields(state);
+      const error = canEnterTableInfo(state);
       if (error) {
         setStepError(error);
         return;
       }
     }
     if (state.step === 2) {
-      const error = canEnterRecommend(state);
+      const error = canEnterFieldConfig(state);
       if (error) {
         setStepError(error);
         return;
@@ -95,22 +95,12 @@ export function TableBuilderPage() {
 
   const handleTableChange = (patch: Partial<TableInput>) => {
     setStepError(null);
-    setState((prev) => {
-      const table = { ...prev.table, ...patch };
-      // 仅在 Step2 录入阶段编辑表名/描述时才需要清空推荐结果；Step3「采纳建议英文表名」
-      // 等操作复用同一个 handler，但不应使已生成的字段推荐结果失效。
-      if (prev.step === 2 && prev.recommendations.length > 0) {
-        return { ...prev, table, recommendations: [] };
-      }
-      return { ...prev, table };
-    });
+    setState((prev) => ({ ...prev, table: { ...prev.table, ...patch } }));
   };
 
   const handleFieldsChange = (fields: FieldInput[]) => {
     setStepError(null);
-    // 字段列表在 Step2 发生任何变化（编辑/新增/删除/粘贴）后，此前生成的推荐结果即视为
-    // 过期，清空后交由 Step3 的进入逻辑重新生成，避免残留旧字段的标准匹配结果。
-    setState((prev) => ({ ...prev, fields, recommendations: [] }));
+    setState((prev) => ({ ...prev, fields }));
   };
 
   const handleRecommendationsChange = (recommendations: FieldRecommendResult[]) => {
@@ -152,18 +142,17 @@ export function TableBuilderPage() {
             onDatabaseChange={handleDatabaseChange}
           />
         ) : state.step === 2 ? (
-          <StepFields
+          <StepTableInfo
             table={state.table}
-            fields={state.fields}
             onTableChange={handleTableChange}
-            onFieldsChange={handleFieldsChange}
           />
         ) : state.step === 3 ? (
-          <StepRecommend
+          <StepFieldConfig
             table={state.table}
             fields={state.fields}
             recommendations={state.recommendations}
             onTableChange={handleTableChange}
+            onFieldsChange={handleFieldsChange}
             onRecommendationsChange={handleRecommendationsChange}
           />
         ) : (

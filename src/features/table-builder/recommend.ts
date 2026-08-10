@@ -2,12 +2,14 @@ import type {
   FieldInput,
   FieldRecommendResult,
   PublishedStandard,
+  RootMatch,
   TableInput,
   TableRecommendResult,
 } from '../../types/tableBuilder';
-import { PUBLISHED_STANDARDS } from './mockStandards';
+import { PUBLISHED_STANDARDS, WORD_ROOTS } from './mockStandards';
+import { generateTableName } from './tableNaming';
 
-export { PUBLISHED_STANDARDS } from './mockStandards';
+export { PUBLISHED_STANDARDS, WORD_ROOTS } from './mockStandards';
 
 const TABLE_SUFFIX_MAP: Record<string, string> = {
   维度表: 'dim',
@@ -93,6 +95,26 @@ function suggestEnglishName(nameZh: string): string {
   return tokens.join('_');
 }
 
+/**
+ * 对中文名进行词根分词匹配：在词根库中查找所有出现于文本中的词根，
+ * 按首次出现位置排序后拼接缩写生成推荐英文名。
+ * 例如「销售金额」→ 命中 [销售→sale, 金额→amt] → 推荐英文名 sale_amt。
+ */
+export function matchWordRoots(nameZh: string): RootMatch | null {
+  const matched: { root: (typeof WORD_ROOTS)[number]; index: number }[] = [];
+  for (const root of WORD_ROOTS) {
+    const idx = nameZh.indexOf(root.name);
+    if (idx !== -1) {
+      matched.push({ root, index: idx });
+    }
+  }
+  if (matched.length === 0) return null;
+  matched.sort((a, b) => a.index - b.index);
+  const roots = matched.map((m) => m.root);
+  const suggestedName = roots.map((r) => r.abbreviation).join('_');
+  return { roots, suggestedName };
+}
+
 function inferTableEnglishName(nameZh: string): string {
   let suffix = 'table';
   for (const [zh, en] of Object.entries(TABLE_SUFFIX_MAP)) {
@@ -153,7 +175,11 @@ export const UNSTANDARDIZED_TECH_DEFAULTS: Pick<
 };
 
 function buildMissingFieldResult(field: FieldInput): FieldRecommendResult {
-  const suggestedNameEn = suggestEnglishName(field.nameZh);
+  const rootMatch = matchWordRoots(field.nameZh);
+  const suggestedNameEn = rootMatch?.suggestedName ?? suggestEnglishName(field.nameZh);
+  const rootRationale = rootMatch
+    ? `词根匹配：${rootMatch.roots.map((r) => `${r.name}→${r.abbreviation}`).join('、')}，推荐英文名 ${rootMatch.suggestedName}。未匹配到已发布标准。`
+    : `未在已发布标准集中找到与「${field.nameZh}」匹配的标准，建议新建标准或手工选择。`;
   return {
     id: field.id,
     nameZh: field.nameZh,
@@ -162,8 +188,9 @@ function buildMissingFieldResult(field: FieldInput): FieldRecommendResult {
     status: 'missing',
     confidence: 'low',
     ...UNSTANDARDIZED_TECH_DEFAULTS,
-    rationale: `未在已发布标准集中找到与「${field.nameZh}」匹配的标准，建议新建标准或手工选择。`,
+    rationale: rootRationale,
     suggestedNameEn,
+    rootMatch: rootMatch ?? undefined,
   };
 }
 
@@ -182,8 +209,18 @@ export function recommendationsMatchFields(
 
 export function recommendTable(input: TableInput): TableRecommendResult {
   const nameZh = input.nameZh.trim() || '未命名表';
-  const nameEn = input.nameEn.trim() || inferTableEnglishName(nameZh);
 
+  if (input.namingConfig) {
+    const autoName = generateTableName(input.namingConfig);
+    const nameEn = input.nameEn.trim() || autoName;
+    return {
+      nameZh,
+      nameEn,
+      rationale: `根据建模分层（${input.namingConfig.layer}）与命名配置自动生成英文表名 ${nameEn}。`,
+    };
+  }
+
+  const nameEn = input.nameEn.trim() || inferTableEnglishName(nameZh);
   return {
     nameZh,
     nameEn,

@@ -1,5 +1,6 @@
 import type { FieldInput, FieldRecommendResult, TableInput } from '../../types/tableBuilder';
 import type { EngineType } from './ddlTemplates';
+import { getDefaultNamingConfig } from './tableNaming';
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
@@ -30,7 +31,7 @@ export function createDefaultWizard(): WizardState {
     step: 1,
     engine: 'Hive',
     database: '',
-    table: { nameZh: '', nameEn: '', description: '' },
+    table: { nameZh: '', nameEn: '', description: '', namingConfig: getDefaultNamingConfig() },
     fields: [],
     recommendations: [],
     createOutcome: null,

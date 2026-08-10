@@ -18,7 +18,7 @@ describe('TableBuilderPage steps 1-2', () => {
   beforeEach(() => {
     sessionStorage.clear();
     clearWizard();
-    window.location.hash = '#table-builder';
+    window.location.hash = '#table-builder/new';
   });
 
   it('blocks entering fields step without database', async () => {
@@ -28,12 +28,22 @@ describe('TableBuilderPage steps 1-2', () => {
     expect(screen.getByText(/选择.*数据源|目标库/)).toBeInTheDocument();
   });
 
-  it('allows paste then requires table name before recommend', async () => {
+  it('requires table name before entering field config, then allows paste', async () => {
     const user = userEvent.setup();
     render(<TableBuilderPage />);
     await user.selectOptions(screen.getByLabelText('数据源类型'), 'Hive');
     await user.selectOptions(screen.getByLabelText('目标库'), 'dwd');
     await user.click(screen.getByRole('button', { name: '下一步' }));
+
+    // Step 2（表名信息）— 未填表名时不能进入 Step 3
+    await user.click(screen.getByRole('button', { name: '下一步' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/表中文名|表英文名/);
+
+    // 填写表名后进入 Step 3（字段配置）
+    await user.type(screen.getByLabelText('中文表名'), '客户维表');
+    await user.click(screen.getByRole('button', { name: '下一步' }));
+
+    // Step 3: 粘贴导入字段
     await user.click(screen.getByRole('button', { name: /粘贴/ }));
     await user.clear(screen.getByLabelText(/粘贴/));
     await user.type(
@@ -41,8 +51,7 @@ describe('TableBuilderPage steps 1-2', () => {
       '客户编号,,客户唯一编号{enter}客户性别,,{enter}优惠券编码,,',
     );
     await user.click(screen.getByRole('button', { name: '解析并写入' }));
-    await user.click(screen.getByRole('button', { name: '下一步' }));
-    expect(screen.getByText(/表中文名|表英文名/)).toBeInTheDocument();
+    expect(screen.getByText('客户编号')).toBeInTheDocument();
   });
 });
 
@@ -50,7 +59,7 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
   beforeEach(() => {
     sessionStorage.clear();
     clearWizard();
-    window.location.hash = '#table-builder';
+    window.location.hash = '#table-builder/new';
   });
 
   it('auto-adopts recommendations and allows ignore / draft jump', async () => {
@@ -72,7 +81,7 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
 
     const adoptedRow = findRowByText('客户编号');
     expect(within(adoptedRow).getByText('已采纳')).toBeInTheDocument();
-    expect(within(adoptedRow).getByText('主键')).toBeInTheDocument();
+    expect(within(adoptedRow).getByRole('checkbox', { name: /主键/ })).toBeChecked();
 
     const missingRow = findRowByText('优惠券编码');
     expect(within(missingRow).getByText('缺标')).toBeInTheDocument();
@@ -82,7 +91,7 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
     expect(within(ignoredRow).getByText('已忽略')).toBeInTheDocument();
     expect(within(ignoredRow).getByText('未落标')).toBeInTheDocument();
     // 忽略后标准派生的技术属性（主键等）应被清空，仅保留用户原始录入内容。
-    expect(within(ignoredRow).queryByText('主键')).not.toBeInTheDocument();
+    expect(within(ignoredRow).getByRole('checkbox', { name: /主键/ })).not.toBeChecked();
 
     await user.click(within(missingRow).getByRole('button', { name: '新建标准草稿' }));
     expect(window.location.hash).toBe('#data-standard/draft');
@@ -114,7 +123,7 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
     const { unmount: unmountDraft } = render(<DataStandardDraftPage />);
     expect(screen.getByDisplayValue('优惠券编码')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '保存草稿' }));
-    expect(window.location.hash).toBe('#table-builder');
+    expect(window.location.hash).toBe('#table-builder/new');
     unmountDraft();
 
     // 回到建表工具 Step3：该字段状态应更新为「草稿已发起」。
@@ -136,24 +145,24 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
     render(<TableBuilderPage />);
 
     const row = findRowByText('客户性别');
-    expect(within(row).getByText('性别码表')).toBeInTheDocument();
-    expect(within(row).getByText(/CHAR/)).toBeInTheDocument();
+    expect(within(row).getByDisplayValue('性别码表')).toBeInTheDocument();
+    expect(within(row).getByDisplayValue('CHAR')).toBeInTheDocument();
 
     await user.click(within(row).getByRole('button', { name: '忽略' }));
 
     const ignoredRow = findRowByText('客户性别');
     expect(within(ignoredRow).getByText('已忽略')).toBeInTheDocument();
     expect(within(ignoredRow).getByText('未落标')).toBeInTheDocument();
-    expect(within(ignoredRow).queryByText('性别码表')).not.toBeInTheDocument(); // 码表已清空
-    expect(within(ignoredRow).getByText(/待分类/)).toBeInTheDocument();
-    expect(within(ignoredRow).getByText(/待定/)).toBeInTheDocument();
-    expect(within(ignoredRow).getByText(/VARCHAR/)).toBeInTheDocument();
+    expect(within(ignoredRow).queryByDisplayValue('性别码表')).not.toBeInTheDocument(); // 码表已清空
+    expect(within(ignoredRow).getByDisplayValue('待分类')).toBeInTheDocument();
+    expect(within(ignoredRow).getByDisplayValue('待定')).toBeInTheDocument();
+    expect(within(ignoredRow).getByDisplayValue('VARCHAR')).toBeInTheDocument();
   });
 
-  it('clears stale recommendations after editing fields on Step2 so Step3 regenerates', async () => {
+  it('regenerates recommendation for a field after editing its Chinese name on Step3', async () => {
     const user = userEvent.setup();
     const state = createDefaultWizard();
-    state.step = 2;
+    state.step = 3;
     state.engine = 'Hive';
     state.database = 'dwd';
     state.table = { nameZh: '客户维表', nameEn: 'dim_customer', description: '' };
@@ -162,10 +171,12 @@ describe('TableBuilderPage step 3 recommend confirmation', () => {
     saveWizard(state);
     render(<TableBuilderPage />);
 
-    const nameInput = screen.getByLabelText('字段1中文名');
+    // Step3: 点击字段中文名进入内联编辑
+    await user.click(screen.getByText('客户编号'));
+    const nameInput = screen.getByLabelText('编辑字段中文名');
     await user.clear(nameInput);
     await user.type(nameInput, '客户性别');
-    await user.click(screen.getByRole('button', { name: '下一步' }));
+    await user.keyboard('{Enter}');
 
     const row = findRowByText('客户性别');
     expect(within(row).getByText('已采纳')).toBeInTheDocument();
@@ -226,7 +237,7 @@ describe('TableBuilderPage step 4 result page', () => {
   beforeEach(() => {
     sessionStorage.clear();
     clearWizard();
-    window.location.hash = '#table-builder';
+    window.location.hash = '#table-builder/new';
   });
 
   it('confirms create and shows success result with DDL preview + copy', async () => {
@@ -338,24 +349,28 @@ describe('TableBuilderPage end-to-end acceptance', () => {
   beforeEach(() => {
     sessionStorage.clear();
     clearWizard();
-    window.location.hash = '#table-builder';
+    window.location.hash = '#table-builder/new';
   });
 
-  it('walks through 选库 → 录入 → 推荐确认 → 成功结果 → 复制 DDL → 重新建表', async () => {
+  it('walks through 选库 → 表名信息 → 字段配置 → 成功结果 → 复制 DDL → 重新建表', async () => {
     const user = userEvent.setup();
     const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     render(<TableBuilderPage />);
 
+    // Step 1: 选库
     await user.selectOptions(screen.getByLabelText('数据源类型'), 'Hive');
     await user.selectOptions(screen.getByLabelText('目标库'), 'dwd');
     await user.click(screen.getByRole('button', { name: '下一步' }));
 
+    // Step 2: 表名信息
+    await user.type(screen.getByLabelText('中文表名'), '客户维表');
+    await user.click(screen.getByRole('button', { name: '下一步' }));
+
+    // Step 3: 字段配置 — 粘贴导入
     await user.click(screen.getByRole('button', { name: /粘贴/ }));
     await user.clear(screen.getByLabelText(/粘贴/));
     await user.type(screen.getByLabelText(/粘贴/), '客户编号,,客户唯一编号{enter}客户性别,,');
     await user.click(screen.getByRole('button', { name: '解析并写入' }));
-    await user.type(screen.getByLabelText('中文表名'), '客户维表');
-    await user.click(screen.getByRole('button', { name: '下一步' }));
 
     expect(findRowByText('客户编号')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认建表' }));

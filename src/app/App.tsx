@@ -14,6 +14,7 @@ import { DataSourceDetailPage } from '../features/datasource/DataSourceDetailPag
 import { DataStandardShellPage } from '../features/data-standard/DataStandardShellPage';
 import { DataStandardDraftPage } from '../features/data-standard/DataStandardDraftPage';
 import { TableBuilderPage } from '../features/table-builder/TableBuilderPage';
+import { TableListPage } from '../features/table-builder/TableListPage';
 import { AppShell } from './AppShell';
 import {
   getDataSourceIdFromHash,
@@ -72,6 +73,8 @@ export function App() {
       ) : activeRoute === 'data-standard-draft' ? (
         <DataStandardDraftPage />
       ) : activeRoute === 'table-builder' ? (
+        <TableListPage />
+      ) : activeRoute === 'table-builder-new' ? (
         <TableBuilderPage />
       ) : (
         <ProductPage route={activeRoute} />

@@ -12,7 +12,8 @@ export type AppRouteKey =
   | 'datasource'
   | 'data-standard'
   | 'data-standard-draft'
-  | 'table-builder';
+  | 'table-builder'
+  | 'table-builder-new';
 
 export type AppRoute = {
   key: AppRouteKey;
@@ -96,6 +97,7 @@ export function getRouteFromHash(hash: string): AppRouteKey {
   if (path.startsWith('datasource')) return 'datasource';
   if (path === 'detail') return 'detail';
   if (path === 'ai-find') return 'ai-find';
+  if (path === 'table-builder/new') return 'table-builder-new';
   if (path === 'table-builder') return 'table-builder';
   if (path === 'data-standard/draft') return 'data-standard-draft';
   if (path === 'data-standard') return 'data-standard';

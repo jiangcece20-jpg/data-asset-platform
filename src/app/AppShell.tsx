@@ -96,6 +96,13 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
               href="#table-builder"
               aria-current={activeRoute === 'table-builder' ? 'page' : undefined}
             >
+              表管理
+            </a>
+            <a
+              className={activeRoute === 'table-builder-new' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#table-builder/new"
+              aria-current={activeRoute === 'table-builder-new' ? 'page' : undefined}
+            >
               建表向导
             </a>
           </nav>

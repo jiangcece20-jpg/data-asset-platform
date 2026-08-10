@@ -12,6 +12,7 @@ import {
   PUBLISHED_STANDARDS,
   UNSTANDARDIZED_TECH_DEFAULTS,
   formatFieldType,
+  matchWordRoots,
   recommendFields,
   recommendTable,
   recommendationsMatchFields,
@@ -70,6 +71,8 @@ export function StepRecommend({
 }: StepRecommendProps) {
   const [reselectTargetId, setReselectTargetId] = useState<string | null>(null);
   const [reselectCode, setReselectCode] = useState<string>(PUBLISHED_STANDARDS[0]?.code ?? '');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
     if (fields.length === 0) return;
@@ -154,6 +157,51 @@ export function StepRecommend({
     window.location.hash = '#data-standard/draft';
   };
 
+  // ── 词根推荐相关 ──
+
+  const startEdit = (row: FieldRecommendResult) => {
+    setEditingId(row.id);
+    setEditValue(row.nameZh);
+  };
+
+  const confirmEdit = () => {
+    if (!editingId) return;
+    const match = matchWordRoots(editValue);
+    updateRow(editingId, {
+      nameZh: editValue,
+      rootMatch: match ?? undefined,
+    });
+    setEditingId(null);
+  };
+
+  const applyRootRecommendation = (id: string) => {
+    const row = recommendations.find((r) => r.id === id);
+    if (!row) return;
+    const match = matchWordRoots(row.nameZh);
+    if (!match) return;
+    updateRow(id, {
+      nameEn: match.suggestedName,
+      rootMatch: match,
+      rationale: `词根匹配：${match.roots.map((r) => `${r.name}→${r.abbreviation}`).join('、')}，推荐英文名 ${match.suggestedName}。未匹配到已发布标准。`,
+    });
+    setEditingId(null);
+  };
+
+  const handleBatchRootNaming = () => {
+    const updated = recommendations.map((row) => {
+      if (row.status === 'adopted' || row.status === 'reselected') return row;
+      const match = matchWordRoots(row.nameZh);
+      if (!match) return row;
+      return {
+        ...row,
+        nameEn: row.nameEn || match.suggestedName,
+        rootMatch: match,
+        rationale: `词根匹配：${match.roots.map((r) => `${r.name}→${r.abbreviation}`).join('、')}，推荐英文名 ${match.suggestedName}。未匹配到已发布标准。`,
+      };
+    });
+    onRecommendationsChange(updated);
+  };
+
   return (
     <div className="tb-step tb-recommend">
       <div className="tb-recommend__table-bar">
@@ -202,7 +250,48 @@ export function StepRecommend({
             ) : (
               recommendations.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.nameZh}</td>
+                  <td className="tb-recommend-table__name-zh">
+                    {editingId === row.id ? (
+                      <div className="tb-root-edit">
+                        <input
+                          className="tb-fields-table__input"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={confirmEdit}
+                          onKeyDown={(e) => { if (e.key === 'Enter') confirmEdit(); }}
+                          aria-label="编辑字段中文名"
+                        />
+                        {(() => {
+                          const match = matchWordRoots(editValue);
+                          if (!match) return null;
+                          return (
+                            <div className="tb-root-dropdown">
+                              <p className="tb-root-dropdown__title">词根匹配</p>
+                              <button
+                                type="button"
+                                className="tb-root-dropdown__item"
+                                onMouseDown={(e) => { e.preventDefault(); applyRootRecommendation(row.id); }}
+                              >
+                                <span className="tb-root-dropdown__name">{match.suggestedName}</span>
+                                <span className="tb-root-dropdown__roots">
+                                  {match.roots.map((r) => `${r.name}→${r.abbreviation}`).join(' · ')}
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <span
+                        className="tb-recommend-table__name-zh-text"
+                        onClick={() => startEdit(row)}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        {row.nameZh}
+                      </span>
+                    )}
+                  </td>
                   <td className="tb-form__input--mono">{row.nameEn || '（待补充英文名）'}</td>
                   <td>{formatFieldType(row)}</td>
                   <td className="tb-recommend-table__constraints">
@@ -223,6 +312,11 @@ export function StepRecommend({
                     {row.status === 'ignored' ? <Tag tone="warning">未落标</Tag> : null}
                   </td>
                   <td className="tb-recommend-table__actions">
+                    {row.rootMatch && !row.standard ? (
+                      <Button variant="text" size="sm" onClick={() => applyRootRecommendation(row.id)}>
+                        应用词根
+                      </Button>
+                    ) : null}
                     <Button variant="text" size="sm" onClick={() => openReselect(row)}>
                       改选
                     </Button>
@@ -242,6 +336,13 @@ export function StepRecommend({
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="tb-recommend__toolbar">
+        <Button variant="default" size="sm" onClick={handleBatchRootNaming}>
+          词根命名
+        </Button>
+        <span className="tb-hint">一键为缺标字段推荐词根匹配的英文名</span>
       </div>
 
       <div className="tb-recommend__missing">

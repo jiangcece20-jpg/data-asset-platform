@@ -46,8 +46,9 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByText('建表工具')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '建表向导' })).toHaveAttribute('href', '#table-builder');
-    expect(screen.getByRole('link', { name: '建表向导' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '表管理' })).toHaveAttribute('href', '#table-builder');
+    expect(screen.getByRole('link', { name: '表管理' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: '建表向导' })).toHaveAttribute('href', '#table-builder/new');
   });
 
   it('removes outer padding for embedded workspace pages', () => {

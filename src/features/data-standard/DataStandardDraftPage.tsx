@@ -50,7 +50,7 @@ export function DataStandardDraftPage() {
   }, []);
 
   const goBackToTableBuilder = () => {
-    window.location.hash = '#table-builder';
+    window.location.hash = '#table-builder/new';
   };
 
   const handleSave = () => {

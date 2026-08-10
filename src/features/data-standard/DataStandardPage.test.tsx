@@ -68,7 +68,7 @@ describe('DataStandard shell', () => {
     expect(screen.getByDisplayValue('优惠券编码')).toBeInTheDocument();
     expect(screen.getByDisplayValue('coupon_code')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '保存草稿' }));
-    expect(window.location.hash).toBe('#table-builder');
+    expect(window.location.hash).toBe('#table-builder/new');
   });
 
   it('still prefills from handoff when mounted twice under React.StrictMode', () => {

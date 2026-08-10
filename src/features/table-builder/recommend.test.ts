@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recommendFields, recommendTable, recommendationsMatchFields } from './recommend';
+import { matchWordRoots, recommendFields, recommendTable, recommendationsMatchFields } from './recommend';
 
 describe('recommendTable', () => {
   it('recommends a standard-like English name from Chinese table name', () => {
@@ -32,6 +32,8 @@ describe('recommendFields', () => {
     expect(row.status).toBe('missing');
     expect(row.standard).toBeUndefined();
     expect(row.suggestedNameEn).toMatch(/coupon/i);
+    expect(row.rootMatch).toBeDefined();
+    expect(row.rootMatch?.suggestedName).toBe('coupon_code');
   });
 
   it('adopts standard names when user English name differs', () => {
@@ -60,6 +62,25 @@ describe('recommendFields', () => {
     expect(row.standard?.nameEn).toBe('customer_gender');
     expect(row.rationale).toContain('customer_gender');
     expect(row.rationale).toContain('注释');
+  });
+});
+
+describe('matchWordRoots', () => {
+  it('segments 商品数量 into prd_qty', () => {
+    const match = matchWordRoots('商品数量');
+    expect(match).not.toBeNull();
+    expect(match!.suggestedName).toBe('prd_qty');
+    expect(match!.roots.map((r) => r.name)).toEqual(['商品', '数量']);
+  });
+
+  it('segments 客户编号 into cust_code', () => {
+    const match = matchWordRoots('客户编号');
+    expect(match).not.toBeNull();
+    expect(match!.suggestedName).toBe('cust_code');
+  });
+
+  it('returns null when no word roots match', () => {
+    expect(matchWordRoots('xyz')).toBeNull();
   });
 });
 
