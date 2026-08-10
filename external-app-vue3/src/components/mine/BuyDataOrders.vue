@@ -127,12 +127,28 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
       </template>
       <template #notice>
         <div class="rounded-lg bg-emerald-50 px-3 py-2 text-[10px] leading-relaxed text-emerald-700">{{ order.progressSummary }}</div>
+        <!-- 续订提示：即将到期 / 已到期 -->
+        <div
+          v-if="order.renewalInfo"
+          class="mt-2 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[10px]"
+          :class="order.renewalInfo.status === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'"
+        >
+          <div>
+            <div class="font-medium">
+              {{ order.renewalInfo.status === 'expired' ? '⚠️ 权益已过期' : `⏰ 权益将在 ${order.renewalInfo.daysUntilExpiry} 天后到期` }}
+            </div>
+            <div class="mt-0.5 opacity-80">到期日期 {{ order.renewalInfo.expiryDate }} · 续订后可继续获取最新数据</div>
+          </div>
+        </div>
         <div v-if="order.source === 'space'" class="mt-2 text-[10px] text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</div>
       </template>
       <template #actions>
         <button :class="actionBtn" @click="goProduct(order)">查看商品</button>
         <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay(order)">继续付款</button>
         <button v-if="order.filter === 'completed'" :class="actionSoft" @click="goData">查看我的数据</button>
+        <button v-if="order.renewalInfo" class="rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white" @click="goProduct(order)">
+          {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
+        </button>
         <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" :class="actionDark">前往可信空间</a>
       </template>
     </MineEntityCard>
@@ -191,6 +207,26 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
         <div class="rounded-lg bg-emerald-50 px-3 py-2 text-xs leading-relaxed text-emerald-700">
           {{ order.progressSummary }}
           <span v-if="order.source === 'space'" class="ml-2 text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</span>
+        </div>
+        <!-- 续订提示：即将到期 / 已到期 -->
+        <div
+          v-if="order.renewalInfo"
+          class="mt-2 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-xs"
+          :class="order.renewalInfo.status === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'"
+        >
+          <div>
+            <div class="font-medium">
+              {{ order.renewalInfo.status === 'expired' ? '⚠️ 权益已过期' : `⏰ 权益将在 ${order.renewalInfo.daysUntilExpiry} 天后到期` }}
+            </div>
+            <div class="mt-0.5 opacity-80">到期日期 {{ order.renewalInfo.expiryDate }} · 续订后可继续获取最新数据</div>
+          </div>
+          <button
+            class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+            :class="order.renewalInfo.status === 'expired' ? 'bg-red-500' : 'bg-amber-500'"
+            @click="goProduct(order)"
+          >
+            {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
+          </button>
         </div>
       </template>
       <template #actions>

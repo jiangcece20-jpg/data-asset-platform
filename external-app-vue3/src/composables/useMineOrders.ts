@@ -4,7 +4,9 @@ import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useEntitlementStore } from '@/stores/entitlements'
 import { appOrderCard, spaceOrderCard, type MyOrderCard, type MyOrderFilter } from '@/domain/myCenter'
+import type { Entitlement } from '@/types/domain'
 
 export type MineOrderSubjectFilter = 'all' | 'personal' | 'enterprise'
 export type MineOrderChannelFilter = 'all' | 'app' | 'space'
@@ -25,12 +27,33 @@ export interface FilterBuyDataOrdersOptions {
  * filterBuyDataOrders 在此基础上恒定追加 productType === 'dataset'，
  * 确保会员权益订单（productId === 'membership'，无 productType）永不出现在买数列表。
  */
+/**
+ * 注入续订信息（持续更新数据集 + 有有效期 → 显示续订提示）
+ */
+function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefined): MyOrderCard {
+  if (!card.productType || card.productType !== 'dataset') return card
+  if (!entitlement?.validTo) return card
+  const today = new Date().toISOString().slice(0, 10)
+  const expiryDate = entitlement.validTo
+  const daysUntilExpiry = Math.floor(
+    (new Date(expiryDate).getTime() - new Date(today).getTime()) / 86_400_000,
+  )
+  card.renewalInfo = {
+    renewalPath: `/portal/product/${card.productId}?action=renewal`,
+    daysUntilExpiry,
+    expiryDate,
+    status: daysUntilExpiry < 0 ? 'expired' : 'expiring'
+  }
+  return card
+}
+
 export function useMineOrders() {
   const user = useUserStore()
   const orders = useOrderStore()
   const spaceOrders = useSpaceOrderStore()
   const catalog = useCatalogStore()
   const datasetCommerce = useDatasetCommerceStore()
+  const entitlements = useEntitlementStore()
 
   const enterpriseMember = computed(() => user.currentEnterpriseMember)
   const enterpriseOrderUser = computed(() => {
@@ -57,6 +80,10 @@ export function useMineOrders() {
         if (order.productType === 'dataset' && order.entitlementId) {
           const delivery = datasetCommerce.deliveries.find((item) => item.entitlementId === order.entitlementId)
           if (delivery?.downloadUrl) card.downloadUrl = delivery.downloadUrl
+        }
+        if (order.productType === 'dataset') {
+          const entitlement = entitlements.list.find((e) => e.id === order.entitlementId)
+          injectRenewalInfo(card, entitlement)
         }
         return card
       })

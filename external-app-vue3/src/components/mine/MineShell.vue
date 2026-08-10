@@ -107,23 +107,38 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         <button class="rounded-full bg-white/15 px-3 py-1.5 text-[11px]" @click="router.push('/app/mine/enterprise')">企业中心 ›</button>
       </div>
 
-      <div class="mt-3 overflow-x-auto rounded-2xl border border-slate-100 bg-white p-3 shadow-card [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div class="flex w-max gap-1">
-          <button
-            v-for="item in menus"
-            :key="item.value"
-            :data-testid="`mine-menu-${item.value}`"
-            class="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-[11px] transition"
-            :class="state.menu === item.value ? 'font-medium text-brand-600' : 'text-slate-600'"
-            @click="selectMenu(item.value)"
+      <!-- 横滑菜单 + 右侧渐变截断漏出半个 logo -->
+      <!-- 外层 relative+overflow-hidden 截断 logo 右侧部分 -->
+      <div class="relative mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-white py-3 shadow-card">
+        <!-- 内层 flex：logo 区域固定，items 区域宽度 = 100% + logo 宽度 -->
+        <div class="flex items-center">
+          <!-- 滚动区域：宽度超出父容器，让 logo 右侧部分漏出 -->
+          <div
+            class="flex h-full flex-none items-center overflow-x-auto px-3 [&::-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [&]:[-ms-overflow-style:none] [&]:[scrollbar-width:none]"
+            style="width: calc(100% + 40px)"
           >
-            <span
-              class="flex h-10 w-10 items-center justify-center rounded-xl text-lg leading-none"
-              :class="state.menu === item.value ? 'bg-brand-50' : 'bg-transparent'"
-            >{{ item.icon }}</span>
-            <span class="truncate">{{ item.label }}</span>
-          </button>
+            <button
+              v-for="item in menus"
+              :key="item.value"
+              :data-testid="`mine-menu-${item.value}`"
+              class="flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-xl px-1 py-1 text-[11px] transition"
+              :class="state.menu === item.value ? 'font-medium text-brand-600' : 'text-slate-600'"
+              @click="selectMenu(item.value)"
+            >
+              <span
+                class="flex h-10 w-10 items-center justify-center rounded-xl text-lg leading-none"
+                :class="state.menu === item.value ? 'bg-brand-50' : 'bg-transparent'"
+              >{{ item.icon }}</span>
+              <span class="truncate">{{ item.label }}</span>
+            </button>
+          </div>
+          <!-- 右侧 logo 区域：在 items 流内，右侧部分被外层 overflow-hidden 截断 -->
+          <div class="h-10 w-10 flex-none rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-lg text-white shadow-sm flex items-center justify-center">
+            ⋯
+          </div>
         </div>
+        <!-- 右侧渐变遮罩（可选，增强视觉） -->
+        <div class="pointer-events-none absolute right-0 top-0 z-10 h-full w-8 bg-gradient-to-r from-transparent to-white" />
       </div>
     </div>
 

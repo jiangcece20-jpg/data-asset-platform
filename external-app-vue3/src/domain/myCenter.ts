@@ -3,6 +3,17 @@ import type { SpaceOrderDisplayStatus, SpaceOrderMirror } from '@/types/trustedS
 
 export type MyOrderFilter = 'all' | 'pending_payment' | 'processing' | 'completed' | 'closed'
 
+export interface RenewalInfo {
+  /** 续订入口路径 */
+  renewalPath: string
+  /** 距到期天数：正数为即将到期，0 为当天到期，负数为已过期 */
+  daysUntilExpiry: number
+  /** 到期日期文本 */
+  expiryDate: string
+  /** 续订状态 */
+  status: 'expiring' | 'expired'
+}
+
 export interface MyOrderCard {
   source: 'app' | 'space'
   id: string
@@ -24,11 +35,13 @@ export interface MyOrderCard {
   progressSummary: string
   entitlementId?: string
   canPay: boolean
- paymentPath?: string
- detailUrl?: string
- downloadUrl?: string
- syncedAt?: string
- spaceProductNo?: string
+  paymentPath?: string
+  detailUrl?: string
+  downloadUrl?: string
+  syncedAt?: string
+  spaceProductNo?: string
+  /** 续订提示信息（仅持续更新且含有效期的数据集展示） */
+  renewalInfo?: RenewalInfo
 }
 
 export const productTypeLabels: Record<ProductType, string> = {

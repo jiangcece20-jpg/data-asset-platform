@@ -44,6 +44,52 @@ export const seedEnterprise: Enterprise = {
 // 权益 / 订单 / 试用 / 需求 / 审批 初始状态
 // ---------------------------------------------------------------------------
 export const seedEntitlements: Entitlement[] = [
+  // ===== A14 到期与续订 Mock 数据 =====
+  // 场景1: 持续更新权益即将到期（7天后到期）
+  {
+    id: 'ent-renewal-expiring',
+    source: 'enterprise',
+    type: 'dataset',
+    productId: 'prod-truck-trajectory',
+    orderId: 'order-continuous-update-001',
+    datasetOfferId: 'offer-truck-enterprise-continuous',
+    commerceOfferId: 'offer-truck-enterprise-continuous',
+    serviceMode: 'continuous',
+    licenseKind: 'subscription',
+    assetVersion: 'v3.2.0',
+    accessScope: 'named_seats',
+    assignedMemberIds: ['mem-1', 'mem-2', 'mem-3'],
+    allowDownload: true,
+    biDeliveryId: 'bi-delivery-continuous-001',
+    ownerId: 'ent-wanlian-logistics',
+    enterpriseId: 'ent-wanlian-logistics',
+    validFrom: '2025-08-10',
+    validTo: '2026-08-17', // 7天后到期
+    updateValidTo: '2026-08-17',
+    status: 'active'
+  },
+  // 场景2: 已到期权益（停止更新，但数据保留）
+  {
+    id: 'ent-renewal-expired',
+    source: 'personal',
+    type: 'dataset',
+    productId: 'prod-warehouse-turnover-risk',
+    orderId: 'order-history-continuous-001',
+    datasetOfferId: 'offer-warehouse-personal-continuous',
+    commerceOfferId: 'offer-warehouse-personal-continuous',
+    serviceMode: 'continuous',
+    licenseKind: 'subscription',
+    assetVersion: 'v2.3.2',
+    accessScope: 'personal',
+    allowDownload: true,
+    biDeliveryId: 'bi-delivery-expired-001',
+    ownerId: 'mem-1',
+    validFrom: '2024-08-10',
+    validTo: '2026-08-08', // 已到期
+    updateValidTo: '2026-08-08',
+    status: 'active'
+  },
+  // ===== 原有数据 =====
   {
     id: 'ent-history-001',
     source: 'personal',
@@ -96,6 +142,53 @@ export const seedEntitlements: Entitlement[] = [
 ]
 
 export const seedOrders: Order[] = [
+  // ===== A14 到期与续订 Mock 数据 =====
+  // 场景1: 持续更新订单（即将到期）
+  {
+    id: 'order-continuous-update-001',
+    channel: 'app',
+    ownerType: 'enterprise',
+    ownerId: 'ent-wanlian-logistics',
+    operatorMemberId: 'mem-1',
+    productId: 'prod-truck-trajectory',
+    productName: '全国货车轨迹热力数据集',
+    productType: 'dataset',
+    datasetOfferId: 'offer-truck-enterprise-continuous',
+    commerceOfferId: 'offer-truck-enterprise-continuous',
+    serviceMode: 'continuous',
+    selectedTermMonths: 12,
+    paymentMethod: 'enterprise_balance',
+    entitlementId: 'ent-renewal-expiring',
+    biDeliveryId: 'bi-delivery-continuous-001',
+    amount: 5800,
+    status: 'entitlement_active',
+    entitlementGranted: true,
+    createdAt: '2025-08-10T09:00:00.000Z',
+    paidAt: '2025-08-10T09:01:00.000Z'
+  },
+  // 场景2: 已到期持续更新订单（续订场景）
+  {
+    id: 'order-history-continuous-001',
+    channel: 'app',
+    ownerType: 'personal',
+    ownerId: 'mem-1',
+    productId: 'prod-warehouse-turnover-risk',
+    productName: '仓储周转效率数据集',
+    productType: 'dataset',
+    datasetOfferId: 'offer-warehouse-personal-continuous',
+    commerceOfferId: 'offer-warehouse-personal-continuous',
+    serviceMode: 'continuous',
+    selectedTermMonths: 24,
+    paymentMethod: 'personal_online',
+    entitlementId: 'ent-renewal-expired',
+    biDeliveryId: 'bi-delivery-expired-001',
+    amount: 998,
+    status: 'entitlement_active',
+    entitlementGranted: true,
+    createdAt: '2024-08-10T10:00:00.000Z',
+    paidAt: '2024-08-10T10:01:00.000Z'
+  },
+
   {
     id: 'order-seller-pending-001',
     channel: 'app',
