@@ -15,8 +15,8 @@ const operationsNav: NavGroup = {
   children: [
     { path: '/admin', label: '概览', icon: '📊' },
     { path: '/admin/resources', label: '资源管理', icon: '🗂️', badge: '重点' },
-    { path: '/admin/commerce', label: '商业化中心', icon: '💰', badge: '重点' },
-    { path: '/admin/orders', label: '订单中心', icon: '🧾' },
+    { path: '/admin/commerce', label: '商业化中心', icon: '💰' },
+    { path: '/admin/orders', label: '订单中心', icon: '🧾', badge: '重点' },
     { path: '/admin/sellers', label: '入驻商家', icon: '🏪', badge: 'MVP' },
     { path: '/admin/trials-leads', label: '试用与线索', icon: '📝', badge: '重点' },
     { path: '/admin/operations', label: '运营配置', icon: '⚙️' }

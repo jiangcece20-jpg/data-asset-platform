@@ -38,6 +38,8 @@ function back() {
 
     <div class="truncate text-center text-[15px] font-medium text-slate-800">{{ props.title }}</div>
 
-    <span></span>
+    <div class="flex h-full items-center justify-end pr-1">
+      <slot />
+    </div>
   </div>
 </template>

@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品详情页底部按钮状态原型</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #1a1a2e; min-height: 100vh; padding: 20px; }
+
+.title { text-align: center; color: #fff; font-size: 24px; margin-bottom: 30px; }
+.subtitle { color: #888; font-size: 14px; margin-top: 8px; }
+
+/* ===== 状态卡片 ===== */
+.state-section { margin-bottom: 50px; }
+.state-title { color: #fff; font-size: 16px; margin-bottom: 16px; padding-left: 10px; border-left: 3px solid #667eea; }
+.state-row { display: flex; gap: 20px; flex-wrap: wrap; }
+
+/* 手机框 */
+.phone-frame {
+  width: 375px;
+  background: #fff;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.phone-notch {
+  width: 150px; height: 28px; background: #000;
+  margin: 0 auto 8px;
+  border-radius: 0 0 18px 18px;
+}
+.phone-content {
+  background: #f5f5f5;
+  border-radius: 28px;
+  height: 667px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* PC框 */
+.pc-frame {
+  width: 800px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.pc-header-bar {
+  height: 40px;
+  background: #f0f0f0;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+.pc-dot { width: 12px; height: 12px; border-radius: 50%; }
+.pc-dot.red { background: #ff5f57; }
+.pc-dot.yellow { background: #febc2e; }
+.pc-dot.green { background: #28c840; }
+.pc-url { flex: 1; height: 24px; background: #fff; border-radius: 6px; margin-left: 12px; }
+.pc-content {
+  background: #f5f5f5;
+  border-radius: 0 0 8px 8px;
+  height: 500px;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ===== 手机页面内容 ===== */
+.app-header {
+  height: 44px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+.back-btn { font-size: 20px; color: #333; }
+.app-title { flex: 1; font-size: 16px; font-weight: 600; text-align: center; }
+.more-btn { font-size: 20px; color: #333; }
+
+.app-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+.product-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+.product-meta { font-size: 12px; color: #888; margin-bottom: 16px; }
+
+.info-section { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: #888; }
+.info-value { color: #333; }
+
+.price-section { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.price-title { font-size: 13px; color: #888; margin-bottom: 8px; }
+.price-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+.price-item:last-child { border-bottom: none; }
+.price-name { font-size: 13px; }
+.price-tag { font-size: 11px; padding: 2px 6px; background: #e6f4ff; color: #1677ff; border-radius: 4px; margin-left: 6px; }
+.price-value { font-size: 14px; font-weight: 600; color: #ff4d4f; }
+
+/* 底部固定按钮 */
+.bottom-bar {
+  background: #fff;
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+.btn-primary {
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-secondary {
+  height: 36px;
+  padding: 0 16px;
+  background: #fff;
+  color: #667eea;
+  border: 1px solid #667eea;
+  border-radius: 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-disabled {
+  width: 100%;
+  height: 44px;
+  background: #d9d9d9;
+  color: #fff;
+  border: none;
+  border-radius: 22px;
+  font-size: 15px;
+  cursor: not-allowed;
+}
+.btn-group { display: flex; gap: 10px; }
+.btn-group .btn-primary { flex: 1; }
+.btn-group .btn-secondary { flex-shrink: 0; }
+
+/* 资格卡 */
+.qualify-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.qualify-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.qualify-title .tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.tag-warning { background: #fff7e6; color: #fa8c16; }
+.tag-error { background: #fff2f0; color: #ff4d4f; }
+.tag-success { background: #f6ffed; color: #52c41a; }
+.tag-info { background: #e6f4ff; color: #1677ff; }
+.qualify-desc { font-size: 12px; color: #666; line-height: 1.5; }
+
+/* ===== PC页面内容 ===== */
+.pc-sidebar {
+  width: 320px;
+  background: #fff;
+  padding: 20px;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.pc-main { flex: 1; background: #fafafa; padding: 20px; }
+
+.pc-sidebar-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.pc-sidebar-meta { font-size: 12px; color: #888; margin-bottom: 16px; }
+.pc-price-section { background: #fafafa; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+.pc-price-title { font-size: 13px; color: #888; margin-bottom: 10px; }
+.pc-price-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+.pc-price-row:last-child { border-bottom: none; }
+.pc-price-name { font-size: 13px; }
+.pc-price-val { font-size: 14px; font-weight: 600; color: #ff4d4f; }
+.pc-btn-primary {
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+}
+.pc-btn-disabled {
+  width: 100%;
+  height: 44px;
+  background: #d9d9d9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: not-allowed;
+  margin-top: 16px;
+}
+.pc-btn-group { display: flex; gap: 10px; margin-top: 16px; }
+.pc-btn-group .pc-btn-primary { flex: 1; margin-top: 0; }
+.pc-btn-secondary { height: 44px; padding: 0 20px; background: #fff; color: #667eea; border: 1px solid #667eea; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.pc-qualify-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.pc-qualify-card.warning { border-color: #faad14; background: #fffbe6; }
+.pc-qualify-card.error { border-color: #ff4d4f; background: #fff1f0; }
+.pc-qualify-card.success { border-color: #52c41a; background: #f6ffed; }
+
+/* 状态标签 */
+.state-label {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.label-1 { background: #f5f5f5; color: #666; }
+.label-2 { background: #e6f4ff; color: #1677ff; }
+.label-3 { background: #f6ffed; color: #52c41a; }
+.label-4 { background: #fff7e6; color: #fa8c16; }
+.label-5 { background: #fff2f0; color: #ff4d4f; }
+
+.br-label {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+</style>
+</head>
+<body>
+
+<h1 class="title">商品详情页底部按钮状态原型
+<p class="subtitle">5.4.4 底部按钮 + 5.4.6 购买资格卡 · 移动端 & PC</p>
+</h1>
+
+<!-- 状态1: 服务不可用 -->
+<div class="state-section">
+  <h2 class="state-title">状态1: 服务不可用 → 暂不可用 <span class="state-label label-5">优先级1</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="price-section">
+            <div class="price-title">报价方案</div>
+            <div class="price-item"><span class="price-name">快照版</span><span class="price-value">¥299</span></div>
+            <div class="price-item"><span class="price-name">持续更新版</span><span class="price-value">¥599/年</span></div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-disabled">⏸ 暂不可用</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+            <div class="pc-price-row"><span class="pc-price-name">持续更新版</span><span class="pc-price-val">¥599/年</span></div>
+          </div>
+          <button class="pc-btn-disabled">⏸ 暂不可用</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态2: 未登录 -->
+<div class="state-section">
+  <h2 class="state-title">状态2: 未登录 → 登录后继续 <span class="state-label label-2">优先级2</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="price-section">
+            <div class="price-title">报价方案</div>
+            <div class="price-item"><span class="price-name">快照版</span><span class="price-value">¥299</span></div>
+            <div class="price-item"><span class="price-name">持续更新版</span><span class="price-value">¥599/年</span></div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">登录后继续</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+            <div class="pc-price-row"><span class="pc-price-name">持续更新版</span><span class="pc-price-val">¥599/年</span></div>
+          </div>
+          <button class="pc-btn-primary">登录后继续</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态3: 已购/交付中 -->
+<div class="state-section">
+  <h2 class="state-title">状态3: 已购/交付中 → 查看权益 / 交付处理中 <span class="state-label label-3">优先级3</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="qualify-card" style="background:#f6ffed;border:1px solid #b7eb8f;">
+            <div class="qualify-title"><span class="tag tag-success">✓</span> 已购快照版</div>
+            <div class="qualify-desc">有效期至 2027-08-10 · 查看详情</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">查看权益</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-qualify-card success">
+            <div class="qualify-title"><span class="tag tag-success">✓</span> 已购快照版</div>
+            <div class="qualify-desc">有效期至 2027-08-10 · 查看详情</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+            <div class="pc-price-row"><span class="pc-price-name">持续更新版</span><span class="pc-price-val">¥599/年</span></div>
+          </div>
+          <button class="pc-btn-primary">查看权益</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态4: 商品暂停/下架 -->
+<div class="state-section">
+  <h2 class="state-title">状态4: 商品暂停/下架 → 暂停购买 <span class="state-label label-4">优先级4</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表 <span class="br-label">暂停</span></div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="qualify-card" style="background:#fff2f0;border:1px solid #ffccc7;">
+            <div class="qualify-title"><span class="tag tag-error">!</span> 商品暂停销售</div>
+            <div class="qualify-desc">商家暂时停止销售，恢复时间待定</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-disabled">暂停购买</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表 <span class="br-label">暂停</span></div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-qualify-card error">
+            <div class="qualify-title"><span class="tag tag-error">!</span> 商品暂停销售</div>
+            <div class="qualify-desc">商家暂时停止销售，恢复时间待定</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+          </div>
+          <button class="pc-btn-disabled">暂停购买</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态5: 数据同步失败 -->
+<div class="state-section">
+  <h2 class="state-title">状态5: 数据同步失败 → 同步异常 <span class="state-label label-5">优先级5</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value" style="color:#ff4d4f;">同步失败</span></div>
+          </div>
+          <div class="qualify-card" style="background:#fff2f0;border:1px solid #ffccc7;">
+            <div class="qualify-title"><span class="tag tag-error">!</span> 数据同步异常</div>
+            <div class="qualify-desc">商品信息更新失败，上次成功同步：2026-08-08</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-disabled">同步异常</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层 · <span style="color:#ff4d4f;">同步失败</span></div>
+          <div class="pc-qualify-card error">
+            <div class="qualify-title"><span class="tag tag-error">!</span> 数据同步异常</div>
+            <div class="qualify-desc">商品信息更新失败，上次成功同步：2026-08-08</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+          </div>
+          <button class="pc-btn-disabled">同步异常</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态6: 未做企业认证 -->
+<div class="state-section">
+  <h2 class="state-title">状态6: 未做企业认证/未绑定空间 → 去认证 / 去绑定 <span class="state-label label-4">优先级6</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="qualify-card" style="background:#fffbe6;border:1px solid #ffe58f;">
+            <div class="qualify-title"><span class="tag tag-warning">!</span> 当前为个人身份</div>
+            <div class="qualify-desc">可以查看商品和价格，但正式购买需先完成企业认证</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">去企业认证</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-qualify-card warning">
+            <div class="qualify-title"><span class="tag tag-warning">!</span> 当前为个人身份</div>
+            <div class="qualify-desc">可以查看商品和价格，但正式购买需先完成企业认证</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+          </div>
+          <button class="pc-btn-primary">去企业认证</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态7: 可信空间商品 -->
+<div class="state-section">
+  <h2 class="state-title">状态7: 可信空间商品 → 去可信空间购买 <span class="state-label label-2">优先级7</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">企业工商信息查询API</div>
+          <div class="product-meta">API · 可信空间</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">提供方</span><span class="info-value">可信数据空间</span></div>
+            <div class="info-row"><span class="info-label">更新频率</span><span class="info-value">实时</span></div>
+          </div>
+          <div class="qualify-card" style="background:#e6f4ff;border:1px solid #91caff;">
+            <div class="qualify-title"><span class="tag tag-info">🏢</span> 认证企业购买</div>
+            <div class="qualify-desc">订单、付款和售后由可信空间承接 · 当前企业：杭州创新科技有限公司</div>
+          </div>
+          <div class="price-section">
+            <div class="price-title">报价方案（可信空间）</div>
+            <div class="price-item"><span class="price-name">基础版<span class="price-tag">按量</span></span><span class="price-value">¥0.01/次</span></div>
+            <div class="price-item"><span class="price-name">专业版<span class="price-tag">套餐</span></span><span class="price-value">¥999/月</span></div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">前往可信空间购买</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">企业工商信息查询API</div>
+          <div class="pc-sidebar-meta">API · 可信空间</div>
+          <div class="pc-qualify-card" style="border-color:#1677ff;background:#e6f4ff;">
+            <div class="qualify-title"><span class="tag tag-info">🏢</span> 认证企业购买</div>
+            <div class="qualify-desc">订单、付款和售后由可信空间承接 · 当前企业：杭州创新科技有限公司</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案（可信空间）</div>
+            <div class="pc-price-row"><span class="pc-price-name">基础版（按量）</span><span class="pc-price-val">¥0.01/次</span></div>
+            <div class="pc-price-row"><span class="pc-price-name">专业版（套餐）</span><span class="pc-price-val">¥999/月</span></div>
+          </div>
+          <button class="pc-btn-primary">前往可信空间购买</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态8: 免费/会员可买 -->
+<div class="state-section">
+  <h2 class="state-title">状态8: 免费/会员可买 → 免费使用 / 会员专享 <span class="state-label label-3">优先级8</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">行业数据报告合集</div>
+          <div class="product-meta">报告 · 资产平台</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">报告类型</span><span class="info-value">PDF</span></div>
+            <div class="info-row"><span class="info-label">页数</span><span class="info-value">45页</span></div>
+          </div>
+          <div class="qualify-card" style="background:#f6ffed;border:1px solid #b7eb8f;">
+            <div class="qualify-title"><span class="tag tag-success">✓</span> 会员专享</div>
+            <div class="qualify-desc">您已是企业版会员，可免费使用此报告</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">免费使用</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">行业数据报告合集</div>
+          <div class="pc-sidebar-meta">报告 · 资产平台</div>
+          <div class="pc-qualify-card success">
+            <div class="qualify-title"><span class="tag tag-success">✓</span> 会员专享</div>
+            <div class="qualify-desc">您已是企业版会员，可免费使用此报告</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">会员免费</span><span class="pc-price-val" style="color:#52c41a;">免费</span></div>
+          </div>
+          <button class="pc-btn-primary">免费使用</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态9: 正常可买 -->
+<div class="state-section">
+  <h2 class="state-title">状态9: 正常可买 → 立即购买 <span class="state-label label-3">优先级9</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">各渠道交易日汇总表</div>
+          <div class="product-meta">数据集 · 数仓 DWS层</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按渠道+天</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="price-section">
+            <div class="price-title">报价方案</div>
+            <div class="price-item"><span class="price-name">快照版</span><span class="price-value">¥299</span></div>
+            <div class="price-item"><span class="price-name">持续更新版</span><span class="price-value">¥599/年</span></div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">立即购买</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">各渠道交易日汇总表</div>
+          <div class="pc-sidebar-meta">数据集 · 数仓 DWS层</div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥299</span></div>
+            <div class="pc-price-row"><span class="pc-price-name">持续更新版</span><span class="pc-price-val">¥599/年</span></div>
+          </div>
+          <button class="pc-btn-primary">立即购买</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 状态10: 搜索结果少 -->
+<div class="state-section">
+  <h2 class="state-title">状态10: 搜索结果少 → 提交需求 <span class="state-label label-2">优先级10</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">华东区域销售数据</div>
+          <div class="product-meta">数据集 · 资产平台</div>
+          <div class="info-section">
+            <div class="info-row"><span class="info-label">数据粒度</span><span class="info-value">按省+月</span></div>
+            <div class="info-row"><span class="info-label">更新时间</span><span class="info-value">2026-08-10</span></div>
+          </div>
+          <div class="qualify-card" style="background:#e6f4ff;border:1px solid #91caff;">
+            <div class="qualify-title"><span class="tag tag-info">💡</span> 没找到想要的？</div>
+            <div class="qualify-desc">当前商品覆盖华东区域，如需全国数据可提交需求</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">提交需求</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">华东区域销售数据</div>
+          <div class="pc-sidebar-meta">数据集 · 资产平台</div>
+          <div class="pc-qualify-card" style="border-color:#1677ff;background:#e6f4ff;">
+            <div class="qualify-title"><span class="tag tag-info">💡</span> 没找到想要的？</div>
+            <div class="qualify-desc">当前商品覆盖华东区域，如需全国数据可提交需求</div>
+          </div>
+          <div class="pc-price-section">
+            <div class="pc-price-title">报价方案</div>
+            <div class="pc-price-row"><span class="pc-price-name">快照版</span><span class="pc-price-val">¥199</span></div>
+          </div>
+          <button class="pc-btn-primary">提交需求</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 可信空间购买资格卡补充状态 -->
+<div style="margin-top:60px;border-top:2px solid #667eea;padding-top:40px;">
+  <h2 class="state-title" style="font-size:18px;">补充：5.4.6 可信空间购买资格卡 · 6种状态</h2>
+</div>
+
+<!-- 资格卡: 切换企业身份 -->
+<div class="state-section">
+  <h2 class="state-title">资格卡状态: 切换企业身份后购买 <span class="state-label label-4">个人+已有认证企业</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">企业工商信息查询API</div>
+          <div class="product-meta">API · 可信空间</div>
+          <div class="qualify-card" style="background:#fffbe6;border:1px solid #ffe58f;">
+            <div class="qualify-title"><span class="tag tag-warning">🏢</span> 切换企业身份后购买</div>
+            <div class="qualify-desc">当前仍以个人身份浏览；选择已认证企业后才能发起可信空间采购</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-primary">切换企业身份</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">企业工商信息查询API</div>
+          <div class="pc-sidebar-meta">API · 可信空间</div>
+          <div class="pc-qualify-card warning">
+            <div class="qualify-title"><span class="tag tag-warning">🏢</span> 切换企业身份后购买</div>
+            <div class="qualify-desc">当前仍以个人身份浏览；选择已认证企业后才能发起可信空间采购</div>
+          </div>
+          <button class="pc-btn-primary">切换企业身份</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 资格卡: 企业认证审核中 -->
+<div class="state-section">
+  <h2 class="state-title">资格卡状态: 企业认证审核中 <span class="state-label label-4">认证中</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">企业工商信息查询API</div>
+          <div class="product-meta">API · 可信空间</div>
+          <div class="qualify-card" style="background:#fffbe6;border:1px solid #ffe58f;">
+            <div class="qualify-title"><span class="tag tag-warning">⏳</span> 企业认证审核中</div>
+            <div class="qualify-desc">可以继续浏览和收藏；审核通过后返回当前商品继续购买</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-secondary">查看认证进度</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">企业工商信息查询API</div>
+          <div class="pc-sidebar-meta">API · 可信空间</div>
+          <div class="pc-qualify-card warning">
+            <div class="qualify-title"><span class="tag tag-warning">⏳</span> 企业认证审核中</div>
+            <div class="qualify-desc">可以继续浏览和收藏；审核通过后返回当前商品继续购买</div>
+          </div>
+          <div class="pc-btn-group">
+            <button class="pc-btn-secondary">查看认证进度</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 资格卡: 企业信息同步中 -->
+<div class="state-section">
+  <h2 class="state-title">资格卡状态: 企业信息同步中 <span class="state-label label-2">空间连接中</span></h2>
+  <div class="state-row">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span class="app-title">商品详情</span>
+          <span class="more-btn">⋯</span>
+        </div>
+        <div class="app-body">
+          <div class="product-title">企业工商信息查询API</div>
+          <div class="product-meta">API · 可信空间</div>
+          <div class="qualify-card" style="background:#e6f4ff;border:1px solid #91caff;">
+            <div class="qualify-title"><span class="tag tag-info">🔄</span> 企业信息同步中</div>
+            <div class="qualify-desc">已满足企业资格，正在建立或恢复可信空间企业映射</div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn-disabled">刷新连接</button>
+        </div>
+      </div>
+    </div>
+    <div class="pc-frame">
+      <div class="pc-header-bar">
+        <span class="pc-dot red"></span><span class="pc-dot yellow"></span><span class="pc-dot green"></span>
+        <div class="pc-url"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-main" style="background:#fafafa;flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;color:#ddd;">← 商品内容区</div>
+        <div class="pc-sidebar">
+          <div class="pc-sidebar-title">企业工商信息查询API</div>
+          <div class="pc-sidebar-meta">API · 可信空间</div>
+          <div class="pc-qualify-card" style="border-color:#1677ff;background:#e6f4ff;">
+            <div class="qualify-title"><span class="tag tag-info">🔄</span> 企业信息同步中</div>
+            <div class="qualify-desc">已满足企业资格，正在建立或恢复可信空间企业映射</div>
+          </div>
+          <button class="pc-btn-disabled">刷新连接</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
