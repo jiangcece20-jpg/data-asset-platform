@@ -25,6 +25,22 @@
       "status": "正式",
       "url": "https://data-asset-platform.pages.dev/#ai-find",
       "hash": "#ai-find"
+    },
+    {
+      "key": "data-standard",
+      "name": "数据标准",
+      "icon": "📘",
+      "status": "建设中",
+      "url": "https://data-asset-platform.pages.dev/#data-standard",
+      "hash": "#data-standard"
+    },
+    {
+      "key": "table-builder",
+      "name": "建表工具",
+      "icon": "🛠️",
+      "status": "建设中",
+      "url": "https://data-asset-platform.pages.dev/#table-builder",
+      "hash": "#table-builder"
     }
   ]
 }

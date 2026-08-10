@@ -11,6 +11,10 @@ import { ResourceDiscoveryPage } from '../features/resource-discovery/ResourceDi
 import { ResourceManagementPage } from '../features/resource-management/ResourceManagementPage';
 import { DataSourceListPage } from '../features/datasource/DataSourceListPage';
 import { DataSourceDetailPage } from '../features/datasource/DataSourceDetailPage';
+import { DataStandardShellPage } from '../features/data-standard/DataStandardShellPage';
+import { DataStandardDraftPage } from '../features/data-standard/DataStandardDraftPage';
+import { TableBuilderPage } from '../features/table-builder/TableBuilderPage';
+import { TableListPage } from '../features/table-builder/TableListPage';
 import { AppShell } from './AppShell';
 import {
   getDataSourceIdFromHash,
@@ -64,6 +68,14 @@ export function App() {
         ) : (
           <DataSourceListPage />
         )
+      ) : activeRoute === 'data-standard' ? (
+        <DataStandardShellPage />
+      ) : activeRoute === 'data-standard-draft' ? (
+        <DataStandardDraftPage />
+      ) : activeRoute === 'table-builder' ? (
+        <TableListPage />
+      ) : activeRoute === 'table-builder-new' ? (
+        <TableBuilderPage />
       ) : (
         <ProductPage route={activeRoute} />
       )}

@@ -16,7 +16,15 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
       <header className="app-shell__header">
         <ProductSwitcher currentSystem={productLine} />
         <div className="app-shell__logo">
-          {productLine === 'data-source' ? '数据之源' : productLine === 'chatbi' ? '智能问数' : '数据资产管理平台'}
+          {productLine === 'data-source'
+            ? '数据之源'
+            : productLine === 'chatbi'
+              ? '智能问数'
+              : productLine === 'data-standard'
+                ? '数据标准'
+                : productLine === 'table-builder'
+                  ? '建表工具'
+                  : '数据资产管理平台'}
         </div>
         {productLine === 'data-asset' && (
           <nav className="app-shell__nav" aria-label="主导航">
@@ -51,6 +59,51 @@ export function AppShell({ activeRoute, productLine, children }: AppShellProps) 
               aria-current={activeRoute === 'ai-find' ? 'page' : undefined}
             >
               AI 找数
+            </a>
+          </nav>
+        )}
+        {productLine === 'data-standard' && (
+          <nav className="app-shell__nav" aria-label="数据标准导航">
+            <a
+              className={activeRoute === 'data-standard' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#data-standard"
+              aria-current={activeRoute === 'data-standard' ? 'page' : undefined}
+            >
+              标准集
+            </a>
+            <a
+              className={activeRoute === 'data-standard' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#data-standard"
+              aria-current={activeRoute === 'data-standard' ? 'page' : undefined}
+            >
+              数据标准
+            </a>
+            <a
+              className={
+                activeRoute === 'data-standard-draft' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'
+              }
+              href="#data-standard/draft"
+              aria-current={activeRoute === 'data-standard-draft' ? 'page' : undefined}
+            >
+              新建草稿
+            </a>
+          </nav>
+        )}
+        {productLine === 'table-builder' && (
+          <nav className="app-shell__nav" aria-label="建表工具导航">
+            <a
+              className={activeRoute === 'table-builder' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#table-builder"
+              aria-current={activeRoute === 'table-builder' ? 'page' : undefined}
+            >
+              表管理
+            </a>
+            <a
+              className={activeRoute === 'table-builder-new' ? 'app-shell__nav-item app-shell__nav-item--active' : 'app-shell__nav-item'}
+              href="#table-builder/new"
+              aria-current={activeRoute === 'table-builder-new' ? 'page' : undefined}
+            >
+              建表向导
             </a>
           </nav>
         )}
