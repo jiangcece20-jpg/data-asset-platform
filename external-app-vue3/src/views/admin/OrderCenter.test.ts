@@ -66,7 +66,7 @@ describe('OrderCenter', () => {
   })
 
   it('lists APP orders and trusted-space mirrors without enabling APP contract actions on space orders', async () => {
-    useOrderStore().list = [order({ id: 'app-1' })]
+    useOrderStore().list = [order({ id: 'app-1', selectedTermMonths: 18 })]
     useSpaceOrderStore().mirrors = [spaceMirror({ spaceOrderId: 'space-1', displayStatus: 'delivering' })]
 
     const wrapper = await mountView()
@@ -74,5 +74,7 @@ describe('OrderCenter', () => {
     expect(wrapper.findAll('[data-testid="order-row"]')).toHaveLength(2)
     expect(wrapper.find('[data-id="space-1"]').text()).toContain('可信空间')
     expect(wrapper.find('[data-id="space-1"] [data-testid="confirm-pay"]').exists()).toBe(false)
+    expect(wrapper.find('[data-id="app-1"] [data-testid="purchase-period"]').text()).toBe('18 个月')
+    expect(wrapper.find('[data-id="space-1"] [data-testid="purchase-period"]').text()).toBe('—')
   })
 })

@@ -9,6 +9,7 @@ export interface UnifiedOrderRow {
   productName: string
   productType?: string
   planSummary?: string
+  purchasePeriod?: string
   amount: number
   currency: string
   status: string
@@ -57,7 +58,7 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     productId: order.productId,
     productName: order.productName,
     productType: order.productType,
-    planSummary: order.serviceMode === 'continuous' ? `持续服务 · ${order.selectedTermMonths || '—'}个月` : order.serviceMode === 'one_time' ? '一次性交付' : undefined,
+    purchasePeriod: order.selectedTermMonths ? `${order.selectedTermMonths} 个月` : '—',
     amount: order.amount,
     currency: 'CNY',
     status: order.status,
@@ -76,6 +77,7 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     operatorMemberId: mirror.operatorMemberId,
     productId: mirror.appProductId,
     productName: mirror.productName,
+    purchasePeriod: '—',
     amount: mirror.amount,
     currency: mirror.currency,
     status: mirror.displayStatus,
@@ -184,12 +186,13 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
 
     <div class="rounded-xl border border-slate-200 bg-white">
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">客户/经办人</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">审批/权益/交付</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
+        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">客户/经办人</th><th class="px-3 py-2">购买周期</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">审批/权益/交付</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
         <tbody>
           <tr v-for="order in list" :key="order.id" data-testid="order-row" :data-id="order.id" class="border-t border-slate-100 hover:bg-slate-50">
             <td class="px-3 py-2 text-slate-700"><div>{{ order.productName }}</div><div v-if="order.planSummary" class="text-[10px] text-slate-400">{{ order.planSummary }}</div></td>
             <td class="px-3 py-2 text-slate-500">{{ order.channel === 'trusted_space' ? '可信空间（只读镜像）' : 'APP 支付' }}</td>
             <td class="px-3 py-2 text-slate-500"><div>{{ order.ownerType === 'enterprise' ? '企业' : '个人' }}</div><div v-if="order.operatorMemberId" class="text-[10px] text-slate-400">经办 {{ operatorName(order.operatorMemberId) }}</div></td>
+            <td class="px-3 py-2 text-slate-500" data-testid="purchase-period">{{ order.purchasePeriod }}</td>
             <td class="px-3 py-2 text-slate-500">{{ order.currency === 'CNY' ? '¥' : `${order.currency} ` }}{{ order.amount }}</td>
             <td class="px-3 py-2"><StatusBadge :dict="order.channel === 'trusted_space' ? 'spaceOrder' : 'appOrder'" :value="order.status" /></td>
             <td class="px-3 py-2 text-[11px] text-slate-500">

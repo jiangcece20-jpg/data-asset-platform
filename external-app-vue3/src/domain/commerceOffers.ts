@@ -112,3 +112,12 @@ export function offerDescription(offer: CommerceOffer): string {
   if (offer.serviceMode === 'one_time') return `${content[offer.contentKind]} · 一次性交付`
   return `${content[offer.contentKind]} · ¥${offer.price.toLocaleString()}/${offer.billingPeriodMonths || 12}个月 · 最长可购${offer.maxTermMonths || offer.billingPeriodMonths || 12}个月`
 }
+
+/** 商品当前可售卖周期；兼容旧商品的权益期限，未配置时默认 12 个月。 */
+export function salePeriodMonthsOf(product: Pick<Product, 'salePeriodMonths' | 'entitlementPolicy'>): number {
+  if (product.salePeriodMonths && product.salePeriodMonths > 0) return product.salePeriodMonths
+  if (product.entitlementPolicy?.kind === 'term' && product.entitlementPolicy.months > 0) {
+    return product.entitlementPolicy.months
+  }
+  return 12
+}
