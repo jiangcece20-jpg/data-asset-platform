@@ -105,7 +105,7 @@
       this.dispatchEvent(new CustomEvent('product-switcher:navigate', { detail: { key: entry.key, url: entry.url } }));
       var isLocalhost = /^(localhost|127\.)/.test(window.location.hostname);
       var sameOrigin = false;
-      try { sameOrigin = new URL(entry.url).origin === window.location.origin; } catch (e) { /* ignore */ }
+      try { sameOrigin = new URL(entry.url).origin === window.location.origin; } catch (e) { /* relative/hash URL = same origin */ sameOrigin = true; }
       // 同应用内的产品线（带 hash）：本地开发或同源部署时走 hash 路由，不整页跳转
       if (entry.hash && (sameOrigin || isLocalhost)) {
         window.location.hash = entry.hash;
