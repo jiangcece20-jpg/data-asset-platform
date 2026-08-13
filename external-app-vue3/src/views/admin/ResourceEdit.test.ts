@@ -18,11 +18,20 @@ async function mountResourceEdit(resourceId = 'res-prod-freight-index') {
 describe('ResourceEdit product-detail mapping', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('previews generated dataset summary without adding a summary input', async () => {
+  it('omits removed sections and legacy pricing controls', async () => {
     const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
 
-    expect(wrapper.get('[data-testid="product-content-summary"]').text()).toContain('货车轨迹')
-    expect(wrapper.find('[data-testid="product-content-summary-input"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('资产平台同步绑定')
+    expect(wrapper.text()).not.toContain('列表内容总结预览')
+    expect(wrapper.text()).not.toContain('看板资源摘要')
+    expect(wrapper.find('[data-testid="product-content-summary"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('持续服务')
+    expect(wrapper.text()).not.toContain('计价周期')
+    expect(wrapper.text()).not.toContain('最长购买')
+    expect(wrapper.get('[data-testid="pricing-plan-editor"]').text()).toContain('个人单品')
+    expect(wrapper.get('[data-testid="pricing-plan-editor"]').text()).toContain('企业单品')
+    expect(wrapper.get('[data-testid="pricing-plan-editor"]').text()).toContain('普通会员')
+    expect(wrapper.get('[data-testid="pricing-plan-editor"]').text()).toContain('高级会员')
   })
 
   it('edits the fallback subtitle and preferred recommendation copy separately', async () => {
@@ -37,7 +46,7 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(product?.recommendText).toBe('详情页优先推荐语')
     expect(wrapper.text()).toContain('导出规则')
     expect(wrapper.text()).toContain('货运价格指数')
-    expect(wrapper.text()).toContain('全国运价趋势')
+    expect(wrapper.get('[data-testid="dashboard-config-editor"]').text()).toContain('指标定义')
   })
 
   it('configures public metric descriptions and syncs product and resource summaries', async () => {
@@ -59,6 +68,7 @@ describe('ResourceEdit product-detail mapping', () => {
   it('configures report intro fields and syncs product and resource summaries', async () => {
     const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
 
+    expect(wrapper.text()).not.toContain('报告资源摘要')
     expect(wrapper.get('[data-testid="report-config-editor"]').text()).toContain('来源')
     expect(wrapper.get('[data-testid="report-config-editor"]').text()).toContain('上架时间')
 
@@ -86,18 +96,40 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(resource?.typeDetail.report?.author).toBe('公路物流研究中心')
   })
 
-  it('configures personal and enterprise one-time and finite continuous plans for a dashboard', async () => {
+  it('configures one personal and one enterprise item price', async () => {
     const wrapper = await mountResourceEdit()
-    const planForms = wrapper.findAll('[data-testid^="commerce-offer-form-"]')
 
-    expect(planForms).toHaveLength(4)
-    const personalContinuous = planForms.find((item) => item.text().includes('个人 · 持续服务'))!
-    await personalContinuous.get('[data-testid="max-term-months"]').setValue('24')
+    await wrapper.get('[data-testid="item-offer-personal-price"]').setValue('259')
+    await wrapper.get('[data-testid="item-offer-enterprise-price"]').setValue('2590')
+    await wrapper.get('[data-testid="sale-period-months"]').setValue('18')
     await wrapper.get('[data-testid="save-product"]').trigger('click')
 
-    const plan = useCatalogStore().byId('prod-freight-index')?.commerceOffers
-      ?.find((item) => item.subject === 'personal' && item.serviceMode === 'continuous')
-    expect(plan).toMatchObject({ billingPeriodMonths: 12, maxTermMonths: 24 })
+    const product = useCatalogStore().byId('prod-freight-index')
+    expect(product?.commerceOffers).toHaveLength(2)
+    expect(product?.commerceOffers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: '个人单品', subject: 'personal', price: 259, serviceMode: 'one_time' }),
+      expect.objectContaining({ name: '企业单品', subject: 'enterprise', price: 2590, serviceMode: 'one_time' })
+    ]))
+    expect(product?.commerceOffers?.some((item) => item.serviceMode === 'continuous')).toBe(false)
+    expect(product?.salePeriodMonths).toBe(18)
+  })
+
+  it('makes free mutually exclusive with all paid pricing options', async () => {
+    const wrapper = await mountResourceEdit()
+
+    await wrapper.get('[data-testid="product-free"]').setValue(true)
+    expect(wrapper.get('[data-testid="paid-pricing-options"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get<HTMLInputElement>('[data-testid="sale-period-months"]').element.disabled).toBe(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="item-offer-personal-enabled"]').element.disabled).toBe(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-free"]').element.disabled).toBe(true)
+
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-freight-index')
+    expect(product?.acquisitions).toEqual(['free'])
+    expect(product?.commerceOffers).toEqual([])
+    expect(product?.memberBenefits).toEqual([])
+    expect(product?.price.model).toBe('free')
   })
 
   it('configures standard and premium member benefits with same-tier mutual exclusion', async () => {
@@ -126,5 +158,22 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(product?.price.model).toBe('member_discount')
     expect(product?.price.memberDiscount).toBe(0.7)
     expect(product?.acquisitions).toContain('member')
+  })
+
+  it('supports member pricing for an asset-platform dataset', async () => {
+    const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+
+    await wrapper.get('[data-testid="member-standard-discount"]').setValue(true)
+    await wrapper.get('[data-testid="member-standard-zhe"]').setValue('6')
+    await wrapper.get('[data-testid="member-premium-free"]').setValue(true)
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-truck-trajectory')
+    expect(product?.datasetOffers).toHaveLength(2)
+    expect(product?.datasetOffers?.every((item) => item.serviceMode === 'one_time')).toBe(true)
+    expect(product?.memberBenefits).toEqual([
+      { tier: 'standard', mode: 'discount', discount: 0.6 },
+      { tier: 'premium', mode: 'free' }
+    ])
   })
 })

@@ -8,7 +8,7 @@ import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
 import { seedBiDatasetDeliveries } from '@/data/datasetCommerce'
-import { datasetOfferToCommerce, normalizeOfferTerm, offerAmount } from '@/domain/commerceOffers'
+import { datasetOfferToCommerce, normalizeOfferTerm, offerAmount, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 function plusMonthsFrom(dateStr: string, months: number): string {
   const d = new Date(dateStr)
@@ -66,7 +66,7 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
       const product = requireDatasetProduct(productId)
       const offer = requireOffer(product, subject, offerId)
       const commerceOffer = datasetOfferToCommerce(offer)
-      const termMonths = normalizeOfferTerm(commerceOffer, selectedTermMonths)
+      const termMonths = normalizeOfferTerm(commerceOffer, selectedTermMonths) ?? salePeriodMonthsOf(product)
       const amount = offerAmount(commerceOffer, termMonths)
       const user = useUserStore()
       const orders = useOrderStore()

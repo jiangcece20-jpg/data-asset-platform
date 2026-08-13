@@ -12,6 +12,7 @@ import { useCatalogStore } from './catalog'
 import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { useEntitlementStore } from './entitlements'
+import { salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 const seedArtifacts: ListableArtifact[] = [
   {
@@ -410,7 +411,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         entitlementGranted: false,
         commerceOfferId: offer.id,
         serviceMode: offer.serviceMode,
-        selectedTermMonths,
+        selectedTermMonths: selectedTermMonths ?? salePeriodMonthsOf(product),
         sellerId: product.sellerId,
         settlementMode: 'seller_self' as const,
         buyerPaidClaimedAt: stamp,

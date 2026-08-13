@@ -444,6 +444,8 @@ export interface Product {
   qualityPromise: string
   complianceNote: string
   price: ProductPrice
+  /** APP 商品统一可售卖周期；下单时快照到订单，单位为月。 */
+  salePeriodMonths?: number
   /** APP 内统一销售方案；报告、看板和 API 均可配置个人/企业、一次性/持续方案。 */
   commerceOffers?: CommerceOffer[]
   /** 数据集销售方案；兼容数据交付字段，允许同一主体配置多个方案。 */
