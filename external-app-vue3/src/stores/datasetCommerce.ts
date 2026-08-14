@@ -8,7 +8,7 @@ import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
 import { seedBiDatasetDeliveries } from '@/data/datasetCommerce'
-import { datasetOfferToCommerce, normalizeOfferTerm, offerAmount, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { commerceOffersOf, datasetOfferToCommerce, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 function plusMonthsFrom(dateStr: string, months: number): string {
   const d = new Date(dateStr)
@@ -31,6 +31,13 @@ function requireOffer(product: Product, subject: 'personal' | 'enterprise', offe
   const offers = product.datasetOffers?.filter((offer) => offer.subject === subject) ?? []
   const offer = offerId ? offers.find((item) => item.id === offerId) : offers[0]
   if (!offer) throw new Error(subject === 'personal' ? '未配置个人销售方案' : '未配置企业销售方案')
+  return offer
+}
+
+function fixedOffer(product: Product, subject: 'personal' | 'enterprise'): DatasetOffer {
+  const fixed = commerceOffersOf(product).find((offer) => offer.subject === subject)
+  const offer = product.datasetOffers?.find((item) => item.id === fixed?.id)
+  if (!offer) throw new Error(subject === 'personal' ? '未配置个人单品价' : '未配置企业单品价')
   return offer
 }
 
@@ -62,12 +69,12 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
     }
   },
   actions: {
-    createOrder(productId: string, subject: 'personal' | 'enterprise', offerId?: string, selectedTermMonths?: number) {
+    createOrder(productId: string, subject: 'personal' | 'enterprise', _offerId?: string, _selectedTermMonths?: number) {
       const product = requireDatasetProduct(productId)
-      const offer = requireOffer(product, subject, offerId)
+      const offer = fixedOffer(product, subject)
       const commerceOffer = datasetOfferToCommerce(offer)
-      const termMonths = normalizeOfferTerm(commerceOffer, selectedTermMonths) ?? salePeriodMonthsOf(product)
-      const amount = offerAmount(commerceOffer, termMonths)
+      const termMonths = salePeriodMonthsOf(product)
+      const amount = offer.price
       const user = useUserStore()
       const orders = useOrderStore()
       let ownerId = user.context.currentMemberId

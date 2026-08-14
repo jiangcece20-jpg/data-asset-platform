@@ -446,9 +446,9 @@ export interface Product {
   price: ProductPrice
   /** APP 商品统一可售卖周期；下单时快照到订单，单位为月。 */
   salePeriodMonths?: number
-  /** APP 内统一销售方案；报告、看板和 API 均可配置个人/企业、一次性/持续方案。 */
+  /** APP 内个人/企业单品价；旧多方案数据在读取时收口为每个主体一条价格。 */
   commerceOffers?: CommerceOffer[]
-  /** 数据集销售方案；兼容数据交付字段，允许同一主体配置多个方案。 */
+  /** 数据集价格与交付兼容字段；APP 购买时每个主体只使用一条单品价。 */
   datasetOffers?: DatasetOffer[]
   /** 资产平台来源商品的版本化绑定与监控摘要。 */
   assetSnapshot?: AssetProductSnapshotRef

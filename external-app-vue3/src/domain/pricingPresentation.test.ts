@@ -8,7 +8,10 @@ function product(id: string) {
 
 describe('pricingPresentation', () => {
   it('distinguishes APP fixed pricing from trusted-space plans', () => {
-    expect(pricingPresentation(product('prod-truck-trajectory')).label).toBe('一次性 / 持续更新')
+    expect(pricingPresentation(product('prod-truck-trajectory'))).toMatchObject({
+      label: '个人 / 企业单品价',
+      note: expect.stringContaining('用户不可自选周期')
+    })
     expect(pricingPresentation(product('prod-enterprise-activity')).label).toBe('多方案报价')
     expect(pricingPresentation(product('prod-qualification-api')).label).toBe('按量 / 套餐')
   })

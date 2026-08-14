@@ -1,5 +1,5 @@
 import type { Product } from '@/types/domain'
-import { commerceOffersOf } from './commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from './commerceOffers'
 
 export interface PricingPresentation {
   label: string
@@ -20,11 +20,11 @@ export function pricingPresentation(product: Product): PricingPresentation {
   if (synchronized && datasetOffers.length > 1) {
     return { label: '多方案报价', note: authorityNote }
   }
-  if (datasetOffers.length > 0) {
-    return { label: '一次性 / 持续更新', note: `${authorityNote}，个人和企业按购买主体选择方案；持续方案设最长有效期` }
-  }
-  if (commerceOffers.length > 0) {
-    return { label: '一次性 / 持续服务', note: `${authorityNote}，按购买主体、交付方式和有效期选择方案` }
+  if (!synchronized && commerceOffers.length > 0) {
+    return {
+      label: '个人 / 企业单品价',
+      note: `${authorityNote}，固定购买周期 ${salePeriodMonthsOf(product)} 个月；订单创建后锁定，用户不可自选周期`
+    }
   }
 
   switch (product.price.model) {

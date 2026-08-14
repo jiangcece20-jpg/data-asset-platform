@@ -6,7 +6,7 @@ import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
 import { useUserStore } from './user'
-import { commerceOffersOf, normalizeOfferTerm, offerAmount, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -131,15 +131,15 @@ export const useOrderStore = defineStore('orders', {
       productId: string,
       subject: PurchaseSubject,
       offerId: string,
-      selectedTermMonths?: number,
+      _selectedTermMonths?: number,
       mode: EnterprisePurchaseMode = 'online',
       checkoutIntentId?: string
     ) {
       const product = requireAppOwnedEnterprisePurchasableProduct(productId)
       const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
       if (!offer) throw new Error(subject === 'personal' ? '未配置个人价格方案' : '未配置企业价格方案')
-      const termMonths = normalizeOfferTerm(offer, selectedTermMonths) ?? salePeriodMonthsOf(product)
-      const amount = offerAmount(offer, termMonths)
+      const termMonths = salePeriodMonthsOf(product)
+      const amount = offer.price
       if (subject === 'enterprise') {
         return this.submitEnterpriseOrder(productId, amount, mode, checkoutIntentId)
       }
@@ -200,7 +200,7 @@ export const useOrderStore = defineStore('orders', {
         ownerId: enterpriseId,
         mode,
         commerceOfferId: options?.offerId,
-        selectedTermMonths: options?.selectedTermMonths ?? salePeriodMonthsOf(useCatalogStore().byId(productId)!),
+        selectedTermMonths: salePeriodMonthsOf(useCatalogStore().byId(productId)!),
         amount: options?.amount,
         serviceMode: options?.serviceMode,
         createdAt,

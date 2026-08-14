@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useUserStore } from '@/stores/user'
-import { datasetOfferToCommerce, offerAmount, offerDescription, offerTermOptions } from '@/domain/commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,12 +19,13 @@ const enterpriseEligible = computed(() => user.isEnterpriseAuthenticated && Bool
 const requestedSubject = route.query.subject === 'personal' || route.query.subject === 'enterprise' ? route.query.subject : undefined
 const subject = ref<'personal' | 'enterprise'>(requestedSubject === 'personal' || (requestedSubject === 'enterprise' && enterpriseEligible.value) ? requestedSubject : enterpriseEligible.value ? 'enterprise' : 'personal')
 const isRenewal = computed(() => Boolean(route.query.renew))
-const offers = computed(() => product.value?.datasetOffers?.filter((offer) => offer.subject === subject.value) ?? [])
-const selectedOfferId = ref('')
-const offer = computed(() => product.value?.datasetOffers?.find((item) => item.id === selectedOfferId.value))
-const selectedTermMonths = ref<number | undefined>()
-const termOptions = computed(() => offer.value ? offerTermOptions(datasetOfferToCommerce(offer.value)) : [])
-const amount = computed(() => offer.value ? offerAmount(datasetOfferToCommerce(offer.value), selectedTermMonths.value) : 0)
+const offer = computed(() => {
+  if (!product.value) return undefined
+  const fixed = commerceOffersOf(product.value).find((item) => item.subject === subject.value)
+  return product.value.datasetOffers?.find((item) => item.id === fixed?.id)
+})
+const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
+const amount = computed(() => offer.value?.price ?? 0)
 const submitting = ref(false)
 const error = ref('')
 const pendingOrderId = ref('')
@@ -44,19 +45,6 @@ function chooseSubject(next: 'personal' | 'enterprise') {
   subject.value = next
 }
 
-function chooseOffer(offerId: string) {
-  selectedOfferId.value = offerId
-  const next = product.value?.datasetOffers?.find((item) => item.id === offerId)
-  selectedTermMonths.value = next ? offerTermOptions(datasetOfferToCommerce(next))[0] : undefined
-}
-
-watch([product, subject], () => {
-  const requestedOffer = String(route.query.offer || '')
-  const preferred = offers.value.find((item) => item.id === requestedOffer) || offers.value.find((item) => item.recommended) || offers.value[0]
-  if (!preferred || offers.value.some((item) => item.id === selectedOfferId.value)) return
-  chooseOffer(preferred.id)
-}, { immediate: true })
-
 function goEnterpriseAuth() {
   router.push({ path: '/app/enterprise-auth', query: { redirect: route.fullPath } })
 }
@@ -66,7 +54,7 @@ function submit() {
   error.value = ''
   submitting.value = true
   try {
-    const { order } = commerce.createOrder(product.value.id, subject.value, offer.value.id, selectedTermMonths.value)
+    const { order } = commerce.createOrder(product.value.id, subject.value)
     if (order.status === 'pending_approval') {
       pendingOrderId.value = order.id
       return
@@ -120,43 +108,21 @@ function goApprovalCenter() {
             </button>
           </div>
 
-          <div class="mt-4">
-            <div class="text-sm font-semibold text-slate-800">选择交付方式</div>
-            <div class="mt-2 grid gap-2 sm:grid-cols-2">
-              <button
-                v-for="item in offers"
-                :key="item.id"
-                :data-testid="`dataset-offer-${item.serviceMode}`"
-                class="rounded-xl border p-4 text-left"
-                :class="selectedOfferId === item.id ? 'border-brand-500 bg-brand-50' : 'border-slate-200'"
-                @click="chooseOffer(item.id)"
-              >
-                <div class="flex items-start justify-between gap-2">
-                  <div class="text-sm font-medium text-slate-800">{{ item.name }} <span v-if="item.recommended" class="text-xs text-brand-600">推荐</span></div>
-                  <div class="font-semibold text-brand-600">¥{{ item.price.toLocaleString() }}</div>
-                </div>
-                <div class="mt-1 text-xs leading-relaxed text-slate-500">{{ offerDescription(datasetOfferToCommerce(item)) }}</div>
-              </button>
-            </div>
-          </div>
-
           <div v-if="offer" class="mt-4 rounded-lg border border-slate-100 p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="text-sm font-medium text-slate-800">{{ offer.name }}</div>
+                <div class="text-sm font-medium text-slate-800">{{ subject === 'enterprise' ? '企业单品' : '个人单品' }}</div>
                 <div class="mt-1 text-xs text-slate-500">
                   {{ offer.accessScope === 'named_seats' ? `${offer.seats} 个指定成员席位` : offer.accessScope === 'enterprise_wide' ? '企业全员' : '仅本人' }}
                 </div>
               </div>
               <div class="text-xl font-semibold text-brand-600">¥{{ amount.toLocaleString() }}</div>
             </div>
-            <label v-if="termOptions.length" class="mt-3 block text-xs text-slate-500">
-              购买有效期
-              <select v-model.number="selectedTermMonths" data-testid="dataset-term-select" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
-                <option v-for="months in termOptions" :key="months" :value="months">{{ months }} 个月</option>
-              </select>
-              <span class="mt-1 block text-[11px] text-slate-400">到期后停止更新，已交付的最近版本仍可使用；最长 {{ offer.maxTermMonths || offer.termMonths }} 个月。</span>
-            </label>
+            <div class="mt-3 rounded-lg bg-slate-50 p-3" data-testid="fixed-purchase-period">
+              <div class="text-xs text-slate-500">购买周期</div>
+              <div class="mt-1 text-sm font-medium text-slate-700">{{ purchasePeriodMonths }} 个月（商品固定）</div>
+              <div class="mt-1 text-[11px] text-slate-400">创建订单后锁定，不支持选择周期或数据截止日期；周期结束后停止更新，保留最近有效版本。</div>
+            </div>
           </div>
 
           <div class="mt-4 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">{{ policyNote }}</div>
@@ -180,6 +146,7 @@ function goApprovalCenter() {
         <ul class="mt-3 space-y-2 text-xs leading-relaxed text-slate-500">
           <li>• 购买主体决定订单、权益和后续发票主体</li>
           <li>• 企业订单禁止使用个人支付方式</li>
+          <li>• 购买周期由商品固定配置，订单创建后锁定</li>
           <li>• 用数模块内部分析、报表及权限不在本次范围</li>
           <li>• 本页不适用于可信空间商品</li>
         </ul>

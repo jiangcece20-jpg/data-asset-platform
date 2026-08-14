@@ -386,7 +386,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       }
     },
     /** 买家下单：自收款 → 待卖家确认到账 */
-    purchaseSellerProduct(productId: string, offerId: string, selectedTermMonths?: number) {
+    purchaseSellerProduct(productId: string, offerId: string, _selectedTermMonths?: number) {
       const catalog = useCatalogStore()
       const product = catalog.byId(productId)
       if (!product || product.origin !== 'seller_market' || product.dealChannel !== 'app_payment') {
@@ -411,7 +411,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         entitlementGranted: false,
         commerceOfferId: offer.id,
         serviceMode: offer.serviceMode,
-        selectedTermMonths: selectedTermMonths ?? salePeriodMonthsOf(product),
+        selectedTermMonths: salePeriodMonthsOf(product),
         sellerId: product.sellerId,
         settlementMode: 'seller_self' as const,
         buyerPaidClaimedAt: stamp,

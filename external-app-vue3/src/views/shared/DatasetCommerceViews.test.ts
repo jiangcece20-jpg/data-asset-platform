@@ -38,6 +38,8 @@ describe('dataset commerce views', () => {
   it('creates a personal order from the mobile checkout and navigates to payment', async () => {
     const { router, wrapper } = await mountRoute('/app/checkout/dataset/prod-truck-trajectory', DatasetCheckout)
     expect(wrapper.find('[data-testid="dataset-subject-personal"]').classes()).toContain('border-brand-500')
+    expect(wrapper.find('[data-testid="dataset-term-select"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="fixed-purchase-period"]').text()).toContain('12 个月（商品固定）')
     await wrapper.find('[data-testid="dataset-create-order"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toMatch(/^\/app\/payment\/dataset\/order-dataset-/)

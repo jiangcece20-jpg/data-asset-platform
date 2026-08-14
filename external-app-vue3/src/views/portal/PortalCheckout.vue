@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import { typeMeta } from '@/utils/productMeta'
-import { commerceOffersOf, normalizeOfferTerm, offerAmount, offerDescription, offerTermOptions } from '@/domain/commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,27 +26,11 @@ const enterpriseEligible = computed(() =>
 const subject = ref<'personal' | 'enterprise'>(enterpriseEligible.value ? 'enterprise' : 'personal')
 const enterpriseMode = ref<'online' | 'contract'>('online')
 const confirmationSubject = ref<'personal' | 'enterprise' | null>(null)
-const offers = computed(() => product.value ? commerceOffersOf(product.value).filter((item) => item.subject === subject.value) : [])
-const selectedOfferId = ref('')
-const offer = computed(() => offers.value.find((item) => item.id === selectedOfferId.value))
-const selectedTermMonths = ref<number | undefined>()
-const termOptions = computed(() => offer.value ? offerTermOptions(offer.value) : [])
-const amount = computed(() => offer.value ? offerAmount(offer.value, selectedTermMonths.value) : 0)
+const offer = computed(() => product.value ? commerceOffersOf(product.value).find((item) => item.subject === subject.value) : undefined)
+const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
+const amount = computed(() => offer.value?.price ?? 0)
 const subjectName = computed(() => subject.value === 'enterprise' ? user.enterprise.name : user.context.name)
 const subjectLabel = computed(() => subject.value === 'enterprise' ? '企业' : '个人')
-
-function chooseOffer(offerId: string) {
-  selectedOfferId.value = offerId
-  const next = offers.value.find((item) => item.id === offerId)
-  selectedTermMonths.value = next ? offerTermOptions(next)[0] : undefined
-  confirmationSubject.value = null
-}
-
-watch([product, subject], () => {
-  const preferred = offers.value.find((item) => item.recommended) || offers.value[0]
-  if (!preferred || offers.value.some((item) => item.id === selectedOfferId.value)) return
-  chooseOffer(preferred.id)
-}, { immediate: true })
 
 function selectSubject(next: 'personal' | 'enterprise') {
   if (submitting.value) return
@@ -71,7 +55,7 @@ function confirmPurchase() {
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
       const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
         offerId: offer.value.id,
-        selectedTermMonths: normalizeOfferTerm(offer.value, selectedTermMonths.value),
+        selectedTermMonths: purchasePeriodMonths.value,
         amount: amount.value,
         serviceMode: offer.value.serviceMode
       })
@@ -81,12 +65,12 @@ function confirmPurchase() {
     const intent = subject.value === 'enterprise'
       ? orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
           offerId: offer.value.id,
-          selectedTermMonths: normalizeOfferTerm(offer.value, selectedTermMonths.value),
+          selectedTermMonths: purchasePeriodMonths.value,
           amount: amount.value,
           serviceMode: offer.value.serviceMode
         })
       : undefined
-    orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, selectedTermMonths.value, enterpriseMode.value, intent?.id)
+    orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, purchasePeriodMonths.value, enterpriseMode.value, intent?.id)
     paid.value = true
   } catch {
     submitting.value = false
@@ -118,23 +102,18 @@ function confirmPurchase() {
             </div>
           </div>
 
-            <div>
-              <div class="mb-2 text-sm font-medium text-slate-700">交付与更新方式</div>
-              <div class="grid grid-cols-2 gap-2">
-                <button v-for="item in offers" :key="item.id" class="rounded-lg border p-3 text-left" :class="selectedOfferId === item.id ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" @click="chooseOffer(item.id)">
-                  <div class="flex justify-between gap-2 text-sm"><span>{{ item.name }}</span><strong class="text-brand-600">¥{{ item.price.toLocaleString() }}</strong></div>
-                  <div class="mt-1 text-xs text-slate-400">{{ offerDescription(item) }}</div>
-                </button>
-              </div>
+            <div v-if="offer" class="rounded-lg border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
+              <div class="flex justify-between gap-2 text-sm"><span>{{ offer.name }}</span><strong class="text-brand-600">¥{{ offer.price.toLocaleString() }}</strong></div>
+              <div class="mt-1 text-xs text-slate-400">按当前购买主体展示，不与另一主体价格混用。</div>
             </div>
 
             <div>
               <div class="mb-2 text-sm font-medium text-slate-700">购买信息</div>
               <div class="space-y-3">
-                <div v-if="termOptions.length">
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3" data-testid="fixed-purchase-period">
                   <label class="mb-1 block text-xs text-slate-400">购买周期</label>
-                  <select v-model.number="selectedTermMonths" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"><option v-for="months in termOptions" :key="months" :value="months">{{ months }} 个月</option></select>
-                  <div class="mt-1 text-xs text-slate-400">最长可购买 {{ offer?.maxTermMonths }} 个月，不提供永久持续更新</div>
+                  <div class="text-sm text-slate-700">{{ purchasePeriodMonths }} 个月（商品固定）</div>
+                  <div class="mt-1 text-xs text-slate-400">创建订单后锁定，不支持选择周期或数据截止日期。</div>
                 </div>
                 <div v-if="subject === 'enterprise'" class="grid grid-cols-2 gap-2">
                   <button class="rounded-lg border p-2 text-sm disabled:opacity-50" :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="enterpriseMode = 'online'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null">在线支付</button>
@@ -168,6 +147,7 @@ function confirmPurchase() {
             <div v-else class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
               <div class="text-sm text-amber-800">请再次确认：本订单将归属 {{ subjectName }}</div>
               <div class="mt-1 text-sm text-amber-800">应付金额：¥{{ amount.toLocaleString() }}</div>
+              <div class="mt-1 text-sm text-amber-800">购买周期：{{ purchasePeriodMonths }} 个月</div>
               <button
                 class="mt-3 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
                 :disabled="submitting"
@@ -201,6 +181,10 @@ function confirmPurchase() {
             <div class="flex justify-between">
               <span class="text-slate-400">类型</span>
               <span class="text-slate-700">{{ typeMeta[product.type].label }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">购买周期</span>
+              <span class="text-slate-700">{{ purchasePeriodMonths }} 个月</span>
             </div>
             <div class="border-t border-slate-100 pt-2">
               <div class="flex justify-between">

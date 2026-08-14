@@ -175,7 +175,6 @@ export const useEntitlementStore = defineStore('entitlements', {
     grantItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const isReport = product.type === 'report'
       const months = options?.termMonths || salePeriodMonthsOf(product)
-      const continuous = options?.serviceMode === 'continuous'
       const termEnd = plusMonths(months)
       this.list.push({
         id: genId('ent'),
@@ -190,7 +189,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         selectedTermMonths: options?.termMonths,
         validFrom: now(),
         validTo: termEnd,
-        updateValidTo: isReport && continuous ? termEnd : undefined,
+        updateValidTo: isReport ? termEnd : undefined,
         status: 'active'
       })
     },
@@ -225,9 +224,7 @@ export const useEntitlementStore = defineStore('entitlements', {
       const offer = options.product.datasetOffers?.find((item) => item.id === options.offerId)
       if (!offer) throw new Error('数据集销售方案不存在')
       const months = options.selectedTermMonths || salePeriodMonthsOf(options.product)
-      const updateValidTo = offer.licenseKind === 'subscription'
-        ? plusMonths(months)
-        : undefined
+      const updateValidTo = plusMonths(months)
       const entitlement: Entitlement = {
         id: genId('ent-dataset'),
         source: options.ownerType,
@@ -246,7 +243,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         assignedMemberIds: [options.operatorMemberId],
         allowDownload: offer.allowDownload,
         validFrom: now(),
-        validTo: offer.licenseKind === 'subscription' ? undefined : plusMonths(months),
+        validTo: undefined,
         updateValidTo,
         status: 'pending'
       }

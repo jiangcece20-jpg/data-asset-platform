@@ -74,11 +74,9 @@ export function orderFilterLabel(filter: MyOrderFilter): string {
 }
 
 export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard {
-  const planSummary = order.serviceMode === 'continuous'
-    ? `持续更新 · ${order.selectedTermMonths || '—'} 个月`
-    : order.serviceMode === 'one_time'
-      ? '一次性交付'
-      : '按商品订单约定'
+  const planSummary = order.selectedTermMonths
+    ? `购买周期 · ${order.selectedTermMonths} 个月`
+    : '按商品订单约定'
   const isDataset = order.productType === 'dataset'
   const isSellerSelf = order.settlementMode === 'seller_self'
   return {

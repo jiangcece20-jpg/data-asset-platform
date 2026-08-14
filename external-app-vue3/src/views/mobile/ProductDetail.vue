@@ -21,7 +21,7 @@ import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
-import { commerceOffersOf, offerDescription } from '@/domain/commerceOffers'
+import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
@@ -373,9 +373,9 @@ function handleAction(key: ProductActionKey) {
     </div>
 
     <div v-if="commerceOffers.length && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
-      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">价格方案</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : '购买时可切换主体' }}</span></div>
+      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">{{ product.dealChannel === 'space_purchase' ? '价格方案' : '购买价格' }}</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : `固定购买周期 ${salePeriodMonthsOf(product)} 个月` }}</span></div>
       <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
-        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }}</div></div>
+        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }}</div></div>
         <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
       </div>
     </div>

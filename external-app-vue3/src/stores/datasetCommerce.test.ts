@@ -25,31 +25,34 @@ describe('dataset commerce closed loop', () => {
     expect(useEntitlementStore().list.find((item) => item.id === order.entitlementId)?.status).toBe('active')
   })
 
-  it('prices a finite personal continuous-update term and persists it to order and entitlement', () => {
+  it('locks the product sale period and ignores legacy offer or duration input', () => {
     const commerce = useDatasetCommerceStore()
     const { order } = commerce.createOrder('prod-truck-trajectory', 'personal', 'offer-truck-personal-updates', 36)
 
     expect(order).toMatchObject({
-      serviceMode: 'continuous',
-      selectedTermMonths: 36,
-      amount: 2997
+      datasetOfferId: 'offer-truck-personal-snapshot',
+      serviceMode: 'one_time',
+      selectedTermMonths: 12,
+      amount: 399
     })
     commerce.pay(order.id)
     expect(useEntitlementStore().list.find((item) => item.id === order.entitlementId)).toMatchObject({
-      serviceMode: 'continuous',
-      selectedTermMonths: 36,
+      serviceMode: 'one_time',
+      selectedTermMonths: 12,
       updateValidTo: expect.any(String)
     })
     expect(useEntitlementStore().list.find((item) => item.id === order.entitlementId)?.validTo).toBeUndefined()
   })
 
-  it('rejects a continuous-update duration beyond the configured maximum', () => {
-    expect(() => useDatasetCommerceStore().createOrder(
+  it('does not let legacy duration input change the fixed purchase period', () => {
+    const { order } = useDatasetCommerceStore().createOrder(
       'prod-truck-trajectory',
       'personal',
       'offer-truck-personal-updates',
       48
-    )).toThrow('最长 36 个月')
+    )
+    expect(order.selectedTermMonths).toBe(12)
+    expect(order.amount).toBe(399)
   })
 
  it('ordinary enterprise member submits approval before enterprise-balance payment', () => {
