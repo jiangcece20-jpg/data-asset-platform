@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import MineEntityCard from './MineEntityCard.vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
+import { filledShotCount } from '@/domain/sellingShotTemplate'
 
 defineProps<{ variant: 'mobile' | 'portal' }>()
 
@@ -54,15 +55,16 @@ const statusLabel = computed(() => {
         <div><span class="text-slate-400">对象版本</span><div class="mt-0.5 text-slate-700">{{ item.artifactVersion }}</div></div>
         <div><span class="text-slate-400">价格</span><div class="mt-0.5 font-semibold text-brand-600">¥{{ item.price }}</div></div>
         <div><span class="text-slate-400">来源</span><div class="mt-0.5 text-slate-700">{{ item.dataProvenance === 'owned' ? '自有' : '衍生' }}</div></div>
+        <div><span class="text-slate-400">截图</span><div class="mt-0.5 text-slate-700">{{ filledShotCount(item.shots) }}/4</div></div>
         <div><span class="text-slate-400">更新时间</span><div class="mt-0.5 text-slate-700">{{ item.updatedAt }}</div></div>
       </template>
       <template v-if="item.reviewNote" #notice>
         <div class="rounded-lg bg-amber-50 px-3 py-2 text-[10px] text-amber-700">{{ item.reviewNote }}</div>
       </template>
-      <template v-if="item.publishedProductId" #actions>
+      <template v-if="item.productId" #actions>
         <button
           class="rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600"
-          @click="router.push(`${variant === 'portal' ? '/portal' : '/app'}/product/${item.publishedProductId}`)"
+          @click="router.push(`${variant === 'portal' ? '/portal' : '/app'}/product/${item.productId}`)"
         >查看商品</button>
       </template>
     </MineEntityCard>

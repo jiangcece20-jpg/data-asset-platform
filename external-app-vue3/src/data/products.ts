@@ -1,4 +1,5 @@
 import type { Product } from '@/types/domain'
+import { exampleSellingShots } from '@/domain/sellingShotTemplate'
 
 export const seedProducts: Product[] = [
   // ── 自有看板 ──────────────────────────────────────────
@@ -917,6 +918,7 @@ export const seedProducts: Product[] = [
     memberIncluded: false,
     listedAt: '2026-08-01',
     updatedAt: '2026-08-08',
+    sellingShots: exampleSellingShots(),
     serviceStatus: 'normal',
     recommendSlot: true,
     recommendText: '入驻商家 · 干线时效',

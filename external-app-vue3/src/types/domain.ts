@@ -2,6 +2,7 @@
 // Product / ProductEnhancement / UserContext / Entitlement / Order / TrialApplication / DemandLead / ApprovalRecord
 
 import type { ServiceStatus, EntitlementStatus } from './reverseFlow'
+import type { SellingShot } from '@/domain/sellingShotTemplate'
 
 // ---------------------------------------------------------------------------
 // 新增类型原语（Task 1 先定义，Task 2 完成替换）
@@ -481,6 +482,8 @@ export interface Product {
   sortWeight?: number
   /** 是否进入推荐位 */
   recommendSlot?: boolean
+  /** 入驻商家上架时按模版上传的报表卖点截图；自营商品为空 */
+  sellingShots?: SellingShot[]
 }
 
 /** @deprecated Enhancement 已合并进 Product，保留类型别名兼容过渡 */

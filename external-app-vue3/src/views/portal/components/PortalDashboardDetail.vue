@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Product, PreviewMode } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
+import SellingShotGallery from '@/components/SellingShotGallery.vue'
 
 export interface InfoItem {
   label: string
@@ -94,6 +95,11 @@ function displayValue(value: string | number | null | undefined): string {
 
     <!-- Tab: preview 看板预览（2 列） -->
     <div v-else-if="activeTab === 'preview'" class="grid grid-cols-2 gap-4">
+      <SellingShotGallery
+        v-if="product.sellingShots?.length"
+        class="col-span-2"
+        :shots="product.sellingShots"
+      />
       <ProductContentPeek :product="product" class="col-span-2" />
       <div
         v-for="panel in detail.panels"
