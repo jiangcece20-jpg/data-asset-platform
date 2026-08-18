@@ -2,6 +2,7 @@
 // Product / ProductEnhancement / UserContext / Entitlement / Order / TrialApplication / DemandLead / ApprovalRecord
 
 import type { ServiceStatus, EntitlementStatus } from './reverseFlow'
+import type { SellingShot, CustomSellingShot } from '@/domain/sellingShotTemplate'
 
 // ---------------------------------------------------------------------------
 // 新增类型原语（Task 1 先定义，Task 2 完成替换）
@@ -444,9 +445,11 @@ export interface Product {
   qualityPromise: string
   complianceNote: string
   price: ProductPrice
-  /** APP 内统一销售方案；报告、看板和 API 均可配置个人/企业、一次性/持续方案。 */
+  /** APP 商品统一可售卖周期；下单时快照到订单，单位为月。 */
+  salePeriodMonths?: number
+  /** APP 内个人/企业单品价；旧多方案数据在读取时收口为每个主体一条价格。 */
   commerceOffers?: CommerceOffer[]
-  /** 数据集销售方案；兼容数据交付字段，允许同一主体配置多个方案。 */
+  /** 数据集价格与交付兼容字段；APP 购买时每个主体只使用一条单品价。 */
   datasetOffers?: DatasetOffer[]
   /** 资产平台来源商品的版本化绑定与监控摘要。 */
   assetSnapshot?: AssetProductSnapshotRef
@@ -479,6 +482,10 @@ export interface Product {
   sortWeight?: number
   /** 是否进入推荐位 */
   recommendSlot?: boolean
+  /** 入驻商家上架时按模版上传的报表卖点截图；自营商品为空 */
+  sellingShots?: SellingShot[]
+  /** 卖家自定义补充截图（标题 + 描述） */
+  customSellingShots?: CustomSellingShot[]
 }
 
 /** @deprecated Enhancement 已合并进 Product，保留类型别名兼容过渡 */

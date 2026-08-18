@@ -5,7 +5,7 @@ import { originMeta, listedAtOf } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
 import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
-import { commerceOffersOf, offerDescription } from '@/domain/commerceOffers'
+import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
 import { useUserStore } from '@/stores/user'
 
@@ -80,7 +80,7 @@ const priceText = computed(() => {
 })
 
 const priceSub = computed(() => {
-  if (commerceOffers.value.length) return props.product.dealChannel === 'space_purchase' ? '可信空间同步价格方案' : '个人 / 企业 · 一次性 / 持续方案可选'
+  if (commerceOffers.value.length) return props.product.dealChannel === 'space_purchase' ? '可信空间同步价格方案' : `个人 / 企业单品价 · 固定 ${salePeriodMonthsOf(props.product)} 个月`
   const m = props.product.price.model
   if (m === 'free') return ''
   if (m === 'member_free') return '开通会员后免费使用'
@@ -163,7 +163,7 @@ function goBills() {
       <div v-if="commerceOffers.length" class="mt-3 space-y-2" data-testid="commerce-price-plans">
         <div v-for="offer in commerceOffers" :key="offer.id" class="rounded-lg border px-3 py-2" :class="offer.recommended ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200'">
           <div class="flex items-center justify-between gap-2"><div class="text-sm font-medium text-slate-800">{{ offer.name }} <span v-if="offer.recommended" class="ml-1 rounded bg-brand-500 px-1.5 py-0.5 text-[10px] text-white">推荐</span></div><div class="font-bold text-brand-600">¥{{ offer.price.toLocaleString() }}</div></div>
-          <div class="mt-1 text-xs text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ offerDescription(offer) }} · {{ offer.accessScope === 'named_seats' ? `${offer.seats}席位` : offer.accessScope === 'enterprise_wide' ? '企业全员' : '仅本人' }}</div>
+          <div class="mt-1 text-xs text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }} · {{ offer.accessScope === 'named_seats' ? `${offer.seats}席位` : offer.accessScope === 'enterprise_wide' ? '企业全员' : '仅本人' }}</div>
         </div>
       </div>
 

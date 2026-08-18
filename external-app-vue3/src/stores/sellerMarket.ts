@@ -12,6 +12,8 @@ import { useCatalogStore } from './catalog'
 import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { useEntitlementStore } from './entitlements'
+import { salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { assertRequiredSellingShots, assertCustomSellingShots, exampleSellingShots, type CustomSellingShot, type SellingShot } from '@/domain/sellingShotTemplate'
 
 const seedArtifacts: ListableArtifact[] = [
   {
@@ -122,6 +124,8 @@ const seedListings: SellerListingApplication[] = [
     price: 99,
     dataProvenance: 'owned',
     complianceSummary: '无个人信息对外售卖；自有数据',
+    shots: exampleSellingShots(),
+    customShots: [],
     status: 'pending_review',
     createdAt: '2026-08-08 09:10',
     updatedAt: '2026-08-08 09:10'
@@ -238,11 +242,15 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       subtitle: string
       price: number
       complianceSummary: string
+      shots: SellingShot[]
+      customShots?: CustomSellingShot[]
     }) {
       const me = this.myProfile
       if (!me || me.status !== 'approved') throw new Error('仅已准入卖家可提交上架')
       const artifact = this.artifacts.find((a) => a.id === input.artifactId)
       if (!artifact) throw new Error('可上架对象不存在')
+      const shots = assertRequiredSellingShots(input.shots)
+      const customShots = assertCustomSellingShots(input.customShots)
       const dup = this.listings.find(
         (l) =>
           l.sellerId === me.id &&
@@ -263,6 +271,8 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         price: input.price,
         dataProvenance: artifact.dataProvenance,
         complianceSummary: input.complianceSummary,
+        shots,
+        customShots,
         status: 'pending_review',
         createdAt: stamp,
         updatedAt: stamp
@@ -327,6 +337,8 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         memberIncluded: false,
         listedAt: now().slice(0, 10),
         updatedAt: now().slice(0, 10),
+        sellingShots: listing.shots,
+        customSellingShots: listing.customShots,
         serviceStatus: 'normal',
         typeDetail: {
           dashboard: {
@@ -364,6 +376,8 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         existing.availability = 'published'
         existing.status = 'published'
         existing.price = { model: 'item_only', itemPrice: listing.price, unit: '元' }
+        existing.sellingShots = listing.shots
+        existing.customSellingShots = listing.customShots
         if (existing.commerceOffers?.[0]) existing.commerceOffers[0].price = listing.price
       }
       listing.productId = productId
@@ -385,7 +399,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       }
     },
     /** 买家下单：自收款 → 待卖家确认到账 */
-    purchaseSellerProduct(productId: string, offerId: string, selectedTermMonths?: number) {
+    purchaseSellerProduct(productId: string, offerId: string, _selectedTermMonths?: number) {
       const catalog = useCatalogStore()
       const product = catalog.byId(productId)
       if (!product || product.origin !== 'seller_market' || product.dealChannel !== 'app_payment') {
@@ -410,7 +424,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         entitlementGranted: false,
         commerceOfferId: offer.id,
         serviceMode: offer.serviceMode,
-        selectedTermMonths,
+        selectedTermMonths: salePeriodMonthsOf(product),
         sellerId: product.sellerId,
         settlementMode: 'seller_self' as const,
         buyerPaidClaimedAt: stamp,

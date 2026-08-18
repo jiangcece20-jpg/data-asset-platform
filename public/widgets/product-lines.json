@@ -7,7 +7,7 @@
       "name": "数据资产",
       "icon": "🗃️",
       "status": "正式",
-      "url": "https://data-asset-platform.pages.dev/#search",
+      "url": "#search",
       "hash": "#search"
     },
     {
@@ -15,7 +15,7 @@
       "name": "数据之源",
       "icon": "🔌",
       "status": "正式",
-      "url": "https://data-asset-platform.pages.dev/#datasource",
+      "url": "#datasource",
       "hash": "#datasource"
     },
     {
@@ -23,7 +23,7 @@
       "name": "智能问数",
       "icon": "🧠",
       "status": "正式",
-      "url": "https://data-asset-platform.pages.dev/#ai-find",
+      "url": "#ai-find",
       "hash": "#ai-find"
     },
     {
@@ -31,15 +31,14 @@
       "name": "数据标准",
       "icon": "📘",
       "status": "建设中",
-      "url": "https://data-asset-platform.pages.dev/#data-standard",
-      "hash": "#data-standard"
+      "url": "https://data-standards-5cz.pages.dev/data-standard"
     },
     {
       "key": "table-builder",
       "name": "建表工具",
       "icon": "🛠️",
       "status": "建设中",
-      "url": "https://data-asset-platform.pages.dev/#table-builder",
+      "url": "#table-builder",
       "hash": "#table-builder"
     }
   ]

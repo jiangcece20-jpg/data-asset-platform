@@ -127,13 +127,14 @@ describe('CheckoutItem report purchase subject', () => {
     expect(store.getEnterpriseReportCheckoutIntent(second.id, 'prod-logistics-monthly')).toBeUndefined()
   })
 
-  it('lets an APP dashboard use the same subject, delivery-mode and finite-term checkout', async () => {
+  it('shows one subject price and locks the dashboard fixed purchase period', async () => {
     const { wrapper, router } = await mountCheckout('prod-freight-index')
 
     expect(router.currentRoute.value.name).toBe('checkout-item')
     expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="commerce-offer-continuous"]').exists()).toBe(true)
-    await wrapper.get('[data-testid="commerce-term-select"]').setValue('36')
+    expect(wrapper.findAll('[data-testid="fixed-item-price"]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="commerce-term-select"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="fixed-purchase-period"]').text()).toContain('12 个月（商品固定）')
     await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
     await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
 
@@ -142,9 +143,9 @@ describe('CheckoutItem report purchase subject', () => {
       productId: 'prod-freight-index',
       ownerType: 'personal',
       entitlementGranted: true,
-      serviceMode: 'continuous',
-      selectedTermMonths: 36,
-      amount: 897
+      serviceMode: 'one_time',
+      selectedTermMonths: 12,
+      amount: 199
     })
   })
 })

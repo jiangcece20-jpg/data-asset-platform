@@ -6,7 +6,7 @@ import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
 import { useUserStore } from './user'
-import { commerceOffersOf, normalizeOfferTerm, offerAmount } from '@/domain/commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -66,7 +66,7 @@ function requireCurrentAuthenticatedEnterprise(): string {
 
 export const useOrderStore = defineStore('orders', {
   state: () => ({
-    list: seedOrders.map((o) => ({ ...o })) as Order[],
+    list: seedOrders.map((o) => ({ ...o, selectedTermMonths: o.selectedTermMonths ?? 12 })) as Order[],
     ledger: [] as PaymentLedgerEntry[],
     checkoutIntents: [] as EnterpriseReportCheckoutIntent[]
   }),
@@ -90,6 +90,7 @@ export const useOrderStore = defineStore('orders', {
         ownerId: user.context.currentMemberId,
         productId: 'membership',
         productName: `${tier === 'premium' ? '高级' : '普通'}会员 · ${months} 个月`,
+        selectedTermMonths: months,
         amount: tier === 'premium'
           ? (months === 12 ? 599 : 79)
           : (months === 12 ? 299 : 39),
@@ -113,6 +114,8 @@ export const useOrderStore = defineStore('orders', {
         ownerId: user.context.currentMemberId,
         productId,
         productName: product.name,
+        productType: product.type,
+        selectedTermMonths: salePeriodMonthsOf(product),
         amount,
         status: 'entitlement_active',
         entitlementGranted: true,
@@ -128,15 +131,15 @@ export const useOrderStore = defineStore('orders', {
       productId: string,
       subject: PurchaseSubject,
       offerId: string,
-      selectedTermMonths?: number,
+      _selectedTermMonths?: number,
       mode: EnterprisePurchaseMode = 'online',
       checkoutIntentId?: string
     ) {
       const product = requireAppOwnedEnterprisePurchasableProduct(productId)
       const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
       if (!offer) throw new Error(subject === 'personal' ? '未配置个人价格方案' : '未配置企业价格方案')
-      const termMonths = normalizeOfferTerm(offer, selectedTermMonths)
-      const amount = offerAmount(offer, termMonths)
+      const termMonths = salePeriodMonthsOf(product)
+      const amount = offer.price
       if (subject === 'enterprise') {
         return this.submitEnterpriseOrder(productId, amount, mode, checkoutIntentId)
       }
@@ -197,7 +200,7 @@ export const useOrderStore = defineStore('orders', {
         ownerId: enterpriseId,
         mode,
         commerceOfferId: options?.offerId,
-        selectedTermMonths: options?.selectedTermMonths,
+        selectedTermMonths: salePeriodMonthsOf(useCatalogStore().byId(productId)!),
         amount: options?.amount,
         serviceMode: options?.serviceMode,
         createdAt,

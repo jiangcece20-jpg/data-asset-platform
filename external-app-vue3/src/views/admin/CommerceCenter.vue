@@ -3,56 +3,127 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
-import type { Product } from '@/types/domain'
-import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useOrderStore } from '@/stores/orders'
+import type { MemberTier, Product } from '@/types/domain'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { discountToZhe, resolveMemberBenefits } from '@/domain/memberBenefits'
 
 const router = useRouter()
 const catalog = useCatalogStore()
+const orders = useOrderStore()
+const entitlements = useEntitlementStore()
 
-const itemPricing = computed(() => catalog.products.filter((p) => p.dealChannel === 'app_payment'))
+const products = computed(() => catalog.products.filter((product) => product.dealChannel === 'app_payment'))
 
-function formatMemberCell(product: Product) {
-  const label = formatMemberBenefitsLabel(resolveMemberBenefits(product))
-  return label || '不纳入会员'
+function itemPrice(product: Product, subject: 'personal' | 'enterprise') {
+  const offers = commerceOffersOf(product).filter((offer) => offer.subject === subject)
+  const offer = offers.find((item) => item.serviceMode === 'one_time') ?? offers[0]
+  return offer ? `¥${offer.price.toLocaleString()}` : '—'
+}
+
+function memberPrice(product: Product, tier: MemberTier) {
+  const benefit = resolveMemberBenefits(product).find((item) => item.tier === tier)
+  if (!benefit) return '不纳入'
+  if (benefit.mode === 'free') return '免费'
+  return `${discountToZhe(benefit.discount)} 折`
+}
+
+function salesStatus(product: Product) {
+  if (product.availability === 'published') return { label: '销售中', className: 'text-emerald-600' }
+  if (product.availability === 'paused') return { label: '暂停销售', className: 'text-amber-600' }
+  if (product.availability === 'delisted') return { label: '已下架', className: 'text-slate-400' }
+  return { label: '未上架', className: 'text-slate-400' }
+}
+
+function addMonths(dateValue: string, months: number): string | undefined {
+  const match = dateValue.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return undefined
+  const year = Number(match[1])
+  const month = Number(match[2]) - 1
+  const day = Number(match[3])
+  const firstOfTargetMonth = new Date(Date.UTC(year, month + months, 1))
+  const lastDay = new Date(Date.UTC(
+    firstOfTargetMonth.getUTCFullYear(),
+    firstOfTargetMonth.getUTCMonth() + 1,
+    0
+  )).getUTCDate()
+  firstOfTargetMonth.setUTCDate(Math.min(day, lastDay))
+  return firstOfTargetMonth.toISOString().slice(0, 10)
+}
+
+function soldOrders(product: Product) {
+  return orders.list.filter((order) =>
+    order.productId === product.id
+    && (order.status === 'paid' || order.status === 'entitlement_active')
+  )
+}
+
+function deliveryGuarantee(product: Product) {
+  const commitments = soldOrders(product).flatMap((order) => {
+    const entitlement = entitlements.list.find((item) => item.orderId === order.id)
+    const entitlementEnd = entitlement?.updateValidTo || entitlement?.validTo
+    if (entitlementEnd) return [entitlementEnd.slice(0, 10)]
+
+    const startsAt = order.activationDate || order.paidAt || order.createdAt
+    const endDate = addMonths(startsAt, order.selectedTermMonths || salePeriodMonthsOf(product))
+    return endDate ? [endDate] : []
+  })
+  if (!commitments.length) return undefined
+  return commitments.sort().at(-1)
+}
+
+function editProduct(product: Product) {
+  router.push(`/admin/resources/${product.resourceId}`)
 }
 </script>
 
 <template>
   <div>
-    <PageHeader title="商业化中心" desc="会员、内容单品与数据集个人/企业销售方案（订单履约已移至订单中心）" />
+    <PageHeader title="商业化中心" desc="统一查看商品价格方案；价格维护在资源编辑页完成" />
 
-    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
-      <div class="mb-2 text-[13px] font-medium text-slate-700">会员定价</div>
-      <div class="flex flex-wrap gap-3 text-[13px] text-slate-600">
-        <div class="rounded-lg bg-slate-50 px-3 py-2">普通年费 ¥299 / 月费 ¥39</div>
-        <div class="rounded-lg bg-slate-50 px-3 py-2">高级年费 ¥599 / 月费 ¥79</div>
-        <div class="rounded-lg bg-slate-50 px-3 py-2">商品按普通/高级配置免费或折扣；同级互斥、跨级独立</div>
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white" data-testid="product-pricing-table">
+      <div class="border-b border-slate-100 px-5 py-4">
+        <div class="text-[13px] font-medium text-slate-700">商品价格方案</div>
+        <div class="mt-1 text-[11px] text-slate-400">点击商品名称进入资源编辑页</div>
       </div>
-    </div>
 
-    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4" data-testid="dataset-commerce-offers">
-      <div class="mb-2 text-[13px] font-medium text-slate-700">资产平台数据集销售方案</div>
-      <div v-for="p in itemPricing.filter((item) => item.type === 'dataset' && item.origin === 'asset_platform')" :key="p.id" class="grid grid-cols-[1.4fr_1fr_1fr_.8fr] gap-3 border-t border-slate-100 py-2 text-[12px]">
-        <div><div class="font-medium text-slate-700">{{ p.name }}</div><div class="text-slate-400">绑定 {{ p.assetSnapshot?.assetVersion }} · {{ p.status }}</div></div>
-        <div class="text-slate-500">个人：¥{{ p.datasetOffers?.find((offer) => offer.subject === 'personal')?.price.toLocaleString() || '—' }}</div>
-        <div class="text-slate-500">企业：¥{{ p.datasetOffers?.find((offer) => offer.subject === 'enterprise')?.price.toLocaleString() || '—' }}</div>
-        <div :class="p.assetSnapshot?.changeRisk === 'high' ? 'text-red-600' : 'text-emerald-600'">{{ p.assetSnapshot?.changeRisk === 'high' ? '高风险·暂停新购' : '可销售' }}</div>
-      </div>
-    </div>
-
-    <div class="rounded-xl border border-slate-200 bg-white p-4">
-      <div class="mb-2 flex items-center justify-between">
-        <span class="text-[13px] font-medium text-slate-700">单品价格</span>
-        <button class="text-[12px] text-brand-600 hover:underline" @click="router.push('/admin/orders')">查看订单中心 ›</button>
-      </div>
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400"><tr><th class="py-1.5">商品</th><th class="py-1.5">单品价格</th><th class="py-1.5">会员折扣</th><th class="py-1.5">是否会员免费/折扣</th></tr></thead>
+        <thead class="bg-slate-50 text-xs text-slate-400">
+          <tr>
+            <th class="px-5 py-2.5 font-medium">商品</th>
+            <th class="px-3 py-2.5 font-medium">个人单品</th>
+            <th class="px-3 py-2.5 font-medium">企业单品</th>
+            <th class="px-3 py-2.5 font-medium">普通会员</th>
+            <th class="px-3 py-2.5 font-medium">高级会员</th>
+            <th class="px-3 py-2.5 font-medium">可售卖周期</th>
+            <th class="px-3 py-2.5 font-medium">
+              <div>交付保障至</div>
+              <div class="mt-0.5 text-[10px] font-normal text-slate-300">已售订单最晚履约日</div>
+            </th>
+            <th class="px-5 py-2.5 font-medium">销售状态</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr v-for="p in itemPricing" :key="p.id" class="border-t border-slate-100">
-            <td class="py-1.5 text-slate-700">{{ p.name }}</td>
-            <td class="py-1.5 text-slate-500">¥{{ p.price.itemPrice }}</td>
-            <td class="py-1.5 text-slate-500">{{ p.price.memberDiscount ? (p.price.memberDiscount * 10).toFixed(0) + ' 折' : '—' }}</td>
-            <td class="py-1.5 text-slate-500">{{ formatMemberCell(p) }}</td>
+          <tr v-for="product in products" :key="product.id" class="border-t border-slate-100" data-testid="pricing-row">
+            <td class="px-5 py-3">
+              <button class="text-left font-medium text-slate-700 hover:text-brand-600 hover:underline" @click="editProduct(product)">
+                {{ product.name }}
+              </button>
+            </td>
+            <td class="px-3 py-3 text-slate-600">{{ itemPrice(product, 'personal') }}</td>
+            <td class="px-3 py-3 text-slate-600">{{ itemPrice(product, 'enterprise') }}</td>
+            <td class="px-3 py-3 text-slate-600">{{ memberPrice(product, 'standard') }}</td>
+            <td class="px-3 py-3 text-slate-600">{{ memberPrice(product, 'premium') }}</td>
+            <td class="px-3 py-3 text-slate-600">{{ salePeriodMonthsOf(product) }} 个月</td>
+            <td class="px-3 py-3" data-testid="delivery-guarantee">
+              <template v-if="deliveryGuarantee(product)">
+                <div class="font-medium text-slate-700">{{ deliveryGuarantee(product) }}</div>
+                <div class="mt-0.5 text-[10px] text-slate-400">{{ soldOrders(product).length }} 笔已售订单</div>
+              </template>
+              <span v-else class="text-slate-400">暂无已售订单</span>
+            </td>
+            <td class="px-5 py-3" :class="salesStatus(product).className">{{ salesStatus(product).label }}</td>
           </tr>
         </tbody>
       </table>

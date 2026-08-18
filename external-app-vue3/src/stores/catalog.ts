@@ -95,11 +95,10 @@ export const useCatalogStore = defineStore('catalog', {
         qualityPromise: '',
         complianceNote: '',
         price: form.price,
+        salePeriodMonths: 12,
         datasetOffers: resource.type === 'dataset' ? [
-          { id: genId('offer-personal'), name: '个人快照版', subject: 'personal', price: form.price.itemPrice ?? 100, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
-          { id: genId('offer-personal-updates'), name: '个人持续更新版', subject: 'personal', price: (form.price.itemPrice ?? 100) * 3, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'personal', allowDownload: false, deliveryMode: 'managed_connection' },
-          { id: genId('offer-enterprise-snapshot'), name: '企业快照版', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 10, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'snapshot' },
-          { id: genId('offer-enterprise'), name: '企业持续更新版', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 24, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 36, licenseKind: 'subscription', termMonths: 12, accessScope: 'named_seats', seats: 10, allowDownload: false, deliveryMode: 'managed_connection' }
+          { id: genId('offer-personal'), name: '个人单品', subject: 'personal', price: form.price.itemPrice ?? 100, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
+          { id: genId('offer-enterprise'), name: '企业单品', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 10, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' }
         ] : undefined,
         assetSnapshot: resource.origin === 'asset_platform' ? {
           resourceId: resource.id,

@@ -35,7 +35,7 @@ const hasAny = computed(() => datasetEntitlements.value.length > 0 || personalRe
 
 const deliveryFor = (entitlementId: string) => datasetCommerce.deliveries.find((item) => item.entitlementId === entitlementId)
 const effectiveExpiry = (entitlement: Entitlement) => entitlement.updateValidTo || entitlement.validTo
-const isRenewable = (entitlement: Entitlement) => entitlement.licenseKind === 'subscription' || entitlement.serviceMode === 'continuous'
+const isRenewable = (entitlement: Entitlement) => Boolean(entitlement.selectedTermMonths && effectiveExpiry(entitlement))
 const isExpiring = (entitlement: Entitlement) => {
   const value = effectiveExpiry(entitlement)
   if (!value) return false
@@ -88,7 +88,7 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
         <div class="flex items-center justify-between gap-4">
           <div>
             <div class="text-sm font-medium text-blue-900">已购数据与个人报告</div>
-            <div class="mt-1 text-xs text-blue-700">管理交付状态、更新服务到期日与续订；个人报告可申请上架到卖家中心。</div>
+            <div class="mt-1 text-xs text-blue-700">管理交付状态、购买周期结束日与续订；个人报告可申请上架到卖家中心。</div>
           </div>
           <div class="shrink-0 text-sm font-semibold text-blue-900">{{ datasetEntitlements.length + personalReportEntitlements.length }} 项</div>
         </div>
@@ -139,12 +139,12 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
       <template #title>{{ catalog.byId(entitlement.productId || '')?.name || '未知数据集' }}</template>
       <template #status><StatusBadge dict="entitlementStatus" :value="entitlement.status" /></template>
       <template #meta>
-        <div><span class="text-slate-400">服务方式</span><div class="mt-0.5 text-slate-700">{{ isRenewable(entitlement) ? '持续更新' : '一次性快照' }}</div></div>
+        <div><span class="text-slate-400">购买周期</span><div class="mt-0.5 text-slate-700">{{ entitlement.selectedTermMonths ? `${entitlement.selectedTermMonths} 个月` : '按订单约定' }}</div></div>
         <div><span class="text-slate-400">资产版本</span><div class="mt-0.5 text-slate-700">{{ entitlement.assetVersion || '—' }}</div></div>
         <div><span class="text-slate-400">用数交付</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.status === 'delivered' ? '已交付' : '处理中' }}</div></div>
         <div><span class="text-slate-400">最近更新</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.lastSuccessfulRefreshAt?.slice(0, 10) || '—' }}</div></div>
         <div :class="variant === 'portal' ? 'col-span-3' : 'col-span-2'">
-          <span class="text-slate-400">{{ isRenewable(entitlement) ? '更新服务到期日' : '数据保留期限' }}</span>
+          <span class="text-slate-400">{{ isRenewable(entitlement) ? '购买周期结束日' : '数据保留期限' }}</span>
           <div class="mt-0.5 font-medium" :class="isExpiring(entitlement) ? 'text-amber-600' : 'text-slate-700'">
             {{ effectiveExpiry(entitlement) || '当前快照长期保留' }}
             <span v-if="isExpiring(entitlement)"> · 即将到期</span>

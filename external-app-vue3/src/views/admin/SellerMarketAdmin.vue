@@ -3,12 +3,14 @@ import { computed, ref } from 'vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
+import SellingShotGallery from '@/components/SellingShotGallery.vue'
 
 const seller = useSellerMarketStore()
 const catalog = useCatalogStore()
 const orders = useOrderStore()
 const tab = ref<'access' | 'listing' | 'orders'>('access')
 const toast = ref('')
+const expandedListingId = ref('')
 
 const sellerProducts = computed(() => catalog.products.filter((p) => p.origin === 'seller_market'))
 const sellerOrders = computed(() =>
@@ -125,22 +127,35 @@ function adminConfirm(orderId: string) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="l in seller.listings" :key="l.id" class="border-t border-slate-100">
-              <td class="px-4 py-3">
-                <div class="font-medium">{{ l.title }}</div>
-                <div class="text-xs text-slate-400">{{ l.complianceSummary }}</div>
-              </td>
-              <td class="px-4 py-3">{{ l.sellerName }}</td>
-              <td class="px-4 py-3 text-slate-600">{{ l.artifactId }} @ {{ l.artifactVersion }}</td>
-              <td class="px-4 py-3">¥{{ l.price }}</td>
-              <td class="px-4 py-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ l.status }}</span></td>
-              <td class="px-4 py-3">
-                <div class="flex gap-2">
-                  <button v-if="l.status === 'pending_review'" class="rounded bg-orange-500 px-2 py-1 text-xs text-white" @click="approveListing(l.id)">通过并发布</button>
-                  <button v-if="l.status === 'pending_review'" class="rounded border px-2 py-1 text-xs" @click="rejectListing(l.id)">驳回</button>
-                </div>
-              </td>
-            </tr>
+            <template v-for="l in seller.listings" :key="l.id">
+              <tr class="border-t border-slate-100">
+                <td class="px-4 py-3">
+                  <div class="font-medium">{{ l.title }}</div>
+                  <div class="text-xs text-slate-400">{{ l.complianceSummary }}</div>
+                </td>
+                <td class="px-4 py-3">{{ l.sellerName }}</td>
+                <td class="px-4 py-3 text-slate-600">{{ l.artifactId }} @ {{ l.artifactVersion }}</td>
+                <td class="px-4 py-3">¥{{ l.price }}</td>
+                <td class="px-4 py-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ l.status }}</span></td>
+                <td class="px-4 py-3">
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      class="rounded border px-2 py-1 text-xs"
+                      :data-testid="`listing-shots-toggle-${l.id}`"
+                      @click="expandedListingId = expandedListingId === l.id ? '' : l.id"
+                    >{{ expandedListingId === l.id ? '收起截图' : '查看截图' }}</button>
+                    <button v-if="l.status === 'pending_review'" class="rounded bg-orange-500 px-2 py-1 text-xs text-white" @click="approveListing(l.id)">通过并发布</button>
+                    <button v-if="l.status === 'pending_review'" class="rounded border px-2 py-1 text-xs" @click="rejectListing(l.id)">驳回</button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="expandedListingId === l.id" class="border-t border-slate-50 bg-slate-50/80">
+                <td colspan="6" class="px-4 py-3">
+                  <SellingShotGallery :shots="l.shots" :custom-shots="l.customShots" compact />
+                  <div v-if="!l.shots?.length && !l.customShots?.length" class="text-xs text-slate-400">未上传卖点截图</div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>

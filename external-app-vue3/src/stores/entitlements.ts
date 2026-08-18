@@ -3,6 +3,7 @@ import { seedEntitlements } from '@/data/seed'
 import type { Entitlement, MemberTier, Product } from '@/types/domain'
 import { genId, now } from '@/utils/id'
 import { memberTierCoversFree } from '@/domain/memberBenefits'
+import { salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { useUserStore } from './user'
 import { useCatalogStore } from './catalog'
 
@@ -173,12 +174,8 @@ export const useEntitlementStore = defineStore('entitlements', {
     },
     grantItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const isReport = product.type === 'report'
-      const isDashboard = product.type === 'dashboard'
-      const months = options?.termMonths || (isDashboard && product.entitlementPolicy?.kind === 'term'
-        ? product.entitlementPolicy.months
-        : 12)
-      const continuous = options?.serviceMode === 'continuous'
-      const termEnd = continuous || isDashboard ? plusMonths(months) : undefined
+      const months = options?.termMonths || salePeriodMonthsOf(product)
+      const termEnd = plusMonths(months)
       this.list.push({
         id: genId('ent'),
         source: 'personal',
@@ -191,8 +188,8 @@ export const useEntitlementStore = defineStore('entitlements', {
         serviceMode: options?.serviceMode,
         selectedTermMonths: options?.termMonths,
         validFrom: now(),
-        validTo: isReport ? undefined : (continuous || isDashboard ? termEnd : undefined),
-        updateValidTo: isReport && continuous ? termEnd : undefined,
+        validTo: termEnd,
+        updateValidTo: isReport ? termEnd : undefined,
         status: 'active'
       })
     },
@@ -211,7 +208,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         serviceMode: options?.serviceMode,
         selectedTermMonths: options?.termMonths,
         validFrom: now(),
-        validTo: options?.serviceMode === 'continuous' && options.termMonths ? plusMonths(options.termMonths) : undefined,
+        validTo: options?.termMonths ? plusMonths(options.termMonths) : undefined,
         status: 'active'
       })
     },
@@ -226,9 +223,8 @@ export const useEntitlementStore = defineStore('entitlements', {
     }) {
       const offer = options.product.datasetOffers?.find((item) => item.id === options.offerId)
       if (!offer) throw new Error('数据集销售方案不存在')
-      const updateValidTo = offer.licenseKind === 'subscription' && (options.selectedTermMonths || offer.termMonths)
-        ? plusMonths(options.selectedTermMonths || offer.termMonths || 12)
-        : undefined
+      const months = options.selectedTermMonths || salePeriodMonthsOf(options.product)
+      const updateValidTo = plusMonths(months)
       const entitlement: Entitlement = {
         id: genId('ent-dataset'),
         source: options.ownerType,
@@ -247,6 +243,7 @@ export const useEntitlementStore = defineStore('entitlements', {
         assignedMemberIds: [options.operatorMemberId],
         allowDownload: offer.allowDownload,
         validFrom: now(),
+        validTo: undefined,
         updateValidTo,
         status: 'pending'
       }

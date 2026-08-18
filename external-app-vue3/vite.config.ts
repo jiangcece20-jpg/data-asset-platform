@@ -10,6 +10,8 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    // 与仓库根目录 React 应用(5173)及常见 ChatBI 本地端口(5174)错开
+    port: 5180,
+    strictPort: true
   }
 })
