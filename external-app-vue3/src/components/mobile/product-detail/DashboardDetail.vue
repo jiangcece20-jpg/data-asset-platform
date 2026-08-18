@@ -34,7 +34,11 @@ const basicItems = computed<InfoItem[]>(() => {
 
     <!-- 看板预览 -->
     <div v-else-if="activeTab === 'preview'" class="space-y-3">
-      <SellingShotGallery v-if="product.sellingShots?.length" :shots="product.sellingShots" />
+      <SellingShotGallery
+        v-if="product.sellingShots?.length || product.customSellingShots?.length"
+        :shots="product.sellingShots"
+        :custom-shots="product.customSellingShots"
+      />
       <ProductContentPeek :product="product" />
       <div v-for="panel in detail.panels" :key="panel.id" class="rounded-xl border border-slate-100 p-3">
         <div class="mb-1.5 flex items-center justify-between">

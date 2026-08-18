@@ -65,6 +65,61 @@ export const SELLING_SHOT_TIPS = [
 
 export const SELLING_SHOT_CAPTION_MAX = 40
 
+/** 卖家自定义补充截图（模版四槽位之外，可选） */
+export interface CustomSellingShot {
+  id: string
+  title: string
+  description: string
+  imageDataUrl: string
+}
+
+export const CUSTOM_SELLING_SHOT_MAX = 3
+export const CUSTOM_SELLING_SHOT_TITLE_MAX = 20
+export const CUSTOM_SELLING_SHOT_DESC_MAX = 80
+
+export function normalizeCustomSellingShots(shots: CustomSellingShot[] | undefined): CustomSellingShot[] {
+  return (shots ?? [])
+    .filter((shot) => shot.imageDataUrl.trim())
+    .slice(0, CUSTOM_SELLING_SHOT_MAX)
+    .map((shot) => ({
+      id: shot.id,
+      title: shot.title.trim().slice(0, CUSTOM_SELLING_SHOT_TITLE_MAX),
+      description: shot.description.trim().slice(0, CUSTOM_SELLING_SHOT_DESC_MAX),
+      imageDataUrl: shot.imageDataUrl
+    }))
+}
+
+export function assertCustomSellingShots(shots: CustomSellingShot[] | undefined): CustomSellingShot[] {
+  for (const shot of shots ?? []) {
+    const hasImage = Boolean(shot.imageDataUrl.trim())
+    const hasTitle = Boolean(shot.title.trim())
+    const hasDesc = Boolean(shot.description.trim())
+    if (!hasImage && (hasTitle || hasDesc)) {
+      throw new Error('自定义截图已填写标题或描述，请上传图片')
+    }
+    if (hasImage && !hasTitle) {
+      throw new Error('自定义截图须填写标题')
+    }
+    if (hasImage && hasTitle && !hasDesc) {
+      throw new Error(`请为「${shot.title.trim()}」填写描述`)
+    }
+  }
+  const normalized = normalizeCustomSellingShots(shots)
+  if (normalized.length > CUSTOM_SELLING_SHOT_MAX) {
+    throw new Error(`自定义截图最多 ${CUSTOM_SELLING_SHOT_MAX} 张`)
+  }
+  return normalized
+}
+
+export function exampleCustomSellingShot(): CustomSellingShot {
+  return {
+    id: 'custom-demo-1',
+    title: '线路对比专题',
+    description: '沪宁线与苏北支线时效对比，帮助买家判断适用场景',
+    imageDataUrl: exampleShotImage('trend')
+  }
+}
+
 const SLOT_STYLE: Record<SellingShotSlot, { bg: string; accent: string; label: string }> = {
   overview: { bg: '#0f172a', accent: '#38bdf8', label: '总览' },
   kpi: { bg: '#111827', accent: '#34d399', label: '指标' },

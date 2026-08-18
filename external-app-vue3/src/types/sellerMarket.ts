@@ -1,6 +1,6 @@
 /** 入驻商家上架（用数成果转售）原型领域类型 — MVP 看板竖切 */
 
-import type { SellingShot } from '@/domain/sellingShotTemplate'
+import type { SellingShot, CustomSellingShot } from '@/domain/sellingShotTemplate'
 
 export type SellerSubjectType = 'personal' | 'enterprise'
 export type SellerAccessStatus =
@@ -75,6 +75,8 @@ export interface SellerListingApplication {
   complianceSummary: string
   /** 报表卖点截图（总览/指标必填，趋势/发现建议） */
   shots: SellingShot[]
+  /** 自定义补充截图（可选，须填标题与描述） */
+  customShots: CustomSellingShot[]
   status: SellerListingStatus
   reviewNote?: string
   createdAt: string

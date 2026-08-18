@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  assertCustomSellingShots,
   assertRequiredSellingShots,
+  exampleCustomSellingShot,
   exampleSellingShot,
   exampleSellingShots,
   filledShotCount,
@@ -29,5 +31,15 @@ describe('sellingShotTemplate', () => {
 
   it('counts filled example shots as 4/4', () => {
     expect(filledShotCount(exampleSellingShots())).toBe(4)
+  })
+
+  it('requires title and description for custom shots with image', () => {
+    expect(() => assertCustomSellingShots([
+      { id: 'c1', title: '', description: '', imageDataUrl: 'data:image/png;base64,x' }
+    ])).toThrow('自定义截图须填写标题')
+    expect(() => assertCustomSellingShots([
+      { id: 'c1', title: '专题', description: '', imageDataUrl: 'data:image/png;base64,x' }
+    ])).toThrow('请为「专题」填写描述')
+    expect(assertCustomSellingShots([exampleCustomSellingShot()])).toHaveLength(1)
   })
 })

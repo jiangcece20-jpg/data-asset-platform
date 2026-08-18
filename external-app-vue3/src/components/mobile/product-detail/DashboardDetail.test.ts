@@ -11,6 +11,7 @@ describe('DashboardDetail selling shots', () => {
     })
     expect(wrapper.get('[data-testid="selling-shot-gallery"]').text()).toContain('卖家卖点截图')
     expect(wrapper.get('[data-testid="selling-shot-overview"]').text()).toContain('总览一屏')
+    expect(wrapper.get('[data-testid="custom-selling-shot-custom-demo-1"]').text()).toContain('线路对比专题')
     expect(wrapper.get('[data-testid="content-first-preview"]').exists()).toBe(true)
   })
 

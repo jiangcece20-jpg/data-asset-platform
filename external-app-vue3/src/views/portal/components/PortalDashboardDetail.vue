@@ -96,9 +96,10 @@ function displayValue(value: string | number | null | undefined): string {
     <!-- Tab: preview 看板预览（2 列） -->
     <div v-else-if="activeTab === 'preview'" class="grid grid-cols-2 gap-4">
       <SellingShotGallery
-        v-if="product.sellingShots?.length"
+        v-if="product.sellingShots?.length || product.customSellingShots?.length"
         class="col-span-2"
         :shots="product.sellingShots"
+        :custom-shots="product.customSellingShots"
       />
       <ProductContentPeek :product="product" class="col-span-2" />
       <div

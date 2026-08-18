@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { exampleSellingShot, exampleSellingShots } from '@/domain/sellingShotTemplate'
+import { exampleCustomSellingShot, exampleSellingShot, exampleSellingShots } from '@/domain/sellingShotTemplate'
 import { useCatalogStore } from './catalog'
 import { useSellerMarketStore } from './sellerMarket'
 
@@ -35,5 +35,22 @@ describe('sellerMarket selling shots', () => {
     const product = useCatalogStore().byId(listing.productId!)
     expect(product?.sellingShots?.map((shot) => shot.slot)).toEqual(['overview', 'kpi', 'trend', 'finding'])
     expect(product?.sellingShots?.[0].caption).toContain('准点率')
+  })
+
+  it('publishes custom selling shots with title and description', () => {
+    const seller = useSellerMarketStore()
+    const listing = seller.submitListing({
+      artifactId: 'artifact-warehouse-health',
+      title: '仓网看板',
+      subtitle: '周转分析',
+      price: 129,
+      complianceSummary: '已脱敏',
+      shots: [exampleSellingShot('overview'), exampleSellingShot('kpi')],
+      customShots: [exampleCustomSellingShot()]
+    })
+    seller.decideListing(listing.id, 'published')
+    const product = useCatalogStore().byId(listing.productId!)
+    expect(product?.customSellingShots?.[0].title).toBe('线路对比专题')
+    expect(product?.customSellingShots?.[0].description).toContain('适用场景')
   })
 })

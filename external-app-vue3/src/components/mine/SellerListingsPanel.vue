@@ -55,7 +55,7 @@ const statusLabel = computed(() => {
         <div><span class="text-slate-400">对象版本</span><div class="mt-0.5 text-slate-700">{{ item.artifactVersion }}</div></div>
         <div><span class="text-slate-400">价格</span><div class="mt-0.5 font-semibold text-brand-600">¥{{ item.price }}</div></div>
         <div><span class="text-slate-400">来源</span><div class="mt-0.5 text-slate-700">{{ item.dataProvenance === 'owned' ? '自有' : '衍生' }}</div></div>
-        <div><span class="text-slate-400">截图</span><div class="mt-0.5 text-slate-700">{{ filledShotCount(item.shots) }}/4</div></div>
+        <div><span class="text-slate-400">截图</span><div class="mt-0.5 text-slate-700">{{ filledShotCount(item.shots) }}/4<span v-if="item.customShots?.length"> + {{ item.customShots.length }} 自定义</span></div></div>
         <div><span class="text-slate-400">更新时间</span><div class="mt-0.5 text-slate-700">{{ item.updatedAt }}</div></div>
       </template>
       <template v-if="item.reviewNote" #notice>

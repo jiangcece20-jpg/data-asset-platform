@@ -3,9 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import SellerListingShots from '@/components/mine/SellerListingShots.vue'
+import SellerListingCustomShots from '@/components/mine/SellerListingCustomShots.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
-import type { SellingShot } from '@/domain/sellingShotTemplate'
+import type { CustomSellingShot, SellingShot } from '@/domain/sellingShotTemplate'
 
 const props = defineProps<{
   embedded?: boolean
@@ -26,6 +27,7 @@ const complianceSummary = ref('无个人信息对外售卖；来源与许可已�
 const error = ref('')
 const submitting = ref(false)
 const shots = ref<SellingShot[]>([])
+const customShots = ref<CustomSellingShot[]>([])
 
 const artifact = computed(() => seller.listableArtifacts.find((a) => a.id === artifactId.value))
 const sourceProduct = computed(() => {
@@ -64,7 +66,8 @@ function submit() {
       subtitle: subtitle.value.trim(),
       price: Number(price.value),
       complianceSummary: complianceSummary.value.trim(),
-      shots: shots.value
+      shots: shots.value,
+      customShots: customShots.value
     })
     if (props.embedded) emit('done')
     else router.replace({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listings' } })
@@ -115,6 +118,7 @@ function submit() {
       </div>
 
       <SellerListingShots v-model="shots" />
+      <SellerListingCustomShots v-model="customShots" />
 
       <div v-if="error" class="rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
       <button class="w-full rounded-xl bg-orange-500 py-3 text-[14px] font-medium text-white disabled:opacity-50" :disabled="submitting" @click="submit">

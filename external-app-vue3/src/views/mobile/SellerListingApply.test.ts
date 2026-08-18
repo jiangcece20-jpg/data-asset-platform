@@ -40,4 +40,11 @@ describe('SellerListingApply selling shots', () => {
     expect(created?.shots).toHaveLength(4)
     expect(wrapper.emitted('done')).toBeTruthy()
   })
+
+  it('shows custom selling shots section on listing form', async () => {
+    const wrapper = await mountForm()
+    expect(wrapper.get('[data-testid="seller-listing-custom-shots"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="add-custom-shot"]').trigger('click')
+    expect(wrapper.get('[data-testid="custom-shot-row-0"]').exists()).toBe(true)
+  })
 })

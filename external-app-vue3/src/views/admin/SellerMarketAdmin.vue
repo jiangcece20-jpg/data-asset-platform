@@ -151,8 +151,8 @@ function adminConfirm(orderId: string) {
               </tr>
               <tr v-if="expandedListingId === l.id" class="border-t border-slate-50 bg-slate-50/80">
                 <td colspan="6" class="px-4 py-3">
-                  <SellingShotGallery :shots="l.shots" compact />
-                  <div v-if="!l.shots?.length" class="text-xs text-slate-400">未上传卖点截图</div>
+                  <SellingShotGallery :shots="l.shots" :custom-shots="l.customShots" compact />
+                  <div v-if="!l.shots?.length && !l.customShots?.length" class="text-xs text-slate-400">未上传卖点截图</div>
                 </td>
               </tr>
             </template>
