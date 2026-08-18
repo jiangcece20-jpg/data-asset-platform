@@ -73,7 +73,7 @@ export interface CustomSellingShot {
   imageDataUrl: string
 }
 
-export const CUSTOM_SELLING_SHOT_MAX = 3
+export const CUSTOM_SELLING_SHOT_MAX = 1
 export const CUSTOM_SELLING_SHOT_TITLE_MAX = 20
 export const CUSTOM_SELLING_SHOT_DESC_MAX = 80
 

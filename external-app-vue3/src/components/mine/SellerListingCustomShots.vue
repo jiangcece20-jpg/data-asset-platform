@@ -54,7 +54,7 @@ function onFile(id: string, event: Event) {
       <div>
         <div class="text-[13px] font-medium text-slate-800">自定义补充截图</div>
         <p class="mt-1 text-[11px] leading-relaxed text-slate-500">
-          模版四槽位之外，可再传最多 {{ CUSTOM_SELLING_SHOT_MAX }} 张。每张须自定义标题与描述，用于补充说明报表价值。
+          模版四槽位之外，可再传 {{ CUSTOM_SELLING_SHOT_MAX }} 张补充图。每张须自定义标题与描述，用于补充说明报表价值。
         </p>
       </div>
       <button
