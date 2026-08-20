@@ -176,4 +176,23 @@ describe('ResourceEdit product-detail mapping', () => {
       { tier: 'premium', mode: 'free' }
     ])
   })
+
+  it('lets an unlisted resource edit product fields and save as draft', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    expect(wrapper.get('[data-testid="save-product"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('尚未包装为商品')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹商品草稿')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    const catalog = useCatalogStore()
+    const created = catalog.productForResource('res-asset-truck-trajectory')
+    expect(created?.name).toBe('货车轨迹商品草稿')
+    expect(created?.availability).toBe('preparing')
+    expect(created?.status).toBe('draft')
+    expect(catalog.discoverable.some((p) => p.id === created?.id)).toBe(false)
+  })
+
+  it('does not show product editors for user views', async () => {
+    const wrapper = await mountResourceEdit('res-view-driver-performance')
+    expect(wrapper.find('[data-testid="save-product"]').exists()).toBe(false)
+  })
 })

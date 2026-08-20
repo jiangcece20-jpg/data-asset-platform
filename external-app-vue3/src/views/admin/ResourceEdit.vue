@@ -14,6 +14,7 @@ import {
   resolveMemberBenefits
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import { listingBlockReason, validateDraftSave, type FieldError, type PublishForm } from '@/domain/salesListing'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,7 +48,9 @@ function goBack() {
 // 编辑表单状态
 // ---------------------------------------------------------------------------
 
-const editable = computed(() => !!product.value && resource.value?.type !== 'user_view')
+const editable = computed(() => resource.value?.type !== 'user_view')
+const dealChannel = computed(() => product.value?.dealChannel ?? 'app_payment')
+const publishErrors = ref<FieldError[]>([])
 
 // --- 商品信息表单（含运营增强） ---
 const productForm = reactive({
@@ -152,9 +155,65 @@ function toggleSelectAll() {
 // 从 store 同步表单
 // ---------------------------------------------------------------------------
 
+function currentPublishForm(): PublishForm {
+  return {
+    name: productForm.name,
+    dealChannel: dealChannel.value,
+    isFree: productForm.isFree,
+    salePeriodMonths: Number(productForm.salePeriodMonths),
+    personalEnabled: itemOfferForm.personal.enabled,
+    personalPrice: Number(itemOfferForm.personal.price),
+    enterpriseEnabled: itemOfferForm.enterprise.enabled,
+    enterprisePrice: Number(itemOfferForm.enterprise.price),
+    standardMemberMode: productForm.standardMemberMode,
+    standardMemberZhe: Number(productForm.standardMemberZhe),
+    premiumMemberMode: productForm.premiumMemberMode,
+    premiumMemberZhe: Number(productForm.premiumMemberZhe),
+    hasSpacePrice: Boolean(
+      product.value?.datasetOffers?.length || product.value?.typeDetail.api?.pricingPlans?.length
+    ),
+    dashboardMetrics: dashboardForm.metrics.map((metric) => ({
+      name: metric.name,
+      definition: metric.definition
+    }))
+  }
+}
+
 function syncFormFromStore() {
   const p = product.value
-  if (!p) return
+  if (!p) {
+    productForm.name = resource.value?.resourceName ?? ''
+    productForm.subtitle = ''
+    productForm.description = ''
+    productForm.valueProposition = ''
+    productForm.scenarios = ''
+    productForm.isFree = false
+    productForm.salePeriodMonths = 12
+    productForm.standardMemberMode = 'none'
+    productForm.standardMemberZhe = 6
+    productForm.premiumMemberMode = 'none'
+    productForm.premiumMemberZhe = 6
+    productForm.coverage = ''
+    productForm.updateFrequency = ''
+    productForm.deliveryMethod = ''
+    productForm.provider = ''
+    productForm.qualityPromise = ''
+    productForm.complianceNote = ''
+    productForm.recommendText = ''
+    productForm.tags = ''
+    productForm.sortWeight = 50
+    productForm.recommendSlot = false
+    itemOfferForm.personal.id = ''
+    itemOfferForm.personal.enabled = false
+    itemOfferForm.personal.price = 0
+    itemOfferForm.personal.allowDownload = false
+    itemOfferForm.enterprise.id = ''
+    itemOfferForm.enterprise.enabled = false
+    itemOfferForm.enterprise.price = 0
+    itemOfferForm.enterprise.allowDownload = false
+    publishErrors.value = []
+    return
+  }
 
   // 商品信息
   productForm.name = p.name
@@ -254,8 +313,34 @@ watch(product, syncFormFromStore, { immediate: true })
 // ---------------------------------------------------------------------------
 
 function saveProduct() {
-  const p = product.value
-  if (!p) return
+  const res = resource.value
+  if (!res || res.type === 'user_view') return
+  const errors = validateDraftSave(currentPublishForm())
+  if (errors.length) {
+    publishErrors.value = errors
+    return
+  }
+  publishErrors.value = []
+  let p = product.value
+  if (!p) {
+    if (listingBlockReason(res)) return
+    p = catalog.listResource(res.id, {
+      name: productForm.name.trim(),
+      subtitle: productForm.subtitle,
+      price: {
+        model: productForm.isFree ? 'free' : 'item_only',
+        itemPrice: itemOfferForm.personal.price || 100,
+        unit: '元/次'
+      },
+      acquisitions: buildAcquisitions(
+        productForm.isFree,
+        productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
+        itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+      ),
+      scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
+      tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
+    })
+  }
   const appOffers = p.dealChannel === 'app_payment' && !productForm.isFree
     ? [itemOfferForm.personal, itemOfferForm.enterprise]
         .filter((offer) => offer.enabled)
@@ -526,33 +611,24 @@ function saveProfilingFields() {
       <p class="mb-4 text-xs leading-relaxed text-slate-400">
         粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
       </p>
-      <template v-if="product">
-        <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
-          <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
-            <input v-model="datasetForm.granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">时间范围</span>
-            <input v-model="datasetForm.timeRange" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">数据行数</span>
-            <input v-model="datasetForm.rowCount" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-          </label>
-          <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">字段数</span>
-            <input v-model="datasetForm.fieldCount" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-          </label>
-        </div>
-      </template>
-      <div v-else-if="resource.typeDetail.dataset" class="grid grid-cols-2 gap-4 text-sm text-slate-600">
-        <div><span class="text-slate-500">粒度：</span>{{ resource.typeDetail.dataset.granularity || '—' }}</div>
-        <div><span class="text-slate-500">时间范围：</span>{{ resource.typeDetail.dataset.timeRange || '—' }}</div>
-        <div><span class="text-slate-500">行数：</span>{{ resource.typeDetail.dataset.rowCount?.toLocaleString() ?? '—' }}</div>
-        <div><span class="text-slate-500">字段数：</span>{{ resource.typeDetail.dataset.fieldCount ?? resource.typeDetail.dataset.fields?.length ?? '—' }}</div>
+      <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
+        <label class="block">
+          <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
+          <input v-model="datasetForm.granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs text-slate-400">时间范围</span>
+          <input v-model="datasetForm.timeRange" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs text-slate-400">数据行数</span>
+          <input v-model="datasetForm.rowCount" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs text-slate-400">字段数</span>
+          <input v-model="datasetForm.fieldCount" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+        </label>
       </div>
-      <p v-else class="text-sm text-slate-400">尚未包装为商品，指标可在上架后配置。</p>
     </div>
 
     <!-- 类型特有区块：API -->
@@ -567,11 +643,11 @@ function saveProfilingFields() {
     </div>
 
     <!-- ================================================================== -->
-    <!-- 编辑表单（仅有关联商品且非用数视图时显示） -->
+    <!-- 编辑表单（非用数视图即可填写；无商品时保存即创建草稿） -->
     <!-- ================================================================== -->
-    <template v-if="editable && product">
+    <template v-if="editable">
 
-      <div class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="product-review-workflow">
+      <div v-if="product" class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="product-review-workflow">
         <div class="mr-auto">
           <div class="text-sm font-medium text-slate-700">商品发布流程</div>
           <div class="mt-0.5 text-xs text-slate-400">当前状态：{{ product.status }} · 前台状态：{{ product.availability }}</div>
@@ -589,7 +665,11 @@ function saveProfilingFields() {
         <div class="mb-4">
           <div class="mb-2 text-xs font-medium text-slate-500">标题与展示</div>
           <div class="space-y-3">
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">商品名称</span><input v-model="productForm.name" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block">
+              <span class="mb-1 block text-xs text-slate-400">商品名称</span>
+              <input v-model="productForm.name" data-testid="product-name-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+              <p v-if="publishErrors.some((e) => e.field === 'name')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'name')?.message }}</p>
+            </label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">商品副标题（推荐语为空时展示）</span><input v-model="productForm.subtitle" data-testid="product-subtitle-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（商品卡片与详情页优先展示）</span><input v-model="productForm.recommendText" data-testid="product-recommend-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
@@ -603,7 +683,7 @@ function saveProfilingFields() {
 
         <!-- 运营信息：空间商品整体只读同步，与详情页「资源信息 / 合规与授权」同源 -->
         <div class="mb-4 border-t border-slate-100 pt-4">
-          <template v-if="product.dealChannel === 'space_purchase'">
+          <template v-if="product?.dealChannel === 'space_purchase'">
             <ProductInfoSections :product="product" :columns="2" include-department />
           </template>
           <template v-else>
@@ -621,12 +701,12 @@ function saveProfilingFields() {
         <div class="mb-4 border-t border-slate-100 pt-4">
           <div class="mb-2 flex items-center gap-2">
             <span class="text-xs font-medium text-slate-500">商品说明书</span>
-            <span v-if="product.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
+            <span v-if="product?.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
           </div>
           <div class="space-y-3">
             <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <!-- 详细描述：空间商品只读 -->
-            <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
               <span class="text-xs text-slate-400">详细描述 <span class="text-blue-500">· 同步</span></span>
               <div class="mt-1 text-sm leading-relaxed text-slate-700">{{ product.description || '—' }}</div>
             </div>
@@ -634,7 +714,7 @@ function saveProfilingFields() {
             <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <!-- 适用场景：空间商品只读 -->
-            <div v-if="product.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
+            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
               <span class="text-xs text-slate-400">适用场景 <span class="text-blue-500">· 同步</span></span>
               <div class="mt-0.5 text-sm text-slate-700">{{ (product.scenarios || []).join('、') || '—' }}</div>
             </div>
@@ -643,7 +723,7 @@ function saveProfilingFields() {
         </div>
 
         <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
-        <div v-if="product.dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
+        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
           <div class="mb-1 flex items-center justify-between gap-3">
             <div class="text-xs font-medium text-slate-600">价格方案</div>
             <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
@@ -779,7 +859,7 @@ function saveProfilingFields() {
           </fieldset>
         </div>
 
-        <div v-if="product.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
+        <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
           <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>
           <p class="mb-2 text-[11px] text-slate-400">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
           <div v-if="product.datasetOffers?.length" class="space-y-2">
@@ -798,7 +878,7 @@ function saveProfilingFields() {
       </div>
 
       <!-- 报告介绍配置 -->
-      <div v-if="resource.type === 'report' && product.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
+      <div v-if="resource.type === 'report' && product?.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 class="text-sm font-semibold text-slate-700">报告介绍配置</h2>
@@ -830,7 +910,7 @@ function saveProfilingFields() {
       </div>
 
       <!-- 看板与指标定义配置 -->
-      <div v-if="resource.type === 'dashboard' && product.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
+      <div v-if="resource.type === 'dashboard' && product?.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
