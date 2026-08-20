@@ -130,4 +130,43 @@ describe('validateDraftSave / validatePublish', () => {
       hasSpacePrice: true
     })).toEqual([])
   })
+
+  it('requires dashboard metrics on free app publish', () => {
+    const errors = validatePublish({
+      ...paidForm,
+      isFree: true,
+      personalEnabled: false,
+      dashboardMetrics: [{ name: '时效', definition: '' }]
+    })
+    expect(errors.some((e) => e.field === 'dashboardMetrics')).toBe(true)
+  })
+
+  it('requires dashboard metrics on space publish with synced price', () => {
+    const errors = validatePublish({
+      ...paidForm,
+      dealChannel: 'space_purchase',
+      personalEnabled: false,
+      hasSpacePrice: true,
+      dashboardMetrics: [{ name: '时效', definition: '' }]
+    })
+    expect(errors.some((e) => e.field === 'dashboardMetrics')).toBe(true)
+  })
+
+  it.each([
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['1.5', 1.5]
+  ])('rejects non-integer sale period %s on draft save', (_label, salePeriodMonths) => {
+    const errors = validateDraftSave({ ...paidForm, salePeriodMonths })
+    expect(errors.some((e) => e.field === 'salePeriod')).toBe(true)
+  })
+
+  it.each([
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['1.5', 1.5]
+  ])('rejects non-integer sale period %s on publish', (_label, salePeriodMonths) => {
+    const errors = validatePublish({ ...paidForm, salePeriodMonths })
+    expect(errors.some((e) => e.field === 'salePeriod')).toBe(true)
+  })
 })

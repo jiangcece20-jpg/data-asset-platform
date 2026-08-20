@@ -53,10 +53,14 @@ function zheOk(value: number): boolean {
   return Number.isFinite(value) && value >= 1 && value <= 9.9
 }
 
+function salePeriodOk(value: number): boolean {
+  return Number.isFinite(value) && Number.isInteger(value) && value >= 1
+}
+
 export function validateDraftSave(form: PublishForm): FieldError[] {
   const errors: FieldError[] = []
   if (!form.name.trim()) errors.push({ field: 'name', message: '请填写商品名称' })
-  if (!form.isFree && form.dealChannel === 'app_payment' && form.salePeriodMonths < 1) {
+  if (!form.isFree && form.dealChannel === 'app_payment' && !salePeriodOk(form.salePeriodMonths)) {
     errors.push({ field: 'salePeriod', message: '可售卖周期须为正整数' })
   }
   if (form.standardMemberMode === 'discount' && !zheOk(form.standardMemberZhe)) {
@@ -70,12 +74,15 @@ export function validateDraftSave(form: PublishForm): FieldError[] {
 
 export function validatePublish(form: PublishForm): FieldError[] {
   const errors = validateDraftSave(form)
+  if (form.dashboardMetrics.some((m) => !m.name.trim() || !m.definition.trim())) {
+    errors.push({ field: 'dashboardMetrics', message: '每条看板指标须有名称和定义' })
+  }
   if (form.dealChannel === 'space_purchase') {
     if (!form.hasSpacePrice) errors.push({ field: 'pricing', message: '可信空间价格尚未同步，不能上架' })
     return errors
   }
   if (form.isFree) return errors
-  if (form.salePeriodMonths < 1) {
+  if (!salePeriodOk(form.salePeriodMonths)) {
     if (!errors.some((e) => e.field === 'salePeriod')) {
       errors.push({ field: 'salePeriod', message: '付费商品须填写可售卖周期' })
     }
@@ -89,9 +96,6 @@ export function validatePublish(form: PublishForm): FieldError[] {
   }
   if (form.enterpriseEnabled && !Number.isFinite(form.enterprisePrice)) {
     errors.push({ field: 'itemPrice', message: '请填写企业单品价格' })
-  }
-  if (form.dashboardMetrics.some((m) => !m.name.trim() || !m.definition.trim())) {
-    errors.push({ field: 'dashboardMetrics', message: '每条看板指标须有名称和定义' })
   }
   return errors
 }
