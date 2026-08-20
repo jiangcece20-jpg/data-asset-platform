@@ -73,10 +73,60 @@ describe('catalog store — resource extensions', () => {
     expect(created!.name).toBe(unlistedResource!.resourceName)
     expect(created!.availability).toBe('preparing')
     expect(created!.status).toBe('draft')
-    catalog.submitProductReview(created!.id)
-    expect(created!.status).toBe('pending_approval')
-    catalog.approveAndPublishProduct(created!.id)
+    catalog.publishProduct(created!.id)
     expect(created!.availability).toBe('published')
+  })
+
+  it('publishProduct lists a draft and keeps it out of discoverable until published', () => {
+    const catalog = useCatalogStore()
+    const unlisted = catalog.resources.find(
+      (r) => !catalog.products.some((p) => p.resourceId === r.id) && r.type !== 'user_view'
+    )!
+    const created = catalog.listResource(unlisted.id, {
+      name: unlisted.resourceName,
+      subtitle: '',
+      price: { model: 'item_only', itemPrice: 100, unit: '元/次' },
+      acquisitions: ['item_purchase'],
+      scenarios: [],
+      tags: []
+    })
+    expect(catalog.discoverable.some((p) => p.id === created.id)).toBe(false)
+    catalog.publishProduct(created.id)
+    const published = catalog.byId(created.id)!
+    expect(published.availability).toBe('published')
+    expect(published.status).toBe('published')
+    expect(catalog.discoverable.some((p) => p.id === published.id)).toBe(true)
+  })
+
+  it('pauseProduct blocks discoverable and resumeProduct restores it', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.products.find((p) => p.availability === 'published')!
+    catalog.pauseProduct(product.id)
+    expect(catalog.byId(product.id)?.availability).toBe('paused')
+    expect(catalog.byId(product.id)?.status).toBe('published')
+    expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(false)
+    catalog.resumeProduct(product.id)
+    expect(catalog.byId(product.id)?.availability).toBe('published')
+    expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(true)
+  })
+
+  it('delistProduct sets delisted status and publishProduct can relist', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.products.find((p) => p.availability === 'published')!
+    catalog.delistProduct(product.id)
+    expect(catalog.byId(product.id)?.availability).toBe('delisted')
+    expect(catalog.byId(product.id)?.status).toBe('delisted')
+    expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(false)
+    catalog.publishProduct(product.id)
+    expect(catalog.byId(product.id)?.availability).toBe('published')
+    expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(true)
+  })
+
+  it('pauseProduct throws unless the product is published', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.products.find((p) => p.availability === 'published')!
+    catalog.delistProduct(product.id)
+    expect(() => catalog.pauseProduct(product.id)).toThrow('仅已上架商品可暂停新购')
   })
 
   it('listResource throws for already listed resource', () => {

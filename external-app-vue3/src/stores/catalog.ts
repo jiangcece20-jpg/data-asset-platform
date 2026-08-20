@@ -139,12 +139,42 @@ export const useCatalogStore = defineStore('catalog', {
       product.updatedAt = now()
       return product
     },
+    publishProduct(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product) throw new Error('商品不存在')
+      if (product.availability === 'published') throw new Error('商品已上架')
+      if (product.availability === 'paused') throw new Error('请先恢复销售')
+      product.status = 'published'
+      product.availability = 'published'
+      product.listedAt = now()
+      product.updatedAt = now()
+      return product
+    },
+    pauseProduct(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.availability !== 'published') throw new Error('仅已上架商品可暂停新购')
+      product.availability = 'paused'
+      product.status = 'published'
+      product.updatedAt = now()
+      return product
+    },
+    resumeProduct(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product || product.availability !== 'paused') throw new Error('仅暂停新购的商品可恢复销售')
+      product.availability = 'published'
+      product.status = 'published'
+      product.updatedAt = now()
+      return product
+    },
     delistProduct(productId: string) {
       const p = this.products.find((x) => x.id === productId)
-      if (p) {
-        p.availability = 'delisted'
-        p.updatedAt = now()
+      if (!p) return
+      if (p.availability !== 'published' && p.availability !== 'paused') {
+        throw new Error('仅已上架或暂停新购的商品可下架')
       }
+      p.availability = 'delisted'
+      p.status = 'delisted'
+      p.updatedAt = now()
     },
     searchInternalViews(query: string, enterpriseId?: string): Resource[] {
       const q = query.trim().toLowerCase()
