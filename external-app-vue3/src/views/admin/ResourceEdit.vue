@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import type { AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetOffer, MemberTier, ProductType } from '@/types/domain'
+import type { AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetDetail, DatasetOffer, MemberTier, ProductType } from '@/types/domain'
 import { listedAtOf } from '@/utils/productMeta'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import {
@@ -211,7 +211,26 @@ function syncFormFromStore() {
     itemOfferForm.enterprise.enabled = false
     itemOfferForm.enterprise.price = 0
     itemOfferForm.enterprise.allowDownload = false
+    datasetForm.granularity = ''
+    datasetForm.timeRange = ''
+    datasetForm.rowCount = ''
+    datasetForm.fieldCount = ''
+    dashboardForm.timeRange = ''
+    dashboardForm.updateCycle = ''
+    dashboardForm.exportRule = ''
+    dashboardForm.metrics.splice(0)
+    reportForm.publishedAt = ''
+    reportForm.pageCount = 0
+    reportForm.author = ''
+    reportForm.version = ''
+    reportForm.audience = ''
+    reportForm.license = ''
+    profilingSelection.value = []
     publishErrors.value = []
+    productSaved.value = false
+    dashboardConfigSaved.value = false
+    reportConfigSaved.value = false
+    profilingSaved.value = false
     return
   }
 
@@ -306,7 +325,7 @@ function syncItemOffer(target: ItemOfferForm, offers: CommerceOffer[], fallbackP
   target.allowDownload = Boolean(source?.allowDownload)
 }
 
-watch(product, syncFormFromStore, { immediate: true })
+watch([product, resourceId], syncFormFromStore, { immediate: true })
 
 // ---------------------------------------------------------------------------
 // 保存动作
@@ -408,9 +427,34 @@ function parseOptionalCount(raw: string): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
+function emptyDatasetDetail(): DatasetDetail {
+  return {
+    classification: '',
+    qualityUpdatedAt: '',
+    fields: [],
+    sampleColumns: [],
+    sampleRows: [],
+    sampleGeneratedAt: '',
+    profiling: {
+      completeness: '',
+      uniqueness: '',
+      nullRate: '',
+      distribution: '',
+      anomalies: '',
+      conclusion: '',
+      updatedAt: ''
+    }
+  }
+}
+
 function persistDatasetMetrics() {
   const p = product.value
-  if (!p?.typeDetail.dataset) return
+  if (!p || p.type !== 'dataset') return
+  if (!p.typeDetail.dataset) {
+    catalog.updateProduct(p.id, {
+      typeDetail: { ...p.typeDetail, dataset: emptyDatasetDetail() }
+    })
+  }
   const fieldRaw = datasetForm.fieldCount.trim()
   catalog.updateDatasetMetrics(p.id, {
     granularity: datasetForm.granularity.trim() || undefined,
@@ -614,19 +658,19 @@ function saveProfilingFields() {
       <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
         <label class="block">
           <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
-          <input v-model="datasetForm.granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          <input v-model="datasetForm.granularity" data-testid="dataset-metric-granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs text-slate-400">时间范围</span>
-          <input v-model="datasetForm.timeRange" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          <input v-model="datasetForm.timeRange" data-testid="dataset-metric-time-range" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs text-slate-400">数据行数</span>
-          <input v-model="datasetForm.rowCount" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          <input v-model="datasetForm.rowCount" data-testid="dataset-metric-row-count" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
         </label>
         <label class="block">
           <span class="mb-1 block text-xs text-slate-400">字段数</span>
-          <input v-model="datasetForm.fieldCount" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          <input v-model="datasetForm.fieldCount" data-testid="dataset-metric-field-count" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
         </label>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -189,6 +189,33 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(created?.availability).toBe('preparing')
     expect(created?.status).toBe('draft')
     expect(catalog.discoverable.some((p) => p.id === created?.id)).toBe(false)
+  })
+
+  it('persists dataset metrics when first-saving an unlisted resource', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="dataset-metric-granularity"]').setValue('车辆 × 日')
+    await wrapper.get('[data-testid="dataset-metric-time-range"]').setValue('近 6 个月')
+    await wrapper.get('[data-testid="dataset-metric-row-count"]').setValue('1280000')
+    await wrapper.get('[data-testid="dataset-metric-field-count"]').setValue('8')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
+    expect(created?.typeDetail.dataset).toMatchObject({
+      granularity: '车辆 × 日',
+      timeRange: '近 6 个月',
+      rowCount: 1280000,
+      fieldCount: 8
+    })
+  })
+
+  it('resets type-specific forms when opening an unlisted resource', async () => {
+    const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+    expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-granularity"]').element.value).toBe('区县 × 小时')
+    await wrapper.vm.$router.push('/admin/resources/res-asset-truck-trajectory')
+    await flushPromises()
+    expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-granularity"]').element.value).toBe('')
+    expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-time-range"]').element.value).toBe('')
+    expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-row-count"]').element.value).toBe('')
+    expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-field-count"]').element.value).toBe('')
   })
 
   it('does not show product editors for user views', async () => {
