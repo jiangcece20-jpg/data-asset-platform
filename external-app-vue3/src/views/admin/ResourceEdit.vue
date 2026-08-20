@@ -355,7 +355,11 @@ function saveProduct() {
   publishErrors.value = []
   let p = product.value
   if (!p) {
-    if (listingBlockReason(res)) return
+    const blocked = listingBlockReason(res)
+    if (blocked) {
+      publishErrors.value = [{ field: 'listing', message: blocked }]
+      return
+    }
     p = catalog.listResource(res.id, {
       name: productForm.name.trim(),
       subtitle: productForm.subtitle,
@@ -665,12 +669,13 @@ function saveProfilingFields() {
       <div class="mr-auto">
         <div class="text-sm font-medium text-slate-700">销售状态</div>
         <div class="mt-0.5 text-xs text-slate-400">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
+        <p v-if="publishErrors.some((e) => e.field === 'listing')" data-testid="listing-block-error" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'listing')?.message }}</p>
       </div>
       <button v-if="canSave" data-testid="save-product-bar" class="rounded-lg border border-slate-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
       <button v-if="showPublish" data-testid="publish-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">上架</button>
-      <button v-if="!listingBlocked && salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
-      <button v-if="!listingBlocked && salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
-      <button v-if="!listingBlocked && (salesState === 'published' || salesState === 'paused')" data-testid="delist-product" class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600" type="button" @click="confirmDelist">下架</button>
+      <button v-if="salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
+      <button v-if="salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
+      <button v-if="salesState === 'published' || salesState === 'paused'" data-testid="delist-product" class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600" type="button" @click="confirmDelist">下架</button>
       <button v-if="!listingBlocked && salesState === 'delisted'" data-testid="relist-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">重新上架</button>
     </div>
 

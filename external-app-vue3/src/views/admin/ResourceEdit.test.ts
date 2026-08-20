@@ -226,13 +226,49 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('shows draft actions then publishes after confirm', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const wrapper = await mountResourceEdit('res-asset-warehouse-api')
-    await wrapper.get('[data-testid="product-name-input"]').setValue('仓储利用率 API')
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     await wrapper.get('[data-testid="publish-product"]').trigger('click')
-    const created = useCatalogStore().productForResource('res-asset-warehouse-api')
+    const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
     expect(created?.availability).toBe('published')
+    expect(created?.dealChannel).toBe('app_payment')
     expect(useCatalogStore().discoverable.some((p) => p.id === created?.id)).toBe(true)
+  })
+
+  it('keeps pause and publish availability unchanged when confirm is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const published = await mountResourceEdit('res-prod-freight-index')
+    await published.get('[data-testid="pause-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('published')
+
+    const unlisted = await mountResourceEdit('res-asset-truck-trajectory')
+    await unlisted.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
+    await unlisted.get('[data-testid="product-free"]').setValue(true)
+    await unlisted.get('[data-testid="publish-product"]').trigger('click')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+  })
+
+  it('shows resume and delist for a paused asset-platform product even when listing is blocked', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = await mountResourceEdit('res-prod-warehouse-turnover-risk')
+    expect(wrapper.find('[data-testid="resume-product"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="delist-product"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="publish-product"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="resume-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-warehouse-turnover-risk')?.availability).toBe('published')
+  })
+
+  it('shows listing block reason instead of silently skipping draft save', async () => {
+    const catalog = useCatalogStore()
+    const resource = catalog.resourceById('res-asset-truck-trajectory')
+    expect(resource).toBeDefined()
+    resource!.commercializable = false
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('不能上架的草稿')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    expect(catalog.productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(wrapper.get('[data-testid="listing-block-error"]').text()).toContain('仅已发布且允许商业化的资产可上架')
   })
 
   it('does not publish when name is empty', async () => {

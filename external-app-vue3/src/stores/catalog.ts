@@ -78,7 +78,7 @@ export const useCatalogStore = defineStore('catalog', {
         subtitle: form.subtitle,
         type: resource.type as Product['type'],
         origin: resource.origin,
-        dealChannel: 'app_payment',
+        dealChannel: resource.type === 'api' || resource.origin === 'trusted_space' ? 'space_purchase' : 'app_payment',
         availability: 'preparing',
         acquisitions: form.acquisitions,
         scenarios: form.scenarios,

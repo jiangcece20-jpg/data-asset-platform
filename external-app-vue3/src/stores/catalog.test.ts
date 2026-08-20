@@ -77,6 +77,22 @@ describe('catalog store — resource extensions', () => {
     expect(created!.availability).toBe('published')
   })
 
+  it('listResource sets dealChannel from api or trusted space vs app payment', () => {
+    const catalog = useCatalogStore()
+    const form = {
+      name: '测试渠道',
+      subtitle: '',
+      price: { model: 'item_only' as const, itemPrice: 100, unit: '元/次' },
+      acquisitions: ['item_purchase' as const],
+      scenarios: [],
+      tags: []
+    }
+    const dataset = catalog.listResource('res-asset-truck-trajectory', { ...form, name: '数据集渠道' })
+    expect(dataset.dealChannel).toBe('app_payment')
+    const api = catalog.listResource('res-asset-warehouse-api', { ...form, name: 'API 渠道' })
+    expect(api.dealChannel).toBe('space_purchase')
+  })
+
   it('publishProduct lists a draft and keeps it out of discoverable until published', () => {
     const catalog = useCatalogStore()
     const unlisted = catalog.resources.find(
