@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCatalogStore } from '@/stores/catalog'
 import ResourceEdit from './ResourceEdit.vue'
 
@@ -17,6 +17,7 @@ async function mountResourceEdit(resourceId = 'res-prod-freight-index') {
 
 describe('ResourceEdit product-detail mapping', () => {
   beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => vi.restoreAllMocks())
 
   it('omits removed sections and legacy pricing controls', async () => {
     const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
@@ -221,5 +222,37 @@ describe('ResourceEdit product-detail mapping', () => {
   it('does not show product editors for user views', async () => {
     const wrapper = await mountResourceEdit('res-view-driver-performance')
     expect(wrapper.find('[data-testid="save-product"]').exists()).toBe(false)
+  })
+
+  it('shows draft actions then publishes after confirm', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = await mountResourceEdit('res-asset-warehouse-api')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('仓储利用率 API')
+    await wrapper.get('[data-testid="product-free"]').setValue(true)
+    await wrapper.get('[data-testid="publish-product"]').trigger('click')
+    const created = useCatalogStore().productForResource('res-asset-warehouse-api')
+    expect(created?.availability).toBe('published')
+    expect(useCatalogStore().discoverable.some((p) => p.id === created?.id)).toBe(true)
+  })
+
+  it('does not publish when name is empty', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('')
+    await wrapper.get('[data-testid="publish-product"]').trigger('click')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(wrapper.text()).toContain('请填写商品名称')
+  })
+
+  it('pauses and delists from the status bar without review buttons', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    expect(wrapper.find('[data-testid="submit-review"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="approve-publish"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="pause-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('paused')
+    await wrapper.get('[data-testid="delist-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('delisted')
+    await wrapper.get('[data-testid="relist-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('published')
   })
 })

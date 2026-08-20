@@ -14,7 +14,15 @@ import {
   resolveMemberBenefits
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
-import { listingBlockReason, validateDraftSave, type FieldError, type PublishForm } from '@/domain/salesListing'
+import {
+  listingBlockReason,
+  salesStateOf,
+  SALES_STATE_LABELS,
+  validateDraftSave,
+  validatePublish,
+  type FieldError,
+  type PublishForm
+} from '@/domain/salesListing'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +59,12 @@ function goBack() {
 const editable = computed(() => resource.value?.type !== 'user_view')
 const dealChannel = computed(() => product.value?.dealChannel ?? 'app_payment')
 const publishErrors = ref<FieldError[]>([])
+const salesState = computed(() => salesStateOf(product.value))
+const listingBlocked = computed(() => (resource.value ? listingBlockReason(resource.value) : undefined))
+const canSave = computed(() => editable.value)
+const showPublish = computed(
+  () => !listingBlocked.value && (salesState.value === 'unlisted' || salesState.value === 'draft')
+)
 
 // --- 商品信息表单（含运营增强） ---
 const productForm = reactive({
@@ -79,7 +93,6 @@ const productForm = reactive({
   recommendSlot: false
 })
 const productSaved = ref(false)
-const workflowMessage = ref('')
 type DashboardMetricForm = {
   name: string
   definition: string
@@ -575,17 +588,37 @@ function saveReportConfig() {
   setTimeout(() => { reportConfigSaved.value = false }, 3000)
 }
 
-function submitReview() {
-  if (!product.value) return
+function confirmPublish() {
+  const errors = validatePublish(currentPublishForm())
+  if (errors.length) {
+    publishErrors.value = errors
+    return
+  }
+  const message = salesState.value === 'delisted'
+    ? '重新上架后将出现在前台，确认？'
+    : '上架后将出现在前台搜索和购买，确认上架？'
+  if (!window.confirm(message)) return
   saveProduct()
-  catalog.submitProductReview(product.value.id)
-  workflowMessage.value = '已提交审核，商品仍不会在前台展示'
+  if (!product.value) return
+  catalog.publishProduct(product.value.id)
 }
 
-function approveAndPublish() {
+function confirmPause() {
   if (!product.value) return
-  catalog.approveAndPublishProduct(product.value.id)
-  workflowMessage.value = '审核通过，商品已发布'
+  if (!window.confirm('暂停新购后前台不能下单，已购不受影响，确认？')) return
+  catalog.pauseProduct(product.value.id)
+}
+
+function confirmResume() {
+  if (!product.value) return
+  if (!window.confirm('恢复后前台可继续购买，确认？')) return
+  catalog.resumeProduct(product.value.id)
+}
+
+function confirmDelist() {
+  if (!product.value) return
+  if (!window.confirm('下架后将从搜索和推荐移除，确认？')) return
+  catalog.delistProduct(product.value.id)
 }
 
 function buildAcquisitions(isFree: boolean, hasMemberBenefit: boolean, hasItemOffer: boolean): AcquisitionOption[] {
@@ -628,7 +661,18 @@ function saveProfilingFields() {
       </div>
     </div>
 
-
+    <div class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="sales-status-bar">
+      <div class="mr-auto">
+        <div class="text-sm font-medium text-slate-700">销售状态</div>
+        <div class="mt-0.5 text-xs text-slate-400">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
+      </div>
+      <button v-if="canSave" data-testid="save-product-bar" class="rounded-lg border border-slate-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
+      <button v-if="showPublish" data-testid="publish-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">上架</button>
+      <button v-if="!listingBlocked && salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
+      <button v-if="!listingBlocked && salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
+      <button v-if="!listingBlocked && (salesState === 'published' || salesState === 'paused')" data-testid="delist-product" class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600" type="button" @click="confirmDelist">下架</button>
+      <button v-if="!listingBlocked && salesState === 'delisted'" data-testid="relist-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">重新上架</button>
+    </div>
 
     <!-- 类型特有区块：用数视图（只读） -->
     <div v-if="resource.type === 'user_view' && resource.typeDetail.userView" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
@@ -690,16 +734,6 @@ function saveProfilingFields() {
     <!-- 编辑表单（非用数视图即可填写；无商品时保存即创建草稿） -->
     <!-- ================================================================== -->
     <template v-if="editable">
-
-      <div v-if="product" class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="product-review-workflow">
-        <div class="mr-auto">
-          <div class="text-sm font-medium text-slate-700">商品发布流程</div>
-          <div class="mt-0.5 text-xs text-slate-400">当前状态：{{ product.status }} · 前台状态：{{ product.availability }}</div>
-        </div>
-        <button v-if="product.status === 'draft'" class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" data-testid="submit-review" @click="submitReview">保存并提交审核</button>
-        <button v-if="product.status === 'pending_approval'" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" data-testid="approve-publish" @click="approveAndPublish">审核通过并发布</button>
-        <span v-if="workflowMessage" class="text-xs text-emerald-600">{{ workflowMessage }}</span>
-      </div>
 
       <!-- 商品信息编辑 -->
       <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
@@ -773,6 +807,9 @@ function saveProfilingFields() {
             <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
           </div>
           <p class="mb-3 text-[11px] leading-relaxed text-slate-400">免费商品与付费单品、会员权益互斥；非免费商品可同时配置个人单品、企业单品及普通 / 高级会员权益。</p>
+          <p v-if="publishErrors.some((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')" class="mb-3 text-xs text-red-500">
+            {{ publishErrors.find((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')?.message }}
+          </p>
           <label class="mb-3 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
             <input v-model="productForm.isFree" type="checkbox" data-testid="product-free" />
             免费
@@ -795,6 +832,7 @@ function saveProfilingFields() {
                 class="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
               />
               <span class="text-slate-400">个月 · 客户下单时锁定</span>
+              <span v-if="publishErrors.some((e) => e.field === 'salePeriod')" class="text-red-500">{{ publishErrors.find((e) => e.field === 'salePeriod')?.message }}</span>
             </label>
             <div class="overflow-hidden rounded-lg border border-slate-200">
             <div class="grid grid-cols-[160px_1fr] border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-medium text-slate-500">
@@ -974,6 +1012,7 @@ function saveProfilingFields() {
             <div>
               <div class="text-xs font-medium text-slate-600">指标定义</div>
               <div class="mt-0.5 text-[11px] text-slate-400">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
+              <p v-if="publishErrors.some((e) => e.field === 'dashboardMetrics')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'dashboardMetrics')?.message }}</p>
             </div>
             <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50" type="button" @click="addDashboardMetric">+ 添加指标</button>
           </div>
