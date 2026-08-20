@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { salesStateOf, SALES_STATE_LABELS } from '@/domain/salesListing'
 import { useCatalogStore } from '@/stores/catalog'
-import type { AcquisitionOption, PriceModel } from '@/types/domain'
 import type { ResourceType } from '@/types/resource'
 
 const router = useRouter()
@@ -10,16 +10,6 @@ const catalog = useCatalogStore()
 
 const activeType = ref<ResourceType | ''>('')
 const searchQuery = ref('')
-const showListModal = ref(false)
-const listingResourceId = ref('')
-const listForm = ref({
-  name: '',
-  subtitle: '',
-  price: { model: 'item_only' as PriceModel, itemPrice: 100, unit: '元/次' },
-  acquisitions: ['item_purchase'] as AcquisitionOption[],
-  scenarios: [] as string[],
-  tags: [] as string[]
-})
 
 const types: { value: ResourceType | ''; label: string }[] = [
   { value: '', label: '全部' },
@@ -46,12 +36,12 @@ const originLabels: Record<string, string> = {
   seller_market: '入驻商家'
 }
 
-const statusLabels: Record<string, { label: string; color: string }> = {
-  published: { label: '已上架', color: 'bg-emerald-100 text-emerald-700' },
-  candidate: { label: '候选', color: 'bg-blue-100 text-blue-700' },
-  preparing: { label: '准备中', color: 'bg-amber-100 text-amber-700' },
-  paused: { label: '已暂停', color: 'bg-slate-100 text-slate-600' },
-  delisted: { label: '已下架', color: 'bg-red-100 text-red-700' }
+const statusColors: Record<string, string> = {
+  published: 'bg-emerald-100 text-emerald-700',
+  draft: 'bg-blue-100 text-blue-700',
+  paused: 'bg-slate-100 text-slate-600',
+  delisted: 'bg-red-100 text-red-700',
+  unlisted: 'bg-slate-100 text-slate-500'
 }
 
 interface ResourceRow {
@@ -60,10 +50,8 @@ interface ResourceRow {
   type: string
   origin: string
   productName: string
-  status: string
+  salesLabel: string
   statusColor: string
-  isListed: boolean
-  productId?: string
   assetVersion?: string
   eligibility: string
   changeRisk?: string
@@ -87,18 +75,15 @@ const rows = computed<ResourceRow[]>(() => {
 
   return filtered.map((r) => {
     const product = catalog.productForResource(r.id)
+    const salesState = salesStateOf(product)
     return {
       resourceId: r.id,
       resourceName: r.resourceName,
       type: r.type,
       origin: r.origin,
       productName: product?.name || '—',
-      status: product?.availability || 'not_listed',
-      statusColor: product
-        ? statusLabels[product.availability]?.color || 'bg-slate-100 text-slate-600'
-        : 'bg-slate-100 text-slate-500',
-      isListed: !!product,
-      productId: product?.id,
+      salesLabel: SALES_STATE_LABELS[salesState],
+      statusColor: statusColors[salesState],
       assetVersion: r.assetVersion,
       eligibility: r.origin !== 'asset_platform' ? '—' : r.commercializable && r.assetStatus === 'published' ? '可商品化' : '不可商品化',
       changeRisk: r.changeRisk
@@ -106,49 +91,8 @@ const rows = computed<ResourceRow[]>(() => {
   })
 })
 
-function openListModal(resourceId: string) {
-  const resource = catalog.resourceById(resourceId)
-  if (!resource) return
-  listingResourceId.value = resourceId
-  listForm.value = {
-    name: resource.resourceName,
-    subtitle: '',
-    price: { model: 'item_only' as PriceModel, itemPrice: 100, unit: '元/次' },
-    acquisitions: ['item_purchase'] as AcquisitionOption[],
-    scenarios: [],
-    tags: []
-  }
-  showListModal.value = true
-}
-
-function confirmList() {
-  try {
-    const created = catalog.listResource(listingResourceId.value, {
-      name: listForm.value.name,
-      subtitle: listForm.value.subtitle,
-      price: { model: listForm.value.price.model, itemPrice: listForm.value.price.itemPrice, unit: listForm.value.price.unit },
-      acquisitions: listForm.value.acquisitions,
-      scenarios: listForm.value.scenarios,
-      tags: listForm.value.tags
-    })
-    showListModal.value = false
-    router.push(`/admin/resources/${created.resourceId}`)
-  } catch (e: any) {
-    alert(e.message)
-  }
-}
-
-function handleDelist(productId: string) {
-  catalog.delistProduct(productId)
-}
-
 function goEdit(resourceId: string) {
   router.push(`/admin/resources/${resourceId}`)
-}
-
-function statusLabel(status: string): string {
-  if (status === 'not_listed') return '未上架'
-  return statusLabels[status]?.label || status
 }
 </script>
 
@@ -207,24 +151,10 @@ function statusLabel(status: string): string {
             </td>
             <td class="px-4 py-3 text-slate-600">{{ row.productName }}</td>
             <td class="px-4 py-3">
-              <span class="rounded px-1.5 py-0.5 text-xs font-medium" :class="row.statusColor">{{ statusLabel(row.status) }}</span>
+              <span class="rounded px-1.5 py-0.5 text-xs font-medium" :class="row.statusColor">{{ row.salesLabel }}</span>
             </td>
             <td class="px-4 py-3">
               <div class="flex gap-2">
-                <button
-                  v-if="!row.isListed && row.type !== 'user_view'"
-                  class="rounded bg-emerald-600 px-2.5 py-1 text-xs text-white hover:bg-emerald-700"
-                  @click="openListModal(row.resourceId)"
-                >
-                  包装为商品
-                </button>
-                <button
-                  v-else-if="row.isListed"
-                  class="rounded bg-red-50 px-2.5 py-1 text-xs text-red-600 hover:bg-red-100"
-                  @click="handleDelist(row.productId!)"
-                >
-                  下架
-                </button>
                 <button
                   class="rounded border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:border-brand-300 hover:text-brand-600"
                   @click="goEdit(row.resourceId)"
@@ -236,32 +166,6 @@ function statusLabel(status: string): string {
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <!-- 商品包装弹窗 -->
-    <div v-if="showListModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="showListModal = false">
-      <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <h3 class="mb-1 text-lg font-semibold text-slate-800">包装为商品</h3>
-        <p class="mb-4 text-xs text-slate-500">创建商品草稿后进入编辑与审核，不会直接在前台发布。</p>
-        <div class="space-y-3">
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">商品名称</label>
-            <input v-model="listForm.name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">副标题</label>
-            <input v-model="listForm.subtitle" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">价格（元）</label>
-            <input v-model.number="listForm.price.itemPrice" type="number" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none" />
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-3">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50" @click="showListModal = false">取消</button>
-          <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700" @click="confirmList">创建商品草稿</button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
