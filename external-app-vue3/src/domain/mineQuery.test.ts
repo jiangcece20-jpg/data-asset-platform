@@ -30,6 +30,10 @@ describe('mineQuery', () => {
     expect(parseMineQuery({ tab: 'orders' }).menu).toBe('orders')
   })
 
+  it('parses the intent order tab', () => {
+    expect(parseMineQuery({ menu: 'orders', orderTab: 'intent' }).orderTab).toBe('intent')
+  })
+
   it('prefers explicit menu/orderTab/dataTab over legacy tab', () => {
     expect(parseMineQuery({
       tab: 'data',

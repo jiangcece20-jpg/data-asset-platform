@@ -69,31 +69,11 @@ const actions = computed(() => product.value ? resolveProductActions({
   trustedPurchaseCheck: trustedPurchaseCheck.value,
 }) : null)
 
-/**
- * PC 端按钮层适配（PRD §7.5）：可信空间在售商品对游客/个人用户统一展示
- * 「前往可信空间」，由跳转门禁弹窗分流；企业用户保持 domain 层原逻辑。
- */
 const pcActions = computed(() => {
   const p = product.value
-  if (!p) return null
-  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value && actions.value) {
+  if (!p || !actions.value) return null
+  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value) {
     return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的数据' } }
-  }
-  if (
-    p.dealChannel === 'space_purchase'
-    && !owned.value
-    && p.availability === 'published'
-    && (p.serviceStatus ?? 'normal') === 'normal'
-  ) {
-    if (!user.context.loggedIn) {
-      return { primary: { key: 'space_purchase' as const, label: '登录后继续' } }
-    }
-    if (user.context.enterpriseAuthStatus === 'none') {
-      return { primary: { key: 'enterprise_auth' as const, label: '去企业认证' } }
-    }
-    if (user.context.enterpriseAuthStatus === 'pending') {
-      return { primary: { key: 'unavailable' as const, label: '企业认证审核中', disabled: true } }
-    }
   }
   return actions.value
 })
@@ -243,7 +223,10 @@ function handleAction(key: ProductActionKey) {
         : '/portal/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break
-    case 'space_purchase': goSpace(); break
+    case 'submit_space_intent':
+    case 'space_purchase':
+      router.push(`/portal/space-intent/${id.value}`)
+      break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
     case 'dataset_purchase': router.push(`/portal/checkout/dataset/${id.value}`); break

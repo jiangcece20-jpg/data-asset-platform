@@ -17,6 +17,18 @@ async function mountProductDetail(productId: string) {
   return wrapper
 }
 
+describe('PortalProductDetail space intent CTA', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows submit-intent as the primary action for space products', async () => {
+    const wrapper = await mountProductDetail('prod-qualification-api')
+    const primary = wrapper.find('button.w-full')
+    expect(primary.text()).toBe('提交意向单')
+    expect(wrapper.text()).not.toContain('前往可信空间购买')
+    expect(wrapper.text()).not.toContain('个人身份不能下单')
+  })
+})
+
 describe('PortalProductDetail default tabs', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

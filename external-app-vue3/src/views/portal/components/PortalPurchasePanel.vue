@@ -7,7 +7,6 @@ import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
-import { useUserStore } from '@/stores/user'
 
 const props = defineProps<{
   product: Product
@@ -18,54 +17,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{ action: [key: ProductActionKey] }>()
 const router = useRouter()
-const user = useUserStore()
 const pricingInfo = computed(() => pricingPresentation(props.product))
 const billingRules = computed(() => billingRuleNotes(props.product))
 
 const trustedPurchaseEligibility = computed(() => {
-  if (props.product.dealChannel !== 'space_purchase') return null
-  if (!user.context.loggedIn) {
-    return {
-      badge: '未登录',
-      tone: 'border-slate-200 bg-slate-50',
-      badgeTone: 'bg-slate-200 text-slate-600',
-      title: '登录后查看购买资格',
-      description: '登录后可继续查看商品信息；正式购买仍需使用已认证企业身份。'
-    }
-  }
-  if (user.context.enterpriseAuthStatus === 'none') {
-    return {
-      badge: '个人浏览',
-      tone: 'border-amber-200 bg-amber-50',
-      badgeTone: 'bg-amber-100 text-amber-700',
-      title: '当前为个人身份',
-      description: '你可以查看商品、价格和公开资料，但可信空间商品仅支持认证企业购买，个人身份不能下单。'
-    }
-  }
-  if (user.context.enterpriseAuthStatus === 'pending') {
-    return {
-      badge: '认证中',
-      tone: 'border-blue-200 bg-blue-50',
-      badgeTone: 'bg-blue-100 text-blue-700',
-      title: '企业认证审核中',
-      description: '审核期间可以继续浏览和收藏；认证通过后返回当前商品继续购买。'
-    }
-  }
-  if (props.actions?.primary.disabled) {
-    return {
-      badge: '连接中',
-      tone: 'border-blue-200 bg-blue-50',
-      badgeTone: 'bg-blue-100 text-blue-700',
-      title: props.actions.primary.label,
-      description: `已认证企业：${user.enterprise.name}。正在校验商品和可信空间企业连接，完成前暂不能下单。`
-    }
-  }
+  if (props.product.dealChannel !== 'space_purchase' || props.owned) return null
   return {
-    badge: '可购买',
-    tone: 'border-emerald-200 bg-emerald-50',
-    badgeTone: 'bg-emerald-100 text-emerald-700',
-    title: '认证企业购买',
-    description: `当前购买企业：${user.enterprise.name}。订单、付款、正式交付和售后由可信空间承接。`
+    badge: '意向',
+    tone: 'border-blue-200 bg-blue-50',
+    badgeTone: 'bg-blue-100 text-blue-700',
+    title: '提交意向单',
+    description: '成交由运营在空间代办，买方为企业；个人可先提交意向单。'
   }
 })
 

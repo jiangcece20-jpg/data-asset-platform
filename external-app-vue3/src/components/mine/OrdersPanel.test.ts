@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
 import OrdersPanel from './OrdersPanel.vue'
 import { useUserStore } from '@/stores/user'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
 
 function mountOrdersPanel(props: Partial<InstanceType<typeof OrdersPanel>['$props']> = {}) {
   const goProduct = vi.fn()
@@ -38,9 +39,24 @@ describe('OrdersPanel', () => {
     expect(wrapper.find('[data-testid="order-tab-vip"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-tab-intent"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="order-tab-view"]').trigger('click')
     expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['view'])
+  })
+
+  it('lists space intents with user-facing status only', async () => {
+    useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '核验'
+    })
+    const { wrapper } = mountOrdersPanel({ orderTab: 'intent' })
+    expect(wrapper.get('[data-testid="order-tab-intent"]').text()).toBe('意向单')
+    expect(wrapper.text()).toContain('已提交')
+    expect(wrapper.text()).not.toContain('待领取')
+    expect(wrapper.text()).not.toContain('前往可信空间购买')
   })
 
   it('gives the active tab a distinguishing selected class', () => {

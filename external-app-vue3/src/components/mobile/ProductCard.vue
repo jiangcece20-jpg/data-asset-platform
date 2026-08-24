@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import type { Product } from '@/types/domain'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { useUserStore } from '@/stores/user'
 import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
@@ -15,7 +14,6 @@ const props = defineProps<{ product: Product; matchReason?: string }>()
 const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
-const user = useUserStore()
 
 const title = computed(() => props.product.name)
 const subtitle = computed(() => {
@@ -49,7 +47,7 @@ const actionHint = computed(() => {
   if (props.product.acquisitions.includes('free')) return '免费查看'
   if (props.product.type === 'dataset' && props.product.dealChannel === 'app_payment') return '购买数据集'
   if (props.product.dealChannel === 'app_payment') return props.product.memberIncluded ? '会员解锁' : '单品购买'
-  if (props.product.dealChannel === 'space_purchase') return user.isEnterpriseAuthenticated ? '空间购买' : '需企业认证'
+  if (props.product.dealChannel === 'space_purchase') return '提交意向单'
   return '查看详情'
 })
 
