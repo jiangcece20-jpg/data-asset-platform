@@ -264,7 +264,7 @@ export const seedProducts: Product[] = [
     availability: 'published',
     acquisitions: ['space_purchase'],
     scenarios: ['司机合规核验', '承运商准入审核'],
-    provider: '可信数据空间 · 交通运输认证机构',
+    provider: '万联易达可信空间 · 交通运输认证机构',
     coverage: '全国从业资格证持证人员',
     updateFrequency: '证照变更后 T+1 同步',
     qualityPromise: '权威机构数据源，命中率 99.2%',
@@ -321,6 +321,9 @@ export const seedProducts: Product[] = [
     recommendText: '司机准入必备，99.9% 可用性保障',
     sortWeight: 90,
     recommendSlot: true,
+    spaceName: '万联易达可信空间',
+    spaceKind: 'owned',
+    hasTrialApi: true,
     typeDetail: {
       api: {
         method: 'POST',
@@ -386,7 +389,7 @@ export const seedProducts: Product[] = [
     availability: 'published',
     acquisitions: ['space_purchase'],
     scenarios: ['供应商准入', '资质比对'],
-    provider: '可信数据空间 · 平台自营',
+    provider: '某省数据空间',
     coverage: '全国企业资质信息库',
     updateFrequency: '实时核验',
     qualityPromise: '隐私信息检索机制，查询方与数据方互不感知明细',
@@ -441,6 +444,9 @@ export const seedProducts: Product[] = [
     recommendText: '查询过程双向匿名，安全合规',
     sortWeight: 60,
     recommendSlot: false,
+    spaceName: '某省数据空间',
+    spaceKind: 'federated',
+    hasTrialApi: false,
     typeDetail: {
       api: {
         method: 'POST',
@@ -503,7 +509,7 @@ export const seedProducts: Product[] = [
     availability: 'published',
     acquisitions: ['space_purchase'],
     scenarios: ['企业画像', '风险评估'],
-    provider: '可信数据空间 · 平台自营',
+    provider: '万联易达可信空间',
     coverage: '覆盖 260 万家活跃物流相关企业',
     updateFrequency: '每月更新',
     qualityPromise: '完整性 97%，字段级质量校验',
@@ -565,6 +571,9 @@ export const seedProducts: Product[] = [
     recommendText: '260 万家企业活跃度全景覆盖',
     sortWeight: 80,
     recommendSlot: true,
+    spaceName: '万联易达可信空间',
+    spaceKind: 'owned',
+    hasSampleData: true,
     typeDetail: {
       dataset: {
         granularity: '企业 × 月',
@@ -681,6 +690,106 @@ export const seedProducts: Product[] = [
               { label: 'B', count: 728000, percent: 28 },
               { label: 'D', count: 494000, percent: 19 },
               { label: 'A', count: 390000, percent: 15 }
+            ],
+            updatedAt: '2026-07-01'
+          }
+        ]
+      }
+    }
+  },
+  {
+    id: 'prod-space-port-throughput',
+    resourceId: 'res-prod-space-port-throughput',
+    name: '港口吞吐量数据集',
+    subtitle: '某省主要港口集装箱与货物吞吐量明细',
+    type: 'dataset',
+    origin: 'trusted_space',
+    dealChannel: 'space_purchase',
+    availability: 'published',
+    acquisitions: ['space_purchase'],
+    scenarios: ['港口运营分析'],
+    provider: '某省数据空间',
+    coverage: '某省主要港口',
+    updateFrequency: '每月更新',
+    qualityPromise: '来源可溯、口径统一',
+    complianceNote: '企业维度脱敏，正式使用需企业认证与空间订单',
+    price: { model: 'quote', quoteNote: '按数据范围与更新周期报价' },
+    datasetOffers: [
+      { id: 'space-port-basic', externalPlanCode: 'DS-PORT-BASIC', name: '基础快照版', subject: 'enterprise', price: 6800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' }
+    ],
+    status: 'published',
+    tags: ['港口吞吐量', '空间商品'],
+    description: '包含某省主要港口的集装箱与货物吞吐量指标，可用于港口运营分析与产能评估。',
+    valueProposition: '快速获取区域港口吞吐趋势，辅助物流枢纽规划。',
+    deliveryMethod: '可信空间订单交付',
+    memberIncluded: false,
+    spaceProductNo: 'SPACE-DS-PORT-01',
+    spaceSyncedAt: '2026-07-10 10:00',
+    spaceName: '某省数据空间',
+    spaceKind: 'federated',
+    hasSampleData: false,
+    listedAt: '2026-07-10',
+    updatedAt: '2026-07-10',
+    serviceStatus: 'normal',
+    recommendText: '区域港口吞吐全景',
+    sortWeight: 55,
+    recommendSlot: false,
+    typeDetail: {
+      dataset: {
+        granularity: '港口 × 月',
+        timeRange: '2024-01 至 2026-06',
+        rowCount: 1200,
+        classification: '港口运营数据（L2）',
+        qualityUpdatedAt: '2026-07-01',
+        fields: [
+          { name: 'port_code', dataType: 'string', meaning: '港口编码', description: '港口唯一标识', primaryKey: true, nullable: false, sensitivity: 'L1', sampleValue: 'PORT-001' },
+          { name: 'stat_month', dataType: 'date', meaning: '统计月份', description: '吞吐量指标所属自然月', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '2026-06-01' },
+          { name: 'container_teu', dataType: 'integer', meaning: '集装箱吞吐量（TEU）', description: '当月集装箱标准箱量', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '125000' }
+        ],
+        sampleColumns: ['port_code', 'stat_month', 'container_teu'],
+        sampleRows: [],
+        sampleGeneratedAt: '2026-07-01',
+        profiling: {
+          completeness: '96.5%',
+          uniqueness: '港口编码唯一性 100%',
+          nullRate: '0%',
+          distribution: '沿海港口占 72%',
+          anomalies: '无显著异常',
+          conclusion: '数据质量良好，适合港口运营分析',
+          updatedAt: '2026-07-01'
+        },
+        fieldProfiling: [
+          {
+            fieldName: 'stat_month',
+            kind: 'datetime',
+            nullRate: '0%',
+            distinctCount: 18,
+            minDate: '2024-01-01',
+            maxDate: '2026-06-01',
+            span: '1 年 6 个月',
+            distribution: [
+              { label: '2024 H1', count: 400, percent: 33 },
+              { label: '2024 H2', count: 400, percent: 33 },
+              { label: '2025 H1', count: 400, percent: 34 }
+            ],
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'container_teu',
+            kind: 'numeric',
+            nullRate: '0%',
+            distinctCount: 120,
+            min: '1200',
+            max: '285000',
+            avg: '48200',
+            median: '35600',
+            p25: '18200',
+            p75: '72000',
+            histogram: [
+              { label: '1 万 TEU 以下', count: 240, percent: 20 },
+              { label: '1-5 万 TEU', count: 480, percent: 40 },
+              { label: '5-10 万 TEU', count: 360, percent: 30 },
+              { label: '10 万 TEU 以上', count: 120, percent: 10 }
             ],
             updatedAt: '2026-07-01'
           }

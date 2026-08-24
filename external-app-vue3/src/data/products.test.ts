@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { OWNED_SPACE_NAME } from '@/domain/spaceIntent'
 import { seedProducts } from './products'
 
 describe('four-type product catalog', () => {
@@ -45,5 +46,25 @@ describe('four-type product catalog', () => {
         expect(stats.has(name)).toBe(true)
       }
     }
+  })
+})
+
+describe('space product tags', () => {
+  const space = () => seedProducts.filter((p) => p.origin === 'trusted_space')
+
+  it('uses 万联易达可信空间 for owned space copy', () => {
+    expect(space().some((p) => JSON.stringify(p).includes('万联可信空间'))).toBe(false)
+    expect(space().filter((p) => p.spaceKind === 'owned').every((p) => p.spaceName === OWNED_SPACE_NAME)).toBe(true)
+  })
+
+  it('splits sample tag to datasets and trial-api tag to APIs', () => {
+    for (const p of space()) {
+      if (p.type === 'dataset') expect(p.hasTrialApi).toBeUndefined()
+      if (p.type === 'api') expect(p.hasSampleData).toBeUndefined()
+    }
+    expect(seedProducts.find((p) => p.id === 'prod-enterprise-activity')?.hasSampleData).toBe(true)
+    expect(seedProducts.find((p) => p.id === 'prod-space-port-throughput')?.hasSampleData).toBe(false)
+    expect(seedProducts.find((p) => p.id === 'prod-qualification-api')?.hasTrialApi).toBe(true)
+    expect(seedProducts.find((p) => p.id === 'prod-privacy-verify')?.hasTrialApi).toBe(false)
   })
 })
