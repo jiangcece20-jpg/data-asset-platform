@@ -178,6 +178,26 @@ describe('ResourceEdit product-detail mapping', () => {
     ])
   })
 
+  it('shows profiling config on an unlisted dataset before a product exists', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(wrapper.get('[data-testid="profiling-config"]').text()).toContain('数据探查配置')
+    expect(wrapper.text()).toContain('plate_no')
+    expect(wrapper.text()).toContain('speed_kmh')
+    expect(wrapper.get<HTMLInputElement>('[data-testid="profiling-field-plate_no"]').element.disabled).toBe(true)
+    expect(wrapper.get<HTMLInputElement>('[data-testid="profiling-field-speed_kmh"]').element.disabled).toBe(false)
+  })
+
+  it('saves profiling selection on an unlisted dataset without creating a product', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="profiling-field-speed_kmh"]').setValue(true)
+    await wrapper.get('[data-testid="save-profiling-config"]').trigger('click')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    const fields = useCatalogStore().resourceById('res-asset-truck-trajectory')?.typeDetail.dataset?.fields ?? []
+    expect(fields.find((field) => field.name === 'speed_kmh')?.profilingEnabled).toBe(true)
+    expect(fields.find((field) => field.name === 'district_code')?.profilingEnabled).toBeFalsy()
+  })
+
   it('lets an unlisted resource edit product fields and save as draft', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
     expect(wrapper.get('[data-testid="save-product"]').exists()).toBe(true)

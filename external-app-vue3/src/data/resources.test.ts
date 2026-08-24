@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seedResources, userViewResources } from './resources'
+import { seedResources, unlistedResources, userViewResources } from './resources'
 import { seedProducts } from './products'
 import { mockProducts } from './mockProducts'
 
@@ -44,6 +44,25 @@ describe('resource migration from products', () => {
     for (const p of mockProducts) {
       expect(resourceIds.has(p.resourceId)).toBe(true)
     }
+  })
+})
+
+describe('unlisted resources', () => {
+  it('gives the unlisted truck dataset a field schema and profiling mock', () => {
+    const resource = unlistedResources.find((item) => item.id === 'res-asset-truck-trajectory')
+    const dataset = resource?.typeDetail.dataset
+    expect(dataset?.fields.map((field) => field.name)).toEqual([
+      'plate_no',
+      'gps_time',
+      'speed_kmh',
+      'district_code'
+    ])
+    expect(dataset?.fields.every((field) => field.profilingEnabled !== true)).toBe(true)
+    expect(dataset?.fieldProfiling?.map((item) => item.fieldName)).toEqual([
+      'gps_time',
+      'speed_kmh',
+      'district_code'
+    ])
   })
 })
 

@@ -145,6 +145,38 @@ describe('catalog store — resource extensions', () => {
     expect(() => catalog.pauseProduct(product.id)).toThrow('仅已上架商品可暂停新购')
   })
 
+  it('setProfilingFields updates an unlisted dataset without creating a product', () => {
+    const catalog = useCatalogStore()
+    catalog.setProfilingFields('res-asset-truck-trajectory', ['speed_kmh'])
+    const fields = catalog.resourceById('res-asset-truck-trajectory')?.typeDetail.dataset?.fields ?? []
+    expect(fields.find((field) => field.name === 'speed_kmh')?.profilingEnabled).toBe(true)
+    expect(fields.find((field) => field.name === 'district_code')?.profilingEnabled).toBe(false)
+    expect(catalog.productForResource('res-asset-truck-trajectory')).toBeUndefined()
+  })
+
+  it('listResource copies dataset schema and profiling flags from the resource', () => {
+    const catalog = useCatalogStore()
+    catalog.setProfilingFields('res-asset-truck-trajectory', ['speed_kmh', 'district_code'])
+    const created = catalog.listResource('res-asset-truck-trajectory', {
+      name: '货车轨迹商品草稿',
+      subtitle: '',
+      price: { model: 'item_only', itemPrice: 100, unit: '元/次' },
+      acquisitions: ['item_purchase'],
+      scenarios: [],
+      tags: []
+    })
+    const enabled = (created.typeDetail.dataset?.fields ?? [])
+      .filter((field) => field.profilingEnabled)
+      .map((field) => field.name)
+    expect(created.typeDetail.dataset?.fields.map((field) => field.name)).toEqual([
+      'plate_no',
+      'gps_time',
+      'speed_kmh',
+      'district_code'
+    ])
+    expect(enabled).toEqual(['speed_kmh', 'district_code'])
+  })
+
   it('listResource throws for already listed resource', () => {
     const catalog = useCatalogStore()
     const listedResource = catalog.resources.find(

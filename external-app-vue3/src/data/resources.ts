@@ -1,4 +1,4 @@
-import type { Product } from '@/types/domain'
+import type { DatasetDetail, Product } from '@/types/domain'
 import type { Resource, UserViewDetail } from '@/types/resource'
 import { seedProducts } from './products'
 import { mockProducts } from './mockProducts'
@@ -34,13 +34,82 @@ export const seedResources: Resource[] = [...seedProducts, ...mockProducts].map(
  * 数据资产平台中已存在但尚未上架为商品的独立资源。
  * 用于资源管理中心的「未上架 → 上架」流程演示。
  */
+const unlistedTruckDataset: DatasetDetail = {
+  classification: '车辆轨迹明细（L3）',
+  qualityUpdatedAt: '2026-07-30',
+  fields: [
+    { name: 'plate_no', dataType: 'string', meaning: '车牌号', description: '脱敏前车牌，默认不开放探查', primaryKey: true, nullable: false, sensitivity: 'L3', profilingEnabled: false },
+    { name: 'gps_time', dataType: 'datetime', meaning: '定位时间', description: 'GPS 采样时间', primaryKey: true, nullable: false, sensitivity: 'L2', profilingEnabled: false },
+    { name: 'speed_kmh', dataType: 'integer', meaning: '瞬时速度', description: '公里/小时', primaryKey: false, nullable: true, profilingEnabled: false },
+    { name: 'district_code', dataType: 'string', meaning: '区县编码', description: '国家统计区划编码', primaryKey: false, nullable: false, profilingEnabled: false }
+  ],
+  sampleColumns: ['plate_no', 'gps_time', 'speed_kmh', 'district_code'],
+  sampleRows: [
+    { plate_no: '沪A****7', gps_time: '2026-07-30 08:01:12', speed_kmh: 62, district_code: '310115' }
+  ],
+  sampleGeneratedAt: '2026-07-30',
+  profiling: {
+    completeness: '97.2%',
+    uniqueness: '车牌 + 时间联合主键唯一',
+    nullRate: '2.8%',
+    distribution: '东部干线占 51%',
+    anomalies: '车牌等敏感字段默认不开放探查',
+    conclusion: '适合路网热力与时段分析，上架前需勾选可探查字段',
+    updatedAt: '2026-07-30'
+  },
+  fieldProfiling: [
+    {
+      fieldName: 'gps_time',
+      kind: 'datetime',
+      nullRate: '0%',
+      distinctCount: 2592000,
+      minDate: '2026-06-30',
+      maxDate: '2026-07-30',
+      span: '30 天',
+      distribution: [
+        { label: '工作日白天', count: 19300000, percent: 40 },
+        { label: '工作日夜间', count: 9650000, percent: 20 },
+        { label: '周末白天', count: 9650000, percent: 20 },
+        { label: '周末夜间', count: 9650000, percent: 20 }
+      ],
+      updatedAt: '2026-07-30'
+    },
+    {
+      fieldName: 'speed_kmh',
+      kind: 'numeric',
+      nullRate: '2.8%',
+      distinctCount: 186,
+      min: '0',
+      max: '120',
+      avg: '54',
+      median: '58',
+      histogram: [
+        { label: '0-30', count: 9640000, percent: 20 },
+        { label: '31-60', count: 19280000, percent: 40 },
+        { label: '61-90', count: 14460000, percent: 30 },
+        { label: '90 以上', count: 4820000, percent: 10 }
+      ],
+      updatedAt: '2026-07-30'
+    },
+    {
+      fieldName: 'district_code',
+      kind: 'identifier',
+      nullRate: '0%',
+      distinctCount: 2846,
+      uniqueness: '区县编码覆盖全国主要干线',
+      samplePattern: '6 位国家统计区划编码，如 310115',
+      updatedAt: '2026-07-30'
+    }
+  ]
+}
+
 export const unlistedResources: Resource[] = [
   {
     id: 'res-asset-truck-trajectory',
     resourceName: '货车轨迹明细数据集',
     type: 'dataset',
     origin: 'asset_platform',
-    typeDetail: {},
+    typeDetail: { dataset: unlistedTruckDataset },
     assetStatus: 'published',
     commercializable: true,
     assetVersion: 'v3.2.0',

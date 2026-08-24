@@ -3,10 +3,14 @@ import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
 import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail, ReportDetail } from '@/types/domain'
-import type { Resource, ListResourceForm } from '@/types/resource'
+import type { Resource, ListResourceForm, ResourceTypeDetail } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { genId, now } from '@/utils/id'
+
+function cloneTypeDetail(detail: ResourceTypeDetail): ResourceTypeDetail {
+  return JSON.parse(JSON.stringify(detail)) as ResourceTypeDetail
+}
 
 function cloneProducts(): Product[] {
   return [...seedProducts, ...mockProducts].map((p) => ({
@@ -19,7 +23,10 @@ function cloneProducts(): Product[] {
 }
 
 function cloneResources(): Resource[] {
-  return [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({ ...r }))
+  return [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({
+    ...r,
+    typeDetail: cloneTypeDetail(r.typeDetail)
+  }))
 }
 
 export const useCatalogStore = defineStore('catalog', {
@@ -116,7 +123,7 @@ export const useCatalogStore = defineStore('catalog', {
         memberIncluded: false,
         listedAt: now(),
         updatedAt: now(),
-        typeDetail: resource.typeDetail,
+        typeDetail: cloneTypeDetail(resource.typeDetail),
         serviceStatus: 'normal'
       }
       this.products.push(product)
@@ -232,15 +239,20 @@ export const useCatalogStore = defineStore('catalog', {
     },
     /**
      * 配置数据集哪些字段对外开放单字段探查。
-     * 未在 fieldNames 中的字段会被关闭，前台探查维度随之消失。
+     * 按资源写入：未上架时只改资源；已有商品时商品与资源一并更新。
      */
-    setProfilingFields(productId: string, fieldNames: string[]) {
-      const p = this.products.find((x) => x.id === productId)
-      const dataset = p?.typeDetail.dataset
-      if (!p || !dataset) return
+    setProfilingFields(resourceId: string, fieldNames: string[]) {
       const allow = new Set(fieldNames)
-      dataset.fields = dataset.fields.map((f) => ({ ...f, profilingEnabled: allow.has(f.name) }))
-      p.updatedAt = now()
+      const apply = (dataset?: { fields: Array<{ name: string; profilingEnabled?: boolean }> }) => {
+        if (!dataset) return
+        dataset.fields = dataset.fields.map((f) => ({ ...f, profilingEnabled: allow.has(f.name) }))
+      }
+      const resource = this.resources.find((item) => item.id === resourceId)
+      apply(resource?.typeDetail.dataset)
+      if (resource) resource.updatedAt = now()
+      const product = this.products.find((item) => item.resourceId === resourceId)
+      apply(product?.typeDetail.dataset)
+      if (product) product.updatedAt = now()
     },
     updateProduct(productId: string, patch: Partial<Product>) {
       const idx = this.products.findIndex((x) => x.id === productId)

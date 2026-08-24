@@ -139,7 +139,7 @@ const profilingSelection = ref<string[]>([])
 const profilingSaved = ref(false)
 
 const datasetFields = computed(() => {
-  const d = product.value?.typeDetail.dataset
+  const d = product.value?.typeDetail.dataset ?? resource.value?.typeDetail.dataset
   if (!d) return []
   const stats = d.fieldProfiling ?? []
   return d.fields.map((f) => ({
@@ -238,7 +238,9 @@ function syncFormFromStore() {
     reportForm.version = ''
     reportForm.audience = ''
     reportForm.license = ''
-    profilingSelection.value = []
+    profilingSelection.value = (resource.value?.typeDetail.dataset?.fields ?? [])
+      .filter((f) => f.profilingEnabled)
+      .map((f) => f.name)
     publishErrors.value = []
     productSaved.value = false
     dashboardConfigSaved.value = false
@@ -432,7 +434,10 @@ function saveProduct() {
   })
   if (p.type === 'dashboard') persistDashboardConfig()
   if (p.type === 'report') persistReportConfig()
-  if (p.type === 'dataset') persistDatasetMetrics()
+  if (p.type === 'dataset') {
+    persistDatasetMetrics()
+    persistProfilingFields()
+  }
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
 }
@@ -634,10 +639,14 @@ function buildAcquisitions(isFree: boolean, hasMemberBenefit: boolean, hasItemOf
 }
 
 
+function persistProfilingFields() {
+  const res = resource.value
+  if (!res || res.type !== 'dataset') return
+  catalog.setProfilingFields(res.id, profilingSelection.value)
+}
+
 function saveProfilingFields() {
-  const p = product.value
-  if (!p) return
-  catalog.setProfilingFields(p.id, profilingSelection.value)
+  persistProfilingFields()
   profilingSaved.value = true
   setTimeout(() => { profilingSaved.value = false }, 3000)
 }
@@ -1047,7 +1056,7 @@ function saveProfilingFields() {
       </div>
 
       <!-- 数据探查配置（仅数据集类型） -->
-      <div v-if="resource.type === 'dataset' && datasetFields.length" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div v-if="resource.type === 'dataset' && datasetFields.length" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
         <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
 
@@ -1077,7 +1086,7 @@ function saveProfilingFields() {
               :class="f.sensitive ? 'bg-amber-50/40' : ''"
             >
               <td class="px-2 py-2">
-                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" />
+                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" :data-testid="`profiling-field-${f.name}`" />
               </td>
               <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
               <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
@@ -1097,7 +1106,7 @@ function saveProfilingFields() {
         </table>
 
         <div class="mt-3 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" @click="saveProfilingFields">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-profiling-config" @click="saveProfilingFields">
             保存探查配置
           </button>
           <span class="text-xs text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
