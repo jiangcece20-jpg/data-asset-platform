@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useUserStore } from './user'
 import { useSpaceIntentStore } from './spaceIntents'
 import { useEntitlementStore } from './entitlements'
+import { useCatalogStore } from './catalog'
 import { userStatusOf } from '@/domain/spaceIntent'
 
 describe('spaceIntents store', () => {
@@ -70,5 +71,27 @@ describe('spaceIntents store', () => {
     store.completeDelivery(intent.id)
     expect(intent.opsStatus).toBe('completed')
     expect(useEntitlementStore().list.some((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset' && e.status === 'active')).toBe(true)
+  })
+
+  it('keeps pending_delivery when datasetOffers is empty', () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-enterprise-activity',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '画像',
+      enterpriseId: user.enterprise.id
+    })
+    store.claim(intent.id)
+    store.confirmEnterprise(intent.id, user.enterprise.id)
+    store.markSpaceDeal(intent.id, { spaceOrderNo: 'SO-ds-empty', spaceDealNote: '空间已成交' })
+    expect(intent.opsStatus).toBe('pending_delivery')
+    const product = useCatalogStore().byId('prod-enterprise-activity')!
+    product.datasetOffers = []
+    expect(() => store.completeDelivery(intent.id)).toThrow('空间数据集缺少方案，无法接入')
+    expect(intent.opsStatus).toBe('pending_delivery')
+    expect(useEntitlementStore().list.some((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')).toBe(false)
   })
 })

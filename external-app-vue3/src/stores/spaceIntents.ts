@@ -95,11 +95,10 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
     completeDelivery(id: string) {
       const intent = this.must(id)
       if (intent.productType !== 'dataset') throw new Error('仅数据集可完成接入交付')
-      intent.opsStatus = nextOpsStatus(intent.opsStatus, 'complete_delivery', intent.productType)
       const catalog = useCatalogStore()
-      const product = catalog.byId(intent.productId)!
-      const offer = product.datasetOffers?.[0]
-      if (!offer) throw new Error('空间数据集缺少方案，无法接入')
+      const product = catalog.byId(intent.productId)
+      const offer = product?.datasetOffers?.[0]
+      if (!product || !offer) throw new Error('空间数据集缺少方案，无法接入')
       const entitlements = useEntitlementStore()
       const ent = entitlements.grantDatasetPending({
         product,
@@ -110,6 +109,7 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
         offerId: offer.id
       })
       entitlements.activateDataset(ent.id, `bi-space-${intent.id}`)
+      intent.opsStatus = nextOpsStatus(intent.opsStatus, 'complete_delivery', intent.productType)
       intent.updatedAt = now()
       return intent
     },
