@@ -21,6 +21,7 @@ import { resolveProductActions, type ProductActionKey } from '@/domain/productAc
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
+import { publicSpaceChips } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -34,6 +35,7 @@ const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
+const spaceChips = computed(() => (product.value ? publicSpaceChips(product.value) : []))
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 const billingRules = computed(() => billingRuleNotes(product.value))
@@ -174,6 +176,9 @@ function handleAction(key: ProductActionKey) {
           <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
           <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
           <StatusBadge dict="availability" :value="product.availability" />
+          <span v-if="spaceChips.length" data-testid="public-space-chips" class="contents">
+            <span v-for="chip in spaceChips" :key="chip" class="tag-chip">{{ chip }}</span>
+          </span>
         </div>
         <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
         <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>

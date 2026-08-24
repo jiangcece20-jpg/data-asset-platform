@@ -239,4 +239,22 @@ describe('catalog store — resource extensions', () => {
     const results = catalog.searchInternalViews('xyznonexistent')
     expect(results).toHaveLength(0)
   })
+
+  it('filters space datasets by sample and APIs by trial flag', () => {
+    const catalog = useCatalogStore()
+    const sampled = catalog.search('', { type: 'dataset', hasSampleData: true })
+    expect(sampled.every((p) => p.hasSampleData === true)).toBe(true)
+    const trialApis = catalog.search('', { type: 'api', hasTrialApi: true })
+    expect(trialApis.every((p) => p.hasTrialApi === true)).toBe(true)
+  })
+
+  it('filters space products by spaceName and ops-only spaceKind', () => {
+    const catalog = useCatalogStore()
+    const named = catalog.search('', { spaceName: '万联易达可信空间' })
+    expect(named.length).toBeGreaterThan(0)
+    expect(named.every((p) => p.spaceName === '万联易达可信空间')).toBe(true)
+    const federated = catalog.search('', { spaceKind: 'federated' })
+    expect(federated.length).toBeGreaterThan(0)
+    expect(federated.every((p) => p.spaceKind === 'federated')).toBe(true)
+  })
 })

@@ -67,15 +67,13 @@ const datasetItems = computed<InfoItem[]>(() => {
 
     <!-- 样例数据 -->
     <div v-else-if="activeTab === 'samples'">
-      <template v-if="product.availability === 'published' && detail.sampleRows.length > 0">
+      <template v-if="product.hasSampleData !== false && detail.sampleRows.length > 0">
         <div class="mb-2 rounded-lg bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700">
           脱敏样例 · 生成于 {{ detail.sampleGeneratedAt }} · 仅供评估，不可用于生产
         </div>
         <ScrollTable :columns="sampleColumns" :rows="detail.sampleRows" sticky-first />
       </template>
-      <div v-else class="py-8 text-center text-[13px] text-slate-400">
-        上架审核通过后提供脱敏样例
-      </div>
+      <div v-else class="py-8 text-center text-[13px] text-slate-400">当前无样例</div>
     </div>
 
     <!-- 探查报告：整表概览 + 按字段维度切换 -->

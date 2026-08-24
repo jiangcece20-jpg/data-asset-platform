@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
+import { publicSpaceChips } from '@/domain/spaceIntent'
 
-defineProps<{ product: Product; title: string }>()
+const props = defineProps<{ product: Product; title: string }>()
+const spaceChips = computed(() => publicSpaceChips(props.product))
 </script>
 
 <template>
@@ -16,7 +19,8 @@ defineProps<{ product: Product; title: string }>()
     <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
     <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
 
-    <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+    <div v-if="spaceChips.length || product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+      <span v-for="chip in spaceChips" :key="'chip-' + chip" class="tag-chip">{{ chip }}</span>
       <span v-for="tag in product.tags" :key="tag" class="tag-chip">{{ tag }}</span>
     </div>
 

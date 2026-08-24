@@ -4,9 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useAiStore } from '@/stores/ai'
 import { typeMeta, priceDisplay } from '@/utils/productMeta'
-import type { Product } from '@/types/domain'
+import type { Product, ProductType } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 import { productCardSummary } from '@/domain/productCardSummary'
+import { publicSpaceChips } from '@/domain/spaceIntent'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,10 +19,29 @@ const mode = ref<SearchMode>(route.query.mode === 'ai' ? 'ai' : 'keyword')
 const query = ref('')
 const aiAnswer = ref('')
 const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
+const activeType = ref<ProductType | ''>('')
+const activeSpaceName = ref('')
+const onlySample = ref(false)
+const onlyTrialApi = ref(false)
+
+watch(activeType, () => {
+  onlySample.value = false
+  onlyTrialApi.value = false
+})
+
+const types: ProductType[] = ['dataset', 'api', 'report', 'dashboard']
+const spaceNames = computed(() =>
+  [...new Set(catalog.discoverable.map((p) => p.spaceName).filter((name): name is string => Boolean(name)))]
+)
 
 // 关键词模式结果
 const marketResults = computed(() => {
-  const results = catalog.search(query.value)
+  const results = catalog.search(query.value, {
+    type: activeType.value || undefined,
+    spaceName: activeSpaceName.value || undefined,
+    hasSampleData: onlySample.value ? true : undefined,
+    hasTrialApi: onlyTrialApi.value ? true : undefined
+  })
   if (sortType.value === 'price_asc') {
     return [...results].sort((a, b) => (a.price.itemPrice || 0) - (b.price.itemPrice || 0))
   }
@@ -126,6 +146,50 @@ function switchMode(m: SearchMode) {
           {{ mode === 'keyword' ? '搜索' : '提问' }}
         </button>
       </div>
+      <div v-if="mode === 'keyword'" class="mt-4 flex flex-wrap justify-center gap-1.5">
+        <button
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="!activeType ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="activeType = ''"
+        >全部类型</button>
+        <button
+          v-for="t in types"
+          :key="t"
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="activeType === t ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="activeType = t"
+        >{{ typeMeta[t].icon }} {{ typeMeta[t].label }}</button>
+      </div>
+      <div v-if="mode === 'keyword' && spaceNames.length" class="mt-2 flex flex-wrap justify-center gap-1.5" data-testid="filter-space-names">
+        <button
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="!activeSpaceName ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="activeSpaceName = ''"
+        >全部空间</button>
+        <button
+          v-for="name in spaceNames"
+          :key="name"
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="activeSpaceName === name ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="activeSpaceName = name"
+        >{{ name }}</button>
+      </div>
+      <div v-if="mode === 'keyword' && activeType === 'dataset'" class="mt-2 flex flex-wrap justify-center gap-1.5">
+        <button
+          data-testid="filter-has-sample"
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="onlySample ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="onlySample = !onlySample"
+        >有样例</button>
+      </div>
+      <div v-if="mode === 'keyword' && activeType === 'api'" class="mt-2 flex flex-wrap justify-center gap-1.5">
+        <button
+          data-testid="filter-has-trial-api"
+          class="rounded-full px-2.5 py-1 text-xs"
+          :class="onlyTrialApi ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'"
+          @click="onlyTrialApi = !onlyTrialApi"
+        >有试用接口</button>
+      </div>
     </div>
 
     <!-- AI 回答 -->
@@ -171,6 +235,11 @@ function switchMode(m: SearchMode) {
             :class="item.source === 'market' ? 'bg-brand-50 text-brand-600' : 'bg-emerald-50 text-emerald-600'"
           >{{ item.source === 'market' ? '🏪市场' : '🏠内部' }}</span>
           <span v-if="item.type === 'product'" class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">{{ item.label }}</span>
+          <span
+            v-for="chip in item.type === 'product' ? publicSpaceChips(item.data as Product) : []"
+            :key="chip"
+            class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600"
+          >{{ chip }}</span>
         </div>
         <!-- 名称 + 描述 -->
         <div class="min-w-0 flex-1">

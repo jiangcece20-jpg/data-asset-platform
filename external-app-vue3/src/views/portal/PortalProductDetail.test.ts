@@ -29,6 +29,18 @@ describe('PortalProductDetail space intent CTA', () => {
   })
 })
 
+describe('PortalProductDetail samples empty copy', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows 当前无样例 for datasets without sample data', async () => {
+    const wrapper = await mountProductDetail('prod-space-port-throughput')
+    await wrapper.findAll('button').find((b) => b.text() === '样例数据')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('当前无样例')
+    expect(wrapper.text()).not.toContain('上架审核通过后提供脱敏样例')
+  })
+})
+
 describe('PortalProductDetail default tabs', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

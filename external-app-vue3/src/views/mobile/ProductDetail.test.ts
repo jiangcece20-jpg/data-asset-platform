@@ -41,6 +41,13 @@ describe('ProductDetail trusted-space intent', () => {
     expect(router.currentRoute.value.path).toBe('/app/space-intent/prod-qualification-api')
     expect(router.currentRoute.value.name).not.toBe('space-bridge')
   })
+
+  it('shows owned space chips without 自有', async () => {
+    const { wrapper } = await mountProductDetail('/app/product/prod-enterprise-activity')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('万联易达可信空间')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('有样例')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).not.toContain('自有')
+  })
 })
 
 describe('ProductDetail dashboard overview', () => {

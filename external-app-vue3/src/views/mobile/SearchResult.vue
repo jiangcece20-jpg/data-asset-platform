@@ -17,6 +17,9 @@ const query = ref(String(route.query.q || ''))
 const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
 const activeChannel = ref<DealChannel | ''>('')
 const activeOrigin = ref<ProductOrigin | ''>((route.query.origin as ProductOrigin) || '')
+const activeSpaceName = ref('')
+const onlySample = ref(false)
+const onlyTrialApi = ref(false)
 
 watch(
   () => route.query.q,
@@ -31,15 +34,27 @@ watch(
   (o) => (activeOrigin.value = (o as ProductOrigin) || '')
 )
 
+watch(activeType, () => {
+  onlySample.value = false
+  onlyTrialApi.value = false
+})
+
 const types: ProductType[] = ['dataset', 'api', 'report', 'dashboard']
 const channels: DealChannel[] = ['app_payment', 'space_purchase']
 const origins: Array<ProductOrigin | ''> = ['', 'app_content', 'asset_platform', 'trusted_space', 'seller_market']
+
+const spaceNames = computed(() =>
+  [...new Set(catalog.discoverable.map((p) => p.spaceName).filter((name): name is string => Boolean(name)))]
+)
 
 const results = computed(() =>
   catalog.search(query.value, {
     type: activeType.value || undefined,
     dealChannel: activeChannel.value || undefined,
-    origin: activeOrigin.value || undefined
+    origin: activeOrigin.value || undefined,
+    spaceName: activeSpaceName.value || undefined,
+    hasSampleData: onlySample.value ? true : undefined,
+    hasTrialApi: onlyTrialApi.value ? true : undefined
   })
 )
 
@@ -62,6 +77,9 @@ function matchReason(): string {
   if (activeType.value) parts.push(typeMeta[activeType.value].label)
   if (activeChannel.value) parts.push(dealChannelMeta[activeChannel.value].label)
   if (activeOrigin.value) parts.push(originMeta[activeOrigin.value])
+  if (activeSpaceName.value) parts.push(activeSpaceName.value)
+  if (onlySample.value) parts.push('有样例')
+  if (onlyTrialApi.value) parts.push('有试用接口')
   return parts.length ? parts.join(' · ') : '综合排序'
 }
 </script>
@@ -123,6 +141,44 @@ function matchReason(): string {
           @click="activeOrigin = o"
         >
           {{ o ? originMeta[o] : '全部来源' }}
+        </button>
+      </div>
+      <div v-if="spaceNames.length" class="flex flex-wrap gap-1.5" data-testid="filter-space-names">
+        <button
+          class="rounded-full px-2.5 py-1 text-[11px]"
+          :class="!activeSpaceName ? 'bg-indigo-500 text-white' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="activeSpaceName = ''"
+        >
+          全部空间
+        </button>
+        <button
+          v-for="name in spaceNames"
+          :key="name"
+          class="rounded-full px-2.5 py-1 text-[11px]"
+          :class="activeSpaceName === name ? 'bg-indigo-500 text-white' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="activeSpaceName = name"
+        >
+          {{ name }}
+        </button>
+      </div>
+      <div v-if="activeType === 'dataset'" class="flex flex-wrap gap-1.5">
+        <button
+          data-testid="filter-has-sample"
+          class="rounded-full px-2.5 py-1 text-[11px]"
+          :class="onlySample ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="onlySample = !onlySample"
+        >
+          有样例
+        </button>
+      </div>
+      <div v-if="activeType === 'api'" class="flex flex-wrap gap-1.5">
+        <button
+          data-testid="filter-has-trial-api"
+          class="rounded-full px-2.5 py-1 text-[11px]"
+          :class="onlyTrialApi ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border border-slate-200'"
+          @click="onlyTrialApi = !onlyTrialApi"
+        >
+          有试用接口
         </button>
       </div>
     </div>
