@@ -37,7 +37,7 @@ const tabs: Array<{ value: OrderTab; label: string }> = [
   { value: 'intent', label: '意向单' }
 ]
 
-const myIntents = computed(() => intents.byOwner(user.context.currentMemberId))
+const myIntents = computed(() => intents.userVisibleByOwner(user.context.currentMemberId))
 
 function productName(productId: string) {
   return catalog.byId(productId)?.name ?? productId

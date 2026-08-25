@@ -7,6 +7,7 @@ import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
+import { USER_INTENT_HINT } from '@/domain/spaceIntent'
 
 const props = defineProps<{
   product: Product
@@ -27,7 +28,7 @@ const trustedPurchaseEligibility = computed(() => {
     tone: 'border-blue-200 bg-blue-50',
     badgeTone: 'bg-blue-100 text-blue-700',
     title: '提交意向单',
-    description: '成交由运营在空间代办，买方为企业；个人可先提交意向单。'
+    description: USER_INTENT_HINT
   }
 })
 

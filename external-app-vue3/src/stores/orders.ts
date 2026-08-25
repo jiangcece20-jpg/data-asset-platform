@@ -353,6 +353,40 @@ export const useOrderStore = defineStore('orders', {
       const needsWorkOrder = order.entitlementGrantAttempts >= MAX_GRANT_ATTEMPTS
       if (needsWorkOrder) order.entitlementPendingManual = true
       return { granted: false, needsWorkOrder }
+    },
+    createFromSpaceIntent(input: {
+      intentId: string
+      product: Product
+      enterpriseId: string
+      operatorMemberId: string
+    }): Order {
+      if (this.list.some((item) => item.spaceIntentId === input.intentId)) {
+        throw new Error('该意向单已转为订单')
+      }
+      const offer = input.product.datasetOffers?.[0]
+      const stamp = now()
+      const order: Order = {
+        id: genId('order'),
+        channel: 'app',
+        ownerType: 'enterprise',
+        ownerId: input.enterpriseId,
+        productId: input.product.id,
+        productName: input.product.name,
+        productType: input.product.type,
+        amount: offer?.price ?? 0,
+        status: 'paid',
+        createdAt: stamp,
+        paidAt: stamp,
+        contractStatus: 'payment_confirmed',
+        paymentMethod: 'enterprise_bank_transfer',
+        operatorMemberId: input.operatorMemberId,
+        datasetOfferId: offer?.id,
+        selectedTermMonths: offer?.termMonths,
+        spaceIntentId: input.intentId,
+        note: '线下付款已确认到账，履约中'
+      }
+      this.list.push(order)
+      return order
     }
   }
 })

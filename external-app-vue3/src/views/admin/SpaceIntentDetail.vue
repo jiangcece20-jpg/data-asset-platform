@@ -3,7 +3,10 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import { OPS_STATUS_LABELS } from '@/domain/spaceIntent'
+import { buyerEnterpriseName, operatorContactText } from '@/domain/opsPurchaseParty'
+import { productTypeLabels } from '@/domain/myCenter'
 import { useCatalogStore } from '@/stores/catalog'
+import { useOrderStore } from '@/stores/orders'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useUserStore } from '@/stores/user'
 
@@ -11,11 +14,15 @@ const route = useRoute()
 const router = useRouter()
 const intents = useSpaceIntentStore()
 const catalog = useCatalogStore()
+const orders = useOrderStore()
 const user = useUserStore()
 
 const id = computed(() => String(route.params.id))
 const intent = computed(() => intents.byId(id.value))
 const product = computed(() => (intent.value ? catalog.byId(intent.value.productId) : undefined))
+const relatedOrder = computed(() =>
+  intent.value?.orderId ? orders.list.find((item) => item.id === intent.value?.orderId) : undefined
+)
 const closeReason = ref('')
 const error = ref('')
 
@@ -34,21 +41,15 @@ function claim() {
   })
 }
 
-function confirmEnterprise() {
+function confirmPayment() {
   run(() => {
-    intents.confirmEnterprise(id.value, user.enterprise.id)
+    intents.confirmOfflinePayment(id.value, user.enterprise.id)
   })
 }
 
-function markSpaceDeal() {
+function completeFulfillment() {
   run(() => {
-    intents.markSpaceDeal(id.value, { spaceOrderNo: 'SO-OPS', spaceDealNote: '空间已成交' })
-  })
-}
-
-function completeDelivery() {
-  run(() => {
-    intents.completeDelivery(id.value)
+    intents.completeFulfillment(id.value)
   })
 }
 
@@ -63,7 +64,7 @@ function close() {
 }
 
 function goSpaceOps() {
-  if (!intent.value?.enterpriseId) return
+  if (!intent.value) return
   return router.push({
     name: 'space-bridge',
     params: { id: intent.value.productId },
@@ -76,11 +77,40 @@ const spaceKindLabel = computed(() => {
   if (product.value?.spaceKind === 'federated') return '互联'
   return '—'
 })
+
+const canConfirmPayment = computed(() =>
+  intent.value?.opsStatus === 'unclaimed' || intent.value?.opsStatus === 'processing'
+)
+const canFulfill = computed(() =>
+  intent.value?.opsStatus === 'converted' && relatedOrder.value?.status === 'paid'
+)
+const canClose = computed(() =>
+  intent.value?.opsStatus === 'unclaimed' || intent.value?.opsStatus === 'processing'
+)
+
+const buyerName = computed(() =>
+  intent.value
+    ? buyerEnterpriseName({
+      enterpriseId: intent.value.enterpriseId,
+      requestedEnterpriseName: intent.value.requestedEnterpriseName
+    }, user.enterprise)
+    : '—'
+)
+
+const operatorContact = computed(() =>
+  intent.value
+    ? operatorContactText({
+      contactName: intent.value.contactName,
+      contactPhone: intent.value.contactPhone,
+      operatorMemberId: intent.value.ownerMemberId
+    }, user.enterprise)
+    : '—'
+)
 </script>
 
 <template>
   <div v-if="intent">
-    <PageHeader :title="`空间意向单 ${intent.id}`" desc="领取、确认企业、代办空间成交与接入交付" />
+    <PageHeader :title="`空间意向单 ${intent.id}`" desc="领取后线下确认企业、方案和试用。系统里确认到账后转为买数订单，再协调空间履约。" />
 
     <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
 
@@ -88,14 +118,21 @@ const spaceKindLabel = computed(() => {
       <div class="flex flex-wrap items-center gap-2">
         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{{ OPS_STATUS_LABELS[intent.opsStatus] }}</span>
         <span class="text-slate-700">{{ product?.name || intent.productId }}</span>
+        <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600" data-testid="product-type">{{ productTypeLabels[intent.productType] }}</span>
         <span class="text-slate-400">{{ product?.spaceName || '—' }} · {{ spaceKindLabel }}</span>
       </div>
       <div class="mt-2 text-[12px] text-slate-500">
-        联系人：{{ intent.contactName }} · {{ intent.contactPhone }} · 场景：{{ intent.scenario }}
+        购买企业：<span data-testid="buyer-enterprise">{{ buyerName }}</span>
+      </div>
+      <div class="mt-1 text-[12px] text-slate-500">
+        经办人：<span data-testid="operator-contact">{{ operatorContact }}</span>
+        · 场景：{{ intent.scenario }}
       </div>
       <div class="mt-1 text-[12px] text-slate-400">
-        企业：{{ intent.enterpriseId || intent.requestedEnterpriseName || '未确认' }}
-        <template v-if="intent.spaceOrderNo"> · 空间单号 {{ intent.spaceOrderNo }}</template>
+        <template v-if="relatedOrder">买数订单 {{ relatedOrder.id }} · {{ relatedOrder.status === 'paid' ? '履约中' : '已完成' }}</template>
+      </div>
+      <div class="mt-2 text-[12px] leading-relaxed text-slate-400">
+        确认企业、确认方案、线下试用均在线下完成，系统不增加这些节点。
       </div>
     </div>
 
@@ -108,14 +145,15 @@ const spaceKindLabel = computed(() => {
         领取
       </button>
       <button
-        v-if="intent.opsStatus === 'pending_enterprise' || intent.opsStatus === 'unclaimed'"
+        v-if="canConfirmPayment"
+        data-testid="confirm-payment"
         class="rounded-lg bg-blue-500 px-3 py-1.5 text-[12px] text-white"
-        @click="confirmEnterprise"
+        @click="confirmPayment"
       >
-        确认企业
+        确认到账
       </button>
       <button
-        v-if="intent.enterpriseId"
+        v-if="intent.opsStatus === 'processing' || intent.opsStatus === 'converted'"
         data-testid="go-space-ops"
         class="rounded-lg bg-violet-500 px-3 py-1.5 text-[12px] text-white"
         @click="goSpaceOps"
@@ -123,22 +161,16 @@ const spaceKindLabel = computed(() => {
         去空间处理
       </button>
       <button
-        v-if="intent.opsStatus === 'space_dealing'"
+        v-if="canFulfill"
+        data-testid="complete-fulfillment"
         class="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] text-white"
-        @click="markSpaceDeal"
+        @click="completeFulfillment"
       >
-        回填空间成交
-      </button>
-      <button
-        v-if="intent.opsStatus === 'pending_delivery'"
-        class="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] text-white"
-        @click="completeDelivery"
-      >
-        完成接入
+        {{ intent.productType === 'dataset' ? '完成接入' : '完成开通' }}
       </button>
     </div>
 
-    <div v-if="intent.opsStatus !== 'completed' && intent.opsStatus !== 'closed'" class="mt-4 flex flex-wrap items-center gap-2">
+    <div v-if="canClose" class="mt-4 flex flex-wrap items-center gap-2">
       <input
         v-model="closeReason"
         data-testid="close-reason"

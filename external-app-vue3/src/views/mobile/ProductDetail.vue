@@ -21,7 +21,7 @@ import { resolveProductActions, type ProductActionKey } from '@/domain/productAc
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
-import { publicSpaceChips } from '@/domain/spaceIntent'
+import { publicSpaceChips, USER_INTENT_HINT } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -280,7 +280,7 @@ function handleAction(key: ProductActionKey) {
       data-testid="trusted-space-purchase-eligibility"
     >
       <div class="text-[13px] font-semibold text-slate-800">提交意向单</div>
-      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">成交由运营在空间代办，买方为企业；个人可先提交意向单。</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ USER_INTENT_HINT }}</div>
     </div>
 
     <!-- 已拥有权益 -->

@@ -40,6 +40,9 @@ export interface MyOrderCard {
   downloadUrl?: string
   syncedAt?: string
   spaceProductNo?: string
+  spaceIntentId?: string
+  /** 到期日期展示；会员免费商品为会员到期日 */
+  expiryText?: string
   /** 续订提示信息（仅持续更新且含有效期的数据集展示） */
   renewalInfo?: RenewalInfo
 }
@@ -79,6 +82,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     : '按商品订单约定'
   const isDataset = order.productType === 'dataset'
   const isSellerSelf = order.settlementMode === 'seller_self'
+  const isSpaceIntent = Boolean(order.spaceIntentId)
   return {
     source: 'app',
     id: order.id,
@@ -88,7 +92,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ownerType: order.ownerType,
     ownerLabel: order.ownerType === 'enterprise' ? enterpriseName : '个人',
     operatorMemberId: order.operatorMemberId,
-    channelLabel: isSellerSelf ? '入驻商家自收款' : 'APP 内购买',
+    channelLabel: isSpaceIntent ? '平台成交 · 线下付款' : isSellerSelf ? '入驻商家自收款' : 'APP 内购买',
     status: order.status,
     statusDict: 'appOrder',
     filter: appOrderFilter(order.status),
@@ -103,10 +107,11 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
         : order.status === 'pending_payment'
           ? '待选择'
           : '—',
-    progressSummary: appProgress(order.status, isDataset, isSellerSelf),
+    progressSummary: appProgress(order.status, isDataset, isSellerSelf, isSpaceIntent),
     entitlementId: order.entitlementId,
-    canPay: order.status === 'pending_payment',
-    paymentPath: isDataset ? `/app/payment/dataset/${order.id}` : undefined
+    canPay: order.status === 'pending_payment' && !isSpaceIntent,
+    paymentPath: isDataset && !isSpaceIntent ? `/app/payment/dataset/${order.id}` : undefined,
+    spaceIntentId: order.spaceIntentId
   }
 }
 
@@ -151,7 +156,13 @@ function spaceOrderFilter(status: SpaceOrderDisplayStatus): MyOrderFilter {
   return 'closed'
 }
 
-function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerSelf = false): string {
+function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerSelf = false, isSpaceIntent = false): string {
+  if (isSpaceIntent && status === 'paid') {
+    return isDataset ? '线下已到账，空间数据接入中' : '线下已到账，空间开通调用中'
+  }
+  if (isSpaceIntent && status === 'entitlement_active') {
+    return isDataset ? '数据已接入本平台，可在我的数据使用' : '空间已开通调用。请按订单说明在空间使用，本平台不代调用'
+  }
   if (isSellerSelf && status === 'payment_pending_confirmation') {
     return '买家已标记付款，待入驻商家确认到账后开通看板'
   }

@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { OPS_STATUS_LABELS } from '@/domain/spaceIntent'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
+import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import SpaceIntentDetail from './SpaceIntentDetail.vue'
 
@@ -39,24 +40,26 @@ async function clickLabel(wrapper: Awaited<ReturnType<typeof mountDetail>>['wrap
 describe('SpaceIntentDetail', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('walks a personal API intent from unclaimed through space deal to completed', async () => {
+  it('walks a personal API intent from unclaimed through payment confirmation to fulfillment', async () => {
     const intent = submitPersonalApi()
     const { wrapper, router } = await mountDetail(intent.id)
 
     expect(wrapper.text()).toContain(OPS_STATUS_LABELS.unclaimed)
     expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('确认企业、确认方案、线下试用均在线下完成')
 
     await clickLabel(wrapper, '领取')
-    expect(intent.opsStatus).toBe('pending_enterprise')
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.pending_enterprise)
+    expect(intent.opsStatus).toBe('processing')
+    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.processing)
+    expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(true)
 
     const user = useUserStore()
     user.completeEnterpriseAuth()
-    await clickLabel(wrapper, '确认企业')
-    expect(intent.enterpriseId).toBe(user.enterprise.id)
-    expect(intent.opsStatus).toBe('space_dealing')
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.space_dealing)
-    expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(true)
+    await clickLabel(wrapper, '确认到账')
+    expect(intent.opsStatus).toBe('converted')
+    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.converted)
+    const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)
+    expect(order?.status).toBe('paid')
 
     await wrapper.get('[data-testid="go-space-ops"]').trigger('click')
     await flushPromises()
@@ -69,12 +72,12 @@ describe('SpaceIntentDetail', () => {
     await router.push(`/admin/space-intents/${intent.id}`)
     await flushPromises()
 
-    await clickLabel(wrapper, '回填空间成交')
-    expect(intent.opsStatus).toBe('completed')
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.completed)
+    await clickLabel(wrapper, '完成开通')
+    expect(order?.status).toBe('entitlement_active')
+    expect(wrapper.find('[data-testid="complete-fulfillment"]').exists()).toBe(false)
   })
 
-  it('keeps a dataset intent in pending delivery until complete-delivery is shown', async () => {
+  it('keeps a dataset order in fulfillment until complete-delivery is shown', async () => {
     const store = useSpaceIntentStore()
     const intent = store.submit({
       productId: 'prod-enterprise-activity',
@@ -87,20 +90,41 @@ describe('SpaceIntentDetail', () => {
     await clickLabel(wrapper, '领取')
     const user = useUserStore()
     user.completeEnterpriseAuth()
-    await clickLabel(wrapper, '确认企业')
     expect(wrapper.findAll('button').some((item) => item.text() === '完成接入')).toBe(false)
 
-    await clickLabel(wrapper, '回填空间成交')
-    expect(intent.opsStatus).toBe('pending_delivery')
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.pending_delivery)
+    await clickLabel(wrapper, '确认到账')
+    expect(intent.opsStatus).toBe('converted')
+    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.converted)
     expect(wrapper.findAll('button').some((item) => item.text() === '完成接入')).toBe(true)
   })
 
-  it('does not render go-space-ops when the intent has no enterprise', async () => {
+  it('does not render go-space-ops before the intent is claimed', async () => {
     const intent = submitPersonalApi()
     const { wrapper } = await mountDetail(intent.id)
     expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(false)
-    await clickLabel(wrapper, '领取')
-    expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(false)
+  })
+
+  it('shows requested enterprise and submitted operator contact before payment confirmation', async () => {
+    const intent = useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '司机核验',
+      requestedEnterpriseName: '希望落到的物流公司'
+    })
+    const { wrapper } = await mountDetail(intent.id)
+    expect(wrapper.get('[data-testid="buyer-enterprise"]').text()).toBe('希望落到的物流公司')
+    expect(wrapper.get('[data-testid="operator-contact"]').text()).toBe('陈静 · 13800000000')
+    expect(wrapper.get('[data-testid="product-type"]').text()).toBe('API')
+  })
+
+  it('shows the authenticated enterprise name after payment confirmation', async () => {
+    const intent = submitPersonalApi()
+    const { wrapper } = await mountDetail(intent.id)
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    await clickLabel(wrapper, '确认到账')
+    expect(wrapper.get('[data-testid="buyer-enterprise"]').text()).toBe('万联供应链管理有限公司')
+    expect(wrapper.get('[data-testid="operator-contact"]').text()).toBe('陈静 · 13800000000')
   })
 })

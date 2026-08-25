@@ -3,13 +3,17 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import { OPS_STATUS_LABELS } from '@/domain/spaceIntent'
+import { buyerEnterpriseName, operatorContactText } from '@/domain/opsPurchaseParty'
+import { productTypeLabels } from '@/domain/myCenter'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
-import type { SpaceIntentOpsStatus } from '@/types/spaceIntent'
+import { useUserStore } from '@/stores/user'
+import type { SpaceIntentOpsStatus, SpaceIntentOrder } from '@/types/spaceIntent'
 
 const router = useRouter()
 const intents = useSpaceIntentStore()
 const catalog = useCatalogStore()
+const user = useUserStore()
 
 const filterStatus = ref('')
 const filterKind = ref('')
@@ -17,10 +21,8 @@ const filterSpaceName = ref('')
 
 const STATUS_OPTIONS: SpaceIntentOpsStatus[] = [
   'unclaimed',
-  'pending_enterprise',
-  'space_dealing',
-  'pending_delivery',
-  'completed',
+  'processing',
+  'converted',
   'closed'
 ]
 
@@ -54,11 +56,26 @@ function spaceKindLabel(productId: string) {
 function goToDetail(id: string) {
   router.push(`/admin/space-intents/${id}`)
 }
+
+function buyerName(item: SpaceIntentOrder) {
+  return buyerEnterpriseName({
+    enterpriseId: item.enterpriseId,
+    requestedEnterpriseName: item.requestedEnterpriseName
+  }, user.enterprise)
+}
+
+function operatorContact(item: SpaceIntentOrder) {
+  return operatorContactText({
+    contactName: item.contactName,
+    contactPhone: item.contactPhone,
+    operatorMemberId: item.ownerMemberId
+  }, user.enterprise)
+}
 </script>
 
 <template>
   <div>
-    <PageHeader title="空间意向单" desc="运营领取、确认企业，并代办空间成交与数据集接入" />
+    <PageHeader title="空间意向单" desc="领取后线下确认企业、方案和试用；系统里确认到账后转为买数订单" />
 
     <div class="mb-3 flex flex-wrap gap-2">
       <select v-model="filterStatus" data-testid="filter-ops-status" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
@@ -81,10 +98,12 @@ function goToDetail(id: string) {
         <thead class="text-xs text-slate-400">
           <tr>
             <th class="px-3 py-2">商品</th>
+            <th class="px-3 py-2">类型</th>
             <th class="px-3 py-2">空间</th>
             <th class="px-3 py-2">来源</th>
+            <th class="px-3 py-2">购买企业</th>
+            <th class="px-3 py-2">经办人</th>
             <th class="px-3 py-2">状态</th>
-            <th class="px-3 py-2">联系人</th>
           </tr>
         </thead>
         <tbody>
@@ -97,10 +116,12 @@ function goToDetail(id: string) {
             @click="goToDetail(item.id)"
           >
             <td class="px-3 py-2 text-slate-700">{{ catalog.byId(item.productId)?.name || item.productId }}</td>
+            <td class="px-3 py-2 text-slate-600" data-testid="product-type">{{ productTypeLabels[item.productType] }}</td>
             <td class="px-3 py-2 text-slate-600">{{ catalog.byId(item.productId)?.spaceName || '—' }}</td>
             <td class="px-3 py-2 text-slate-600">{{ spaceKindLabel(item.productId) }}</td>
+            <td class="px-3 py-2 text-slate-600" data-testid="buyer-enterprise">{{ buyerName(item) }}</td>
+            <td class="px-3 py-2 text-slate-600" data-testid="operator-contact">{{ operatorContact(item) }}</td>
             <td class="px-3 py-2 text-slate-600">{{ OPS_STATUS_LABELS[item.opsStatus] }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ item.contactName }}</td>
           </tr>
         </tbody>
       </table>

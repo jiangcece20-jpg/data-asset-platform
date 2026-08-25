@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Product } from '@/types/domain'
 import {
   OWNED_SPACE_NAME,
-  canEnterSpaceDealing,
+  canConfirmPayment,
   nextOpsStatus,
   publicSpaceChips,
   userStatusOf
@@ -13,12 +13,10 @@ function product(over: Partial<Product>): Product {
 }
 
 describe('spaceIntent domain', () => {
-  it('maps ops status to three user statuses', () => {
+  it('maps ops status to user-facing intent statuses without converted', () => {
     expect(userStatusOf('unclaimed')).toBe('submitted')
-    expect(userStatusOf('pending_enterprise')).toBe('processing')
-    expect(userStatusOf('space_dealing')).toBe('processing')
-    expect(userStatusOf('pending_delivery')).toBe('processing')
-    expect(userStatusOf('completed')).toBe('completed')
+    expect(userStatusOf('processing')).toBe('processing')
+    expect(userStatusOf('converted')).toBe('processing')
     expect(userStatusOf('closed')).toBe('closed')
   })
 
@@ -48,14 +46,16 @@ describe('spaceIntent domain', () => {
     }))).toEqual(['某省互联空间', '有试用接口'])
   })
 
-  it('blocks space dealing until an enterprise is attached', () => {
-    expect(canEnterSpaceDealing({})).toBe(false)
-    expect(canEnterSpaceDealing({ enterpriseId: 'ent-1' })).toBe(true)
+  it('blocks payment confirmation until an enterprise is attached', () => {
+    expect(canConfirmPayment({})).toBe(false)
+    expect(canConfirmPayment({ enterpriseId: 'ent-1' })).toBe(true)
   })
 
-  it('routes dataset completion through pending_delivery', () => {
-    expect(nextOpsStatus('space_dealing', 'mark_space_deal', 'dataset')).toBe('pending_delivery')
-    expect(nextOpsStatus('space_dealing', 'mark_space_deal', 'api')).toBe('completed')
-    expect(() => nextOpsStatus('unclaimed', 'mark_space_deal', 'dataset')).toThrow()
+  it('converts processing intents to orders and forbids closing converted ones', () => {
+    expect(nextOpsStatus('unclaimed', 'claim')).toBe('processing')
+    expect(nextOpsStatus('processing', 'confirm_payment')).toBe('converted')
+    expect(nextOpsStatus('unclaimed', 'confirm_payment')).toBe('converted')
+    expect(() => nextOpsStatus('converted', 'close')).toThrow('已转订单不可关闭')
+    expect(nextOpsStatus('processing', 'close')).toBe('closed')
   })
 })

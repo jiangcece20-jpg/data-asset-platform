@@ -59,6 +59,21 @@ describe('OrdersPanel', () => {
     expect(wrapper.text()).not.toContain('前往可信空间购买')
   })
 
+  it('hides converted intents from the intent tab after payment confirmation', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const intent = useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '核验'
+    })
+    useSpaceIntentStore().confirmOfflinePayment(intent.id, user.enterprise.id)
+    const { wrapper } = mountOrdersPanel({ orderTab: 'intent' })
+    expect(wrapper.text()).toContain('暂无意向单')
+    expect(wrapper.text()).not.toContain('道路运输从业人员资格核验 API')
+  })
+
   it('gives the active tab a distinguishing selected class', () => {
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
     const selected = wrapper.get('[data-testid="order-tab-buy"]')

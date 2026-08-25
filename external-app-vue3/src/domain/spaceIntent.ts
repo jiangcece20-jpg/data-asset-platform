@@ -3,25 +3,24 @@ import type { SpaceIntentOpsStatus, SpaceIntentUserStatus } from '@/types/spaceI
 
 export const OWNED_SPACE_NAME = '万联易达可信空间'
 
+export const USER_INTENT_HINT =
+  '提交后先不付款。确认企业、确认方案、线下试用都在线下完成，系统不记录这些节点。运营确认到账后会出现在「买数」订单里。'
+
 export const USER_STATUS_LABELS: Record<SpaceIntentUserStatus, string> = {
   submitted: '已提交',
   processing: '处理中',
-  completed: '已完成',
   closed: '已关闭'
 }
 
 export const OPS_STATUS_LABELS: Record<SpaceIntentOpsStatus, string> = {
   unclaimed: '待领取',
-  pending_enterprise: '待确认企业',
-  space_dealing: '空间成交中',
-  pending_delivery: '待接入交付',
-  completed: '已完成',
+  processing: '处理中',
+  converted: '已转订单',
   closed: '关闭'
 }
 
 export function userStatusOf(ops: SpaceIntentOpsStatus): SpaceIntentUserStatus {
   if (ops === 'unclaimed') return 'submitted'
-  if (ops === 'completed') return 'completed'
   if (ops === 'closed') return 'closed'
   return 'processing'
 }
@@ -34,36 +33,27 @@ export function publicSpaceChips(product: Product): string[] {
   return chips
 }
 
-export function canEnterSpaceDealing(intent: { enterpriseId?: string }): boolean {
+export function canConfirmPayment(intent: { enterpriseId?: string }): boolean {
   return Boolean(intent.enterpriseId)
 }
 
-export type SpaceIntentOpsAction = 'claim' | 'confirm_enterprise' | 'mark_space_deal' | 'complete_delivery' | 'close'
+export type SpaceIntentOpsAction = 'claim' | 'confirm_payment' | 'close'
 
 export function nextOpsStatus(
   current: SpaceIntentOpsStatus,
-  action: SpaceIntentOpsAction,
-  productType: 'dataset' | 'api'
+  action: SpaceIntentOpsAction
 ): SpaceIntentOpsStatus {
   if (action === 'close') {
-    if (current === 'completed') throw new Error('已完成不可关闭')
+    if (current === 'converted') throw new Error('已转订单不可关闭')
     return 'closed'
   }
   if (action === 'claim') {
     if (current !== 'unclaimed') throw new Error('仅待领取可领取')
-    return 'pending_enterprise'
+    return 'processing'
   }
-  if (action === 'confirm_enterprise') {
-    if (current !== 'unclaimed' && current !== 'pending_enterprise') throw new Error('企业未确认')
-    return 'space_dealing'
-  }
-  if (action === 'mark_space_deal') {
-    if (current !== 'space_dealing') throw new Error('未在空间成交中')
-    return productType === 'dataset' ? 'pending_delivery' : 'completed'
-  }
-  if (action === 'complete_delivery') {
-    if (current !== 'pending_delivery') throw new Error('仅待接入交付可完成接入')
-    return 'completed'
+  if (action === 'confirm_payment') {
+    if (current !== 'unclaimed' && current !== 'processing') throw new Error('仅处理中可确认到账')
+    return 'converted'
   }
   throw new Error('未知动作')
 }

@@ -2,13 +2,11 @@ export type SpaceKind = 'owned' | 'federated'
 
 export type SpaceIntentOpsStatus =
   | 'unclaimed'
-  | 'pending_enterprise'
-  | 'space_dealing'
-  | 'pending_delivery'
-  | 'completed'
+  | 'processing'
+  | 'converted'
   | 'closed'
 
-export type SpaceIntentUserStatus = 'submitted' | 'processing' | 'completed' | 'closed'
+export type SpaceIntentUserStatus = 'submitted' | 'processing' | 'closed'
 
 export interface SpaceIntentOrder {
   id: string
@@ -21,8 +19,7 @@ export interface SpaceIntentOrder {
   requestedEnterpriseName?: string
   enterpriseId?: string
   opsStatus: SpaceIntentOpsStatus
-  spaceOrderNo?: string
-  spaceDealNote?: string
+  orderId?: string
   closeReason?: string
   createdAt: string
   updatedAt: string

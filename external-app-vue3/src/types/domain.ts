@@ -638,6 +638,8 @@ export interface Order {
   sellerConfirmedAt?: string
   /** 卖家拒认/争议原因 */
   disputeReason?: string
+  /** 由空间意向单确认到账转入的买数订单 */
+  spaceIntentId?: string
 }
 
 export type TrialStatus = 'not_applied' | 'pending' | 'approved' | 'rejected' | 'exhausted' | 'expired'

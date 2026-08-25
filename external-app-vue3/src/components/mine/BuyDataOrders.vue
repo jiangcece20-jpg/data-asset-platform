@@ -123,6 +123,7 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
         <div><span class="text-slate-400">付款方式</span><div class="mt-0.5 text-slate-700">{{ order.paymentLabel }}</div></div>
         <div><span class="text-slate-400">下单时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.createdAt) }}</div></div>
         <div><span class="text-slate-400">付款时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.paidAt) }}</div></div>
+        <div><span class="text-slate-400">到期时间</span><div class="mt-0.5 text-slate-700">{{ order.expiryText || '—' }}</div></div>
         <div class="col-span-2"><span class="text-slate-400">订单金额</span><div class="mt-0.5 font-semibold text-brand-600">{{ order.amountText }}</div></div>
       </template>
       <template #notice>
@@ -201,6 +202,7 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
         <div><div class="text-slate-400">付款方式</div><div class="mt-1 text-slate-700">{{ order.paymentLabel }}</div></div>
         <div><div class="text-slate-400">下单时间</div><div class="mt-1 text-slate-700">{{ formatOrderTime(order.createdAt) }}</div></div>
         <div><div class="text-slate-400">付款时间</div><div class="mt-1 text-slate-700">{{ formatOrderTime(order.paidAt) }}</div></div>
+        <div><div class="text-slate-400">到期时间</div><div class="mt-1 text-slate-700">{{ order.expiryText || '—' }}</div></div>
         <div><div class="text-slate-400">订单金额</div><div class="mt-1 font-semibold text-brand-600">{{ order.amountText }}</div></div>
       </template>
       <template #notice>

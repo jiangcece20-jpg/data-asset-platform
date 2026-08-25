@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import { USER_INTENT_HINT } from '@/domain/spaceIntent'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useUserStore } from '@/stores/user'
 
@@ -52,7 +53,7 @@ function goMine() {
       <div v-else-if="submitted" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">✅</div>
         <div class="mt-2 text-[14px] font-medium text-emerald-700">已提交</div>
-        <div class="mt-1 text-[12px] leading-relaxed text-emerald-600">成交由运营在空间代办，买方为企业。可在「我的」查看意向单进度。</div>
+        <div class="mt-1 text-[12px] leading-relaxed text-emerald-600">{{ USER_INTENT_HINT }} 可在「我的 · 意向单」查看进度；到账后改到「买数」。</div>
         <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="goMine">
           回我的
         </button>
@@ -60,7 +61,7 @@ function goMine() {
 
       <div v-else-if="product" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
         <div class="text-[14px] font-semibold text-slate-900">{{ product.name }}</div>
-        <div class="mt-1 text-[12px] text-slate-500">成交由运营在空间代办，买方为企业；个人可先提交意向单。</div>
+        <div class="mt-1 text-[12px] text-slate-500">{{ USER_INTENT_HINT }}</div>
         <div v-if="user.isEnterpriseAuthenticated" class="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
           本企业：{{ user.enterprise.name }}
         </div>
