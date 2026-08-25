@@ -17,6 +17,7 @@ const user = useUserStore()
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const intentId = computed(() => String(route.query.intent ?? ''))
+const isOpsIntent = computed(() => intentId.value.startsWith('ops-'))
 const intent = computed(() => purchase.byId(intentId.value))
 const mirror = computed(() => intent.value ? spaceOrders.byIntentId(intent.value.id) : undefined)
 const intentStatusLabel = computed(() => intent.value ? statusMeta('purchaseIntent', intent.value.status).label : '—')
@@ -49,6 +50,7 @@ const hasActivePurchaseLink = computed(() => {
 const shortLinkExpired = computed(() => Boolean(intent.value?.purchaseUrl) && !hasActivePurchaseLink.value)
 
 onMounted(() => {
+  if (isOpsIntent.value) return
   if (!product.value || !validIntent.value) {
     void router.replace(`/app/product/${id.value}`)
     return
@@ -90,7 +92,18 @@ async function reconcileReturnedIntent() {
 </script>
 
 <template>
-  <div v-if="product && validIntent && intent" class="min-h-full bg-slate-900 pb-8 text-white">
+  <div v-if="isOpsIntent" class="min-h-full bg-slate-900 pb-8 text-white" data-testid="ops-placeholder">
+    <div class="border-b border-white/10 px-4 py-3 text-center text-[12px] text-white/60">运营代办入口</div>
+    <div class="flex h-11 items-center px-3">
+      <button class="flex h-7 w-7 items-center justify-center rounded-full text-white/80 hover:bg-white/10" @click="router.back()">‹</button>
+      <div class="flex-1 -ml-7 text-center text-[15px] font-medium text-white">可信数据空间</div>
+    </div>
+    <div class="px-4 pt-8 text-center">
+      <div class="text-[15px] font-medium">运营代办处理中</div>
+      <div class="mt-2 text-[13px] text-white/60">这是运营入口，不是用户购买跳转</div>
+    </div>
+  </div>
+  <div v-else-if="product && validIntent && intent" class="min-h-full bg-slate-900 pb-8 text-white">
     <div class="border-b border-white/10 px-4 py-3 text-center text-[12px] text-white/60">🔗 可信空间承接页 · 企业购买意图</div>
     <div class="flex h-11 items-center px-3">
       <button class="flex h-7 w-7 items-center justify-center rounded-full text-white/80 hover:bg-white/10" @click="router.back()">‹</button>

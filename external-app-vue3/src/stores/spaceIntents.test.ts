@@ -94,4 +94,27 @@ describe('spaceIntents store', () => {
     expect(intent.opsStatus).toBe('pending_delivery')
     expect(useEntitlementStore().list.some((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')).toBe(false)
   })
+
+  it('does not grant another dataset entitlement when completeDelivery is called again', () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-enterprise-activity',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '画像',
+      enterpriseId: user.enterprise.id
+    })
+    store.claim(intent.id)
+    store.confirmEnterprise(intent.id, user.enterprise.id)
+    store.markSpaceDeal(intent.id, { spaceOrderNo: 'SO-ds-once', spaceDealNote: '空间已成交' })
+    store.completeDelivery(intent.id)
+    expect(intent.opsStatus).toBe('completed')
+    const datasetEntitlements = () =>
+      useEntitlementStore().list.filter((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')
+    expect(datasetEntitlements()).toHaveLength(1)
+    expect(() => store.completeDelivery(intent.id)).toThrow('仅待接入交付可完成接入')
+    expect(datasetEntitlements()).toHaveLength(1)
+  })
 })

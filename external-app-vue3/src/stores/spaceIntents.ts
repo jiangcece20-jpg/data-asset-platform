@@ -95,6 +95,7 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
     completeDelivery(id: string) {
       const intent = this.must(id)
       if (intent.productType !== 'dataset') throw new Error('仅数据集可完成接入交付')
+      if (intent.opsStatus !== 'pending_delivery') throw new Error('仅待接入交付可完成接入')
       const catalog = useCatalogStore()
       const product = catalog.byId(intent.productId)
       const offer = product?.datasetOffers?.[0]
