@@ -23,7 +23,7 @@ npm run dev
 - `src/domain/productAccess.ts` 商品主动作纯函数决策层
 - `src/stores/` Pinia store：catalog / user / entitlements / orders / trials / demand / approval / ai / listingRequests
 - `src/components/mobile/product-detail/` 类型化详情组件（ProductDetailTabs / ProductSummaryCard / ProductPrimaryAction / ContentGate / DatasetDetail / ApiDetail / ReportDetail / DashboardDetail）
-- `src/views/mobile/` 移动端页面（找数首页、问答案、找数据、商品详情、企业认证、APP/空间购买、需求提交、求上架、我的等）
+- `src/views/mobile/` 移动端页面（找数首页、问答案、找数据、商品详情、企业认证、空间意向单、需求提交、求上架、我的等）
 - `src/views/admin/` PC 运营后台七个业务域页面
 - `src/layouts/` 手机壳（PhoneShell）与后台侧边栏（AdminShell）
 
@@ -32,8 +32,8 @@ npm run dev
 | 类型 | 获取方式 | 试用 | 权益 |
 |------|---------|------|------|
 | 资产平台数据集 | APP 内个人/企业单品购买 | 不提供 | 订单锁定商品固定购买周期；支付后交付到 BI 托管数据集 |
-| 可信空间数据集 | 仅认证企业跳空间购买 | 不提供 | 空间订单与空间交付；APP 只做镜像 |
-| API | 仅可信空间购买 | 固定脱敏沙箱 | 空间订单交付 |
+| 空间数据集 | APP 提交意向单，运营确认到账后转买数订单 | 有无样例标签（未登录可看样例） | 到账后履约中；数据接到本平台才进「我的数据」 |
+| API | APP 提交意向单，运营确认到账后转买数订单 | 有无试用接口标签（本平台不真调） | 到账后履约中；空间开通调用后已完成，仍在空间使用 |
 | 行业报告 | 免费 / 会员 / 个人或企业单品 | — | 固定购买周期内按商品约定获得版本；已获版本继续保留阅读权 |
 | 自有看板 | 免费 / 会员 / 个人或企业单品 | — | 固定购买周期内按商品约定刷新；周期结束后保留最近有效版本 |
 
@@ -45,36 +45,37 @@ npm run dev
 
 1. `/#/app/product/prod-truck-trajectory`：资产平台数据集 → 个人/企业主体切换 → 确认单品价与固定购买周期 → APP 下单支付 → BI 交付 → “我的数据”
 2. `/#/app/mine/enterprise`：管理员设置企业采购策略；普通成员提交采购申请、查看进度，审批通过后用企业余额支付
-3. `/#/app/product/prod-enterprise-activity`：可信空间数据集多个同步价格方案 → 企业认证 → 跳空间购买
-4. `/#/app/product/prod-qualification-api`：接口文档 → 固定脱敏在线调试 → 可信空间购买
+3. `/#/app/product/prod-enterprise-activity`：空间数据集 → 空间名称「万联易达可信空间」、数据集有无样例 → 主按钮「提交意向单」
+4. `/#/app/product/prod-qualification-api`：接口文档 → 样例出入参、API 有无试用接口 → 提交意向单
 5. `/#/app/product/prod-logistics-monthly`：报告打码 → 个人/企业单品购买 → 固定购买周期内版本权益
 6. `/#/app/product/prod-freight-index`：看板打码 → 单品购买 → 固定购买周期权益
 7. `/#/app/product/prod-port-dashboard-free`：免费完整看板
 8. `/#/admin/approval/integration`：可信空间集成治理 + 资产平台资源变更监控任务（一期占位与 mock 告警）
 
-## 可信空间闭环演示
+## 空间商品意向单演示
 
 可直接访问以下路径（Hash 路由）：
 
-1. `/#/app/product/prod-qualification-api`：资格核验 API。未认证时进入企业认证；提交后点「模拟：审核通过（演示用）」回到商品页，确认购买意图中的企业与经办人后进入可信空间。
-2. `/#/app/mine?tab=orders&subject=enterprise`：从企业中心进入统一“我的订单”，自动筛选当前企业的 APP 订单与可信空间订单镜像。空间订单仅是镜像，订单、交付和数据/API 权益均以可信空间为准。
-3. `/#/app/mine/enterprise/bills`：查看空间 API 用量账单；账单详情可下载完整账单，并通过「账单有疑问」深链回可信空间处理。
-4. `/#/admin/products`：点击「同步空间商品」，观察目录快照和同步状态；快照过期仍可看商品详情，但不能购买。
-5. `/#/admin/orders`：查看 APP 订单与可信空间镜像的统一列表；空间订单不提供 APP 合同/付款动作。
-6. `/#/admin/approval/integration`：查看空间事件版本、死信、镜像状态与主动对账入口。
+1. `/#/app/product/prod-qualification-api`：资格核验 API。主按钮「提交意向单」；登录用户（含个人）可提交。未登录先登录，可先看样例出入参和 API 有无试用接口。不要走跳空间购买。
+2. `/#/admin/space-intents`：运营领取意向单。确认企业、确认方案、线下试用都在线下完成，系统不增加这些节点。系统里「确认到账」后转为买数订单；「去空间处理」只用于协调履约。数据集接入后进「我的数据」；API 开通后订单完成并给使用说明。
+3. `/#/app/product/prod-enterprise-activity`：空间数据集。展示空间名称「万联易达可信空间」和数据集有无样例；APP 不展示自有/互联。提交意向单后先不付款。
+4. `/#/app/mine?tab=orders`：未到账只在「意向单」（已提交、处理中、已关闭）；到账后只在「买数」。APP 自营报告企业订单可直接打开 `/#/app/mine?tab=orders&subject=enterprise`。
+5. `/#/app/mine/enterprise/bills`：查看 API 用量账单（API 仍在空间使用后的账单查阅）。
+6. `/#/admin/products`：点击「同步空间商品」，观察目录快照和同步状态；运营可按自有/互联筛选。
+7. `/#/admin/approval/integration`：查看空间事件版本、死信、镜像状态与主动对账入口。
 
 ### Mock 场景与角色
 
 - 状态保存在内存 mock 中；浏览器刷新会恢复种子数据。页面顶部可在「移动端原型」和「PC 运营后台」之间切换，二者共享当前内存状态。
 - 默认个人是陈静（`mem-1`）；完成企业认证后她是万联供应链管理有限公司的**管理员**，可查看全部企业空间订单、企业账单总额和完整账单下载。
 - 种子成员王涛（`mem-2`）是**普通成员**。完成企业认证后，可在企业中心顶部用“原型身份”开关切换管理员/普通成员：成员只能查看企业策略和成员列表，不能配置策略、分配席位或邀请成员；可查看本人提交的企业采购并在审批通过后继续企业余额支付。成员只能看到本人经办的空间订单与本人账单范围，页面不显示企业总额。
-- APP 自营报告（例如 `/#/app/checkout/item/prod-logistics-monthly`）在结算页可选择**个人/企业购买主体**：个人产生个人 APP 订单与个人权益；认证企业产生企业 APP 订单与企业权益。该选择不适用于可信空间数据集/API。
+- APP 自营报告（例如 `/#/app/checkout/item/prod-logistics-monthly`）在结算页可选择**个人/企业购买主体**：个人产生个人 APP 订单与个人权益；认证企业产生企业 APP 订单与企业权益。该选择不适用于空间数据集/API（走意向单）。
 
-浏览器烟测已确认：390×844 和 1440×900 页面均无横向溢出；资产平台数据集个人购买及企业“成员申请 → 管理员审批 → 企业余额支付 → BI 交付”、可信空间认证与多方案展示、订单/账单以及后台资源/订单/集成治理均已实测。快照过期和真实空间回调仍由 Vitest/mock 覆盖。
+浏览器烟测已确认：390×844 和 1440×900 页面均无横向溢出；资产平台数据集个人购买及企业“成员申请 → 管理员审批 → 企业余额支付 → BI 交付”、空间商品提交意向单与运营代办、订单/账单以及后台资源/订单/集成治理均已实测。快照过期和真实空间回调仍由 Vitest/mock 覆盖。
 
 ### 权威边界
 
-可信空间是数据集/API 商品、订单、交付和账单的事实权威。APP 只镜像空间订单、交付和 API 账单，APP 不创建空间权益；任何账单疑问回可信空间处理。
+本平台是用户成交主体（合同、收款）。提交意向单不付款。确认企业、确认方案、线下试用为线下流程，系统不增加节点。运营确认到账后转为买数订单。数据集接到本平台用数；API 仍在空间使用。自有空间名称「万联易达可信空间」。APP 不展示自有/互联。
 
 ## 说明
 

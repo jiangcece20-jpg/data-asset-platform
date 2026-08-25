@@ -776,6 +776,10 @@ function saveProfilingFields() {
         <!-- 运营信息：空间商品整体只读同步，与详情页「资源信息 / 合规与授权」同源 -->
         <div class="mb-4 border-t border-slate-100 pt-4">
           <template v-if="product?.dealChannel === 'space_purchase'">
+            <div data-testid="space-kind-readonly" class="mb-3 rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs text-slate-400">来源类型</span>
+              <div class="mt-1 text-sm text-slate-700">{{ product.spaceKind === 'owned' ? '自有' : product.spaceKind === 'federated' ? '互联' : '—' }}</div>
+            </div>
             <ProductInfoSections :product="product" :columns="2" include-department />
           </template>
           <template v-else>

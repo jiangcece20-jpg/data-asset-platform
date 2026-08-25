@@ -113,17 +113,18 @@ describe('trusted-space README demo contract', () => {
   it('documents the direct routes, role switching, authority boundaries, and report purchase subjects', () => {
     for (const route of [
       '/#/app/product/prod-qualification-api',
+      '/#/admin/space-intents',
       '/#/app/mine?tab=orders&subject=enterprise',
       '/#/app/mine/enterprise/bills',
       '/#/admin/products',
-      '/#/admin/orders',
       '/#/admin/approval/integration'
     ]) expect(readme).toContain(route)
 
     for (const statement of [
-      '可信空间是数据集/API 商品、订单、交付和账单的事实权威',
-      'APP 不创建空间权益',
-      '账单疑问回可信空间处理',
+      '提交意向单',
+      '万联易达可信空间',
+      '数据集接到本平台用数',
+      'API 仍在空间使用',
       '个人/企业购买主体',
       '`mem-1`',
       '**管理员**',

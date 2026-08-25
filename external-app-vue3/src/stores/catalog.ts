@@ -192,13 +192,26 @@ export const useCatalogStore = defineStore('catalog', {
         return r.resourceName.toLowerCase().includes(q)
       })
     },
-    search(query: string, opts?: { type?: string; dealChannel?: string; scenario?: string; origin?: string }): Product[] {
+    search(query: string, opts?: {
+      type?: string
+      dealChannel?: string
+      scenario?: string
+      origin?: string
+      spaceName?: string
+      hasSampleData?: boolean
+      hasTrialApi?: boolean
+      spaceKind?: 'owned' | 'federated'
+    }): Product[] {
       const q = query.trim().toLowerCase()
       return this.discoverable.filter((p) => {
         if (opts?.type && p.type !== opts.type) return false
         if (opts?.dealChannel && p.dealChannel !== opts.dealChannel) return false
         if (opts?.origin && p.origin !== opts.origin) return false
         if (opts?.scenario && !p.scenarios.includes(opts.scenario)) return false
+        if (opts?.spaceName && p.spaceName !== opts.spaceName) return false
+        if (opts?.hasSampleData !== undefined && p.hasSampleData !== opts.hasSampleData) return false
+        if (opts?.hasTrialApi !== undefined && p.hasTrialApi !== opts.hasTrialApi) return false
+        if (opts?.spaceKind && p.spaceKind !== opts.spaceKind) return false
         if (!q) return true
         const haystack = [p.name, p.subtitle, p.description, p.recommendText, p.provider, p.sellerName, ...p.tags, ...p.scenarios]
           .filter(Boolean)

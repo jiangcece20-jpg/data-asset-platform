@@ -341,6 +341,10 @@ function makeMock(input: MockInput): Product {
     spaceMeta: isTradeInSpace ? spaceMetaForMock(input) : undefined,
     listedAt: isTradeInSpace && availability === 'published' ? '2026-07-10' : undefined,
     updatedAt: '2026-07-10',
+    spaceName: isTradeInSpace ? '万联易达可信空间' : undefined,
+    spaceKind: isTradeInSpace ? 'owned' : undefined,
+    hasSampleData: isTradeInSpace && input.type === 'dataset' ? false : undefined,
+    hasTrialApi: isTradeInSpace && input.type === 'api' ? true : undefined,
     typeDetail: typeDetailFor(input.type),
     serviceStatus: 'normal'
   }

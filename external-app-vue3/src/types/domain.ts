@@ -466,6 +466,12 @@ export interface Product {
   spaceSyncedAt?: string
   /** 可信空间同步的描述/合规层元数据（space_purchase 商品只读展示，PRD §11） */
   spaceMeta?: SpaceSyncMeta
+  /** 空间展示名；用户侧只展示这个，不展示自有/互联 */
+  spaceName?: string
+  /** 自有 / 互联；仅运营后台 */
+  spaceKind?: 'owned' | 'federated'
+  hasSampleData?: boolean
+  hasTrialApi?: boolean
   /** 上架时间：空间商品=空间上架时间（随元数据同步）；本地商品=资产管理上架时间（listResource 写入） */
   listedAt?: string
   /** 平台记录更新时间（商品信息编辑触发，不对外展示） */
@@ -632,6 +638,8 @@ export interface Order {
   sellerConfirmedAt?: string
   /** 卖家拒认/争议原因 */
   disputeReason?: string
+  /** 由空间意向单确认到账转入的买数订单 */
+  spaceIntentId?: string
 }
 
 export type TrialStatus = 'not_applied' | 'pending' | 'approved' | 'rejected' | 'exhausted' | 'expired'

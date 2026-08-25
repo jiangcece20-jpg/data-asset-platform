@@ -6,6 +6,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { appOrderCard, spaceOrderCard, type MyOrderCard, type MyOrderFilter } from '@/domain/myCenter'
+import { orderExpiryText } from '@/domain/orderExpiry'
 import type { Entitlement } from '@/types/domain'
 
 export type MineOrderSubjectFilter = 'all' | 'personal' | 'enterprise'
@@ -23,9 +24,8 @@ export interface FilterBuyDataOrdersOptions {
 
 /**
  * 迁出自 Mine.vue / PortalMine.vue 的订单聚合与过滤逻辑。
- * 买数订单列表（会员/VIP 之外的全部商品订单）由 allOrders 提供；
- * filterBuyDataOrders 在此基础上恒定追加 productType === 'dataset'，
- * 确保会员权益订单（productId === 'membership'，无 productType）永不出现在买数列表。
+ * 买数订单列表（会员/VIP 之外）由 allOrders 提供；
+ * filterBuyDataOrders 展示数据集，以及由空间意向单转入的 API 订单。
  */
 /**
  * 注入续订信息（持续更新数据集 + 有有效期 → 显示续订提示）
@@ -77,6 +77,13 @@ export function useMineOrders() {
       .map((order) => {
         const card = appOrderCard(order, user.enterprise.name)
         card.productType ||= catalog.byId(order.productId)?.type
+        card.expiryText = orderExpiryText({
+          order,
+          product: catalog.byId(order.productId),
+          entitlements: entitlements.list,
+          memberExpiresAt: order.ownerId === user.context.currentMemberId ? user.context.memberExpiresAt : undefined,
+          enterpriseExpiresAt: order.ownerId === user.enterprise.id ? user.enterprise.expiresAt : undefined
+        })
         if (order.productType === 'dataset' && order.entitlementId) {
           const delivery = datasetCommerce.deliveries.find((item) => item.entitlementId === order.entitlementId)
           if (delivery?.downloadUrl) card.downloadUrl = delivery.downloadUrl
@@ -99,6 +106,7 @@ export function useMineOrders() {
     const { orderFilter, subjectFilter, channelFilter, operatorFilter, createdAfter } = opts
     return allOrders.value.filter((order) => (
       order.productType === 'dataset'
+      || Boolean(order.spaceIntentId)
       && (orderFilter === 'all' || order.filter === orderFilter)
       && (subjectFilter === 'all' || order.ownerType === subjectFilter)
       && (channelFilter === 'all' || order.source === channelFilter)

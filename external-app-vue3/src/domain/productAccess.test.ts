@@ -33,17 +33,20 @@ describe('resolveProductActions', () => {
     expect(resolveProductActions({ ...base, availability: 'preparing' }).primary.key).toBe('listing_progress')
   })
 
-  it('requires enterprise authentication before trusted-space purchase', () => {
-    expect(resolveProductActions(base).primary.key).toBe('enterprise_auth')
-    expect(resolveProductActions({ ...base, enterpriseAuthenticated: true }).primary.key).toBe('space_purchase')
+  it('lets any unpublished-access user submit a space intent without enterprise auth', () => {
+    expect(resolveProductActions(base).primary).toEqual({
+      key: 'submit_space_intent',
+      label: '提交意向单'
+    })
+    expect(resolveProductActions({ ...base, enterpriseAuthenticated: true }).primary.key).toBe('submit_space_intent')
   })
 
-  it('disables trusted-space purchase when the product snapshot is stale', () => {
+  it('does not disable the space intent CTA when the space snapshot is stale', () => {
     expect(resolveProductActions({
       ...base,
       enterpriseAuthenticated: true,
       trustedPurchaseCheck: { allowed: false, reason: 'product_stale' }
-    }).primary).toEqual({ key: 'unavailable', label: '商品信息待更新', disabled: true })
+    }).primary).toEqual({ key: 'submit_space_intent', label: '提交意向单' })
   })
 
   it('offers membership first and item purchase second', () => {

@@ -1,6 +1,6 @@
 import type { AcquisitionOption, AvailabilityStatus, StandardProductType } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
-import type { TrustedPurchaseCheck, TrustedPurchaseBlockReason } from '@/types/trustedSpace'
+import type { TrustedPurchaseCheck } from '@/types/trustedSpace'
 
 export type ProductActionKey =
   | 'view'
@@ -8,6 +8,7 @@ export type ProductActionKey =
   | 'listing_progress'
   | 'enterprise_auth'
   | 'space_purchase'
+  | 'submit_space_intent'
   | 'free_view'
   | 'member_purchase'
   | 'item_purchase'
@@ -29,20 +30,6 @@ export interface ProductActionContext {
   enterpriseAuthenticated: boolean
   serviceStatus?: ServiceStatus
   trustedPurchaseCheck?: TrustedPurchaseCheck
-}
-
-const trustedPurchaseBlockLabels: Record<TrustedPurchaseBlockReason, string> = {
-  enterprise_required: '认证企业后购买',
-  binding_required: '企业信息同步中',
-  product_unavailable: '商品信息暂不可用',
-  product_stale: '商品信息待更新',
-  product_not_for_sale: '暂不可购买'
-}
-
-function isTrustedPurchaseBlocked(
-  check: TrustedPurchaseCheck
-): check is Extract<TrustedPurchaseCheck, { allowed: false }> {
-  return !check.allowed
 }
 
 export function resolveProductActions(context: ProductActionContext): {
@@ -72,21 +59,7 @@ export function resolveProductActions(context: ProductActionContext): {
     return { primary: { key: 'unavailable', label: context.availability === 'paused' ? '暂停销售' : '已下架', disabled: true } }
   }
   if (context.acquisitions.includes('space_purchase')) {
-    const trustedCheck = context.trustedPurchaseCheck
-    if (trustedCheck && isTrustedPurchaseBlocked(trustedCheck)) {
-      return {
-        primary: {
-          key: 'unavailable',
-          label: trustedPurchaseBlockLabels[trustedCheck.reason],
-          disabled: true
-        }
-      }
-    }
-    return {
-      primary: context.enterpriseAuthenticated
-        ? { key: 'space_purchase', label: '前往可信空间购买' }
-        : { key: 'enterprise_auth', label: '完成企业认证' }
-    }
+    return { primary: { key: 'submit_space_intent', label: '提交意向单' } }
   }
   if (context.acquisitions.includes('free')) return { primary: { key: 'free_view', label: '免费查看' } }
   if (context.type === 'dataset' && context.acquisitions.includes('item_purchase')) {

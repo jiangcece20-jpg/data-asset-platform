@@ -19,6 +19,7 @@ export interface UnifiedOrderRow {
   deliveryStatus?: string
   deliveryId?: string
   createdAt: string
+  expiresAt?: string
 }
 </script>
 
@@ -32,7 +33,13 @@ import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
+import { useCatalogStore } from '@/stores/catalog'
 import { statusMeta } from '@/utils/statusMeta'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
+import { buyerEnterpriseName, operatorContactText } from '@/domain/opsPurchaseParty'
+import { productTypeLabels } from '@/domain/myCenter'
+import { orderExpiryText } from '@/domain/orderExpiry'
+import type { ProductType } from '@/types/domain'
 
 const orders = useOrderStore()
 const spaceOrders = useSpaceOrderStore()
@@ -40,6 +47,8 @@ const purchases = useTrustedSpacePurchaseStore()
 const datasetCommerce = useDatasetCommerceStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
+const spaceIntents = useSpaceIntentStore()
+const catalog = useCatalogStore()
 
 const filterChannel = ref('')
 const filterOwner = ref('')
@@ -57,7 +66,7 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     operatorMemberId: order.operatorMemberId,
     productId: order.productId,
     productName: order.productName,
-    productType: order.productType,
+    productType: order.productType || catalog.byId(order.productId)?.type,
     purchasePeriod: order.selectedTermMonths ? `${order.selectedTermMonths} 个月` : '—',
     amount: order.amount,
     currency: 'CNY',
@@ -68,6 +77,13 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     deliveryStatus: datasetCommerce.deliveries.find((item) => item.id === order.biDeliveryId)?.status,
     deliveryId: order.biDeliveryId,
     createdAt: order.createdAt,
+    expiresAt: orderExpiryText({
+      order,
+      product: catalog.byId(order.productId),
+      entitlements: entitlements.list,
+      memberExpiresAt: order.ownerId === user.context.currentMemberId ? user.context.memberExpiresAt : undefined,
+      enterpriseExpiresAt: order.ownerId === user.enterprise.id ? user.enterprise.expiresAt : undefined
+    })
   })),
   ...spaceOrders.mirrors.map((mirror) => ({
     id: mirror.spaceOrderId,
@@ -77,6 +93,7 @@ const unifiedOrders = computed<UnifiedOrderRow[]>(() => [
     operatorMemberId: mirror.operatorMemberId,
     productId: mirror.appProductId,
     productName: mirror.productName,
+    productType: catalog.byId(mirror.appProductId)?.type,
     purchasePeriod: '—',
     amount: mirror.amount,
     currency: mirror.currency,
@@ -91,7 +108,13 @@ const list = computed(() => {
   if (filterOwner.value) items = items.filter((order) => order.ownerType === filterOwner.value)
   if (keyword.value.trim()) {
     const query = keyword.value.trim().toLowerCase()
-    items = items.filter((order) => order.productName.toLowerCase().includes(query) || order.id.toLowerCase().includes(query))
+    items = items.filter((order) =>
+      order.productName.toLowerCase().includes(query)
+      || order.id.toLowerCase().includes(query)
+      || buyerName(order).toLowerCase().includes(query)
+      || operatorContact(order).toLowerCase().includes(query)
+      || productTypeLabel(order.productType).toLowerCase().includes(query)
+    )
   }
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 })
@@ -150,8 +173,27 @@ function spaceDetailUrl(row: UnifiedOrderRow): string | undefined {
   return spaceOrders.byId(row.id)?.detailUrl
 }
 
-function operatorName(memberId?: string): string {
-  return user.enterprise.members.find((item) => item.id === memberId)?.name || memberId || '—'
+function buyerName(row: UnifiedOrderRow): string {
+  return buyerEnterpriseName({
+    ownerType: row.ownerType,
+    enterpriseId: row.ownerType === 'enterprise' ? row.ownerId : undefined
+  }, user.enterprise)
+}
+
+function operatorContact(row: UnifiedOrderRow): string {
+  const intent = orders.list.find((item) => item.id === row.id)?.spaceIntentId
+  const submitted = intent ? spaceIntents.byId(intent) : undefined
+  return operatorContactText({
+    contactName: submitted?.contactName,
+    contactPhone: submitted?.contactPhone,
+    operatorMemberId: row.operatorMemberId,
+    personalOwnerId: row.ownerType === 'personal' ? row.ownerId : undefined
+  }, user.enterprise)
+}
+
+function productTypeLabel(type?: string): string {
+  if (type && type in productTypeLabels) return productTypeLabels[type as ProductType]
+  return '—'
 }
 
 function statusLabel(dict: string, status: string | undefined, fallback: string): string {
@@ -186,13 +228,16 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
 
     <div class="rounded-xl border border-slate-200 bg-white">
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">客户/经办人</th><th class="px-3 py-2">购买周期</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">审批/权益/交付</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
+        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">类型</th><th class="px-3 py-2">渠道</th><th class="px-3 py-2">购买企业</th><th class="px-3 py-2">经办人</th><th class="px-3 py-2">购买周期</th><th class="px-3 py-2">到期时间</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">审批/权益/交付</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
         <tbody>
           <tr v-for="order in list" :key="order.id" data-testid="order-row" :data-id="order.id" class="border-t border-slate-100 hover:bg-slate-50">
             <td class="px-3 py-2 text-slate-700"><div>{{ order.productName }}</div><div v-if="order.planSummary" class="text-[10px] text-slate-400">{{ order.planSummary }}</div></td>
+            <td class="px-3 py-2 text-slate-600" data-testid="product-type">{{ productTypeLabel(order.productType) }}</td>
             <td class="px-3 py-2 text-slate-500">{{ order.channel === 'trusted_space' ? '可信空间（只读镜像）' : 'APP 支付' }}</td>
-            <td class="px-3 py-2 text-slate-500"><div>{{ order.ownerType === 'enterprise' ? '企业' : '个人' }}</div><div v-if="order.operatorMemberId" class="text-[10px] text-slate-400">经办 {{ operatorName(order.operatorMemberId) }}</div></td>
+            <td class="px-3 py-2 text-slate-700" data-testid="buyer-enterprise">{{ buyerName(order) }}</td>
+            <td class="px-3 py-2 text-slate-600" data-testid="operator-contact">{{ operatorContact(order) }}</td>
             <td class="px-3 py-2 text-slate-500" data-testid="purchase-period">{{ order.purchasePeriod }}</td>
+            <td class="px-3 py-2 text-slate-600" data-testid="order-expiry">{{ order.expiresAt || '—' }}</td>
             <td class="px-3 py-2 text-slate-500">{{ order.currency === 'CNY' ? '¥' : `${order.currency} ` }}{{ order.amount }}</td>
             <td class="px-3 py-2"><StatusBadge :dict="order.channel === 'trusted_space' ? 'spaceOrder' : 'appOrder'" :value="order.status" /></td>
             <td class="px-3 py-2 text-[11px] text-slate-500">

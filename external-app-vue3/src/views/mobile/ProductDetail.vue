@@ -17,14 +17,12 @@ import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
-import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
-import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
+import { publicSpaceChips, USER_INTENT_HINT } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
-import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,12 +31,11 @@ const entitlements = useEntitlementStore()
 const user = useUserStore()
 const listingRequests = useListingRequestStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
-const trustedPurchase = useTrustedSpacePurchaseStore()
-const bindingStatus = ref<SpaceBindingStatus>('unbound')
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
+const spaceChips = computed(() => (product.value ? publicSpaceChips(product.value) : []))
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 const billingRules = computed(() => billingRuleNotes(product.value))
@@ -57,19 +54,11 @@ const listingRequest = computed(() => product.value
 const hasOpenListingRequest = computed(() =>
   listingRequest.value != null && ['submitted', 'evaluating', 'preparing'].includes(listingRequest.value.status)
 )
-const trustedPurchaseCheck = computed(() => {
-  if (!product.value || product.value.dealChannel !== 'space_purchase') return undefined
-  return trustedSpaceCatalog.purchaseCheck(
-    product.value.id,
-    user.context.enterpriseAuthStatus,
-    bindingStatus.value
-  )
-})
 
 const actions = computed(() => {
   const current = product.value
   if (!current) return null
-  let resolved = resolveProductActions({
+  const resolved = resolveProductActions({
     type: current.type,
     availability: current.availability,
     acquisitions: current.acquisitions,
@@ -77,67 +66,11 @@ const actions = computed(() => {
     hasOpenListingRequest: hasOpenListingRequest.value,
     enterpriseAuthenticated: user.isEnterpriseAuthenticated,
     serviceStatus: current.serviceStatus,
-    trustedPurchaseCheck: trustedPurchaseCheck.value,
   })
-  if (current.dealChannel === 'space_purchase' && !owned.value) {
-    if (user.context.enterpriseAuthStatus === 'none') {
-      resolved = { primary: { key: 'enterprise_auth', label: '去企业认证' } }
-    } else if (user.context.enterpriseAuthStatus === 'pending') {
-      resolved = { primary: { key: 'unavailable', label: '企业认证审核中', disabled: true } }
-    }
-  }
   if (current.type === 'dataset' && current.origin === 'asset_platform' && owned.value) {
     return { ...resolved, primary: { ...resolved.primary, label: '查看我的数据' } }
   }
   return resolved
-})
-
-const trustedPurchaseEligibility = computed(() => {
-  const current = product.value
-  if (!current || current.dealChannel !== 'space_purchase') return null
-  if (!user.context.loggedIn) {
-    return {
-      badge: '未登录',
-      tone: 'border-slate-200 bg-slate-50',
-      badgeTone: 'bg-slate-200 text-slate-600',
-      title: '登录后查看购买资格',
-      description: '登录后可继续查看商品信息；正式购买仍需使用已认证企业身份。'
-    }
-  }
-  if (user.context.enterpriseAuthStatus === 'none') {
-    return {
-      badge: '个人浏览',
-      tone: 'border-amber-200 bg-amber-50',
-      badgeTone: 'bg-amber-100 text-amber-700',
-      title: '当前为个人身份',
-      description: '你可以查看商品、价格和公开资料，但可信空间商品仅支持认证企业购买，个人身份不能下单。'
-    }
-  }
-  if (user.context.enterpriseAuthStatus === 'pending') {
-    return {
-      badge: '认证中',
-      tone: 'border-blue-200 bg-blue-50',
-      badgeTone: 'bg-blue-100 text-blue-700',
-      title: '企业认证审核中',
-      description: '审核期间可以继续浏览和收藏；认证通过后返回当前商品继续购买。'
-    }
-  }
-  if (bindingStatus.value !== 'active') {
-    return {
-      badge: '连接中',
-      tone: 'border-blue-200 bg-blue-50',
-      badgeTone: 'bg-blue-100 text-blue-700',
-      title: '企业信息同步中',
-      description: `已认证企业：${user.enterprise.name}。正在建立可信空间企业连接，完成前暂不能下单。`
-    }
-  }
-  return {
-    badge: '可购买',
-    tone: 'border-emerald-200 bg-emerald-50',
-    badgeTone: 'bg-emerald-100 text-emerald-700',
-    title: '认证企业购买',
-    description: `当前购买企业：${user.enterprise.name}。订单、付款、正式交付和售后由可信空间承接。`
-  }
 })
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
@@ -184,7 +117,6 @@ watch(id, () => {
 
 onMounted(() => {
   if (product.value?.dealChannel === 'space_purchase') void trustedSpaceCatalog.syncAll()
-  void refreshEnterpriseBinding()
 })
 
 function toggleFav() {
@@ -194,51 +126,8 @@ function toggleFav() {
 function goEnterpriseAuth() {
   router.push({ path: '/app/enterprise-auth', query: { redirect: route.fullPath } })
 }
-async function refreshEnterpriseBinding() {
-  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId) {
-    bindingStatus.value = 'unbound'
-    return
-  }
-  const enterpriseId = user.context.currentEnterpriseId
-  const operatorMemberId = user.context.currentMemberId
-  const enterpriseContextGeneration = user.enterpriseContextGeneration
-  try {
-    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(enterpriseId)
-    if (
-      user.enterpriseContextGeneration !== enterpriseContextGeneration
-      || user.context.enterpriseAuthStatus !== 'authenticated'
-      || user.context.currentEnterpriseId !== enterpriseId
-      || user.context.currentMemberId !== operatorMemberId
-      || !user.enterpriseMemberFor(enterpriseId, operatorMemberId)
-      || binding.appEnterpriseId !== enterpriseId
-    ) {
-      bindingStatus.value = 'failed'
-      return
-    }
-    trustedPurchase.upsertBinding(binding)
-    bindingStatus.value = binding.status
-  } catch {
-    bindingStatus.value = 'failed'
-  }
-}
-
-async function goSpace() {
-  if (!user.isEnterpriseAuthenticated) return goEnterpriseAuth()
-  if (!product.value || !user.context.currentEnterpriseId) return
-  if (bindingStatus.value !== 'active') await refreshEnterpriseBinding()
-  if (bindingStatus.value !== 'active') return
-  try {
-    const intent = await trustedPurchase.preparePurchase({
-      appEnterpriseId: user.context.currentEnterpriseId,
-      operatorMemberId: user.context.currentMemberId,
-      appProductId: product.value.id,
-      enterpriseAuthStatus: user.context.enterpriseAuthStatus,
-      returnUrl: route.fullPath
-    })
-    await router.push({ name: 'space-bridge', params: { id: product.value.id }, query: { intent: intent.id } })
-  } catch {
-    await refreshEnterpriseBinding()
-  }
+function goSpaceIntent() {
+  router.push(`/app/space-intent/${id.value}`)
 }
 function goMember() {
   router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
@@ -262,7 +151,9 @@ function handleAction(key: ProductActionKey) {
         : '/app/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break
-    case 'space_purchase': goSpace(); break
+    case 'submit_space_intent':
+    case 'space_purchase':
+      goSpaceIntent(); break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
     case 'dataset_purchase': router.push(`/app/checkout/dataset/${id.value}`); break
@@ -285,6 +176,9 @@ function handleAction(key: ProductActionKey) {
           <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
           <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
           <StatusBadge dict="availability" :value="product.availability" />
+          <span v-if="spaceChips.length" data-testid="public-space-chips" class="contents">
+            <span v-for="chip in spaceChips" :key="chip" class="tag-chip">{{ chip }}</span>
+          </span>
         </div>
         <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
         <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
@@ -381,19 +275,12 @@ function handleAction(key: ProductActionKey) {
     </div>
 
     <div
-      v-if="trustedPurchaseEligibility"
-      class="mx-4 mt-3 rounded-2xl border p-4"
-      :class="trustedPurchaseEligibility.tone"
+      v-if="product.dealChannel === 'space_purchase' && !owned"
+      class="mx-4 mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-4"
       data-testid="trusted-space-purchase-eligibility"
     >
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-[11px] text-slate-500">购买资格</div>
-        <span class="rounded-full px-2 py-0.5 text-[10px]" :class="trustedPurchaseEligibility.badgeTone">
-          {{ trustedPurchaseEligibility.badge }}
-        </span>
-      </div>
-      <div class="mt-2 text-[13px] font-semibold text-slate-800">{{ trustedPurchaseEligibility.title }}</div>
-      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ trustedPurchaseEligibility.description }}</div>
+      <div class="text-[13px] font-semibold text-slate-800">提交意向单</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ USER_INTENT_HINT }}</div>
     </div>
 
     <!-- 已拥有权益 -->

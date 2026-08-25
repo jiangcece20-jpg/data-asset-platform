@@ -4,18 +4,17 @@ import { useRouter } from 'vue-router'
 import type { Product } from '@/types/domain'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { useUserStore } from '@/stores/user'
 import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
 import { productCardSummary } from '@/domain/productCardSummary'
+import { publicSpaceChips } from '@/domain/spaceIntent'
 
 const props = defineProps<{ product: Product; matchReason?: string }>()
 
 const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
-const user = useUserStore()
 
 const title = computed(() => props.product.name)
 const subtitle = computed(() => {
@@ -49,9 +48,11 @@ const actionHint = computed(() => {
   if (props.product.acquisitions.includes('free')) return '免费查看'
   if (props.product.type === 'dataset' && props.product.dealChannel === 'app_payment') return '购买数据集'
   if (props.product.dealChannel === 'app_payment') return props.product.memberIncluded ? '会员解锁' : '单品购买'
-  if (props.product.dealChannel === 'space_purchase') return user.isEnterpriseAuthenticated ? '空间购买' : '需企业认证'
+  if (props.product.dealChannel === 'space_purchase') return '提交意向单'
   return '查看详情'
 })
+
+const spaceChips = computed(() => publicSpaceChips(props.product))
 
 function open() {
   router.push(`/app/product/${props.product.id}`)
@@ -72,6 +73,7 @@ function toggleFav(e: MouseEvent) {
       <span v-if="product.origin === 'seller_market'" class="rounded-full bg-orange-50 px-2 py-0.5 text-xs text-orange-700">{{ originMeta.seller_market }}</span>
       <span v-if="product.availability === 'candidate'" class="tag-chip">可申请上架</span>
       <span v-if="product.availability === 'preparing'" class="tag-chip">准备中</span>
+      <span v-for="chip in spaceChips" :key="chip" class="tag-chip">{{ chip }}</span>
     </div>
     <div class="text-[15px] font-semibold leading-snug text-slate-900">{{ title }}</div>
     <div class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-500">{{ subtitle }}</div>

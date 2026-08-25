@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import OrderCenter from './OrderCenter.vue'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import { useUserStore } from '@/stores/user'
 import type { Order } from '@/types/domain'
 import type { SpaceOrderMirror } from '@/types/trustedSpace'
 
@@ -76,5 +77,43 @@ describe('OrderCenter', () => {
     expect(wrapper.find('[data-id="space-1"] [data-testid="confirm-pay"]').exists()).toBe(false)
     expect(wrapper.find('[data-id="app-1"] [data-testid="purchase-period"]').text()).toBe('18 个月')
     expect(wrapper.find('[data-id="space-1"] [data-testid="purchase-period"]').text()).toBe('—')
+  })
+
+  it('shows purchasing enterprise name and operator contact', async () => {
+    useOrderStore().list = [order({
+      id: 'o-ent',
+      ownerType: 'enterprise',
+      ownerId: 'ent-wanlian-logistics',
+      operatorMemberId: 'mem-1',
+      productType: 'dataset'
+    })]
+    useSpaceOrderStore().clearMirrors()
+    const wrapper = await mountView()
+    const row = wrapper.get('[data-id="o-ent"]')
+    expect(row.get('[data-testid="buyer-enterprise"]').text()).toBe('万联供应链管理有限公司')
+    expect(row.get('[data-testid="operator-contact"]').text()).toBe('陈静 · 138****2201')
+    expect(row.get('[data-testid="product-type"]').text()).toBe('数据集')
+  })
+
+  it('shows entitlement expiry and membership expiry for member-free products', async () => {
+    useOrderStore().list = [order({
+      id: 'o-exp',
+      productType: 'dataset',
+      entitlementId: 'ent-renewal-expiring'
+    })]
+    useSpaceOrderStore().clearMirrors()
+    const wrapper = await mountView()
+    expect(wrapper.get('[data-id="o-exp"] [data-testid="order-expiry"]').text()).toBe('2026-08-17')
+
+    useUserStore().grantPersonalMember(12)
+    useOrderStore().list = [order({
+      id: 'o-free',
+      ownerId: 'mem-1',
+      productId: 'prod-freight-index',
+      productName: '全国货运价格指数',
+      productType: 'dashboard'
+    })]
+    const free = await mountView()
+    expect(free.get('[data-id="o-free"] [data-testid="order-expiry"]').text()).toMatch(/^会员到期 /)
   })
 })

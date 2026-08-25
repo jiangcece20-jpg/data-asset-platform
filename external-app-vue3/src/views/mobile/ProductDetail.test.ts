@@ -1,126 +1,52 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { seedTrustedProductSnapshots } from '@/data/trustedSpace'
-import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
-import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
-import { useUserStore } from '@/stores/user'
 import { useCatalogStore } from '@/stores/catalog'
-import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import ProductDetail from './ProductDetail.vue'
 
 async function mountProductDetail(path = '/app/product/prod-qualification-api') {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/app/product/:id', name: 'product-detail', component: ProductDetail }]
+    routes: [
+      { path: '/app/product/:id', name: 'product-detail', component: ProductDetail },
+      { path: '/app/space-intent/:id', name: 'space-intent', component: { template: '<div />' } },
+      { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } }
+    ]
   })
   await router.push(path)
   await router.isReady()
   const wrapper = mount(ProductDetail, { global: { plugins: [router] } })
   await flushPromises()
-  return wrapper
+  return { wrapper, router }
 }
 
-describe('ProductDetail trusted-space purchase guard', () => {
+describe('ProductDetail trusted-space intent', () => {
   beforeEach(() => setActivePinia(createPinia()))
   afterEach(() => vi.restoreAllMocks())
 
-  it('explains the personal-user restriction and provides an enterprise-auth action', async () => {
-    const wrapper = await mountProductDetail()
-
-    const eligibility = wrapper.get('[data-testid="trusted-space-purchase-eligibility"]')
-    expect(eligibility.text()).toContain('当前为个人身份')
-    expect(eligibility.text()).toContain('个人身份不能下单')
-
+  it('shows submit-intent as the primary action for personal users', async () => {
+    const { wrapper } = await mountProductDetail()
     const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('去企业认证')
-    expect(primary.attributes('disabled')).toBeUndefined()
+    expect(primary.text()).toBe('提交意向单')
+    expect(wrapper.text()).not.toContain('前往可信空间购买')
+    expect(wrapper.text()).not.toContain('个人身份不能下单')
   })
 
-  it('shows a pending explanation and blocks purchase during enterprise review', async () => {
-    useUserStore().startEnterpriseAuth()
-    const wrapper = await mountProductDetail()
-
-    const eligibility = wrapper.get('[data-testid="trusted-space-purchase-eligibility"]')
-    expect(eligibility.text()).toContain('企业认证审核中')
-    expect(eligibility.text()).toContain('审核期间可以继续浏览和收藏')
-
-    const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('企业认证审核中')
-    expect(primary.attributes('disabled')).toBeDefined()
-  })
-
-  it('unlocks trusted-space purchase only after the adapter returns an active binding', async () => {
-    useUserStore().completeEnterpriseAuth()
-    const wrapper = await mountProductDetail()
-    const trustedCatalog = useTrustedSpaceCatalogStore()
-    trustedCatalog.snapshots = seedTrustedProductSnapshots.map((snapshot) => ({
-      ...snapshot,
-      syncedAt: new Date().toISOString(),
-      syncState: 'current' as const
-    }))
-    await nextTick()
-
-    const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('前往可信空间购买')
-    expect(primary.attributes('disabled')).toBeUndefined()
-  })
-
-  it('keeps purchase closed when an active binding belongs to another enterprise', async () => {
-    vi.spyOn(trustedSpaceAdapter, 'ensureEnterpriseBinding').mockResolvedValue({
-      appEnterpriseId: 'ent-another-enterprise',
-      spaceEnterpriseId: 'space-ent-another',
-      status: 'active'
-    })
-    useUserStore().completeEnterpriseAuth()
-    const wrapper = await mountProductDetail()
-    const trustedCatalog = useTrustedSpaceCatalogStore()
-    trustedCatalog.snapshots = seedTrustedProductSnapshots.map((snapshot) => ({
-      ...snapshot,
-      syncedAt: new Date().toISOString(),
-      syncState: 'current' as const
-    }))
-    await nextTick()
-
-    const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('企业信息同步中')
-    expect(primary.attributes('disabled')).toBeDefined()
-  })
-
-  it('discards a late binding from an earlier authentication generation', async () => {
-    let signalBindingStarted: (() => void) | undefined
-    const bindingStarted = new Promise<void>((resolve) => { signalBindingStarted = resolve })
-    let releaseBinding: ((binding: {
-      appEnterpriseId: string
-      spaceEnterpriseId: string
-      status: 'active'
-    }) => void) | undefined
-    vi.spyOn(trustedSpaceAdapter, 'ensureEnterpriseBinding').mockImplementation(
-      () => {
-        signalBindingStarted!()
-        return new Promise((resolve) => { releaseBinding = resolve })
-      }
-    )
-    const user = useUserStore()
-    user.completeEnterpriseAuth()
-    const mounting = mountProductDetail()
-    await bindingStarted
-    user.clearEnterpriseContext()
-    user.completeEnterpriseAuth()
-    releaseBinding!({
-      appEnterpriseId: 'ent-wanlian-logistics',
-      spaceEnterpriseId: 'space-ent-wanlian',
-      status: 'active'
-    })
-    const wrapper = await mounting
+  it('does not push space-bridge from product detail', async () => {
+    const { wrapper, router } = await mountProductDetail()
+    await wrapper.find('button.w-full').trigger('click')
     await flushPromises()
+    expect(router.currentRoute.value.name).toBe('space-intent')
+    expect(router.currentRoute.value.path).toBe('/app/space-intent/prod-qualification-api')
+    expect(router.currentRoute.value.name).not.toBe('space-bridge')
+  })
 
-    expect(useTrustedSpacePurchaseStore().bindings).toEqual([])
-    const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('企业信息同步中')
-    expect(primary.attributes('disabled')).toBeDefined()
+  it('shows owned space chips without 自有', async () => {
+    const { wrapper } = await mountProductDetail('/app/product/prod-enterprise-activity')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('万联易达可信空间')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('有样例')
+    expect(wrapper.get('[data-testid="public-space-chips"]').text()).not.toContain('自有')
   })
 })
 
@@ -132,12 +58,12 @@ describe('ProductDetail dashboard overview', () => {
     ['prod-truck-trajectory', 'basic'],
     ['prod-qualification-api', 'basic']
   ])('opens %s in basic information', async (productId, tab) => {
-    const wrapper = await mountProductDetail(`/app/product/${productId}`)
+    const { wrapper } = await mountProductDetail(`/app/product/${productId}`)
 
     expect(wrapper.get(`[role="tab"][data-tab="${tab}"]`).attributes('aria-selected')).toBe('true')
   })
   it('opens with dashboard data before pricing, while keeping overview information aligned', async () => {
-    const wrapper = await mountProductDetail('/app/product/prod-freight-index')
+    const { wrapper } = await mountProductDetail('/app/product/prod-freight-index')
     const preview = wrapper.get('[data-testid="content-first-preview"]')
     const pricing = wrapper.get('[data-testid="pricing-method"]')
 
@@ -164,7 +90,7 @@ describe('ProductDetail dashboard overview', () => {
   })
 
   it('opens a report in online reading with a visible report preview', async () => {
-    const wrapper = await mountProductDetail('/app/product/prod-logistics-monthly')
+    const { wrapper } = await mountProductDetail('/app/product/prod-logistics-monthly')
 
     expect(wrapper.get('button[data-tab="reader"]').attributes('aria-selected')).toBe('true')
     expect(wrapper.get('[data-testid="content-first-preview"]').text()).toContain('行业运行总览')
@@ -174,7 +100,7 @@ describe('ProductDetail dashboard overview', () => {
   it('shows every metric definition before purchase without an unlock gate', async () => {
     const product = useCatalogStore().byId('prod-freight-index')
     if (product?.typeDetail.dashboard) product.typeDetail.dashboard.metrics[0].preview = 'locked'
-    const wrapper = await mountProductDetail('/app/product/prod-freight-index')
+    const { wrapper } = await mountProductDetail('/app/product/prod-freight-index')
 
     await wrapper.get('button[data-tab="metrics"]').trigger('click')
 

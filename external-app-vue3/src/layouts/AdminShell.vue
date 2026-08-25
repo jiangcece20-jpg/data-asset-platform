@@ -19,6 +19,7 @@ const operationsNav: NavGroup = {
     { path: '/admin/orders', label: '订单中心', icon: '🧾', badge: '重点' },
     { path: '/admin/sellers', label: '入驻商家', icon: '🏪', badge: 'MVP' },
     { path: '/admin/trials-leads', label: '试用与线索', icon: '📝', badge: '重点' },
+    { path: '/admin/space-intents', label: '空间意向单', icon: '🛰️' },
     { path: '/admin/operations', label: '运营配置', icon: '⚙️' }
   ]
 }

@@ -18,6 +18,7 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import { publicSpaceChips } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
@@ -34,6 +35,7 @@ const bindingStatus = ref<SpaceBindingStatus>('unbound')
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
+const spaceChips = computed(() => (product.value ? publicSpaceChips(product.value) : []))
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
@@ -69,31 +71,11 @@ const actions = computed(() => product.value ? resolveProductActions({
   trustedPurchaseCheck: trustedPurchaseCheck.value,
 }) : null)
 
-/**
- * PC 端按钮层适配（PRD §7.5）：可信空间在售商品对游客/个人用户统一展示
- * 「前往可信空间」，由跳转门禁弹窗分流；企业用户保持 domain 层原逻辑。
- */
 const pcActions = computed(() => {
   const p = product.value
-  if (!p) return null
-  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value && actions.value) {
+  if (!p || !actions.value) return null
+  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value) {
     return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的数据' } }
-  }
-  if (
-    p.dealChannel === 'space_purchase'
-    && !owned.value
-    && p.availability === 'published'
-    && (p.serviceStatus ?? 'normal') === 'normal'
-  ) {
-    if (!user.context.loggedIn) {
-      return { primary: { key: 'space_purchase' as const, label: '登录后继续' } }
-    }
-    if (user.context.enterpriseAuthStatus === 'none') {
-      return { primary: { key: 'enterprise_auth' as const, label: '去企业认证' } }
-    }
-    if (user.context.enterpriseAuthStatus === 'pending') {
-      return { primary: { key: 'unavailable' as const, label: '企业认证审核中', disabled: true } }
-    }
   }
   return actions.value
 })
@@ -243,7 +225,10 @@ function handleAction(key: ProductActionKey) {
         : '/portal/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break
-    case 'space_purchase': goSpace(); break
+    case 'submit_space_intent':
+    case 'space_purchase':
+      router.push(`/portal/space-intent/${id.value}`)
+      break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
     case 'dataset_purchase': router.push(`/portal/checkout/dataset/${id.value}`); break
@@ -266,6 +251,9 @@ function handleAction(key: ProductActionKey) {
                 <span class="rounded bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
                 <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
                 <StatusBadge dict="availability" :value="product.availability" />
+                <span v-if="spaceChips.length" data-testid="public-space-chips" class="contents">
+                  <span v-for="chip in spaceChips" :key="chip" class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{{ chip }}</span>
+                </span>
               </div>
               <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
               <p class="mt-1 text-sm text-slate-500">{{ product.recommendText || product.subtitle }}</p>

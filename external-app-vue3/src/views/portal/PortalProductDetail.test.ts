@@ -17,6 +17,30 @@ async function mountProductDetail(productId: string) {
   return wrapper
 }
 
+describe('PortalProductDetail space intent CTA', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows submit-intent as the primary action for space products', async () => {
+    const wrapper = await mountProductDetail('prod-qualification-api')
+    const primary = wrapper.find('button.w-full')
+    expect(primary.text()).toBe('提交意向单')
+    expect(wrapper.text()).not.toContain('前往可信空间购买')
+    expect(wrapper.text()).not.toContain('个人身份不能下单')
+  })
+})
+
+describe('PortalProductDetail samples empty copy', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows 当前无样例 for datasets without sample data', async () => {
+    const wrapper = await mountProductDetail('prod-space-port-throughput')
+    await wrapper.findAll('button').find((b) => b.text() === '样例数据')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('当前无样例')
+    expect(wrapper.text()).not.toContain('上架审核通过后提供脱敏样例')
+  })
+})
+
 describe('PortalProductDetail default tabs', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

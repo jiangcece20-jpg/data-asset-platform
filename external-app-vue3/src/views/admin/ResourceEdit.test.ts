@@ -299,6 +299,17 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.text()).toContain('请填写商品名称')
   })
 
+  it('shows readonly 自有/互联 source type for space products', async () => {
+    const owned = await mountResourceEdit('res-prod-enterprise-activity')
+    expect(owned.get('[data-testid="space-kind-readonly"]').text()).toContain('来源类型')
+    expect(owned.get('[data-testid="space-kind-readonly"]').text()).toContain('自有')
+    expect(owned.get('[data-testid="space-kind-readonly"]').text()).not.toContain('互联')
+
+    const federated = await mountResourceEdit('res-prod-space-port-throughput')
+    expect(federated.get('[data-testid="space-kind-readonly"]').text()).toContain('来源类型')
+    expect(federated.get('[data-testid="space-kind-readonly"]').text()).toContain('互联')
+  })
+
   it('pauses and delists from the status bar without review buttons', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const wrapper = await mountResourceEdit('res-prod-freight-index')
