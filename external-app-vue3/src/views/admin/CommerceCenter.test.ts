@@ -39,11 +39,14 @@ describe('CommerceCenter', () => {
     const { wrapper } = await mountView()
     const rows = wrapper.findAll('[data-testid="pricing-row"]')
     const truckRow = rows.find((row) => row.text().includes('全国货车轨迹热力数据集'))
-    const sellerRow = rows.find((row) => row.text().includes('华东干线时效看板'))
+    const sellerRow = rows.find((row) => row.text().includes('华东干线时效数据集'))
+    const warehouseRow = rows.find((row) => row.text().includes('仓网周转健康数据集'))
 
     expect(truckRow?.get('[data-testid="delivery-guarantee"]').text()).toContain('2027-07-29')
     expect(truckRow?.get('[data-testid="delivery-guarantee"]').text()).toContain('2 笔已售订单')
-    expect(sellerRow?.get('[data-testid="delivery-guarantee"]').text()).toBe('暂无已售订单')
+    expect(sellerRow?.get('[data-testid="delivery-guarantee"]').text()).toContain('2027-08-08')
+    expect(sellerRow?.get('[data-testid="delivery-guarantee"]').text()).toContain('1 笔已售订单')
+    expect(warehouseRow?.get('[data-testid="delivery-guarantee"]').text()).toBe('暂无已售订单')
   })
 
   it('opens the resource edit page from the product name', async () => {

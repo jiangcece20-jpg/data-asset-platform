@@ -438,7 +438,7 @@ export interface Product {
   sellerName?: string
   /** 数据来源声明：自有 / 已购衍生 */
   dataProvenance?: DataProvenance
-  /** 默认结算模式；入驻商家 MVP 为 seller_self */
+  /** 默认结算模式；入驻商家统一平台收款，按合同与卖家结算 */
   settlementModeDefault?: SettlementMode
   coverage: string
   updateFrequency: string
@@ -488,9 +488,9 @@ export interface Product {
   sortWeight?: number
   /** 是否进入推荐位 */
   recommendSlot?: boolean
-  /** 入驻商家上架时按模版上传的报表卖点截图；自营商品为空 */
+  /** 自营看板等可选卖点截图；入驻商家数据集不再使用 */
   sellingShots?: SellingShot[]
-  /** 卖家自定义补充截图（标题 + 描述） */
+  /** 自定义补充截图（标题 + 描述） */
   customSellingShots?: CustomSellingShot[]
 }
 
@@ -599,6 +599,7 @@ export type AppOrderStatus =
   | 'payment_failed'
   | 'payment_pending_confirmation'
   | 'paid'
+  | 'pending_activation'
   | 'refunded'
   | 'entitlement_active'
 export interface Order {
@@ -633,13 +634,13 @@ export interface Order {
   activationDate?: string
   /** 入驻商家订单：卖家 ID */
   sellerId?: string
-  /** 结算模式；入驻商家 MVP 为 seller_self */
+  /** 结算模式；入驻商家统一 platform_collect */
   settlementMode?: SettlementMode
-  /** 买家声称已付款时间（自收款） */
+  /** 买家声称已付款时间（历史自收款字段） */
   buyerPaidClaimedAt?: string
-  /** 卖家确认到账时间 */
+  /** 卖家确认到账时间（历史自收款字段） */
   sellerConfirmedAt?: string
-  /** 卖家拒认/争议原因 */
+  /** 卖家拒认/争议原因（历史自收款字段） */
   disputeReason?: string
   /** 由空间意向单确认到账转入的买数订单 */
   spaceIntentId?: string

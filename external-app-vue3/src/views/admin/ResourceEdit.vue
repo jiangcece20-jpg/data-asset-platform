@@ -14,6 +14,8 @@ import {
   resolveMemberBenefits
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
+import { coerceUpdateFrequency } from '@/domain/updateFrequency'
 import {
   listingBlockReason,
   salesStateOf,
@@ -265,7 +267,7 @@ function syncFormFromStore() {
   productForm.premiumMemberMode = premium ? premium.mode : 'none'
   productForm.premiumMemberZhe = discountToZhe(premium?.discount ?? p.price.premiumMemberDiscount)
   productForm.coverage = p.coverage
-  productForm.updateFrequency = p.updateFrequency
+  productForm.updateFrequency = coerceUpdateFrequency(p.updateFrequency)
   productForm.deliveryMethod = p.deliveryMethod
   productForm.provider = p.provider
   productForm.qualityPromise = p.qualityPromise
@@ -414,7 +416,7 @@ function saveProduct() {
     valueProposition: productForm.valueProposition,
     scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
     coverage: productForm.coverage,
-    updateFrequency: productForm.updateFrequency,
+    updateFrequency: coerceUpdateFrequency(productForm.updateFrequency),
     deliveryMethod: productForm.deliveryMethod,
     provider: productForm.provider,
     qualityPromise: productForm.qualityPromise,
@@ -786,7 +788,9 @@ function saveProfilingFields() {
             <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
             <div class="grid grid-cols-2 gap-3">
               <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span><input v-model="productForm.updateFrequency" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span>
+                <UpdateFrequencySelect v-model="productForm.updateFrequency" data-testid="product-update-frequency" class="px-2.5 py-1.5 text-sm" />
+              </label>
               <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
               <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             </div>

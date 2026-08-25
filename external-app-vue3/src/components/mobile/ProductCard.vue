@@ -4,11 +4,10 @@ import { useRouter } from 'vue-router'
 import type { Product } from '@/types/domain'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 import { formatMemberBenefitsLabel, resolveMemberBenefits } from '@/domain/memberBenefits'
 import { productCardSummary } from '@/domain/productCardSummary'
-import { publicSpaceChips } from '@/domain/spaceIntent'
+import ProductChips from '@/components/shared/ProductChips.vue'
 
 const props = defineProps<{ product: Product; matchReason?: string }>()
 
@@ -48,11 +47,9 @@ const actionHint = computed(() => {
   if (props.product.acquisitions.includes('free')) return '免费查看'
   if (props.product.type === 'dataset' && props.product.dealChannel === 'app_payment') return '购买数据集'
   if (props.product.dealChannel === 'app_payment') return props.product.memberIncluded ? '会员解锁' : '单品购买'
-  if (props.product.dealChannel === 'space_purchase') return '提交意向单'
+  if (props.product.dealChannel === 'space_purchase') return '提交试用申请'
   return '查看详情'
 })
-
-const spaceChips = computed(() => publicSpaceChips(props.product))
 
 function open() {
   router.push(`/app/product/${props.product.id}`)
@@ -67,13 +64,8 @@ function toggleFav(e: MouseEvent) {
 <template>
   <button class="relative w-full rounded-2xl border border-slate-100 bg-white p-3.5 text-left shadow-card transition active:scale-[0.99]" @click="open">
     <span class="absolute right-3 top-3 text-lg" :class="product.favorite ? 'text-amber-400' : 'text-slate-200'" @click="toggleFav">★</span>
-    <div class="mb-1.5 flex items-center gap-1.5 pr-6">
-      <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
-      <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
-      <span v-if="product.origin === 'seller_market'" class="rounded-full bg-orange-50 px-2 py-0.5 text-xs text-orange-700">{{ originMeta.seller_market }}</span>
-      <span v-if="product.availability === 'candidate'" class="tag-chip">可申请上架</span>
-      <span v-if="product.availability === 'preparing'" class="tag-chip">准备中</span>
-      <span v-for="chip in spaceChips" :key="chip" class="tag-chip">{{ chip }}</span>
+    <div class="mb-1.5 pr-6">
+      <ProductChips :product="product" />
     </div>
     <div class="text-[15px] font-semibold leading-snug text-slate-900">{{ title }}</div>
     <div class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-500">{{ subtitle }}</div>

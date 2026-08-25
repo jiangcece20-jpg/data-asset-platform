@@ -17,4 +17,19 @@ describe('DatasetDetail samples empty state', () => {
     expect(wrapper.text()).toContain('310115')
     expect(wrapper.text()).not.toContain('当前无样例')
   })
+
+  it('renders seller-listed datasets with ops-configured fields and samples, without preview shots', () => {
+    const product = seedProducts.find((p) => p.id === 'prod-seller-route-board')!
+    const samples = mount(DatasetDetail, { props: { product, activeTab: 'samples' } })
+    expect(samples.text()).toContain('SH-NJ-01')
+    expect(samples.text()).not.toContain('当前无样例')
+
+    const basic = mount(DatasetDetail, { props: { product, activeTab: 'basic' } })
+    expect(basic.text()).toContain('线路 × 日')
+    expect(basic.find('[data-testid="selling-shot-gallery"]').exists()).toBe(false)
+
+    const fields = mount(DatasetDetail, { props: { product, activeTab: 'fields' } })
+    expect(fields.text()).toContain('on_time_rate')
+    expect(fields.text()).toContain('准点率')
+  })
 })

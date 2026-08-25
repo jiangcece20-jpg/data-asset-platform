@@ -121,6 +121,7 @@ describe('trusted-space README demo contract', () => {
     ]) expect(readme).toContain(route)
 
     for (const statement of [
+      '提交试用申请',
       '提交意向单',
       '万联易达可信空间',
       '数据集接到本平台用数',

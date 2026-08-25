@@ -298,7 +298,17 @@ function spaceMetaForMock(input: MockInput): SpaceSyncMeta {
     apiDescription: isApi
       ? `${input.name} 支持按业务主键实时查询，返回指标值与同比环比；请求与响应字段见下方接口文档。`
       : undefined,
-    productIntroduction: `${input.subtitle}。数据来自${input.provider}，更新频率${input.updateFrequency}。`
+    productIntroduction: `${input.subtitle}。数据来自${input.provider}，更新频率${input.updateFrequency}。`,
+    complianceDeclarationUrl: `https://space.example.com/docs/compliance-${input.id}.pdf`,
+    dataSourceDeclarationUrl: `https://space.example.com/docs/source-${input.id}.pdf`,
+    dataSampleUrl: input.type === 'dataset' ? `https://space.example.com/docs/sample-${input.id}.pdf` : undefined,
+    securityClassificationUrl: `https://space.example.com/docs/classification-${input.id}.pdf`,
+    qualityAssessmentUrl: `https://space.example.com/docs/quality-${input.id}.pdf`,
+    providerName: input.provider,
+    providerEntityType: 'LEGAL',
+    providerEntityInfo: '注册地址见提供方主体信息；法定代表人：空间同步示例',
+    providerBrief: input.subtitle,
+    authorizationLetterUrl: `https://space.example.com/docs/auth-letter-${input.id}.pdf`
   }
 }
 
@@ -357,31 +367,31 @@ const quote: ProductPrice = { model: 'quote', quoteNote: '按需报价' }
 
 export const mockProducts: Product[] = [
   // ── 货运价格（Q1/Q2）：已有看板 + 报告/数据集/API ──
-  makeMock({ id: 'mock-freight-report', name: '货运价格趋势月报', subtitle: '全国货运价格月度走势与区域对比', type: 'report', price: memberFree, memberIncluded: true, scenarios: ['运价趋势研判'], tags: ['运价', '月报'], provider: '万联物流研究院', updateFrequency: '每月' }),
-  makeMock({ id: 'mock-freight-dataset', name: '货运价格历史明细数据集', subtitle: '分线路、分车型的货运价格历史明细', type: 'dataset', price: quote, scenarios: ['运价趋势研判', '物流成本分析'], tags: ['运价', '数据集'], provider: '交通大数据中心', updateFrequency: '每日' }),
-  makeMock({ id: 'mock-freight-api', name: '货运价格指数查询 API', subtitle: '实时查询货运价格指数与环比同比', type: 'api', price: quote, scenarios: ['运价趋势研判'], tags: ['运价', '接口'], provider: '交通大数据中心', updateFrequency: '实时' }),
+  makeMock({ id: 'mock-freight-report', name: '货运价格趋势月报', subtitle: '全国货运价格月度走势与区域对比', type: 'report', price: memberFree, memberIncluded: true, scenarios: ['运价趋势研判'], tags: ['运价', '月报'], provider: '万联物流研究院', updateFrequency: '每月更新' }),
+  makeMock({ id: 'mock-freight-dataset', name: '货运价格历史明细数据集', subtitle: '分线路、分车型的货运价格历史明细', type: 'dataset', price: quote, scenarios: ['运价趋势研判', '物流成本分析'], tags: ['运价', '数据集'], provider: '交通大数据中心', updateFrequency: '每日更新' }),
+  makeMock({ id: 'mock-freight-api', name: '货运价格指数查询 API', subtitle: '实时查询货运价格指数与环比同比', type: 'api', price: quote, scenarios: ['运价趋势研判'], tags: ['运价', '接口'], provider: '交通大数据中心', updateFrequency: '实时更新' }),
 
   // ── 公路物流行业（Q3）：已有月报 + 看板/数据集 ──
-  makeMock({ id: 'mock-highway-dashboard', name: '公路物流景气指数看板', subtitle: '公路物流景气与运力供需交互看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['行业研究'], tags: ['公路物流', '看板'], provider: '万联物流研究院', updateFrequency: '每周' }),
-  makeMock({ id: 'mock-highway-dataset', name: '公路物流运量明细数据集', subtitle: '分省、分月的公路物流运量明细', type: 'dataset', price: quote, scenarios: ['行业研究', '企业采购决策'], tags: ['公路物流', '数据集'], provider: '交通大数据中心', updateFrequency: '每月' }),
+  makeMock({ id: 'mock-highway-dashboard', name: '公路物流景气指数看板', subtitle: '公路物流景气与运力供需交互看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['行业研究'], tags: ['公路物流', '看板'], provider: '万联物流研究院', updateFrequency: '每周更新' }),
+  makeMock({ id: 'mock-highway-dataset', name: '公路物流运量明细数据集', subtitle: '分省、分月的公路物流运量明细', type: 'dataset', price: quote, scenarios: ['行业研究', '企业采购决策'], tags: ['公路物流', '数据集'], provider: '交通大数据中心', updateFrequency: '每月更新' }),
 
   // ── 港口吞吐量（Q4）：已有免费看板 + 数据集/API ──
-  makeMock({ id: 'mock-port-dataset', name: '港口吞吐量明细数据集', subtitle: '主要港口集装箱与货物吞吐量明细', type: 'dataset', price: quote, scenarios: ['港口运营分析'], tags: ['港口吞吐量', '数据集'], provider: '港航数据中心', updateFrequency: '每月' }),
-  makeMock({ id: 'mock-port-api', name: '港口吞吐量查询 API', subtitle: '按港口、按周期查询吞吐量数据', type: 'api', price: quote, scenarios: ['港口运营分析'], tags: ['港口吞吐量', '接口'], provider: '港航数据中心', updateFrequency: '每日' }),
+  makeMock({ id: 'mock-port-dataset', name: '港口吞吐量明细数据集', subtitle: '主要港口集装箱与货物吞吐量明细', type: 'dataset', price: quote, scenarios: ['港口运营分析'], tags: ['港口吞吐量', '数据集'], provider: '港航数据中心', updateFrequency: '每月更新' }),
+  makeMock({ id: 'mock-port-api', name: '港口吞吐量查询 API', subtitle: '按港口、按周期查询吞吐量数据', type: 'api', price: quote, scenarios: ['港口运营分析'], tags: ['港口吞吐量', '接口'], provider: '港航数据中心', updateFrequency: '每日更新' }),
 
   // ── 资格核验（Q5）：已有 API + 数据集/报告 ──
-  makeMock({ id: 'mock-qualify-dataset', name: '司机资格核验数据集', subtitle: '道路运输从业人员资格核验样本数据', type: 'dataset', price: quote, availability: 'candidate', scenarios: ['司机合规核验'], tags: ['资格核验', '数据集'], provider: '交通运输合规中心', updateFrequency: '每月' }),
-  makeMock({ id: 'mock-qualify-report', name: '从业资格核验合规月报', subtitle: '承运商资格与准入合规情况月度分析', type: 'report', price: item(199), scenarios: ['承运商准入审核'], tags: ['资格核验', '月报'], provider: '交通运输合规中心', updateFrequency: '每月' }),
+  makeMock({ id: 'mock-qualify-dataset', name: '司机资格核验数据集', subtitle: '道路运输从业人员资格核验样本数据', type: 'dataset', price: quote, availability: 'candidate', scenarios: ['司机合规核验'], tags: ['资格核验', '数据集'], provider: '交通运输合规中心', updateFrequency: '每月更新' }),
+  makeMock({ id: 'mock-qualify-report', name: '从业资格核验合规月报', subtitle: '承运商资格与准入合规情况月度分析', type: 'report', price: item(199), scenarios: ['承运商准入审核'], tags: ['资格核验', '月报'], provider: '交通运输合规中心', updateFrequency: '每月更新' }),
 
   // ── 企业资质（Q6）：已有 API + 数据集/看板 ──
-  makeMock({ id: 'mock-credential-dataset', name: '企业资质核验数据集', subtitle: '企业资质、证照与经营状态核验数据', type: 'dataset', price: quote, scenarios: ['供应商准入', '资质比对'], tags: ['企业资质', '数据集'], provider: '企业征信中心', updateFrequency: '每周' }),
-  makeMock({ id: 'mock-credential-dashboard', name: '企业资质核验看板', subtitle: '供应商资质合规与风险交互看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['供应商准入', '资质比对'], tags: ['企业资质', '看板'], provider: '企业征信中心', updateFrequency: '每周' }),
+  makeMock({ id: 'mock-credential-dataset', name: '企业资质核验数据集', subtitle: '企业资质、证照与经营状态核验数据', type: 'dataset', price: quote, scenarios: ['供应商准入', '资质比对'], tags: ['企业资质', '数据集'], provider: '企业征信中心', updateFrequency: '每周更新' }),
+  makeMock({ id: 'mock-credential-dashboard', name: '企业资质核验看板', subtitle: '供应商资质合规与风险交互看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['供应商准入', '资质比对'], tags: ['企业资质', '看板'], provider: '企业征信中心', updateFrequency: '每周更新' }),
 
   // ── 物流活跃度（Q7）：已有数据集 + 看板/API ──
-  makeMock({ id: 'mock-activity-dashboard', name: '企业物流活跃度看板', subtitle: '企业物流活跃度画像与趋势看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['企业画像', '风险评估'], tags: ['物流活跃度', '看板'], provider: '企业征信中心', updateFrequency: '每周' }),
-  makeMock({ id: 'mock-activity-api', name: '企业物流活跃度查询 API', subtitle: '按企业查询物流活跃度评分与画像', type: 'api', price: quote, scenarios: ['企业画像', '风险评估'], tags: ['物流活跃度', '接口'], provider: '企业征信中心', updateFrequency: '每日' }),
+  makeMock({ id: 'mock-activity-dashboard', name: '企业物流活跃度看板', subtitle: '企业物流活跃度画像与趋势看板', type: 'dashboard', price: memberFree, memberIncluded: true, scenarios: ['企业画像', '风险评估'], tags: ['物流活跃度', '看板'], provider: '企业征信中心', updateFrequency: '每周更新' }),
+  makeMock({ id: 'mock-activity-api', name: '企业物流活跃度查询 API', subtitle: '按企业查询物流活跃度评分与画像', type: 'api', price: quote, scenarios: ['企业画像', '风险评估'], tags: ['物流活跃度', '接口'], provider: '企业征信中心', updateFrequency: '每日更新' }),
 
   // ── 物流政策（Q8）：已有免费报告 + 看板/数据集 ──
-  makeMock({ id: 'mock-policy-dashboard', name: '物流政策解读看板', subtitle: '物流行业政策速递与影响解读看板', type: 'dashboard', price: free, scenarios: ['行业研究'], tags: ['物流政策', '看板', '免费'], provider: '万联物流研究院', updateFrequency: '每周' }),
-  makeMock({ id: 'mock-policy-dataset', name: '物流政策合规数据集', subtitle: '各地物流相关政策与合规要求汇编', type: 'dataset', price: quote, availability: 'preparing', scenarios: ['行业研究'], tags: ['物流政策', '数据集'], provider: '政策研究中心', updateFrequency: '每月' })
+  makeMock({ id: 'mock-policy-dashboard', name: '物流政策解读看板', subtitle: '物流行业政策速递与影响解读看板', type: 'dashboard', price: free, scenarios: ['行业研究'], tags: ['物流政策', '看板', '免费'], provider: '万联物流研究院', updateFrequency: '每周更新' }),
+  makeMock({ id: 'mock-policy-dataset', name: '物流政策合规数据集', subtitle: '各地物流相关政策与合规要求汇编', type: 'dataset', price: quote, availability: 'preparing', scenarios: ['行业研究'], tags: ['物流政策', '数据集'], provider: '政策研究中心', updateFrequency: '每月更新' })
 ]

@@ -11,7 +11,7 @@ const nav = [
 ]
 
 function isActive(path: string) {
-  if (path === '/portal/mine' && route.path.startsWith('/portal/bills')) return true
+  if (path === '/portal/mine' && (route.path.startsWith('/portal/bills') || route.path.startsWith('/portal/mine/orders'))) return true
   return route.path.startsWith(path)
 }
 </script>

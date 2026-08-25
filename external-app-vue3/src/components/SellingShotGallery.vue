@@ -7,6 +7,7 @@ const props = defineProps<{
   shots?: SellingShot[]
   customShots?: CustomSellingShot[]
   compact?: boolean
+  title?: string
 }>()
 
 const templateRows = computed(() => {
@@ -31,7 +32,7 @@ const countLabel = computed(() => {
 <template>
   <div v-if="hasAny" data-testid="selling-shot-gallery" class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-[13px] font-semibold text-slate-800">卖家卖点截图</div>
+      <div class="text-[13px] font-semibold text-slate-800">{{ title || '卖家卖点截图' }}</div>
       <div class="text-[11px] text-slate-400">{{ countLabel }}</div>
     </div>
 

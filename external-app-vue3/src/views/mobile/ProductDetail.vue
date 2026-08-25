@@ -2,8 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
+import ProductChips from '@/components/shared/ProductChips.vue'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
 import DatasetDetail from '@/components/mobile/product-detail/DatasetDetail.vue'
@@ -23,7 +22,8 @@ import { resolveProductActions, type ProductActionKey } from '@/domain/productAc
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
-import { publicSpaceChips, USER_INTENT_HINT } from '@/domain/spaceIntent'
+import { productTopicTags } from '@/domain/productListChips'
+import { USER_INTENT_HINT, SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -37,7 +37,7 @@ const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
-const spaceChips = computed(() => (product.value ? publicSpaceChips(product.value) : []))
+const topicTags = computed(() => (product.value ? productTopicTags(product.value) : []))
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 const billingRules = computed(() => billingRuleNotes(product.value))
@@ -62,6 +62,7 @@ const actions = computed(() => {
   if (!current) return null
   const resolved = resolveProductActions({
     type: current.type,
+    origin: current.origin,
     availability: current.availability,
     acquisitions: current.acquisitions,
     hasAccess: owned.value,
@@ -187,18 +188,11 @@ function handleAction(key: ProductActionKey) {
     <!-- 精简 Hero：徽标 + 名称 + 一句话 -->
     <div class="px-4 pt-3">
       <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div class="mb-2 flex flex-wrap items-center gap-1.5">
-          <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
-          <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
-          <StatusBadge dict="availability" :value="product.availability" />
-          <span v-if="spaceChips.length" data-testid="public-space-chips" class="contents">
-            <span v-for="chip in spaceChips" :key="chip" class="tag-chip">{{ chip }}</span>
-          </span>
-        </div>
-        <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
+        <ProductChips :product="product" show-trial />
+        <div class="mt-2 text-[17px] font-semibold text-slate-900">{{ title }}</div>
         <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
-        <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
-          <span v-for="tag in product.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+        <div v-if="topicTags.length" class="mt-2 flex flex-wrap gap-1.5">
+          <span v-for="tag in topicTags" :key="tag" class="tag-chip">{{ tag }}</span>
         </div>
       </div>
     </div>
@@ -294,7 +288,7 @@ function handleAction(key: ProductActionKey) {
       class="mx-4 mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-4"
       data-testid="trusted-space-purchase-eligibility"
     >
-      <div class="text-[13px] font-semibold text-slate-800">提交意向单</div>
+      <div class="text-[13px] font-semibold text-slate-800">{{ SPACE_TRIAL_APPLY_LABEL }}</div>
       <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ USER_INTENT_HINT }}</div>
     </div>
 

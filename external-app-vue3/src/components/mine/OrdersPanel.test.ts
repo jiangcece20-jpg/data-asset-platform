@@ -1,12 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { mount } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import OrdersPanel from './OrdersPanel.vue'
 import { useUserStore } from '@/stores/user'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 
+const Dummy = { template: '<div />' }
+
+function makeRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: Dummy },
+      { path: '/app/mine', component: Dummy },
+      { path: '/app/mine/orders/:source/:id', component: Dummy }
+    ]
+  })
+}
+
 function mountOrdersPanel(props: Partial<InstanceType<typeof OrdersPanel>['$props']> = {}) {
-  const goProduct = vi.fn()
   const pay = vi.fn()
   const openBills = vi.fn()
   const wrapper = mount(OrdersPanel, {
@@ -14,13 +27,13 @@ function mountOrdersPanel(props: Partial<InstanceType<typeof OrdersPanel>['$prop
       orderTab: 'buy',
       variant: 'mobile',
       subjectFilter: 'all',
-      goProduct,
       pay,
       openBills,
       ...props
-    }
+    },
+    global: { plugins: [makeRouter()] }
   })
-  return { wrapper, goProduct, pay, openBills }
+  return { wrapper, pay, openBills }
 }
 
 describe('OrdersPanel', () => {
@@ -99,7 +112,7 @@ describe('OrdersPanel', () => {
     expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('看数')
   })
 
-  it('passes BuyDataOrders props and re-emits subject and view events', async () => {
+  it('passes BuyDataOrders props and re-emits subject filter', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper, openBills } = mountOrdersPanel({ orderTab: 'buy' })
 
@@ -109,9 +122,5 @@ describe('OrdersPanel', () => {
     const enterpriseButton = wrapper.findAll('button').find((btn) => btn.text() === '企业')
     await enterpriseButton!.trigger('click')
     expect(wrapper.emitted('update:subjectFilter')?.[0]).toEqual(['enterprise'])
-
-    const link = wrapper.findAll('button').find((btn) => btn.text() === '查看我的数据')
-    await link!.trigger('click')
-    expect(wrapper.emitted('view-purchased-data')).toBeTruthy()
   })
 })

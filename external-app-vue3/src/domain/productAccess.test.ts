@@ -37,7 +37,7 @@ describe('resolveProductActions', () => {
   it('lets any unpublished-access user submit a space intent without enterprise auth', () => {
     expect(resolveProductActions(base).primary).toEqual({
       key: 'submit_space_intent',
-      label: '提交意向单'
+      label: '提交试用申请'
     })
     expect(resolveProductActions({ ...base, enterpriseAuthenticated: true }).primary.key).toBe('submit_space_intent')
   })
@@ -47,7 +47,7 @@ describe('resolveProductActions', () => {
       ...base,
       enterpriseAuthenticated: true,
       trustedPurchaseCheck: { allowed: false, reason: 'product_stale' }
-    }).primary).toEqual({ key: 'submit_space_intent', label: '提交意向单' })
+    }).primary).toEqual({ key: 'submit_space_intent', label: '提交试用申请' })
   })
 
   it('offers membership first and item purchase second', () => {
@@ -113,6 +113,17 @@ describe('resolveProductActions', () => {
   it('routes APP-owned datasets to the dedicated dataset checkout', () => {
     expect(resolveProductActions({ ...base, acquisitions: ['item_purchase'] }).primary).toEqual({
       key: 'dataset_purchase',
+      label: '购买数据集'
+    })
+  })
+
+  it('routes seller-market datasets to item checkout', () => {
+    expect(resolveProductActions({
+      ...base,
+      origin: 'seller_market',
+      acquisitions: ['item_purchase']
+    }).primary).toEqual({
+      key: 'item_purchase',
       label: '购买数据集'
     })
   })

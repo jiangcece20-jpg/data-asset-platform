@@ -32,6 +32,15 @@ describe('membership', () => {
     expect(memberDiscountedAmount(199, freight, true)).toBe(199)
   })
 
+  it('never applies member prices to seller-market products', () => {
+    const seller = seedProducts.find((product) => product.id === 'prod-seller-route-board')!
+    expect(productMemberBenefit(seller)).toBe('none')
+    expect(itemListPriceOf(seller, 'personal')).toBe(199)
+    expect(itemListPriceOf(seller, 'enterprise')).toBe(1990)
+    expect(memberDiscountedAmount(199, seller, true)).toBe(199)
+    expect(memberDiscountedAmount(1990, seller, true)).toBe(1990)
+  })
+
   it('builds identity-aware action fields for product CTAs', () => {
     expect(membershipActionFields(freight, {
       identitySubject: 'personal',

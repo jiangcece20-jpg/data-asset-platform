@@ -67,4 +67,34 @@ describe('space product tags', () => {
     expect(seedProducts.find((p) => p.id === 'prod-qualification-api')?.hasTrialApi).toBe(true)
     expect(seedProducts.find((p) => p.id === 'prod-privacy-verify')?.hasTrialApi).toBe(false)
   })
+
+  it('gives published space datasets the same sync material wall as space APIs', () => {
+    const published = seedProducts.filter(
+      (p) => p.origin === 'trusted_space' && p.availability === 'published' && (p.type === 'dataset' || p.type === 'api')
+    )
+    expect(published.map((p) => p.id)).toEqual(
+      expect.arrayContaining([
+        'prod-space-port-throughput',
+        'prod-enterprise-activity',
+        'prod-qualification-api',
+        'prod-privacy-verify'
+      ])
+    )
+    for (const p of published) {
+      const m = p.spaceMeta
+      expect(m?.productIntroduction).toBeTruthy()
+      expect(m?.providerName).toBeTruthy()
+      expect(m?.providerEntityInfo).toBeTruthy()
+      expect(m?.complianceDeclarationUrl).toBeTruthy()
+      expect(m?.dataSourceDeclarationUrl).toBeTruthy()
+      expect(m?.securityClassificationUrl).toBeTruthy()
+      expect(m?.qualityAssessmentUrl).toBeTruthy()
+      expect(m?.authorizationLetterUrl).toBeTruthy()
+      expect(m?.billingRules?.length).toBeGreaterThan(0)
+      expect(m?.usageRestrictions?.length).toBeGreaterThan(0)
+      expect(m?.classificationStandard).toBeTruthy()
+      expect(m?.classificationPath).toBeTruthy()
+      expect(typeof m?.classificationLevel).toBe('number')
+    }
+  })
 })

@@ -7,6 +7,8 @@ import type { Resource, ListResourceForm, ResourceTypeDetail } from '@/types/res
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { genId, now } from '@/utils/id'
+import { matchesOpsFilter, matchesVenueFilter } from '@/domain/productListChips'
+import { coerceUpdateFrequency } from '@/domain/updateFrequency'
 
 function cloneTypeDetail(detail: ResourceTypeDetail): ResourceTypeDetail {
   return JSON.parse(JSON.stringify(detail)) as ResourceTypeDetail
@@ -15,6 +17,7 @@ function cloneTypeDetail(detail: ResourceTypeDetail): ResourceTypeDetail {
 function cloneProducts(): Product[] {
   return [...seedProducts, ...mockProducts].map((p) => ({
     ...p,
+    updateFrequency: coerceUpdateFrequency(p.updateFrequency),
     scenarios: [...(p.scenarios || [])],
     tags: [...(p.tags || [])],
     acquisitions: [...(p.acquisitions || [])],
@@ -201,6 +204,8 @@ export const useCatalogStore = defineStore('catalog', {
       hasSampleData?: boolean
       hasTrialApi?: boolean
       spaceKind?: 'owned' | 'federated'
+      venue?: string
+      ops?: string
     }): Product[] {
       const q = query.trim().toLowerCase()
       return this.discoverable.filter((p) => {
@@ -212,6 +217,8 @@ export const useCatalogStore = defineStore('catalog', {
         if (opts?.hasSampleData !== undefined && p.hasSampleData !== opts.hasSampleData) return false
         if (opts?.hasTrialApi !== undefined && p.hasTrialApi !== opts.hasTrialApi) return false
         if (opts?.spaceKind && p.spaceKind !== opts.spaceKind) return false
+        if (opts?.venue && !matchesVenueFilter(p, opts.venue)) return false
+        if (opts?.ops && !matchesOpsFilter(p, opts.ops)) return false
         if (!q) return true
         const haystack = [p.name, p.subtitle, p.description, p.recommendText, p.provider, p.sellerName, ...p.tags, ...p.scenarios]
           .filter(Boolean)
@@ -377,7 +384,7 @@ export const useCatalogStore = defineStore('catalog', {
       if (snapshot.timeRange !== undefined) {
         if (product.typeDetail.dataset) product.typeDetail.dataset.timeRange = snapshot.timeRange
       }
-      if (snapshot.updateFrequency !== undefined) product.updateFrequency = snapshot.updateFrequency
+      if (snapshot.updateFrequency !== undefined) product.updateFrequency = coerceUpdateFrequency(snapshot.updateFrequency)
       if (snapshot.deliveryMethod !== undefined) product.deliveryMethod = snapshot.deliveryMethod
       if (snapshot.description !== undefined) product.description = snapshot.description
       if (snapshot.scenarios !== undefined) product.scenarios = snapshot.scenarios

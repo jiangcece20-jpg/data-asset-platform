@@ -8,6 +8,7 @@ import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import { typeMeta } from '@/utils/productMeta'
 import { useEntitlementStore } from '@/stores/entitlements'
+import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
 
@@ -20,6 +21,7 @@ const entitlements = useEntitlementStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
+const isSellerMarket = computed(() => product.value?.origin === 'seller_market')
 const paid = ref(false)
 const submitting = ref(false)
 const purpose = ref('')
@@ -29,18 +31,44 @@ const enterpriseMode = ref<'online' | 'contract'>('online')
 const offer = computed(() => product.value ? commerceOffersOf(product.value).find((item) => item.subject === subject.value) : undefined)
 const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
 const listPrice = computed(() => offer.value?.price ?? 0)
-const amount = computed(() => product.value
-  ? memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
-  : listPrice.value)
-const memberPriced = computed(() => amount.value < listPrice.value)
-const identityNote = computed(() => subject.value === 'enterprise'
-  ? '本单归属当前企业，可选择在线支付或合同采购。'
-  : '本单归属当前个人，支付后仅本人可使用。')
+const amount = computed(() => {
+  if (!product.value) return listPrice.value
+  if (isSellerMarket.value) return listPrice.value
+  return memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
+})
+const memberPriced = computed(() => !isSellerMarket.value && amount.value < listPrice.value)
+const identityNote = computed(() => {
+  if (isSellerMarket.value && subject.value === 'enterprise') {
+    return '本单打款到平台。在线支付后订单进入待开通，由运营开通后可查看；合同采购先待平台确认到账。不走会员价。'
+  }
+  if (isSellerMarket.value) return '本单打款到平台，支付后订单进入待开通，由运营开通后可查看。不走会员价。'
+  return subject.value === 'enterprise'
+    ? '本单归属当前企业，可选择在线支付或合同采购。'
+    : '本单归属当前个人，支付后仅本人可使用。'
+})
+const paidTitle = computed(() => {
+  if (isSellerMarket.value && subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
+    return '已提交合同采购，待平台确认到账后进入待开通'
+  }
+  if (isSellerMarket.value) return '支付成功，订单待运营开通'
+  return subject.value === 'enterprise' && enterpriseMode.value === 'contract' ? '企业合同订单已提交' : '已解锁本商品'
+})
+
+const sellerMarket = useSellerMarketStore()
 
 function confirmPurchase() {
   if (submitting.value || paid.value || !product.value || !offer.value) return
   submitting.value = true
   try {
+    if (isSellerMarket.value) {
+      sellerMarket.purchaseSellerProduct(
+        id.value,
+        offer.value.id,
+        subject.value === 'enterprise' ? enterpriseMode.value : 'online'
+      )
+      paid.value = true
+      return
+    }
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
       const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
         offerId: offer.value.id,
@@ -85,6 +113,10 @@ function confirmPurchase() {
 
             <PurchaseIdentityBanner :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
 
+            <div v-if="isSellerMarket" class="rounded-lg border border-orange-100 bg-orange-50 p-3 text-xs leading-relaxed text-orange-800">
+              买家打款到平台。支付成功后订单为「待开通」，由运营开通后才可查看。平台按合同与卖家结算，本商品不享受会员价。
+            </div>
+
             <div v-if="offer" class="rounded-lg border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
               <div class="flex justify-between gap-2 text-sm">
                 <span>{{ memberPriced ? '会员价' : offer.name }}</span>
@@ -123,8 +155,8 @@ function confirmPurchase() {
 
         <div v-else class="rounded-xl border border-emerald-200 bg-emerald-50 p-8 text-center">
           <div class="text-4xl">🎉</div>
-          <div class="mt-3 text-lg font-medium text-emerald-700">支付成功</div>
-          <div class="mt-1 text-sm text-emerald-600">{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '企业合同订单已提交' : '已解锁本商品' }}</div>
+          <div class="mt-3 text-lg font-medium text-emerald-700">{{ isSellerMarket ? (subject === 'enterprise' && enterpriseMode === 'contract' ? '合同采购已提交' : '订单待开通') : '支付成功' }}</div>
+          <div class="mt-1 text-sm text-emerald-600">{{ paidTitle }}</div>
           <button class="mt-4 rounded-lg bg-brand-500 px-6 py-2.5 text-sm text-white" @click="router.push('/portal/mine')">
             查看我的购买 →
           </button>

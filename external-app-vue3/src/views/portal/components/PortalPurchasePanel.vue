@@ -7,7 +7,7 @@ import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
-import { USER_INTENT_HINT } from '@/domain/spaceIntent'
+import { SPACE_TRIAL_APPLY_LABEL, USER_INTENT_HINT } from '@/domain/spaceIntent'
 
 const props = defineProps<{
   product: Product
@@ -27,7 +27,7 @@ const trustedPurchaseEligibility = computed(() => {
     badge: '意向',
     tone: 'border-blue-200 bg-blue-50',
     badgeTone: 'bg-blue-100 text-blue-700',
-    title: '提交意向单',
+    title: SPACE_TRIAL_APPLY_LABEL,
     description: USER_INTENT_HINT
   }
 })

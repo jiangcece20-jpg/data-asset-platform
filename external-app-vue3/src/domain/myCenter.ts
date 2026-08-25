@@ -45,6 +45,8 @@ export interface MyOrderCard {
   expiryText?: string
   /** 续订提示信息（仅持续更新且含有效期的数据集展示） */
   renewalInfo?: RenewalInfo
+  /** 订单备注，如卖家待开通说明 */
+  note?: string
 }
 
 export const productTypeLabels: Record<ProductType, string> = {
@@ -81,7 +83,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ? `购买周期 · ${order.selectedTermMonths} 个月`
     : '按商品订单约定'
   const isDataset = order.productType === 'dataset'
-  const isSellerSelf = order.settlementMode === 'seller_self'
+  const isSellerOrder = Boolean(order.sellerId)
   const isSpaceIntent = Boolean(order.spaceIntentId)
   return {
     source: 'app',
@@ -92,7 +94,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ownerType: order.ownerType,
     ownerLabel: order.ownerType === 'enterprise' ? enterpriseName : '个人',
     operatorMemberId: order.operatorMemberId,
-    channelLabel: isSpaceIntent ? '平台成交 · 线下付款' : isSellerSelf ? '入驻商家自收款' : 'APP 内购买',
+    channelLabel: isSpaceIntent ? '平台成交 · 线下付款' : isSellerOrder ? '入驻商家 · 平台成交' : 'APP 内购买',
     status: order.status,
     statusDict: 'appOrder',
     filter: appOrderFilter(order.status),
@@ -102,16 +104,19 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     paidAt: order.paidAt,
     paymentLabel: order.paymentMethod
       ? paymentLabels[order.paymentMethod]
-      : isSellerSelf && order.status === 'payment_pending_confirmation'
-        ? '待卖家确认到账'
+      : isSellerOrder && order.status === 'pending_activation'
+        ? '待运营开通'
+        : isSellerOrder && (order.status === 'pending_payment' || order.status === 'payment_pending_confirmation')
+        ? '待平台确认到账'
         : order.status === 'pending_payment'
           ? '待选择'
           : '—',
-    progressSummary: appProgress(order.status, isDataset, isSellerSelf, isSpaceIntent),
+    progressSummary: appProgress(order.status, isDataset, isSellerOrder, isSpaceIntent),
     entitlementId: order.entitlementId,
-    canPay: order.status === 'pending_payment' && !isSpaceIntent,
-    paymentPath: isDataset && !isSpaceIntent ? `/app/payment/dataset/${order.id}` : undefined,
-    spaceIntentId: order.spaceIntentId
+    canPay: order.status === 'pending_payment' && !isSpaceIntent && !isSellerOrder,
+    paymentPath: isDataset && !isSpaceIntent && !isSellerOrder ? `/app/payment/dataset/${order.id}` : undefined,
+    spaceIntentId: order.spaceIntentId,
+    note: order.note
   }
 }
 
@@ -144,7 +149,7 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
 
 function appOrderFilter(status: AppOrderStatus): MyOrderFilter {
   if (status === 'pending_payment') return 'pending_payment'
-  if (['pending_approval', 'paid', 'payment_pending_confirmation'].includes(status)) return 'processing'
+  if (['pending_approval', 'paid', 'pending_activation', 'payment_pending_confirmation'].includes(status)) return 'processing'
   if (status === 'entitlement_active') return 'completed'
   return 'closed'
 }
@@ -156,21 +161,21 @@ function spaceOrderFilter(status: SpaceOrderDisplayStatus): MyOrderFilter {
   return 'closed'
 }
 
-function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerSelf = false, isSpaceIntent = false): string {
+function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerOrder = false, isSpaceIntent = false): string {
   if (isSpaceIntent && status === 'paid') {
     return isDataset ? '线下已到账，空间数据接入中' : '线下已到账，空间开通调用中'
   }
   if (isSpaceIntent && status === 'entitlement_active') {
     return isDataset ? '数据已接入本平台，可在我的数据使用' : '空间已开通调用。请按订单说明在空间使用，本平台不代调用'
   }
-  if (isSellerSelf && status === 'payment_pending_confirmation') {
-    return '买家已标记付款，待入驻商家确认到账后开通看板'
+  if (isSellerOrder && (status === 'pending_payment' || status === 'payment_pending_confirmation')) {
+    return '企业合同采购，待平台确认到账'
   }
-  if (isSellerSelf && status === 'payment_failed') {
-    return '卖家未确认到账或已发起争议，权益未开通'
+  if (isSellerOrder && status === 'pending_activation') {
+    return '平台已收款，待运营开通数据集查看'
   }
-  if (isSellerSelf && status === 'entitlement_active') {
-    return '卖家已确认到账 · 看板权益已生效'
+  if (isSellerOrder && status === 'entitlement_active') {
+    return '运营已开通 · 数据集权益已生效 · 按合同与卖家结算'
   }
   const labels: Record<AppOrderStatus, string> = {
     pending_approval: '采购审批待处理，尚未进入付款',
@@ -180,6 +185,7 @@ function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerSelf = 
    payment_cancelled: '付款已取消，未形成权益',
     payment_failed: '付款失败，未形成权益',
     paid: isDataset ? '付款成功，数据权益与用数交付处理中' : '付款成功，权益开通处理中',
+    pending_activation: '平台已收款，待运营开通',
     refunded: '订单已退款，相关权益按售后结果处理',
     entitlement_active: isDataset ? '付款成功 · 权益已生效 · 数据已交付' : '付款成功 · 权益已生效'
   }

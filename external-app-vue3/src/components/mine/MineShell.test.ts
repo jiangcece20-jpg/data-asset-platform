@@ -14,7 +14,9 @@ async function mountMineShell(layout: 'mobile' | 'portal', initialPath: string) 
       { path: '/app/mine', component: Dummy },
       { path: '/portal/mine', component: Dummy },
       { path: '/app/payment/dataset/:id', component: Dummy },
-      { path: '/portal/payment/dataset/:id', component: Dummy }
+      { path: '/portal/payment/dataset/:id', component: Dummy },
+      { path: '/app/mine/orders/:source/:id', component: Dummy },
+      { path: '/portal/mine/orders/:source/:id', component: Dummy }
     ]
   })
   router.push(initialPath)

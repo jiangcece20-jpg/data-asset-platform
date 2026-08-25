@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta } from '@/utils/productMeta'
+import ProductChips from '@/components/shared/ProductChips.vue'
 import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
 import PortalPurchasePanel from './components/PortalPurchasePanel.vue'
 import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
@@ -20,7 +19,7 @@ import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapte
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
 import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
 import { membershipActionFields } from '@/domain/membership'
-import { publicSpaceChips } from '@/domain/spaceIntent'
+import { productTopicTags } from '@/domain/productListChips'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
@@ -37,7 +36,7 @@ const bindingStatus = ref<SpaceBindingStatus>('unbound')
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
-const spaceChips = computed(() => (product.value ? publicSpaceChips(product.value) : []))
+const topicTags = computed(() => (product.value ? productTopicTags(product.value) : []))
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
@@ -64,6 +63,7 @@ const trustedPurchaseCheck = computed(() => {
 
 const actions = computed(() => product.value ? resolveProductActions({
   type: product.value.type,
+  origin: product.value.origin,
   availability: product.value.availability,
   acquisitions: product.value.acquisitions,
   hasAccess: owned.value,
@@ -262,19 +262,12 @@ function handleAction(key: ProductActionKey) {
         <div class="rounded-xl border border-slate-200 bg-white p-5">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="rounded bg-brand-50 px-2 py-1 text-xs text-brand-600">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
-                <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
-                <StatusBadge dict="availability" :value="product.availability" />
-                <span v-if="spaceChips.length" data-testid="public-space-chips" class="contents">
-                  <span v-for="chip in spaceChips" :key="chip" class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{{ chip }}</span>
-                </span>
-              </div>
+              <ProductChips :product="product" show-trial />
               <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
               <p class="mt-1 text-sm text-slate-500">{{ product.recommendText || product.subtitle }}</p>
-              <div v-if="product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
+              <div v-if="topicTags.length" class="mt-2 flex flex-wrap gap-1.5">
                 <span
-                  v-for="tag in product.tags"
+                  v-for="tag in topicTags"
                   :key="tag"
                   class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
                 >{{ tag }}</span>

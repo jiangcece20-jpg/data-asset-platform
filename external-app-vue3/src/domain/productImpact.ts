@@ -4,6 +4,7 @@ import type { ImpactSnapshot } from '../types/reverseFlow'
 const IN_FLIGHT_ORDER_STATUSES = new Set<string>([
   'pending_payment',
   'paid',
+  'pending_activation',
   'accepted',
   'delivering',
   'unknown_processing',

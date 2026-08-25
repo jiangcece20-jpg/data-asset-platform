@@ -34,6 +34,7 @@ import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { useCatalogStore } from '@/stores/catalog'
+import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { statusMeta } from '@/utils/statusMeta'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { buyerEnterpriseName, operatorContactText } from '@/domain/opsPurchaseParty'
@@ -49,6 +50,7 @@ const entitlements = useEntitlementStore()
 const user = useUserStore()
 const spaceIntents = useSpaceIntentStore()
 const catalog = useCatalogStore()
+const sellerMarket = useSellerMarketStore()
 
 const filterChannel = ref('')
 const filterOwner = ref('')
@@ -130,6 +132,14 @@ function sign(orderId: string) {
 
 function confirmPayment(orderId: string) {
   orders.confirmEnterpriseContract(orderId)
+}
+
+function activateSellerOrder(orderId: string) {
+  sellerMarket.adminActivateSellerOrder(orderId)
+}
+
+function isSellerPendingActivation(row: UnifiedOrderRow) {
+  return row.channel === 'app' && row.status === 'pending_activation' && catalog.byId(row.productId)?.origin === 'seller_market'
 }
 
 const confirmingOrder = computed(() => orders.list.find((item) => item.id === confirmingOrderId.value))
@@ -255,6 +265,7 @@ function statusLabel(dict: string, status: string | undefined, fallback: string)
                 <button v-if="order.contractStatus === 'quoting'" class="mr-2 text-brand-600 hover:underline" data-testid="sign" @click="sign(order.id)">标记合同已签署</button>
                <button v-if="order.contractStatus === 'contract_signed'" class="text-emerald-600 hover:underline" data-testid="confirm-pay" @click="confirmPayment(order.id)">确认付款并开通权益</button>
                 <button v-if="order.status === 'payment_pending_confirmation'" class="text-emerald-600 hover:underline" data-testid="confirm-offline-payment" @click="startConfirmOffline(order.id)">确认到账并开通</button>
+                <button v-if="isSellerPendingActivation(order)" class="text-orange-600 hover:underline" data-testid="activate-seller-order" @click="activateSellerOrder(order.id)">开通</button>
                <button v-if="order.deliveryStatus === 'failed' && order.deliveryId" class="text-amber-700 hover:underline" data-testid="retry-bi-delivery" @click="datasetCommerce.retryDelivery(order.deliveryId)">重试用数交付</button>
               </template>
               <template v-else>

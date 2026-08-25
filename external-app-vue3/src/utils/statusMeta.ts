@@ -39,6 +39,7 @@ const dictionaries: Record<string, Record<string, Meta>> = {
    payment_failed: { label: '支付失败', tone: 'red' },
     payment_pending_confirmation: { label: '付款确认中', tone: 'amber' },
    paid: { label: '已支付', tone: 'blue' },
+    pending_activation: { label: '待开通', tone: 'amber' },
    refunded: { label: '已退款', tone: 'slate' },
    entitlement_active: { label: '权益已生效', tone: 'green' }
   },

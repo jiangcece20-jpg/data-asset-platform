@@ -5,40 +5,46 @@ import { createPinia, setActivePinia } from 'pinia'
 import { OWNED_SPACE_NAME } from '@/domain/spaceIntent'
 import SearchResult from './SearchResult.vue'
 
-async function mountSearch() {
+async function mountSearch(query: Record<string, string> = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/app/search', component: SearchResult }]
   })
-  await router.push('/app/search')
+  await router.push({ path: '/app/search', query })
   await router.isReady()
   return mount(SearchResult, { global: { plugins: [router] } })
 }
 
-describe('SearchResult space filters', () => {
+describe('SearchResult filters', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('lists space names for users and never 自有/互联', async () => {
+  it('uses two dropdowns for type and venue', async () => {
     const wrapper = await mountSearch()
     await flushPromises()
-    const chips = wrapper.get('[data-testid="filter-space-names"]')
-    expect(chips.text()).toContain(OWNED_SPACE_NAME)
-    expect(chips.text()).not.toContain('自有')
-    expect(chips.text()).not.toContain('互联')
+    const types = wrapper.get('[data-testid="filter-types"]')
+    const venues = wrapper.get('[data-testid="filter-venues"]')
+
+    expect(types.element.tagName).toBe('SELECT')
+    expect(venues.element.tagName).toBe('SELECT')
+    expect(wrapper.find('[data-testid="filter-ops"]').exists()).toBe(false)
+    expect(venues.text()).toContain(OWNED_SPACE_NAME)
+    expect(venues.text()).toContain('本平台')
+    expect(venues.text()).toContain('陈静')
+    expect(venues.text()).not.toContain('自有')
+    expect(venues.text()).not.toContain('互联')
+    expect(wrapper.text()).not.toContain('全部运营')
+    expect(wrapper.text()).not.toContain('全部归属')
+    expect(wrapper.text()).not.toContain('APP 支付')
+    expect(wrapper.text()).not.toContain('全部来源')
+    expect(wrapper.find('[data-testid="filter-has-sample"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="filter-has-trial-api"]').exists()).toBe(false)
   })
 
-  it('shows sample filter only for datasets and trial-api filter only for APIs', async () => {
+  it('does not bring sample filters back after choosing a type', async () => {
     const wrapper = await mountSearch()
     await flushPromises()
+    await wrapper.get('[data-testid="filter-types"]').setValue('dataset')
     expect(wrapper.find('[data-testid="filter-has-sample"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="filter-has-trial-api"]').exists()).toBe(false)
-
-    await wrapper.findAll('button').find((b) => b.text().includes('数据集'))!.trigger('click')
-    expect(wrapper.get('[data-testid="filter-has-sample"]').text()).toContain('有样例')
-    expect(wrapper.find('[data-testid="filter-has-trial-api"]').exists()).toBe(false)
-
-    await wrapper.findAll('button').find((b) => b.text().includes('API')).trigger('click')
-    expect(wrapper.get('[data-testid="filter-has-trial-api"]').text()).toContain('有试用接口')
-    expect(wrapper.find('[data-testid="filter-has-sample"]').exists()).toBe(false)
   })
 })

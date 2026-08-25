@@ -21,30 +21,53 @@ async function mountForm() {
   })
 }
 
-describe('SellerListingApply selling shots', () => {
+describe('SellerListingApply prices', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('blocks submit until overview and kpi screenshots exist', async () => {
+  it('asks for personal and enterprise prices and no longer requires screenshots', async () => {
     const wrapper = await mountForm()
-    await wrapper.get('button.w-full').trigger('click')
-    expect(wrapper.text()).toContain('请上传总览一屏、核心指标截图')
-    expect(useSellerMarketStore().listings.filter((item) => item.artifactId === 'artifact-route-otp')).toHaveLength(0)
-  })
+    expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('结算方式')
+    expect(wrapper.get('[data-testid="seller-listing-personal-price"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="seller-listing-enterprise-price"]').exists()).toBe(true)
 
-  it('submits after filling example screenshots', async () => {
-    const wrapper = await mountForm()
-    await wrapper.get('[data-testid="fill-example-shots"]').trigger('click')
+    await wrapper.get('[data-testid="seller-listing-personal-price"]').setValue(88)
+    await wrapper.get('[data-testid="seller-listing-enterprise-price"]').setValue(880)
     await wrapper.get('button.w-full').trigger('click')
     await flushPromises()
     const created = useSellerMarketStore().listings.find((item) => item.artifactId === 'artifact-route-otp')
-    expect(created?.shots).toHaveLength(4)
+    expect(created?.price).toBe(88)
+    expect(created?.enterprisePrice).toBe(880)
     expect(wrapper.emitted('done')).toBeTruthy()
   })
+})
 
-  it('shows custom selling shots section on listing form', async () => {
+describe('SellerListingApply catalog spec', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('lets the seller edit storefront copy that will appear on the product detail', async () => {
     const wrapper = await mountForm()
-    expect(wrapper.get('[data-testid="seller-listing-custom-shots"]').exists()).toBe(true)
-    await wrapper.get('[data-testid="add-custom-shot"]').trigger('click')
-    expect(wrapper.get('[data-testid="custom-shot-row-0"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="seller-listing-granularity"]').exists()).toBe(true)
+    const frequency = wrapper.get('[data-testid="seller-listing-update-frequency"]')
+    expect(frequency.element.tagName).toBe('SELECT')
+    expect(frequency.text()).toContain('每日更新')
+    expect(frequency.text()).toContain('不定期')
+    await wrapper.get('[data-testid="seller-listing-coverage"]').setValue('华东 12 仓')
+    await wrapper.get('[data-testid="seller-listing-update-frequency"]').setValue('每周更新')
+    await wrapper.get('[data-testid="seller-listing-scenarios"]').setValue('仓储运营')
+    await wrapper.get('[data-testid="seller-listing-description"]').setValue('仓网周转天数、积压 SKU 与补货建议')
+    await wrapper.get('[data-testid="seller-listing-value"]').setValue('快速识别高积压仓与滞销品类。')
+    await wrapper.get('[data-testid="seller-listing-quality"]').setValue('口径已声明')
+    await wrapper.get('button.w-full').trigger('click')
+    await flushPromises()
+    const created = useSellerMarketStore().listings.find((item) => item.artifactId === 'artifact-route-otp')
+    expect(created?.catalogSpec).toMatchObject({
+      coverage: '华东 12 仓',
+      updateFrequency: '每周更新',
+      scenarios: ['仓储运营'],
+      description: '仓网周转天数、积压 SKU 与补货建议',
+      valueProposition: '快速识别高积压仓与滞销品类。'
+    })
   })
 })

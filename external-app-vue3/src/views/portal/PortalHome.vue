@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useUserStore } from '@/stores/user'
-import { typeMeta, originMeta, priceDisplay } from '@/utils/productMeta'
+import { priceDisplay } from '@/utils/productMeta'
+import ProductChips from '@/components/shared/ProductChips.vue'
 import type { Resource } from '@/types/resource'
 import type { Product } from '@/types/domain'
 import { productCardSummary } from '@/domain/productCardSummary'
@@ -78,10 +79,7 @@ function cardSummary(product: Product) {
           class="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
           @click="goProduct(p.id)"
         >
-          <div class="flex items-center gap-2">
-            <span class="rounded bg-brand-50 px-2 py-0.5 text-xs text-brand-600">{{ typeMeta[p.type].icon }} {{ typeMeta[p.type].label }}</span>
-            <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-600">🏪市场</span>
-          </div>
+          <ProductChips :product="p" />
           <div class="mt-2 text-sm font-semibold text-slate-800">{{ p.name }}</div>
           <div class="mt-1 line-clamp-2 text-xs text-slate-400">{{ cardSummary(p) }}</div>
           <div class="mt-2 text-sm font-medium" :class="priceDisplay(p).tone">

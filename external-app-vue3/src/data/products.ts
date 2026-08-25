@@ -1,5 +1,6 @@
 import type { Product } from '@/types/domain'
-import { exampleSellingShots, exampleCustomSellingShot } from '@/domain/sellingShotTemplate'
+import { seedSpaceProducts } from './spaceProducts'
+import { sellerRouteDatasetDetail, sellerWarehouseDatasetDetail } from '@/data/sellerDatasets'
 
 export const seedProducts: Product[] = [
   // ── 自有看板 ──────────────────────────────────────────
@@ -17,7 +18,7 @@ export const seedProducts: Product[] = [
     scenarios: ['物流成本分析', '运价趋势研判'],
     provider: 'APP 自营内容',
     coverage: '全国 31 省份 · 12 大枢纽城市对',
-    updateFrequency: '每周一更新',
+    updateFrequency: '每周更新',
     qualityPromise: '数据来源于平台真实交易样本，月度校准',
     complianceNote: '已脱敏，仅展示指数与趋势，不含企业级明细',
     price: { model: 'member_free', itemPrice: 299, unit: '元/12个月' },
@@ -158,7 +159,7 @@ export const seedProducts: Product[] = [
     scenarios: ['行业研究', '企业采购决策'],
     provider: 'APP 自营内容',
     coverage: '全国公路物流行业，含 8 个细分赛道',
-    updateFrequency: '每月 5 日发布',
+    updateFrequency: '每月更新',
     qualityPromise: '由行业研究团队撰写，交叉验证三方数据源',
     complianceNote: '公开发布内容，不含企业敏感信息',
     price: { model: 'member_discount', itemPrice: 199, memberDiscount: 0.6, unit: '元/篇' },
@@ -266,7 +267,7 @@ export const seedProducts: Product[] = [
     scenarios: ['司机合规核验', '承运商准入审核'],
     provider: '万联易达可信空间 · 交通运输认证机构',
     coverage: '全国从业资格证持证人员',
-    updateFrequency: '证照变更后 T+1 同步',
+    updateFrequency: '不定期',
     qualityPromise: '权威机构数据源，命中率 99.2%',
     complianceNote: '核验结果仅返回是否有效，不返回证件原始影像',
     price: { model: 'quote', quoteNote: '按调用量阶梯计费，详见空间报价' },
@@ -391,7 +392,7 @@ export const seedProducts: Product[] = [
     scenarios: ['供应商准入', '资质比对'],
     provider: '某省数据空间',
     coverage: '全国企业资质信息库',
-    updateFrequency: '实时核验',
+    updateFrequency: '实时更新',
     qualityPromise: '隐私信息检索机制，查询方与数据方互不感知明细',
     complianceNote: '仅返回匹配结果（命中/不命中），不返回原始记录',
     price: { model: 'quote', quoteNote: '按核验次数报价' },
@@ -725,15 +726,52 @@ export const seedProducts: Product[] = [
     memberIncluded: false,
     spaceProductNo: 'SPACE-DS-PORT-01',
     spaceSyncedAt: '2026-07-10 10:00',
-    spaceName: '某省数据空间',
-    spaceKind: 'federated',
-    hasSampleData: false,
+    spaceMeta: {
+      resourceName: '某省港口吞吐量数据资源',
+      resourceType: '数据集',
+      resourceDescription: '某省主要港口集装箱与货物吞吐量明细，面向港口运营分析与产能评估。',
+      department: '港航数据中心',
+      industryCategory: '交通运输',
+      regionCategory: '某省主要港口',
+      applicationScenario: '港口运营分析',
+      coverageTimeRange: '2024-01 至 2026-06',
+      deliveryMode: '数据表交付',
+      deliveryNoteUrl: 'https://space.example.com/docs/delivery-ds-port-01.pdf',
+      dataSubject: '公共数据',
+      personalInfo: false,
+      authorizedUse: true,
+      usageRestrictions: ['禁止二次转售', '仅限内部使用'],
+      restrictionNote: '正式使用需企业认证与空间订单',
+      dataVolume: '约 1,200 行',
+      billingNote: '数据表类产品采用一次性价格模式',
+      billingRules: [
+        '一次性价格模式，购买后按约定周期交付全量数据表',
+        '基于核算结果自动生成详细电子账单，供你核对与留存'
+      ],
+      productIntroduction: '覆盖某省主要港口的集装箱与货物吞吐量指标，按港口 × 月汇总，可用于港口运营分析、枢纽规划与产能评估。',
+      complianceDeclarationUrl: 'https://space.example.com/docs/compliance-ds-port-01.pdf',
+      dataSourceDeclarationUrl: 'https://space.example.com/docs/source-ds-port-01.pdf',
+      dataSampleUrl: 'https://space.example.com/docs/sample-ds-port-01.pdf',
+      securityClassificationUrl: 'https://space.example.com/docs/classification-ds-port-01.pdf',
+      qualityAssessmentUrl: 'https://space.example.com/docs/quality-ds-port-01.pdf',
+      providerName: 'test万联易达可信数据联调测试公司3',
+      providerEntityType: 'LEGAL',
+      providerEntityInfo: '四川省雅安市经济开发区永兴大道南；法定代表人：可信test3；成立日期：2026-06-09；注册资本：1500万元',
+      providerBrief: '港航数据服务商，提供区域港口吞吐与枢纽运营分析数据。',
+      authorizationLetterUrl: 'https://space.example.com/docs/auth-letter-ds-port-01.pdf',
+      classificationStandard: '政务数据分类标准',
+      classificationPath: '政务数据分类标准 / 组织数据 / 企事业单位',
+      classificationLevel: 2
+    },
     listedAt: '2026-07-10',
     updatedAt: '2026-07-10',
     serviceStatus: 'normal',
     recommendText: '区域港口吞吐全景',
     sortWeight: 55,
     recommendSlot: false,
+    spaceName: '某省数据空间',
+    spaceKind: 'federated',
+    hasSampleData: false,
     typeDetail: {
       dataset: {
         granularity: '港口 × 月',
@@ -953,7 +991,7 @@ export const seedProducts: Product[] = [
     scenarios: ['风险评估', '司机准入'],
     provider: '资产平台 · 平台自营',
     coverage: '试点区域 5 省',
-    updateFrequency: '待定',
+    updateFrequency: '',
     qualityPromise: '待完成质量评估',
     complianceNote: '出域审批进行中',
     price: { model: 'quote', quoteNote: '待定价' },
@@ -993,13 +1031,13 @@ export const seedProducts: Product[] = [
       }
     }
   },
-  // ── 入驻商家看板 ──────────────────────────────────────────
+  // ── 入驻商家数据集 ──────────────────────────────────────────
   {
     id: 'prod-seller-route-board',
     resourceId: 'res-prod-seller-route-board',
-    name: '华东干线时效看板',
-    subtitle: '入驻商家提供的干线到达时效与延误分析看板',
-    type: 'dashboard',
+    name: '华东干线时效数据集',
+    subtitle: '入驻商家提供的干线到达时效与延误分析数据集',
+    type: 'dataset',
     origin: 'seller_market',
     dealChannel: 'app_payment',
     availability: 'published',
@@ -1010,52 +1048,39 @@ export const seedProducts: Product[] = [
     sellerId: 'seller-chenjing',
     sellerName: '陈静',
     dataProvenance: 'owned',
-    settlementModeDefault: 'seller_self',
+    settlementModeDefault: 'platform_collect',
     coverage: '沪苏浙皖主要干线 86 条',
     updateFrequency: '每日更新',
-    qualityPromise: '基于卖家自有运单样本，口径见看板说明',
+    qualityPromise: '基于卖家自有运单样本，口径见字段说明',
     complianceNote: '已脱敏企业与司机明细；不含个人信息对外售卖',
     price: { model: 'item_only', itemPrice: 199, unit: '元/12个月' },
     commerceOffers: [
-      { id: 'offer-seller-route-personal', name: '个人版', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 12, maxTermMonths: 12, accessScope: 'personal', allowDownload: false, recommended: true }
+      { id: 'offer-seller-route-personal', name: '个人单品', subject: 'personal', price: 199, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'personal', allowDownload: false, recommended: true },
+      { id: 'offer-seller-route-enterprise', name: '企业单品', subject: 'enterprise', price: 1990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false }
     ],
     status: 'published',
     tags: ['入驻商家', '干线', '时效'],
-    description: '展示华东干线准点率、平均时效与延误热点，支持按线路与车型筛选。由入驻商家基于用数成果上架。',
+    description: '华东干线准点率、平均时效与延误单量，按线路与车型汇总。由入驻商家基于用数成果上架。',
     valueProposition: '帮助货主与承运商快速定位延误瓶颈。',
-    deliveryMethod: 'APP 在线看板（卖家确认到账后开通）',
+    deliveryMethod: '平台收款后由运营开通数据集查看与样例',
     memberIncluded: false,
+    hasSampleData: true,
     listedAt: '2026-08-01',
     updatedAt: '2026-08-08',
-    sellingShots: exampleSellingShots(),
-    customSellingShots: [exampleCustomSellingShot()],
     serviceStatus: 'normal',
     recommendSlot: true,
     recommendText: '入驻商家 · 干线时效',
     sortWeight: 80,
     typeDetail: {
-      dashboard: {
-        timeRange: '近 12 个月',
-        updateCycle: '每日 08:00',
-        metrics: [
-          { name: '准点率', definition: '按时到达运单占比', formula: '准点单量 / 总单量 × 100%', dimensions: ['线路', '车型'], preview: 'visible', previewValue: '91.2%', previewChange: '较上月 +1.1pct' },
-          { name: '平均时效(小时)', definition: '发车到签收平均时长', formula: 'AVG(签收时间 - 发车时间)', dimensions: ['线路'], preview: 'visible', previewValue: '18.6h', previewChange: '较上月 -0.4h' },
-          { name: '延误热点', definition: '延误次数 Top 线路', formula: 'COUNT(延误标记)', dimensions: ['线路'], preview: 'masked' }
-        ],
-        panels: [
-          { id: 'panel-otp', title: '准点率趋势', chartType: 'line', preview: 'visible', summary: '近 30 天准点率', previewSeries: [88.1, 89.0, 89.4, 90.1, 90.6, 91.0, 91.2] },
-          { id: 'panel-delay', title: '延误分布', chartType: 'bar', preview: 'masked', summary: '各线路延误次数' }
-        ],
-        exportRule: '购买后可在线查看，暂不支持导出'
-      }
+      dataset: sellerRouteDatasetDetail
     }
   },
   {
     id: 'prod-seller-warehouse-board',
     resourceId: 'res-prod-seller-warehouse-board',
-    name: '仓网周转健康看板',
-    subtitle: '入驻商家仓网周转与积压风险看板',
-    type: 'dashboard',
+    name: '仓网周转健康数据集',
+    subtitle: '入驻商家仓网周转与积压风险数据集',
+    type: 'dataset',
     origin: 'seller_market',
     dealChannel: 'app_payment',
     availability: 'published',
@@ -1066,36 +1091,28 @@ export const seedProducts: Product[] = [
     sellerId: 'seller-zhangshu',
     sellerName: '张数',
     dataProvenance: 'derived',
-    settlementModeDefault: 'seller_self',
+    settlementModeDefault: 'platform_collect',
     coverage: '华东 12 仓',
     updateFrequency: '每周更新',
     qualityPromise: '基于已购数据集二次加工，受源许可约束',
     complianceNote: '衍生数据；使用受限，禁止再转售明细',
     price: { model: 'item_only', itemPrice: 129, unit: '元/6个月' },
     commerceOffers: [
-      { id: 'offer-seller-wh-personal', name: '个人版', subject: 'personal', price: 129, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', billingPeriodMonths: 6, maxTermMonths: 6, accessScope: 'personal', allowDownload: false, recommended: true }
+      { id: 'offer-seller-wh-personal', name: '个人单品', subject: 'personal', price: 129, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'personal', allowDownload: false, recommended: true },
+      { id: 'offer-seller-wh-enterprise', name: '企业单品', subject: 'enterprise', price: 1290, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false }
     ],
     status: 'published',
     tags: ['入驻商家', '仓储'],
-    description: '仓网周转天数、积压 SKU 与补货建议看板，来源为入驻商家衍生加工成果。',
+    description: '仓网周转天数、积压 SKU 与补货建议，来源为入驻商家衍生加工成果。',
     valueProposition: '快速识别高积压仓与滞销品类。',
-    deliveryMethod: 'APP 在线看板（卖家确认到账后开通）',
+    deliveryMethod: '平台收款后由运营开通数据集查看与样例',
     memberIncluded: false,
+    hasSampleData: true,
     listedAt: '2026-08-05',
     updatedAt: '2026-08-08',
     serviceStatus: 'normal',
     typeDetail: {
-      dashboard: {
-        timeRange: '近 6 个月',
-        updateCycle: '每周一',
-        metrics: [
-          { name: '平均周转天数', definition: '库存周转天数', formula: '库存量 / 日出库量', dimensions: ['仓库'], preview: 'visible', previewValue: '14.2', previewChange: '较上周 -0.6' }
-        ],
-        panels: [
-          { id: 'panel-turn', title: '周转趋势', chartType: 'line', preview: 'visible', summary: '近 8 周转势', previewSeries: [16.1, 15.8, 15.2, 14.9, 14.7, 14.5, 14.3, 14.2] }
-        ],
-        exportRule: '不支持导出'
-      }
+      dataset: sellerWarehouseDatasetDetail
     }
   }
 

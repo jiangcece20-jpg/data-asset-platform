@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EmptyState from '@/components/mobile/EmptyState.vue'
 import MineEntityCard from './MineEntityCard.vue'
@@ -12,17 +13,15 @@ type TimeFilter = 'all' | '30d' | '365d'
 const props = defineProps<{
   variant: 'mobile' | 'portal'
   subjectFilter: MineOrderSubjectFilter
-  /** 由父级注入，内含 /app 或 /portal 路径前缀 */
-  goProduct: (order: MyOrderCard) => void
   pay: (order: MyOrderCard) => void
   openBills: () => void
 }>()
 
 const emit = defineEmits<{
   'update:subjectFilter': [value: MineOrderSubjectFilter]
-  'view-purchased-data': []
 }>()
 
+const router = useRouter()
 const user = useUserStore()
 const { filterBuyDataOrders } = useMineOrders()
 
@@ -56,19 +55,16 @@ function setSubjectFilter(next: MineOrderSubjectFilter) {
   emit('update:subjectFilter', next)
 }
 
-function goData() {
-  emit('view-purchased-data')
+function openOrder(order: MyOrderCard) {
+  const base = props.variant === 'portal' ? '/portal' : '/app'
+  void router.push(`${base}/mine/orders/${order.source}/${order.id}`)
 }
 
 function exportEnterpriseOrders() {
   exportNotice.value = `已创建 ${user.enterprise.name} 企业订单导出任务，可在导出记录中查看进度。`
 }
 
-const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600'
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
-const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px] text-brand-600'
-const actionSoft = 'rounded-full bg-brand-50 px-3 py-1.5 text-[11px] text-brand-600'
-const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white'
 </script>
 
 <template>
@@ -109,48 +105,27 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
       <span class="text-brand-500">›</span>
     </button>
 
-    <MineEntityCard v-for="order in filteredOrders" :key="`${order.source}-${order.id}`" variant="mobile">
+    <MineEntityCard
+      v-for="order in filteredOrders"
+      :key="`${order.source}-${order.id}`"
+      :data-testid="`order-card-${order.source}-${order.id}`"
+      variant="mobile"
+      clickable
+      @click="openOrder(order)"
+    >
       <template #badges>
         <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">{{ order.productType ? productTypeLabels[order.productType] : '商品' }}</span>
-        <span class="font-mono text-slate-400">{{ order.id }}</span>
       </template>
       <template #title>{{ order.productName }}</template>
       <template #status><StatusBadge :dict="order.statusDict" :value="order.status" /></template>
-      <template #meta>
-        <div><span class="text-slate-400">购买主体</span><div class="mt-0.5 truncate text-slate-700">{{ order.ownerLabel }}</div></div>
-        <div><span class="text-slate-400">成交渠道</span><div class="mt-0.5 text-slate-700">{{ order.channelLabel }}</div></div>
-        <div><span class="text-slate-400">购买方案</span><div class="mt-0.5 text-slate-700">{{ order.planSummary }}</div></div>
-        <div><span class="text-slate-400">付款方式</span><div class="mt-0.5 text-slate-700">{{ order.paymentLabel }}</div></div>
-        <div><span class="text-slate-400">下单时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.createdAt) }}</div></div>
-        <div><span class="text-slate-400">付款时间</span><div class="mt-0.5 text-slate-700">{{ formatOrderTime(order.paidAt) }}</div></div>
-        <div><span class="text-slate-400">到期时间</span><div class="mt-0.5 text-slate-700">{{ order.expiryText || '—' }}</div></div>
-        <div class="col-span-2"><span class="text-slate-400">订单金额</span><div class="mt-0.5 font-semibold text-brand-600">{{ order.amountText }}</div></div>
-      </template>
       <template #notice>
-        <div class="rounded-lg bg-emerald-50 px-3 py-2 text-[10px] leading-relaxed text-emerald-700">{{ order.progressSummary }}</div>
-        <!-- 续订提示：即将到期 / 已到期 -->
-        <div
-          v-if="order.renewalInfo"
-          class="mt-2 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[10px]"
-          :class="order.renewalInfo.status === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'"
-        >
-          <div>
-            <div class="font-medium">
-              {{ order.renewalInfo.status === 'expired' ? '⚠️ 权益已过期' : `⏰ 权益将在 ${order.renewalInfo.daysUntilExpiry} 天后到期` }}
-            </div>
-            <div class="mt-0.5 opacity-80">到期日期 {{ order.renewalInfo.expiryDate }} · 续订后可继续获取最新数据</div>
-          </div>
+        <div class="flex items-baseline gap-2 text-[12px]">
+          <span class="font-semibold text-brand-600">{{ order.amountText }}</span>
+          <span class="text-slate-400">{{ formatOrderTime(order.createdAt) }}</span>
         </div>
-        <div v-if="order.source === 'space'" class="mt-2 text-[10px] text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</div>
       </template>
-      <template #actions>
-        <button :class="actionBtn" @click="goProduct(order)">查看商品</button>
-        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay(order)">继续付款</button>
-        <button v-if="order.filter === 'completed'" :class="actionSoft" @click="goData">查看我的数据</button>
-        <button v-if="order.renewalInfo" class="rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white" @click="goProduct(order)">
-          {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
-        </button>
-        <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" :class="actionDark">前往可信空间</a>
+      <template v-if="order.canPay && order.paymentPath" #actions>
+        <button :class="actionPrimary" @click.stop="pay(order)">继续付款</button>
       </template>
     </MineEntityCard>
     <EmptyState v-if="!filteredOrders.length" icon="🧾" title="暂无符合条件的订单" desc="订单会统一展示个人、企业、APP 与可信空间来源" />
@@ -188,55 +163,27 @@ const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white
     </div>
     <div v-if="exportNotice" class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-xs text-emerald-700"><span>{{ exportNotice }}</span><button @click="exportNotice = ''">关闭</button></div>
 
-    <MineEntityCard v-for="order in filteredOrders" :key="`${order.source}-${order.id}`" variant="portal">
+    <MineEntityCard
+      v-for="order in filteredOrders"
+      :key="`${order.source}-${order.id}`"
+      :data-testid="`order-card-${order.source}-${order.id}`"
+      variant="portal"
+      clickable
+      @click="openOrder(order)"
+    >
       <template #badges>
         <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">{{ order.productType ? productTypeLabels[order.productType] : '商品' }}</span>
-        <span class="font-mono text-slate-400">订单号 {{ order.id }}</span>
-        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">{{ order.channelLabel }}</span>
       </template>
       <template #title>{{ order.productName }}</template>
       <template #status><StatusBadge :dict="order.statusDict" :value="order.status" /></template>
-      <template #meta>
-        <div><div class="text-slate-400">购买主体</div><div class="mt-1 truncate text-slate-700">{{ order.ownerLabel }}</div></div>
-        <div><div class="text-slate-400">购买方案</div><div class="mt-1 text-slate-700">{{ order.planSummary }}</div></div>
-        <div><div class="text-slate-400">付款方式</div><div class="mt-1 text-slate-700">{{ order.paymentLabel }}</div></div>
-        <div><div class="text-slate-400">下单时间</div><div class="mt-1 text-slate-700">{{ formatOrderTime(order.createdAt) }}</div></div>
-        <div><div class="text-slate-400">付款时间</div><div class="mt-1 text-slate-700">{{ formatOrderTime(order.paidAt) }}</div></div>
-        <div><div class="text-slate-400">到期时间</div><div class="mt-1 text-slate-700">{{ order.expiryText || '—' }}</div></div>
-        <div><div class="text-slate-400">订单金额</div><div class="mt-1 font-semibold text-brand-600">{{ order.amountText }}</div></div>
-      </template>
       <template #notice>
-        <div class="rounded-lg bg-emerald-50 px-3 py-2 text-xs leading-relaxed text-emerald-700">
-          {{ order.progressSummary }}
-          <span v-if="order.source === 'space'" class="ml-2 text-slate-400">空间商品号 {{ order.spaceProductNo }} · 同步于 {{ formatOrderTime(order.syncedAt) }}</span>
-        </div>
-        <!-- 续订提示：即将到期 / 已到期 -->
-        <div
-          v-if="order.renewalInfo"
-          class="mt-2 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-xs"
-          :class="order.renewalInfo.status === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'"
-        >
-          <div>
-            <div class="font-medium">
-              {{ order.renewalInfo.status === 'expired' ? '⚠️ 权益已过期' : `⏰ 权益将在 ${order.renewalInfo.daysUntilExpiry} 天后到期` }}
-            </div>
-            <div class="mt-0.5 opacity-80">到期日期 {{ order.renewalInfo.expiryDate }} · 续订后可继续获取最新数据</div>
-          </div>
-          <button
-            class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-            :class="order.renewalInfo.status === 'expired' ? 'bg-red-500' : 'bg-amber-500'"
-            @click="goProduct(order)"
-          >
-            {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
-          </button>
+        <div class="flex items-baseline gap-2 text-sm">
+          <span class="font-semibold text-brand-600">{{ order.amountText }}</span>
+          <span class="text-slate-400">{{ formatOrderTime(order.createdAt) }}</span>
         </div>
       </template>
-      <template #actions>
-        <button :class="actionBtn" @click="goProduct(order)">查看商品</button>
-        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay(order)">继续付款</button>
-        <button v-if="order.filter === 'completed'" :class="actionSoft" @click="goData">查看我的数据</button>
-        <a v-if="order.downloadUrl" :href="order.downloadUrl" :class="actionBrand">下载数据</a>
-        <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" :class="actionDark">前往可信空间</a>
+      <template v-if="order.canPay && order.paymentPath" #actions>
+        <button :class="actionPrimary" @click.stop="pay(order)">继续付款</button>
       </template>
     </MineEntityCard>
     <div v-if="!filteredOrders.length" class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-sm text-slate-400 shadow-card">暂无符合条件的订单</div>

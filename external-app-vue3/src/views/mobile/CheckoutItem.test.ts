@@ -169,3 +169,68 @@ describe('CheckoutItem report purchase subject', () => {
     })
   })
 })
+
+describe('CheckoutItem seller-market dataset', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('charges the personal list price and leaves the order pending activation', async () => {
+    const { wrapper } = await mountCheckout('prod-seller-route-board')
+
+    expect(wrapper.text()).toContain('打款到平台')
+    expect(wrapper.text()).toContain('待开通')
+    expect(wrapper.text()).not.toContain('仅支持个人购买')
+    expect(wrapper.text()).not.toContain('自收款')
+    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toContain('¥199')
+
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    expect(wrapper.text()).toContain('订单待运营开通')
+    expect(useOrderStore().list.at(-1)).toMatchObject({
+      productId: 'prod-seller-route-board',
+      ownerType: 'personal',
+      amount: 199,
+      settlementMode: 'platform_collect',
+      status: 'pending_activation',
+      entitlementGranted: false
+    })
+  })
+
+  it('charges the enterprise list price without a member discount', async () => {
+    useOrderStore().purchaseMember()
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper } = await mountCheckout('prod-seller-route-board')
+
+    expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('万联供应链管理有限公司')
+    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toMatch(/¥1,?990/)
+    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).not.toContain('会员价')
+
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    expect(useOrderStore().list.at(-1)).toMatchObject({
+      productId: 'prod-seller-route-board',
+      ownerType: 'enterprise',
+      amount: 1990,
+      settlementMode: 'platform_collect',
+      status: 'pending_activation'
+    })
+  })
+
+  it('keeps enterprise contract purchase pending until platform confirms', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper } = await mountCheckout('prod-seller-route-board')
+    const contract = wrapper.findAll('button').find((button) => button.text() === '合同采购')!
+
+    await contract.trigger('click')
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('已提交合同采购')
+    expect(useOrderStore().list.at(-1)).toMatchObject({
+      productId: 'prod-seller-route-board',
+      ownerType: 'enterprise',
+      amount: 1990,
+      status: 'pending_payment',
+      paymentMethod: 'enterprise_contract',
+      settlementMode: 'platform_collect',
+      entitlementGranted: false
+    })
+  })
+})

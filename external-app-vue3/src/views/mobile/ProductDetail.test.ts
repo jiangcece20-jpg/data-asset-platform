@@ -12,7 +12,9 @@ async function mountProductDetail(path = '/app/product/prod-qualification-api') 
     routes: [
       { path: '/app/product/:id', name: 'product-detail', component: ProductDetail },
       { path: '/app/space-intent/:id', name: 'space-intent', component: { template: '<div />' } },
-      { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } }
+      { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } },
+      { path: '/app/checkout/item/:id', name: 'checkout-item', component: { template: '<div />' } },
+      { path: '/app/checkout/dataset/:id', name: 'checkout-dataset', component: { template: '<div />' } }
     ]
   })
   await router.push(path)
@@ -29,7 +31,7 @@ describe('ProductDetail trusted-space intent', () => {
   it('shows submit-intent as the primary action for personal users', async () => {
     const { wrapper } = await mountProductDetail()
     const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('提交意向单')
+    expect(primary.text()).toBe('提交试用申请')
     expect(wrapper.text()).not.toContain('前往可信空间购买')
     expect(wrapper.text()).not.toContain('个人身份不能下单')
   })
@@ -45,9 +47,21 @@ describe('ProductDetail trusted-space intent', () => {
 
   it('shows owned space chips without 自有', async () => {
     const { wrapper } = await mountProductDetail('/app/product/prod-enterprise-activity')
-    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('万联易达可信空间')
-    expect(wrapper.get('[data-testid="public-space-chips"]').text()).toContain('有样例')
-    expect(wrapper.get('[data-testid="public-space-chips"]').text()).not.toContain('自有')
+    expect(wrapper.get('[data-testid="product-chips"]').text()).toContain('万联易达可信空间')
+    expect(wrapper.get('[data-testid="product-chips"]').text()).toContain('有样例')
+    expect(wrapper.get('[data-testid="product-chips"]').text()).not.toContain('自有')
+    expect(wrapper.get('[data-testid="product-chips"]').text()).not.toContain('可信空间购买')
+  })
+
+  it('shows the space dataset sync material wall like space APIs', async () => {
+    const { wrapper } = await mountProductDetail('/app/product/prod-space-port-throughput')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('提交试用申请')
+    expect(wrapper.get('[data-testid="trusted-space-purchase-eligibility"]').text()).toContain('提交试用申请')
+    expect(wrapper.get('[data-testid="detail-provider"]').text()).toContain('提供方信息')
+    expect(wrapper.get('[data-testid="detail-compliance"]').text()).toContain('合法合规声明')
+    expect(wrapper.get('[data-testid="space-billing-rules"]').text()).toContain('计费规则')
+    expect(wrapper.text()).toContain('来自可信空间')
+    expect(wrapper.text()).toContain('覆盖某省主要港口的集装箱与货物吞吐量指标')
   })
 })
 
@@ -121,5 +135,30 @@ describe('ProductDetail dashboard overview', () => {
     const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
     expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，享6折')
     expect(discount.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('原价购买 ¥199')
+  })
+})
+
+describe('ProductDetail seller dataset', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => vi.restoreAllMocks())
+
+  it('uses the dataset detail tabs and platform-collect checkout', async () => {
+    const { wrapper, router } = await mountProductDetail('/app/product/prod-seller-route-board')
+
+    expect(wrapper.get('[data-testid="product-chips"]').text()).toContain('数据集')
+    expect(wrapper.get('[data-testid="product-chips"]').text()).toContain('陈静')
+    expect(wrapper.get('button[data-tab="basic"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.text()).toContain('线路 × 日')
+    expect(wrapper.find('[data-testid="selling-shot-gallery"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('结算方式')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('购买数据集')
+
+    await wrapper.get('button[data-tab="samples"]').trigger('click')
+    expect(wrapper.text()).toContain('SH-NJ-01')
+
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.name).toBe('checkout-item')
+    expect(router.currentRoute.value.path).toBe('/app/checkout/item/prod-seller-route-board')
   })
 })

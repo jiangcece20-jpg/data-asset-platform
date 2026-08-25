@@ -90,8 +90,8 @@ describe('dataset account views', () => {
     user.completeEnterpriseAuth()
     const wrapper = await mountPage('/portal/mine?tab=orders&subject=enterprise', PortalMine)
     expect(wrapper.find('[data-testid="portal-enterprise-order-filter-context"]').text()).toContain(user.enterprise.name)
-    expect(wrapper.text()).toContain('order-enterprise-dataset-001')
-    expect(wrapper.text()).not.toContain('order-history-001')
+    expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-card-app-order-history-001"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="export-enterprise-orders"]').exists()).toBe(true)
   })
 

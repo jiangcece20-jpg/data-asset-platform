@@ -79,8 +79,8 @@ function onFile(slot: SellingShotSlot, event: Event) {
   <section class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="seller-listing-shots">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <div class="text-[13px] font-medium text-slate-800">卖点截图 <span class="text-[11px] font-normal text-slate-400">最多上传 5 个图</span></div>
-        <p class="mt-1 text-[11px] leading-relaxed text-slate-500">按模版截报表里最能证明价值的画面。总览和核心指标必传。</p>
+        <div class="text-[13px] font-medium text-slate-800">数据预览截图 <span class="text-[11px] font-normal text-slate-400">最多上传 5 个图</span></div>
+        <p class="mt-1 text-[11px] leading-relaxed text-slate-500">按模版截数据预览里最能证明价值的画面。总览和核心指标必传。</p>
       </div>
       <button
         type="button"

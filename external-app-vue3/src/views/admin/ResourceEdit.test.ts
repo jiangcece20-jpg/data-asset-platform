@@ -35,6 +35,18 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.get('[data-testid="pricing-plan-editor"]').text()).toContain('高级会员')
   })
 
+  it('edits update frequency from a closed enum select', async () => {
+    const wrapper = await mountResourceEdit()
+    const select = wrapper.get('[data-testid="product-update-frequency"]')
+    expect(select.element.tagName).toBe('SELECT')
+    expect(select.text()).toContain('实时更新')
+    expect(select.text()).toContain('每季度更新')
+    expect(select.text()).toContain('不定期')
+    await select.setValue('每季度更新')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.updateFrequency).toBe('每季度更新')
+  })
+
   it('edits the fallback subtitle and preferred recommendation copy separately', async () => {
     const wrapper = await mountResourceEdit()
 

@@ -61,6 +61,7 @@ export function itemListPriceOf(product: Product, subject: PurchaseIdentitySubje
 }
 
 export function memberDiscountedAmount(listPrice: number, product: Product, hasEffectiveMembership: boolean): number {
+  if (product.origin === 'seller_market') return listPrice
   if (!hasEffectiveMembership) return listPrice
   const factor = productMemberDiscountFactor(product)
   if (factor == null) return listPrice

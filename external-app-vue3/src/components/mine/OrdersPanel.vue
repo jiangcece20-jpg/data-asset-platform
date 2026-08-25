@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import BuyDataOrders from './BuyDataOrders.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import MineEntityCard from './MineEntityCard.vue'
-import type { MyOrderCard } from '@/domain/myCenter'
 import type { OrderTab } from '@/domain/mineQuery'
+import type { MyOrderCard } from '@/domain/myCenter'
 import type { MineOrderSubjectFilter } from '@/composables/useMineOrders'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
@@ -15,7 +15,6 @@ defineProps<{
   orderTab: OrderTab
   variant: 'mobile' | 'portal'
   subjectFilter: MineOrderSubjectFilter
-  goProduct: (order: MyOrderCard) => void
   pay: (order: MyOrderCard) => void
   openBills: () => void
 }>()
@@ -23,7 +22,6 @@ defineProps<{
 const emit = defineEmits<{
   'update:orderTab': [value: OrderTab]
   'update:subjectFilter': [value: MineOrderSubjectFilter]
-  'view-purchased-data': []
 }>()
 
 const catalog = useCatalogStore()
@@ -65,11 +63,9 @@ function selectTab(next: OrderTab) {
       v-if="orderTab === 'buy'"
       :variant="variant"
       :subject-filter="subjectFilter"
-      :go-product="goProduct"
       :pay="pay"
       :open-bills="openBills"
       @update:subject-filter="emit('update:subjectFilter', $event)"
-      @view-purchased-data="emit('view-purchased-data')"
     />
     <PlaceholderPanel v-else-if="orderTab === 'vip'" title="VIP" class="mt-3" />
     <PlaceholderPanel v-else-if="orderTab === 'view'" title="看数" class="mt-3" />

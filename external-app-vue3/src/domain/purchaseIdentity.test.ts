@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useUserStore } from '@/stores/user'
 import {
+  currentIntentPartyName,
   currentPurchaseIdentity,
   currentPurchaseSubject,
   hasEnterprisePurchaseIdentity,
@@ -20,6 +21,7 @@ describe('purchase identity', () => {
       typeLabel: '个人',
       name: '陈静'
     })
+    expect(currentIntentPartyName(user)).toBe('个人')
   })
 
   it('locks purchase to the current enterprise after login identity switches', () => {
@@ -31,6 +33,7 @@ describe('purchase identity', () => {
       typeLabel: '企业',
       name: '万联供应链管理有限公司'
     })
+    expect(currentIntentPartyName(user)).toBe('万联供应链管理有限公司')
     expect(currentPurchaseSubject(user, { forcePersonal: true })).toBe('personal')
   })
 
@@ -48,6 +51,7 @@ describe('purchase identity', () => {
 
     user.switchMockPurchaseIdentity('personal')
     expect(currentPurchaseSubject(user)).toBe('personal')
+    expect(currentIntentPartyName(user)).toBe('个人')
     expect(user.context.name).toBe('陈静')
     expect(user.context.currentEnterpriseId).toBeUndefined()
   })

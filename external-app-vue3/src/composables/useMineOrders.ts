@@ -115,5 +115,9 @@ export function useMineOrders() {
     ))
   }
 
-  return { allOrders, filterBuyDataOrders }
+  function findOrder(source: string, id: string): MyOrderCard | undefined {
+    return allOrders.value.find((order) => order.source === source && order.id === id)
+  }
+
+  return { allOrders, filterBuyDataOrders, findOrder }
 }

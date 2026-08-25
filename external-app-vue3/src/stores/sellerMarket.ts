@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { Product } from '@/types/domain'
+import type { CommerceOffer, Product } from '@/types/domain'
 import type {
   ListableArtifact,
   SellerAccessStatus,
@@ -12,39 +12,82 @@ import { useCatalogStore } from './catalog'
 import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { useEntitlementStore } from './entitlements'
-import { salePeriodMonthsOf } from '@/domain/commerceOffers'
-import { assertRequiredSellingShots, assertCustomSellingShots, exampleSellingShots, type CustomSellingShot, type SellingShot } from '@/domain/sellingShotTemplate'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
+import { sellerDatasetDetailByArtifact } from '@/data/sellerDatasets'
+import {
+  assertSellerListingSpec,
+  datasetDetailFromListingSpec,
+  listingCatalogSpecFromArtifact,
+  type SellerListingCatalogSpec
+} from '@/domain/sellerListingSpec'
+
+export function assertSellerListingPrices(personalPrice: number, enterprisePrice: number) {
+  if (!Number.isFinite(personalPrice) || personalPrice < 1) throw new Error('请填写个人购买价格')
+  if (!Number.isFinite(enterprisePrice) || enterprisePrice < 1) throw new Error('请填写企业购买价格')
+}
+
+export function sellerItemOffers(productId: string, personalPrice: number, enterprisePrice: number): CommerceOffer[] {
+  return [
+    {
+      id: `offer-${productId}-personal`,
+      name: '个人单品',
+      subject: 'personal',
+      price: personalPrice,
+      currency: 'CNY',
+      serviceMode: 'one_time',
+      contentKind: 'snapshot',
+      accessScope: 'personal',
+      allowDownload: false,
+      recommended: true
+    },
+    {
+      id: `offer-${productId}-enterprise`,
+      name: '企业单品',
+      subject: 'enterprise',
+      price: enterprisePrice,
+      currency: 'CNY',
+      serviceMode: 'one_time',
+      contentKind: 'snapshot',
+      accessScope: 'enterprise_wide',
+      allowDownload: false
+    }
+  ]
+}
 
 const seedArtifacts: ListableArtifact[] = [
   {
     id: 'artifact-route-otp',
-    name: '华东干线时效看板',
-    type: 'dashboard',
+    name: '华东干线时效数据集',
+    type: 'dataset',
     version: 'v1.2.0',
     sourceModule: 'bi-workbench',
     dataProvenance: 'owned',
     licenseSummary: '自有运单加工，可上架售卖',
-    updatedAt: '2026-08-01'
+    updatedAt: '2026-08-01',
+    datasetDetail: sellerDatasetDetailByArtifact('artifact-route-otp')
   },
   {
     id: 'artifact-warehouse-health',
-    name: '仓网周转健康看板',
-    type: 'dashboard',
+    name: '仓网周转健康数据集',
+    type: 'dataset',
     version: 'v1.0.1',
     sourceModule: 'bi-workbench',
     dataProvenance: 'derived',
     licenseSummary: '含已购衍生字段，上架须声明源约束',
-    updatedAt: '2026-08-05'
+    updatedAt: '2026-08-05',
+    datasetDetail: sellerDatasetDetailByArtifact('artifact-warehouse-health')
   },
   {
     id: 'artifact-driver-score',
-    name: '司机绩效周报看板',
-    type: 'dashboard',
+    name: '司机绩效周报数据集',
+    type: 'dataset',
     version: 'v0.9.0',
     sourceModule: 'bi-workbench',
     dataProvenance: 'owned',
     licenseSummary: '自有绩效指标，可上架',
-    updatedAt: '2026-07-25'
+    updatedAt: '2026-07-25',
+    datasetDetail: sellerDatasetDetailByArtifact('artifact-driver-score')
   }
 ]
 
@@ -119,13 +162,13 @@ const seedListings: SellerListingApplication[] = [
     sellerName: '陈静',
     artifactId: 'artifact-driver-score',
     artifactVersion: 'v0.9.0',
-    title: '司机绩效周报看板',
-    subtitle: '基于用数成果申请上架的绩效看板',
+    title: '司机绩效周报数据集',
+    subtitle: '基于用数成果申请上架的绩效数据集',
     price: 99,
+    enterprisePrice: 990,
     dataProvenance: 'owned',
     complianceSummary: '无个人信息对外售卖；自有数据',
-    shots: exampleSellingShots(),
-    customShots: [],
+    catalogSpec: listingCatalogSpecFromArtifact(seedArtifacts.find((item) => item.id === 'artifact-driver-score')!),
     status: 'pending_review',
     createdAt: '2026-08-08 09:10',
     updatedAt: '2026-08-08 09:10'
@@ -161,7 +204,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       const me = this.myProfile
       if (!me) return []
       return useOrderStore().appOrders
-        .filter((o) => o.sellerId === me.id && o.settlementMode === 'seller_self')
+        .filter((o) => o.sellerId === me.id)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     },
     listableArtifacts(state): ListableArtifact[] {
@@ -241,16 +284,16 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       title: string
       subtitle: string
       price: number
+      enterprisePrice: number
       complianceSummary: string
-      shots: SellingShot[]
-      customShots?: CustomSellingShot[]
+      catalogSpec: SellerListingCatalogSpec
     }) {
       const me = this.myProfile
       if (!me || me.status !== 'approved') throw new Error('仅已准入卖家可提交上架')
       const artifact = this.artifacts.find((a) => a.id === input.artifactId)
       if (!artifact) throw new Error('可上架对象不存在')
-      const shots = assertRequiredSellingShots(input.shots)
-      const customShots = assertCustomSellingShots(input.customShots)
+      assertSellerListingPrices(input.price, input.enterprisePrice)
+      const catalogSpec = assertSellerListingSpec(input.catalogSpec)
       const dup = this.listings.find(
         (l) =>
           l.sellerId === me.id &&
@@ -269,10 +312,10 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         title: input.title,
         subtitle: input.subtitle,
         price: input.price,
+        enterprisePrice: input.enterprisePrice,
         dataProvenance: artifact.dataProvenance,
-        complianceSummary: input.complianceSummary,
-        shots,
-        customShots,
+        complianceSummary: catalogSpec.complianceNote || input.complianceSummary,
+        catalogSpec,
         status: 'pending_review',
         createdAt: stamp,
         updatedAt: stamp
@@ -293,70 +336,50 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       const productId = listing.productId || genId('prod-seller')
       const resourceId = `res-${productId}`
       const existing = catalog.byId(productId)
+      const artifact = this.artifacts.find((a) => a.id === listing.artifactId)
+      const catalogSpec = listing.catalogSpec
+        ? assertSellerListingSpec(listing.catalogSpec)
+        : listingCatalogSpecFromArtifact(artifact || { ...this.artifacts[0], id: listing.artifactId })
+      const datasetDetail = datasetDetailFromListingSpec(
+        artifact || { id: listing.artifactId, name: listing.title, type: 'dataset', version: listing.artifactVersion, sourceModule: 'bi-workbench', dataProvenance: listing.dataProvenance, licenseSummary: listing.complianceSummary, updatedAt: listing.updatedAt, datasetDetail: sellerDatasetDetailByArtifact(listing.artifactId) },
+        catalogSpec
+      )
+      const hasSamples = datasetDetail.sampleRows.length > 0
       const product: Product = existing || {
         id: productId,
         resourceId,
         name: listing.title,
         subtitle: listing.subtitle,
-        type: 'dashboard',
+        type: 'dataset',
         origin: 'seller_market',
         dealChannel: 'app_payment',
         availability: 'published',
         acquisitions: ['item_purchase'],
         entitlementPolicy: { kind: 'term', months: 12 },
-        scenarios: ['入驻商家看板'],
+        scenarios: catalogSpec.scenarios,
         provider: `入驻商家 · ${listing.sellerName}`,
         sellerId: listing.sellerId,
         sellerName: listing.sellerName,
         dataProvenance: listing.dataProvenance,
-        settlementModeDefault: 'seller_self',
-        coverage: '卖家声明覆盖范围',
-        updateFrequency: '按看板配置',
-        qualityPromise: '由入驻商家提供口径说明',
-        complianceNote: listing.complianceSummary,
+        settlementModeDefault: 'platform_collect',
+        coverage: catalogSpec.coverage,
+        updateFrequency: catalogSpec.updateFrequency,
+        qualityPromise: catalogSpec.qualityPromise,
+        complianceNote: catalogSpec.complianceNote,
         price: { model: 'item_only', itemPrice: listing.price, unit: '元' },
-        commerceOffers: [
-          {
-            id: `offer-${productId}-personal`,
-            name: '个人版',
-            subject: 'personal',
-            price: listing.price,
-            currency: 'CNY',
-            serviceMode: 'one_time',
-            contentKind: 'fixed_dashboard',
-            accessScope: 'personal',
-            allowDownload: false,
-            recommended: true
-          }
-        ],
+        commerceOffers: sellerItemOffers(productId, listing.price, listing.enterprisePrice),
         status: 'published',
-        tags: ['入驻商家'],
-        description: listing.subtitle,
-        valueProposition: '入驻商家用数成果',
-        deliveryMethod: 'APP 在线看板（卖家确认到账后开通）',
+        tags: ['入驻商家', ...catalogSpec.scenarios.slice(0, 2)],
+        description: catalogSpec.description,
+        valueProposition: catalogSpec.valueProposition,
+        deliveryMethod: '平台收款后由运营开通数据集查看与样例',
         memberIncluded: false,
+        hasSampleData: hasSamples,
         listedAt: now().slice(0, 10),
         updatedAt: now().slice(0, 10),
-        sellingShots: listing.shots,
-        customSellingShots: listing.customShots,
         serviceStatus: 'normal',
         typeDetail: {
-          dashboard: {
-            timeRange: '近 12 个月',
-            updateCycle: '按卖家配置',
-            metrics: [
-              {
-                name: '核心指标',
-                definition: '上架审核通过的看板指标',
-                formula: '见看板说明',
-                dimensions: ['默认'],
-                preview: 'visible',
-                previewValue: '—'
-              }
-            ],
-            panels: [{ id: 'panel-main', title: '主视图', chartType: 'line', preview: 'visible', summary: '预览区' }],
-            exportRule: '购买后在线查看'
-          }
+          dataset: datasetDetail
         }
       }
       if (!existing) {
@@ -365,7 +388,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
           catalog.resources.unshift({
             id: resourceId,
             resourceName: product.name,
-            type: 'dashboard',
+            type: 'dataset',
             origin: 'seller_market',
             typeDetail: { ...product.typeDetail },
             createdAt: product.updatedAt,
@@ -376,9 +399,21 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         existing.availability = 'published'
         existing.status = 'published'
         existing.price = { model: 'item_only', itemPrice: listing.price, unit: '元' }
-        existing.sellingShots = listing.shots
-        existing.customSellingShots = listing.customShots
-        if (existing.commerceOffers?.[0]) existing.commerceOffers[0].price = listing.price
+        existing.commerceOffers = sellerItemOffers(productId, listing.price, listing.enterprisePrice)
+        existing.settlementModeDefault = 'platform_collect'
+        existing.deliveryMethod = '平台收款后由运营开通数据集查看与样例'
+        existing.memberIncluded = false
+        existing.sellingShots = undefined
+        existing.customSellingShots = undefined
+        existing.coverage = catalogSpec.coverage
+        existing.updateFrequency = catalogSpec.updateFrequency
+        existing.scenarios = catalogSpec.scenarios
+        existing.description = catalogSpec.description
+        existing.valueProposition = catalogSpec.valueProposition
+        existing.qualityPromise = catalogSpec.qualityPromise
+        existing.complianceNote = catalogSpec.complianceNote
+        existing.hasSampleData = hasSamples
+        existing.typeDetail = { dataset: datasetDetail }
       }
       listing.productId = productId
       listing.status = 'published'
@@ -398,88 +433,97 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         listing.updatedAt = now()
       }
     },
-    /** 买家下单：自收款 → 待卖家确认到账 */
-    purchaseSellerProduct(productId: string, offerId: string, _selectedTermMonths?: number) {
+    /** 买家下单：打款到平台后进入待开通，由运营手动开通。企业合同采购先待确认到账。 */
+    purchaseSellerProduct(productId: string, offerId: string, paymentMode: 'online' | 'contract' = 'online') {
       const catalog = useCatalogStore()
       const product = catalog.byId(productId)
       if (!product || product.origin !== 'seller_market' || product.dealChannel !== 'app_payment') {
-        throw new Error('仅支持入驻商家商品自收款购买')
+        throw new Error('仅支持入驻商家商品购买')
       }
       if (!product.sellerId) throw new Error('商品缺少卖家信息')
-      const offer = (product.commerceOffers || []).find((o) => o.id === offerId && o.subject === 'personal')
-      if (!offer) throw new Error('未配置个人价格方案')
       const user = useUserStore()
-      const amount = offer.price
+      const subject = currentPurchaseSubject(user)
+      const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
+      if (!offer) throw new Error(subject === 'personal' ? '未配置个人购买价格' : '未配置企业购买价格')
+      if (subject === 'enterprise' && (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId)) {
+        throw new Error('企业购买需要当前企业身份')
+      }
+      const isContract = subject === 'enterprise' && paymentMode === 'contract'
+      const ownerType = subject
+      const ownerId = subject === 'personal' ? user.context.currentMemberId : user.context.currentEnterpriseId!
       const stamp = now()
       const order = {
         id: genId('order'),
         channel: 'app' as const,
-        ownerType: 'personal' as const,
-        ownerId: user.context.currentMemberId,
+        ownerType,
+        ownerId,
+        operatorMemberId: user.context.currentMemberId,
         productId,
         productName: product.name,
         productType: product.type,
-        amount,
-        status: 'payment_pending_confirmation' as const,
+        amount: offer.price,
+        status: isContract ? 'pending_payment' as const : 'pending_activation' as const,
         entitlementGranted: false,
+        entitlementPendingManual: !isContract,
         commerceOfferId: offer.id,
         serviceMode: offer.serviceMode,
         selectedTermMonths: salePeriodMonthsOf(product),
         sellerId: product.sellerId,
-        settlementMode: 'seller_self' as const,
-        buyerPaidClaimedAt: stamp,
+        settlementMode: 'platform_collect' as const,
+        paymentMethod: subject === 'personal'
+          ? 'personal_online' as const
+          : isContract
+            ? 'enterprise_contract' as const
+            : 'enterprise_balance' as const,
         createdAt: stamp,
-        note: '买家已标记付款，待卖家确认到账后开通看板权益'
+        paidAt: isContract ? undefined : stamp,
+        note: isContract
+          ? '企业合同采购，待平台确认到账后进入待开通'
+          : '平台已收款，待运营开通数据集；按合同与卖家结算'
       }
       useOrderStore().list.push(order)
       return order
     },
-    confirmSellerPayment(orderId: string) {
-      const orders = useOrderStore()
-      const order = orders.list.find((o) => o.id === orderId)
-      if (!order || order.settlementMode !== 'seller_self') throw new Error('订单不存在或非自收款')
-      if (order.status !== 'payment_pending_confirmation') throw new Error('当前状态不可确认到账')
-      const me = this.myProfile
-      const isOwner = me && order.sellerId === me.id
-      if (!isOwner) throw new Error('仅该商品卖家可确认到账')
-      const catalog = useCatalogStore()
-      const product = catalog.byId(order.productId)
-      if (!product) throw new Error('商品不存在')
-      order.status = 'entitlement_active'
-      order.entitlementGranted = true
-      order.sellerConfirmedAt = now()
-      order.paidAt = order.sellerConfirmedAt
-      order.note = '卖家已确认到账，看板权益已开通'
-      useEntitlementStore().grantItem(product, order.ownerId)
-      return order
-    },
-    /** 运营代确认（争议协助 / 演示） */
+    /** 运营确认合同采购到账后进入待开通，仍不发权 */
     adminConfirmSellerPayment(orderId: string) {
       const orders = useOrderStore()
       const order = orders.list.find((o) => o.id === orderId)
-      if (!order || order.settlementMode !== 'seller_self') throw new Error('订单不存在或非自收款')
-      if (order.status !== 'payment_pending_confirmation') throw new Error('当前状态不可确认')
+      if (!order || !order.sellerId) throw new Error('订单不存在或非入驻商家订单')
+      if (order.status !== 'pending_payment' && order.status !== 'payment_pending_confirmation') {
+        throw new Error('当前状态不可确认到账')
+      }
+      const stamp = now()
+      order.status = 'pending_activation'
+      order.entitlementGranted = false
+      order.entitlementPendingManual = true
+      order.paidAt = stamp
+      order.settlementMode = 'platform_collect'
+      order.note = '平台已确认到账，待运营开通数据集；按合同与卖家结算'
+      return order
+    },
+    /** 运营手动开通入驻商家数据集权益 */
+    adminActivateSellerOrder(orderId: string) {
+      const orders = useOrderStore()
+      const order = orders.list.find((o) => o.id === orderId)
+      if (!order || !order.sellerId) throw new Error('订单不存在或非入驻商家订单')
+      if (order.status !== 'pending_activation') throw new Error('仅待开通订单可由运营开通')
       const catalog = useCatalogStore()
       const product = catalog.byId(order.productId)
       if (!product) throw new Error('商品不存在')
+      const entitlement = useEntitlementStore().grantSellerDataset({
+        product,
+        orderId: order.id,
+        ownerType: order.ownerType,
+        ownerId: order.ownerId,
+        operatorMemberId: order.operatorMemberId || (order.ownerType === 'personal' ? order.ownerId : ''),
+        offerId: order.commerceOfferId || '',
+        selectedTermMonths: order.selectedTermMonths
+      })
       order.status = 'entitlement_active'
       order.entitlementGranted = true
-      order.sellerConfirmedAt = now()
-      order.paidAt = order.sellerConfirmedAt
-      order.note = '运营代确认到账，看板权益已开通'
-      useEntitlementStore().grantItem(product, order.ownerId)
-      return order
-    },
-    disputeSellerPayment(orderId: string, reason: string) {
-      const orders = useOrderStore()
-      const order = orders.list.find((o) => o.id === orderId)
-      if (!order || order.settlementMode !== 'seller_self') throw new Error('订单不存在或非自收款')
-      if (order.status !== 'payment_pending_confirmation') throw new Error('当前状态不可操作')
-      const me = this.myProfile
-      if (!me || order.sellerId !== me.id) throw new Error('仅该商品卖家可操作')
-      order.status = 'payment_failed'
-      order.disputeReason = reason
-      order.note = `卖家未确认到账：${reason}`
+      order.entitlementPendingManual = false
+      order.entitlementId = entitlement.id
+      order.note = '运营已开通数据集查看；平台按合同与卖家结算'
       return order
     }
   }

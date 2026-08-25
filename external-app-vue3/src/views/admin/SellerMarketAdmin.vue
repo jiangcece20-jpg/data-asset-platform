@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
-import SellingShotGallery from '@/components/SellingShotGallery.vue'
 
 const seller = useSellerMarketStore()
 const catalog = useCatalogStore()
@@ -14,7 +13,7 @@ const expandedListingId = ref('')
 
 const sellerProducts = computed(() => catalog.products.filter((p) => p.origin === 'seller_market'))
 const sellerOrders = computed(() =>
-  orders.appOrders.filter((o) => o.settlementMode === 'seller_self').sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  orders.appOrders.filter((o) => Boolean(o.sellerId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 )
 
 function flash(msg: string) {
@@ -49,7 +48,15 @@ function delist(productId: string) {
 function adminConfirm(orderId: string) {
   try {
     seller.adminConfirmSellerPayment(orderId)
-    flash('已代卖家确认到账')
+    flash('已确认平台到账，订单进入待开通')
+  } catch (e) {
+    flash(e instanceof Error ? e.message : '操作失败')
+  }
+}
+function adminActivate(orderId: string) {
+  try {
+    seller.adminActivateSellerOrder(orderId)
+    flash('已开通数据集查看')
   } catch (e) {
     flash(e instanceof Error ? e.message : '操作失败')
   }
@@ -61,7 +68,7 @@ function adminConfirm(orderId: string) {
     <div class="mb-4 flex items-end justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold text-slate-900">入驻商家</h1>
-        <p class="mt-1 text-sm text-slate-500">资质合规审 · 上架审 · 自收款订单监管（MVP）</p>
+        <p class="mt-1 text-sm text-slate-500">资质合规审 · 上架审 · 平台收款后由运营开通</p>
       </div>
       <div v-if="toast" class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">{{ toast }}</div>
     </div>
@@ -71,7 +78,7 @@ function adminConfirm(orderId: string) {
         v-for="item in [
           { id: 'access', label: `准入审核 (${seller.pendingAccess.length})` },
           { id: 'listing', label: `上架审核 (${seller.pendingListings.length})` },
-          { id: 'orders', label: `自收款订单 (${sellerOrders.filter(o => o.status === 'payment_pending_confirmation').length})` }
+          { id: 'orders', label: `商家订单 (${sellerOrders.filter(o => o.status === 'pending_payment' || o.status === 'pending_activation' || o.status === 'payment_pending_confirmation').length})` }
         ]"
         :key="item.id"
         class="rounded-lg px-3 py-2 text-sm"
@@ -121,7 +128,7 @@ function adminConfirm(orderId: string) {
               <th class="px-4 py-3">商品</th>
               <th class="px-4 py-3">卖家</th>
               <th class="px-4 py-3">对象版本</th>
-              <th class="px-4 py-3">价格</th>
+              <th class="px-4 py-3">价格（个人/企业）</th>
               <th class="px-4 py-3">状态</th>
               <th class="px-4 py-3">操作</th>
             </tr>
@@ -135,7 +142,7 @@ function adminConfirm(orderId: string) {
                 </td>
                 <td class="px-4 py-3">{{ l.sellerName }}</td>
                 <td class="px-4 py-3 text-slate-600">{{ l.artifactId }} @ {{ l.artifactVersion }}</td>
-                <td class="px-4 py-3">¥{{ l.price }}</td>
+                <td class="px-4 py-3">¥{{ l.price }} / ¥{{ l.enterprisePrice }}</td>
                 <td class="px-4 py-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ l.status }}</span></td>
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap gap-2">
@@ -143,7 +150,7 @@ function adminConfirm(orderId: string) {
                       class="rounded border px-2 py-1 text-xs"
                       :data-testid="`listing-shots-toggle-${l.id}`"
                       @click="expandedListingId = expandedListingId === l.id ? '' : l.id"
-                    >{{ expandedListingId === l.id ? '收起截图' : '查看截图' }}</button>
+                    >{{ expandedListingId === l.id ? '收起内容' : '查看上架内容' }}</button>
                     <button v-if="l.status === 'pending_review'" class="rounded bg-orange-500 px-2 py-1 text-xs text-white" @click="approveListing(l.id)">通过并发布</button>
                     <button v-if="l.status === 'pending_review'" class="rounded border px-2 py-1 text-xs" @click="rejectListing(l.id)">驳回</button>
                   </div>
@@ -151,8 +158,20 @@ function adminConfirm(orderId: string) {
               </tr>
               <tr v-if="expandedListingId === l.id" class="border-t border-slate-50 bg-slate-50/80">
                 <td colspan="6" class="px-4 py-3">
-                  <SellingShotGallery :shots="l.shots" :custom-shots="l.customShots" compact />
-                  <div v-if="!l.shots?.length && !l.customShots?.length" class="text-xs text-slate-400">未上传卖点截图</div>
+                  <div v-if="l.catalogSpec" class="mb-3 grid grid-cols-2 gap-2 text-xs text-slate-600" data-testid="listing-catalog-spec">
+                    <div>数据粒度：{{ l.catalogSpec.granularity || '—' }}</div>
+                    <div>时间范围：{{ l.catalogSpec.timeRange || '—' }}</div>
+                    <div>数据行数：{{ l.catalogSpec.rowCount ?? '—' }}</div>
+                    <div>字段数：{{ l.catalogSpec.fields.length }}</div>
+                    <div>地域范围：{{ l.catalogSpec.coverage }}</div>
+                    <div>更新频率：{{ l.catalogSpec.updateFrequency }}</div>
+                    <div class="col-span-2">应用场景：{{ l.catalogSpec.scenarios.join('、') }}</div>
+                    <div class="col-span-2">价值主张：{{ l.catalogSpec.valueProposition }}</div>
+                    <div class="col-span-2">详细描述：{{ l.catalogSpec.description }}</div>
+                    <div class="col-span-2">质量承诺：{{ l.catalogSpec.qualityPromise }}</div>
+                    <div class="col-span-2">个人价：¥{{ l.price }} · 企业价：¥{{ l.enterprisePrice }}</div>
+                    <div class="col-span-2">合规声明：{{ l.catalogSpec.complianceNote }}</div>
+                  </div>
                 </td>
               </tr>
             </template>
@@ -206,13 +225,24 @@ function adminConfirm(orderId: string) {
             </td>
             <td class="px-4 py-3">{{ o.productName }}</td>
             <td class="px-4 py-3">¥{{ o.amount }}</td>
-            <td class="px-4 py-3">{{ o.status }}</td>
+            <td class="px-4 py-3">
+              <span v-if="o.status === 'pending_activation'" class="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">待开通</span>
+              <span v-else-if="o.status === 'pending_payment'" class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">待支付</span>
+              <span v-else-if="o.status === 'entitlement_active'" class="rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">已开通</span>
+              <span v-else class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ o.status }}</span>
+            </td>
             <td class="px-4 py-3">
               <button
-                v-if="o.status === 'payment_pending_confirmation'"
+                v-if="o.status === 'pending_payment' || o.status === 'payment_pending_confirmation'"
                 class="rounded bg-orange-500 px-2 py-1 text-xs text-white"
                 @click="adminConfirm(o.id)"
-              >代确认到账</button>
+              >确认平台到账</button>
+              <button
+                v-else-if="o.status === 'pending_activation'"
+                class="rounded bg-orange-500 px-2 py-1 text-xs text-white"
+                data-testid="seller-admin-activate"
+                @click="adminActivate(o.id)"
+              >开通</button>
             </td>
           </tr>
         </tbody>

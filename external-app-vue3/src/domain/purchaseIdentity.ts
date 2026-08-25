@@ -35,6 +35,11 @@ export function currentPurchaseIdentity(user: UserLike, options?: { forcePersona
   return { subject, typeLabel: '个人', name: user.context.name }
 }
 
+/** 试用申请「当前企业」回填：企业身份用企业名，个人身份固定写「个人」。 */
+export function currentIntentPartyName(user: UserLike): string {
+  return currentPurchaseSubject(user) === 'enterprise' ? user.enterprise.name : '个人'
+}
+
 export function datasetPaymentPath(orderId: string, portal: boolean): string {
   return portal ? `/portal/payment/dataset/${orderId}` : `/app/payment/dataset/${orderId}`
 }

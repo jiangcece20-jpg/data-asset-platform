@@ -257,4 +257,22 @@ describe('catalog store — resource extensions', () => {
     expect(federated.length).toBeGreaterThan(0)
     expect(federated.every((p) => p.spaceKind === 'federated')).toBe(true)
   })
+
+  it('filters by list venue and ops chips', () => {
+    const catalog = useCatalogStore()
+    const platform = catalog.search('', { venue: 'platform' })
+    expect(platform.length).toBeGreaterThan(0)
+    expect(platform.every((p) => !p.spaceName && p.origin !== 'seller_market')).toBe(true)
+    const hot = catalog.search('', { ops: '热门' })
+    expect(hot.length).toBeGreaterThan(0)
+    expect(hot.every((p) => p.recommendSlot || p.tags.includes('热门') || p.tags.includes('热门数据集'))).toBe(true)
+  })
+
+  it('finds seller-listed datasets by type and venue', () => {
+    const catalog = useCatalogStore()
+    const results = catalog.search('', { type: 'dataset', venue: 'seller' })
+    expect(results.map((p) => p.id)).toEqual(expect.arrayContaining(['prod-seller-route-board', 'prod-seller-warehouse-board']))
+    expect(results.every((p) => p.type === 'dataset' && p.origin === 'seller_market')).toBe(true)
+    expect(catalog.search('干线时效', { type: 'dataset' }).some((p) => p.id === 'prod-seller-route-board')).toBe(true)
+  })
 })

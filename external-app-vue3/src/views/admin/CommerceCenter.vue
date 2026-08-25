@@ -55,7 +55,7 @@ function addMonths(dateValue: string, months: number): string | undefined {
 function soldOrders(product: Product) {
   return orders.list.filter((order) =>
     order.productId === product.id
-    && (order.status === 'paid' || order.status === 'entitlement_active')
+    && (order.status === 'paid' || order.status === 'pending_activation' || order.status === 'entitlement_active')
   )
 }
 

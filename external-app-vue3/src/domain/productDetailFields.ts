@@ -91,7 +91,6 @@ export function resourceInfoFields(
   if (product.origin === 'seller_market') {
     push(items, field('入驻卖家', product.sellerName || product.provider))
     push(items, field('数据来源声明', product.dataProvenance === 'derived' ? '已购衍生（受源许可约束）' : '自有数据'))
-    push(items, field('结算方式', '卖家自收款（确认到账后开通）'))
   }
   if (opts.includeDepartment) {
     push(items, field('部门', m?.department, { synced }))

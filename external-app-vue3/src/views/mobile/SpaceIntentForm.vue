@@ -3,7 +3,8 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
-import { USER_INTENT_HINT } from '@/domain/spaceIntent'
+import { SPACE_TRIAL_APPLY_LABEL, USER_INTENT_HINT } from '@/domain/spaceIntent'
+import { currentIntentPartyName, currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useUserStore } from '@/stores/user'
 
@@ -20,7 +21,7 @@ const submitted = ref(false)
 const contactName = ref(user.context.name)
 const contactPhone = ref('')
 const scenario = ref('')
-const requestedEnterpriseName = ref('')
+const currentEnterprise = computed(() => currentIntentPartyName(user))
 
 function submit() {
   if (!user.context.loggedIn || !product.value) return
@@ -29,8 +30,8 @@ function submit() {
     contactName: contactName.value,
     contactPhone: contactPhone.value,
     scenario: scenario.value,
-    enterpriseId: user.isEnterpriseAuthenticated ? user.context.currentEnterpriseId : undefined,
-    requestedEnterpriseName: requestedEnterpriseName.value.trim() || undefined
+    enterpriseId: currentPurchaseSubject(user) === 'enterprise' ? user.context.currentEnterpriseId : undefined,
+    requestedEnterpriseName: currentEnterprise.value
   })
   submitted.value = true
 }
@@ -43,7 +44,7 @@ function goMine() {
 
 <template>
   <div class="min-h-full bg-slate-50 pb-8">
-    <MobileHeader title="提交意向单" />
+    <MobileHeader :title="SPACE_TRIAL_APPLY_LABEL" />
 
     <div class="px-4 pt-3">
       <div v-if="!user.context.loggedIn" class="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-card">
@@ -62,9 +63,6 @@ function goMine() {
       <div v-else-if="product" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
         <div class="text-[14px] font-semibold text-slate-900">{{ product.name }}</div>
         <div class="mt-1 text-[12px] text-slate-500">{{ USER_INTENT_HINT }}</div>
-        <div v-if="user.isEnterpriseAuthenticated" class="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
-          本企业：{{ user.enterprise.name }}
-        </div>
         <div class="mt-3 space-y-3 text-[13px]">
           <div>
             <div class="mb-1 text-[11px] text-slate-400">联系人</div>
@@ -79,15 +77,17 @@ function goMine() {
             <textarea v-model="scenario" data-testid="scenario" rows="3" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] focus:outline-none" />
           </div>
           <div>
-            <div class="mb-1 text-[11px] text-slate-400">希望落到的企业名称（选填）</div>
-            <input v-model="requestedEnterpriseName" data-testid="requested-enterprise" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] focus:outline-none" />
+            <div class="mb-1 text-[11px] text-slate-400">当前企业</div>
+            <div data-testid="requested-enterprise" class="rounded-lg bg-slate-50 px-3 py-2 text-[13px] text-slate-800">
+              {{ currentEnterprise }}
+            </div>
           </div>
         </div>
         <button
           data-testid="submit-intent"
           class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
           @click="submit"
-        >提交意向单</button>
+        >{{ SPACE_TRIAL_APPLY_LABEL }}</button>
       </div>
 
       <div v-else class="p-6 text-center text-sm text-slate-400">商品不存在</div>

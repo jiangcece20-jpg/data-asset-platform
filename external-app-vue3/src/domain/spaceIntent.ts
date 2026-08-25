@@ -1,7 +1,9 @@
-import type { Product } from '@/types/domain'
 import type { SpaceIntentOpsStatus, SpaceIntentUserStatus } from '@/types/spaceIntent'
 
 export const OWNED_SPACE_NAME = '万联易达可信空间'
+
+/** 详情页报价按钮文案；提交后仍生成运营侧意向单。 */
+export const SPACE_TRIAL_APPLY_LABEL = '提交试用申请'
 
 export const USER_INTENT_HINT =
   '提交后先不付款。确认企业、确认方案、线下试用都在线下完成，系统不记录这些节点。运营确认到账后会出现在「买数」订单里。'
@@ -23,14 +25,6 @@ export function userStatusOf(ops: SpaceIntentOpsStatus): SpaceIntentUserStatus {
   if (ops === 'unclaimed') return 'submitted'
   if (ops === 'closed') return 'closed'
   return 'processing'
-}
-
-export function publicSpaceChips(product: Product): string[] {
-  const chips: string[] = []
-  if (product.dealChannel === 'space_purchase' && product.spaceName) chips.push(product.spaceName)
-  if (product.type === 'dataset' && product.hasSampleData) chips.push('有样例')
-  if (product.type === 'api' && product.hasTrialApi) chips.push('有试用接口')
-  return chips
 }
 
 export function canConfirmPayment(intent: { enterpriseId?: string }): boolean {

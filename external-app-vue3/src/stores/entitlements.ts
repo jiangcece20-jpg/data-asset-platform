@@ -300,6 +300,43 @@ export const useEntitlementStore = defineStore('entitlements', {
         status: 'active'
       })
     },
+    /** 入驻商家数据集：运营手动开通后可查看，不走 BI 交付。 */
+    grantSellerDataset(options: {
+      product: Product
+      orderId: string
+      ownerType: 'personal' | 'enterprise'
+      ownerId: string
+      operatorMemberId: string
+      offerId: string
+      selectedTermMonths?: number
+    }) {
+      const months = options.selectedTermMonths || salePeriodMonthsOf(options.product)
+      const termEnd = plusMonths(months)
+      const entitlement: Entitlement = {
+        id: genId('ent-seller'),
+        source: options.ownerType,
+        type: 'dataset',
+        ownerId: options.ownerId,
+        enterpriseId: options.ownerType === 'enterprise' ? options.ownerId : undefined,
+        productId: options.product.id,
+        orderId: options.orderId,
+        commerceOfferId: options.offerId,
+        serviceMode: 'one_time',
+        selectedTermMonths: options.selectedTermMonths,
+        accessScope: options.ownerType === 'enterprise' ? 'enterprise_wide' : 'personal',
+        assignedMemberIds: [options.operatorMemberId],
+        allowDownload: false,
+        validFrom: now(),
+        validTo: termEnd,
+        updateValidTo: termEnd,
+        status: 'active'
+      }
+      this.list.push(entitlement)
+      if (options.ownerType === 'enterprise') {
+        useUserStore().grantEnterpriseEntitlement(options.product.id)
+      }
+      return entitlement
+    },
     grantDatasetPending(options: {
       product: Product
       orderId: string

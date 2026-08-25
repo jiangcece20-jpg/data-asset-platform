@@ -60,11 +60,6 @@ function setSubjectFilter(next: MineOrderSubjectFilter) {
   void router.replace({ query: { ...route.query, subject: next === 'all' ? undefined : (next as MineSubject) } })
 }
 
-function goProduct(order: MyOrderCard) {
-  const basePath = props.layout === 'portal' ? '/portal' : '/app'
-  router.push(`${basePath}/product/${order.productId}`)
-}
-
 function pay(order: MyOrderCard) {
   if (!order.paymentPath) return
   const path = props.layout === 'portal' ? order.paymentPath.replace(/^\/app\//, '/portal/') : order.paymentPath
@@ -81,10 +76,6 @@ function openBills() {
     return
   }
   router.push({ path: '/app/enterprise-auth', query: { redirect: '/app/mine/enterprise/bills' } })
-}
-
-function viewPurchasedData() {
-  selectMenu('data')
 }
 
 const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
@@ -149,12 +140,10 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :order-tab="state.orderTab"
         variant="mobile"
         :subject-filter="subjectFilter"
-        :go-product="goProduct"
         :pay="pay"
         :open-bills="openBills"
         @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
-        @view-purchased-data="viewPurchasedData"
       />
       <DataPanel
         v-else-if="state.menu === 'data'"
@@ -217,12 +206,10 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :order-tab="state.orderTab"
         variant="portal"
         :subject-filter="subjectFilter"
-        :go-product="goProduct"
         :pay="pay"
         :open-bills="openBills"
         @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
-        @view-purchased-data="viewPurchasedData"
       />
       <DataPanel
         v-else-if="state.menu === 'data'"

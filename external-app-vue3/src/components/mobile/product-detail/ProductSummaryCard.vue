@@ -1,27 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Product } from '@/types/domain'
-import StatusBadge from '@/components/StatusBadge.vue'
-import { typeMeta, dealChannelMeta, originMeta } from '@/utils/productMeta'
-import { publicSpaceChips } from '@/domain/spaceIntent'
+import ProductChips from '@/components/shared/ProductChips.vue'
+import { originMeta } from '@/utils/productMeta'
+import { productTopicTags } from '@/domain/productListChips'
 
 const props = defineProps<{ product: Product; title: string }>()
-const spaceChips = computed(() => publicSpaceChips(props.product))
+const topicTags = computed(() => productTopicTags(props.product))
 </script>
 
 <template>
   <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-    <div class="mb-2 flex flex-wrap items-center gap-1.5">
-      <span class="tag-chip">{{ typeMeta[product.type].icon }} {{ typeMeta[product.type].label }}</span>
-      <span class="rounded-full px-2 py-0.5 text-xs" :class="dealChannelMeta[product.dealChannel].tone">{{ dealChannelMeta[product.dealChannel].label }}</span>
-      <StatusBadge dict="availability" :value="product.availability" />
+    <div class="mb-2">
+      <ProductChips :product="product" show-trial />
     </div>
     <div class="text-[17px] font-semibold text-slate-900">{{ title }}</div>
     <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
 
-    <div v-if="spaceChips.length || product.tags?.length" class="mt-2 flex flex-wrap gap-1.5">
-      <span v-for="chip in spaceChips" :key="'chip-' + chip" class="tag-chip">{{ chip }}</span>
-      <span v-for="tag in product.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+    <div v-if="topicTags.length" class="mt-2 flex flex-wrap gap-1.5">
+      <span v-for="tag in topicTags" :key="tag" class="tag-chip">{{ tag }}</span>
     </div>
 
     <div class="mt-3 grid grid-cols-2 gap-2 text-[12px] text-slate-500">

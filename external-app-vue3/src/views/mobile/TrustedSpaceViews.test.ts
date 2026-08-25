@@ -374,8 +374,8 @@ describe('mine order views', () => {
     expect(wrapper.text()).toContain('本人个人订单')
     expect(wrapper.text()).not.toContain('其他成员个人订单')
     expect(wrapper.text()).toContain('企业 APP 订单')
-    expect(wrapper.text()).toContain('SP-ORDER-MINE')
-    expect(wrapper.text()).not.toContain('SP-ORDER-OTHER')
+    expect(wrapper.find('[data-testid="order-card-space-SP-ORDER-MINE"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-card-space-SP-ORDER-OTHER"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('APP 内购买')
     expect(wrapper.text()).toContain('可信空间购买')
   })
@@ -393,8 +393,8 @@ describe('mine order views', () => {
     user.completeEnterpriseAuth()
     const wrapper = await mountMine({}, '/app/mine?tab=orders&subject=enterprise&from=enterprise-center')
     expect(wrapper.find('[data-testid="enterprise-order-filter-context"]').text()).toContain(user.enterprise.name)
-    expect(wrapper.text()).toContain('order-enterprise-dataset-001')
-    expect(wrapper.text()).not.toContain('order-history-001')
+    expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-card-app-order-history-001"]').exists()).toBe(false)
   })
 
   it('shows enterprise content only for the current enterprise active assigned member', async () => {

@@ -1,4 +1,4 @@
-/** 卖家上架：报表卖点截图模版（截哪、为什么能卖、校验） */
+/** 卖家上架：数据预览截图模版（截哪、为什么能卖、校验） */
 
 export type SellingShotSlot = 'overview' | 'kpi' | 'trend' | 'finding'
 
@@ -24,8 +24,8 @@ export const SELLING_SHOT_SLOTS: SellingShotSlotDef[] = [
     order: 1,
     name: '总览一屏',
     required: true,
-    crop: '截报表打开后的第一屏：筛选条 + 指标卡 + 1～2 张主图，保留完整上下文。',
-    why: '3 秒看懂这是一张能干活的完整报表，不是单张图。',
+    crop: '截数据集打开后的第一屏：筛选条 + 指标卡 + 1～2 张主图，保留完整上下文。',
+    why: '3 秒看懂这是一份能干活的完整数据集，不是单张图。',
     exampleCaption: '华东干线时效一屏看准点率、平均时效与延误热点'
   },
   {
@@ -42,7 +42,7 @@ export const SELLING_SHOT_SLOTS: SellingShotSlotDef[] = [
     order: 3,
     name: '趋势或对比',
     required: false,
-    crop: '截最能代表这份报表的一张图：时间趋势、线路/区域对比或排名。图例和单位留在画面里。',
+    crop: '截最能代表这份数据集的一张图：时间趋势、线路/区域对比或排名。图例和单位留在画面里。',
     why: '证明有分析深度，不是静态汇总。',
     exampleCaption: '近 30 天准点率从 88% 升至 91%，沪宁线改善最明显'
   },

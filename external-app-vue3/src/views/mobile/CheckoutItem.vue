@@ -26,16 +26,18 @@ const isSellerMarket = computed(() => product.value?.origin === 'seller_market')
 const checkoutAllowed = computed(() => product.value?.dealChannel === 'app_payment' && product.value.acquisitions.includes('item_purchase'))
 const paid = ref(false)
 const submitting = ref(false)
-const subject = computed(() => currentPurchaseSubject(user, { forcePersonal: isSellerMarket.value }))
-const identity = computed(() => currentPurchaseIdentity(user, { forcePersonal: isSellerMarket.value }))
+const subject = computed(() => currentPurchaseSubject(user))
+const identity = computed(() => currentPurchaseIdentity(user))
 const enterpriseMode = ref<'online' | 'contract'>('online')
 const offer = computed(() => product.value ? commerceOffersOf(product.value).find((item) => item.subject === subject.value) : undefined)
 const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
 const listPrice = computed(() => offer.value?.price ?? 0)
-const amount = computed(() => product.value
-  ? memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
-  : listPrice.value)
-const memberPriced = computed(() => amount.value < listPrice.value)
+const amount = computed(() => {
+  if (!product.value) return listPrice.value
+  if (isSellerMarket.value) return listPrice.value
+  return memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
+})
+const memberPriced = computed(() => !isSellerMarket.value && amount.value < listPrice.value)
 
 watch(checkoutAllowed, (allowed) => {
   if (!allowed) router.replace(`/app/product/${id.value}`)
@@ -48,9 +50,20 @@ const entitlementNote = computed(() => {
 })
 
 const identityNote = computed(() => {
-  if (isSellerMarket.value) return '入驻商家商品仅支持个人购买，按当前可用来源完成付款。'
+  if (isSellerMarket.value && subject.value === 'enterprise') {
+    return '本单打款到平台。在线支付后订单进入待开通，由运营开通后可查看；合同采购先待平台确认到账。不走会员价。'
+  }
+  if (isSellerMarket.value) return '本单打款到平台，支付后订单进入待开通，由运营开通后可查看。不走会员价。'
   if (subject.value === 'enterprise') return '本单归属当前企业，可选择在线支付或合同采购。'
   return '本单归属当前个人，支付后仅本人可使用。'
+})
+
+const paidTitle = computed(() => {
+  if (isSellerMarket.value && subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
+    return '已提交合同采购，待平台确认到账后进入待开通'
+  }
+  if (isSellerMarket.value) return '支付成功，订单待运营开通'
+  return '支付成功，已解锁本商品'
 })
 
 function confirmPurchase() {
@@ -60,7 +73,8 @@ function confirmPurchase() {
     if (isSellerMarket.value) {
       sellerMarket.purchaseSellerProduct(
         id.value,
-        offer.value.id
+        offer.value.id,
+        subject.value === 'enterprise' ? enterpriseMode.value : 'online'
       )
       paid.value = true
       return
@@ -113,7 +127,7 @@ function goBackToContext() {
           购买周期：{{ entitlementNote }} · 下载/导出：{{ product.type === 'report' ? '会员可合规下载 PDF' : '暂不支持导出' }} · 授权范围：{{ product.deliveryMethod }}
         </div>
         <div v-if="isSellerMarket" class="mt-3 rounded-lg border border-orange-100 bg-orange-50 p-3 text-[12px] leading-relaxed text-orange-800">
-          入驻商家自收款：你标记付款后，需卖家确认到账才会开通看板权益。平台不代收、不垫资。
+          买家打款到平台。支付成功后订单为「待开通」，由运营开通后才可查看。平台按合同与卖家结算，本商品不享受会员价。
         </div>
         <PurchaseIdentityBanner class="mt-3" :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
 
@@ -163,9 +177,9 @@ function goBackToContext() {
       <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">{{ isSellerMarket ? '⏳' : '🎉' }}</div>
         <div class="mt-2 text-[14px] font-medium text-emerald-700">
-          {{ isSellerMarket ? '已提交付款，待卖家确认到账后开通' : '支付成功，已解锁本商品' }}
+          {{ paidTitle }}
         </div>
-        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="isSellerMarket ? router.replace('/app/mine') : goBackToContext()">
+        <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="isSellerMarket ? router.replace({ path: '/app/mine', query: { tab: 'orders' } }) : goBackToContext()">
           {{ isSellerMarket ? '查看我的订单' : returnQ ? '回到原问题解锁完整回答' : '查看内容' }}
         </button>
       </div>

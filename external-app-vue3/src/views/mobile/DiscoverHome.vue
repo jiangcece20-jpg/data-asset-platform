@@ -38,7 +38,7 @@ function goType(type: ProductType) {
 }
 
 function goSellerMarket() {
-  router.push({ path: '/app/search', query: { origin: 'seller_market', type: 'dashboard' } })
+  router.push({ path: '/app/search', query: { type: 'dataset', venue: 'seller' } })
 }
 </script>
 
@@ -146,8 +146,8 @@ function goSellerMarket() {
       </div>
       <button class="mt-2 flex w-full items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2.5 text-left" @click="goSellerMarket">
         <div>
-          <div class="text-[13px] font-medium text-orange-800">入驻商家看板</div>
-          <div class="mt-0.5 text-[11px] text-orange-700/80">来源筛选 · 卖家自收款开通</div>
+          <div class="text-[13px] font-medium text-orange-800">入驻商家数据集</div>
+          <div class="mt-0.5 text-[11px] text-orange-700/80">按卖家成交位置查看 · 平台收款开通</div>
         </div>
         <span class="text-orange-600">›</span>
       </button>

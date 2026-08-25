@@ -23,9 +23,20 @@ describe('PortalProductDetail space intent CTA', () => {
   it('shows submit-intent as the primary action for space products', async () => {
     const wrapper = await mountProductDetail('prod-qualification-api')
     const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('提交意向单')
+    expect(primary.text()).toBe('提交试用申请')
     expect(wrapper.text()).not.toContain('前往可信空间购买')
     expect(wrapper.text()).not.toContain('个人身份不能下单')
+  })
+
+  it('shows the space dataset sync material wall like space APIs', async () => {
+    const wrapper = await mountProductDetail('prod-space-port-throughput')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('提交试用申请')
+    expect(wrapper.get('[data-testid="trusted-space-purchase-eligibility"]').text()).toContain('提交试用申请')
+    expect(wrapper.get('[data-testid="detail-provider"]').text()).toContain('提供方信息')
+    expect(wrapper.get('[data-testid="detail-compliance"]').text()).toContain('合法合规声明')
+    expect(wrapper.get('[data-testid="space-billing-rules"]').text()).toContain('计费规则')
+    expect(wrapper.text()).toContain('来自可信空间')
+    expect(wrapper.text()).toContain('覆盖某省主要港口的集装箱与货物吞吐量指标')
   })
 })
 

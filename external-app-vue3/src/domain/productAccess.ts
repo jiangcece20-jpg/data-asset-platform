@@ -1,8 +1,9 @@
-import type { AcquisitionOption, AvailabilityStatus, StandardProductType } from '@/types/domain'
+import type { AcquisitionOption, AvailabilityStatus, ProductOrigin, StandardProductType } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedPurchaseCheck } from '@/types/trustedSpace'
 import type { PurchaseIdentitySubject } from '@/domain/purchaseIdentity'
 import { formatYuan, type ProductMemberBenefit } from '@/domain/membership'
+import { SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
 
 export type ProductActionKey =
   | 'view'
@@ -39,6 +40,7 @@ export interface ProductActionContext {
   itemPrice?: number
   memberItemPrice?: number
   discountZhe?: number
+  origin?: ProductOrigin
 }
 
 export function resolveProductActions(context: ProductActionContext): {
@@ -68,10 +70,13 @@ export function resolveProductActions(context: ProductActionContext): {
     return { primary: { key: 'unavailable', label: context.availability === 'paused' ? '暂停销售' : '已下架', disabled: true } }
   }
   if (context.acquisitions.includes('space_purchase')) {
-    return { primary: { key: 'submit_space_intent', label: '提交意向单' } }
+    return { primary: { key: 'submit_space_intent', label: SPACE_TRIAL_APPLY_LABEL } }
   }
   if (context.acquisitions.includes('free')) return { primary: { key: 'free_view', label: '免费查看' } }
   if (context.type === 'dataset' && context.acquisitions.includes('item_purchase')) {
+    if (context.origin === 'seller_market') {
+      return { primary: { key: 'item_purchase', label: '购买数据集' } }
+    }
     return { primary: { key: 'dataset_purchase', label: '购买数据集' } }
   }
   if (context.acquisitions.includes('member')) {

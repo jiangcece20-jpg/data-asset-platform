@@ -29,6 +29,7 @@ describe('SpaceIntentForm', () => {
     await wrapper.get('[data-testid="contact-name"]').setValue('陈静')
     await wrapper.get('[data-testid="contact-phone"]').setValue('13800000000')
     await wrapper.get('[data-testid="scenario"]').setValue('司机核验')
+    expect(wrapper.get('[data-testid="requested-enterprise"]').text()).toBe('个人')
     await wrapper.get('[data-testid="submit-intent"]').trigger('click')
     await flushPromises()
 
@@ -36,7 +37,9 @@ describe('SpaceIntentForm', () => {
     expect(store.list).toHaveLength(1)
     expect(store.list[0]).toMatchObject({
       productId: 'prod-qualification-api',
-      opsStatus: 'unclaimed'
+      opsStatus: 'unclaimed',
+      requestedEnterpriseName: '个人',
+      enterpriseId: undefined
     })
     expect(wrapper.text()).toContain('已提交')
   })
@@ -47,5 +50,22 @@ describe('SpaceIntentForm', () => {
     expect(wrapper.text()).toContain('请先登录')
     expect(wrapper.find('[data-testid="submit-intent"]').exists()).toBe(false)
     expect(useSpaceIntentStore().list).toHaveLength(0)
+  })
+
+  it('fills the current enterprise from the active identity and does not allow editing', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const wrapper = await mountForm()
+    expect(wrapper.get('[data-testid="requested-enterprise"]').text()).toBe('万联供应链管理有限公司')
+    expect(wrapper.find('input[data-testid="requested-enterprise"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="contact-phone"]').setValue('13800000000')
+    await wrapper.get('[data-testid="scenario"]').setValue('企业核验')
+    await wrapper.get('[data-testid="submit-intent"]').trigger('click')
+    await flushPromises()
+
+    expect(useSpaceIntentStore().list[0]).toMatchObject({
+      requestedEnterpriseName: '万联供应链管理有限公司',
+      enterpriseId: 'ent-wanlian-logistics'
+    })
   })
 })
