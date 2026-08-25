@@ -23,7 +23,7 @@ npm run dev
 - `src/domain/productAccess.ts` 商品主动作纯函数决策层
 - `src/stores/` Pinia store：catalog / user / entitlements / orders / trials / demand / approval / ai / listingRequests
 - `src/components/mobile/product-detail/` 类型化详情组件（ProductDetailTabs / ProductSummaryCard / ProductPrimaryAction / ContentGate / DatasetDetail / ApiDetail / ReportDetail / DashboardDetail）
-- `src/views/mobile/` 移动端页面（找数首页、问答案、找数据、商品详情、企业认证、APP/空间购买、需求提交、求上架、我的等）
+- `src/views/mobile/` 移动端页面（找数首页、问答案、找数据、商品详情、企业认证、空间意向单、需求提交、求上架、我的等）
 - `src/views/admin/` PC 运营后台七个业务域页面
 - `src/layouts/` 手机壳（PhoneShell）与后台侧边栏（AdminShell）
 
