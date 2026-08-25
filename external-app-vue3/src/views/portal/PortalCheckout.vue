@@ -1,56 +1,45 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import PurchaseIdentityBanner from '@/components/shared/PurchaseIdentityBanner.vue'
+import { currentPurchaseIdentity, currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import { typeMeta } from '@/utils/productMeta'
+import { useEntitlementStore } from '@/stores/entitlements'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
 const orders = useOrderStore()
 const user = useUserStore()
+const entitlements = useEntitlementStore()
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const paid = ref(false)
 const submitting = ref(false)
 const purpose = ref('')
-const enterpriseEligible = computed(() =>
-  user.isEnterpriseAuthenticated
-  && Boolean(user.context.currentEnterpriseId)
-  && Boolean(user.currentEnterpriseMember)
-)
-const subject = ref<'personal' | 'enterprise'>(enterpriseEligible.value ? 'enterprise' : 'personal')
+const subject = computed(() => currentPurchaseSubject(user))
+const identity = computed(() => currentPurchaseIdentity(user))
 const enterpriseMode = ref<'online' | 'contract'>('online')
-const confirmationSubject = ref<'personal' | 'enterprise' | null>(null)
 const offer = computed(() => product.value ? commerceOffersOf(product.value).find((item) => item.subject === subject.value) : undefined)
 const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
-const amount = computed(() => offer.value?.price ?? 0)
-const subjectName = computed(() => subject.value === 'enterprise' ? user.enterprise.name : user.context.name)
-const subjectLabel = computed(() => subject.value === 'enterprise' ? '企业' : '个人')
-
-function selectSubject(next: 'personal' | 'enterprise') {
-  if (submitting.value) return
-  if (next === 'enterprise' && !enterpriseEligible.value) return
-  if (subject.value !== next) {
-    orders.invalidateEnterpriseReportCheckoutIntents(id.value)
-    confirmationSubject.value = null
-  }
-  subject.value = next
-}
-
-function requestConfirmation() {
-  if (submitting.value || !offer.value || (subject.value === 'enterprise' && !enterpriseEligible.value)) return
-  confirmationSubject.value = subject.value
-}
+const listPrice = computed(() => offer.value?.price ?? 0)
+const amount = computed(() => product.value
+  ? memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
+  : listPrice.value)
+const memberPriced = computed(() => amount.value < listPrice.value)
+const identityNote = computed(() => subject.value === 'enterprise'
+  ? '本单归属当前企业，可选择在线支付或合同采购。'
+  : '本单归属当前个人，支付后仅本人可使用。')
 
 function confirmPurchase() {
-  if (submitting.value || paid.value || !product.value || !offer.value || confirmationSubject.value !== subject.value) return
+  if (submitting.value || paid.value || !product.value || !offer.value) return
   submitting.value = true
-  confirmationSubject.value = null
   try {
     if (subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
       const intent = orders.createEnterpriseReportCheckoutIntent(id.value, enterpriseMode.value, {
@@ -94,17 +83,17 @@ function confirmPurchase() {
               </div>
             </div>
 
-          <div>
-            <div class="mb-2 text-sm font-medium text-slate-700">购买主体</div>
-            <div class="grid grid-cols-2 gap-2">
-              <button class="rounded-lg border p-3 text-left text-sm disabled:opacity-50" :class="subject === 'personal' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="selectSubject('personal')">个人购买<div class="mt-1 text-xs text-slate-400">{{ user.context.name }} · 仅本人使用</div></button>
-              <button class="rounded-lg border p-3 text-left text-sm disabled:opacity-50" :class="subject === 'enterprise' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="!enterpriseEligible || submitting" @click="selectSubject('enterprise')">企业购买<div class="mt-1 text-xs text-slate-400">{{ enterpriseEligible ? user.enterprise.name : '认证后可选' }}</div></button>
-            </div>
-          </div>
+            <PurchaseIdentityBanner :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
 
             <div v-if="offer" class="rounded-lg border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
-              <div class="flex justify-between gap-2 text-sm"><span>{{ offer.name }}</span><strong class="text-brand-600">¥{{ offer.price.toLocaleString() }}</strong></div>
-              <div class="mt-1 text-xs text-slate-400">按当前购买主体展示，不与另一主体价格混用。</div>
+              <div class="flex justify-between gap-2 text-sm">
+                <span>{{ memberPriced ? '会员价' : offer.name }}</span>
+                <strong class="text-brand-600">
+                  <span v-if="memberPriced" class="mr-2 text-xs font-normal text-slate-400 line-through">{{ formatYuan(listPrice) }}</span>
+                  {{ formatYuan(amount) }}
+                </strong>
+              </div>
+              <div class="mt-1 text-xs text-slate-400">{{ memberPriced ? '当前身份会员生效，本单按会员折扣计价。' : '按当前登录身份展示对应价格，支付页不再切换主体。' }}</div>
             </div>
 
             <div>
@@ -116,8 +105,8 @@ function confirmPurchase() {
                   <div class="mt-1 text-xs text-slate-400">创建订单后锁定，不支持选择周期或数据截止日期。</div>
                 </div>
                 <div v-if="subject === 'enterprise'" class="grid grid-cols-2 gap-2">
-                  <button class="rounded-lg border p-2 text-sm disabled:opacity-50" :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="enterpriseMode = 'online'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null">在线支付</button>
-                  <button class="rounded-lg border p-2 text-sm disabled:opacity-50" :class="enterpriseMode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="enterpriseMode = 'contract'; orders.invalidateEnterpriseReportCheckoutIntents(id); confirmationSubject = null">合同采购</button>
+                  <button class="rounded-lg border p-2 text-sm disabled:opacity-50" :class="enterpriseMode === 'online' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="enterpriseMode = 'online'; orders.invalidateEnterpriseReportCheckoutIntents(id)">在线支付</button>
+                  <button class="rounded-lg border p-2 text-sm disabled:opacity-50" :class="enterpriseMode === 'contract' ? 'border-brand-500 bg-brand-50' : 'border-slate-200'" :disabled="submitting" @click="enterpriseMode = 'contract'; orders.invalidateEnterpriseReportCheckoutIntents(id)">合同采购</button>
                 </div>
                 <div>
                   <label class="mb-1 block text-xs text-slate-400">使用用途</label>
@@ -128,33 +117,6 @@ function confirmPurchase() {
                   />
                 </div>
               </div>
-            </div>
-
-            <!-- 购买主体确认信息 -->
-            <div class="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-              购买主体：{{ subjectName }}
-            </div>
-
-            <!-- 二次确认步骤 -->
-            <button
-              v-if="confirmationSubject !== subject"
-              class="mt-4 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-              :disabled="submitting || !offer"
-              @click="requestConfirmation"
-            >
-              确认以{{ subjectLabel }}名义{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
-            </button>
-            <div v-else class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <div class="text-sm text-amber-800">请再次确认：本订单将归属 {{ subjectName }}</div>
-              <div class="mt-1 text-sm text-amber-800">应付金额：¥{{ amount.toLocaleString() }}</div>
-              <div class="mt-1 text-sm text-amber-800">购买周期：{{ purchasePeriodMonths }} 个月</div>
-              <button
-                class="mt-3 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-                :disabled="submitting"
-                @click="confirmPurchase"
-              >
-                确认使用{{ subjectName }}{{ subject === 'enterprise' && enterpriseMode === 'contract' ? '提交合同采购' : '购买' }}
-              </button>
             </div>
           </div>
         </div>
@@ -183,26 +145,31 @@ function confirmPurchase() {
               <span class="text-slate-700">{{ typeMeta[product.type].label }}</span>
             </div>
             <div class="flex justify-between">
+              <span class="text-slate-400">当前身份</span>
+              <span class="truncate text-slate-700">{{ identity.typeLabel }} · {{ identity.name }}</span>
+            </div>
+            <div class="flex justify-between">
               <span class="text-slate-400">购买周期</span>
               <span class="text-slate-700">{{ purchasePeriodMonths }} 个月</span>
             </div>
             <div class="border-t border-slate-100 pt-2">
               <div class="flex justify-between">
                 <span class="text-slate-400">原价</span>
-                <span class="text-slate-700">¥{{ amount.toLocaleString() }}</span>
+                <span class="text-slate-700">{{ formatYuan(listPrice) }}</span>
               </div>
               <div class="mt-1 flex justify-between">
                 <span class="text-slate-400">实付</span>
-                <span class="text-lg font-bold text-brand-600">¥{{ amount.toLocaleString() }}</span>
+                <span class="text-lg font-bold text-brand-600">{{ formatYuan(amount) }}</span>
               </div>
             </div>
           </div>
           <button
             v-if="!paid"
+            data-testid="purchase-final-confirm"
             class="mt-4 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-            :disabled="submitting"
+            :disabled="submitting || !offer"
             @click="confirmPurchase"
-          >确认购买</button>
+          >{{ subject === 'enterprise' && enterpriseMode === 'contract' ? `以${identity.name}提交合同采购` : `以${identity.name}支付` }}</button>
           <button
             v-if="!paid"
             class="mt-2 w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600"

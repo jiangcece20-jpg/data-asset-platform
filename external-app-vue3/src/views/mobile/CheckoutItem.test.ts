@@ -25,39 +25,52 @@ async function mountCheckout(productId = 'prod-logistics-monthly') {
 describe('CheckoutItem report purchase subject', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('keeps enterprise unavailable until the current member enters an authenticated enterprise', async () => {
+  it('pays once as the current personal identity without selecting a subject', async () => {
     const { wrapper } = await mountCheckout()
 
-    expect(wrapper.get('[data-testid="purchase-subject-name"]').text()).toContain('陈静')
-    expect(wrapper.get('[data-testid="purchase-subject-enterprise"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.text()).toContain('认证后可选')
-  })
+    expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('个人 · 陈静')
+    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="purchase-intent-confirm"]').exists()).toBe(false)
 
-  it('requires a fresh confirmation when the chosen report purchase subject changes', async () => {
-    const user = useUserStore()
-    user.completeEnterpriseAuth()
-    const { wrapper } = await mountCheckout()
-
-    expect(wrapper.get('[data-testid="purchase-subject-name"]').text()).toContain('万联供应链管理有限公司')
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
-    expect(wrapper.get('[data-testid="purchase-final-confirm"]').text()).toContain('万联供应链管理有限公司')
-
-    await wrapper.get('[data-testid="purchase-subject-personal"]').trigger('click')
-    expect(wrapper.find('[data-testid="purchase-final-confirm"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="purchase-subject-name"]').text()).toContain('陈静')
-
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
     await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
 
     const order = useOrderStore().list.at(-1)!
-    expect(order.ownerType).toBe('personal')
-    expect(order.ownerId).toBe('mem-1')
+    expect(order).toMatchObject({ ownerType: 'personal', ownerId: 'mem-1' })
   })
 
-  it('creates one enterprise online order and entitlement when the final confirmation is triggered twice immediately', async () => {
+  it('pays as the current enterprise identity and does not offer a personal switch', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountCheckout()
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('万联供应链管理有限公司')
+    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+
+    const order = useOrderStore().list.at(-1)!
+    expect(order.ownerType).toBe('enterprise')
+    expect(order.ownerId).toBe('ent-wanlian-logistics')
+  })
+
+  it('updates report payment modes when the prototype identity switches', async () => {
+    const { wrapper } = await mountCheckout()
+    expect(wrapper.text()).not.toContain('合同采购')
+
+    useUserStore().switchMockPurchaseIdentity('enterprise_admin')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('万联供应链管理有限公司')
+    expect(wrapper.text()).toContain('在线支付')
+    expect(wrapper.text()).toContain('合同采购')
+
+    useUserStore().switchMockPurchaseIdentity('personal')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('个人 · 陈静')
+    expect(wrapper.text()).not.toContain('合同采购')
+  })
+
+  it('creates one enterprise online order and entitlement when the pay button is triggered twice immediately', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper } = await mountCheckout()
     const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
 
     await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
@@ -66,10 +79,9 @@ describe('CheckoutItem report purchase subject', () => {
     expect(useOrderStore().list.at(-1)?.entitlementGranted).toBe(true)
   })
 
-  it('keeps the personal final confirmation idempotent when it is triggered twice immediately', async () => {
+  it('keeps the personal pay button idempotent when it is triggered twice immediately', async () => {
     const { wrapper } = await mountCheckout()
     const beforeOrders = useOrderStore().list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'personal').length
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
     const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
 
     await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
@@ -91,13 +103,12 @@ describe('CheckoutItem report purchase subject', () => {
     expect(useOrderStore().list).toHaveLength(beforeOrders)
   })
 
-  it('creates a bound enterprise contract checkout intent only after the final report confirmation', async () => {
+  it('creates a bound enterprise contract checkout intent after a single pay confirmation', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper, router } = await mountCheckout()
     const contract = wrapper.findAll('button').find((button) => button.text() === '合同采购')!
 
     await contract.trigger('click')
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
     await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
     await flushPromises()
 
@@ -112,7 +123,7 @@ describe('CheckoutItem report purchase subject', () => {
     })
   })
 
-  it('invalidates a prior enterprise checkout intent when the report subject or payment mode changes', async () => {
+  it('invalidates a prior enterprise checkout intent when the payment mode changes', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
     const store = useOrderStore()
@@ -121,21 +132,16 @@ describe('CheckoutItem report purchase subject', () => {
 
     await wrapper.findAll('button').find((button) => button.text() === '合同采购')!.trigger('click')
     expect(store.getEnterpriseReportCheckoutIntent(first.id, 'prod-logistics-monthly')).toBeUndefined()
-
-    const second = store.createEnterpriseReportCheckoutIntent('prod-logistics-monthly', 'contract')
-    await wrapper.get('[data-testid="purchase-subject-personal"]').trigger('click')
-    expect(store.getEnterpriseReportCheckoutIntent(second.id, 'prod-logistics-monthly')).toBeUndefined()
   })
 
   it('shows one subject price and locks the dashboard fixed purchase period', async () => {
     const { wrapper, router } = await mountCheckout('prod-freight-index')
 
     expect(router.currentRoute.value.name).toBe('checkout-item')
-    expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="purchase-identity"]').text()).toContain('个人 · 陈静')
     expect(wrapper.findAll('[data-testid="fixed-item-price"]')).toHaveLength(1)
     expect(wrapper.find('[data-testid="commerce-term-select"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="fixed-purchase-period"]').text()).toContain('12 个月（商品固定）')
-    await wrapper.get('[data-testid="purchase-intent-confirm"]').trigger('click')
     await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
 
     const order = useOrderStore().list.at(-1)!
@@ -146,6 +152,20 @@ describe('CheckoutItem report purchase subject', () => {
       serviceMode: 'one_time',
       selectedTermMonths: 12,
       amount: 199
+    })
+  })
+
+  it('charges the member price after personal membership is effective on a discount product', async () => {
+    useOrderStore().purchaseMember()
+    const { wrapper } = await mountCheckout()
+
+    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toContain('¥119')
+    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+
+    expect(useOrderStore().list.at(-1)).toMatchObject({
+      productId: 'prod-logistics-monthly',
+      ownerType: 'personal',
+      amount: 119
     })
   })
 })

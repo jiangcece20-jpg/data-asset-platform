@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveProductActions, type ProductActionContext } from './productAccess'
+import { formatYuan } from './membership'
 
 const base: ProductActionContext = {
   type: 'dataset',
@@ -57,6 +58,52 @@ describe('resolveProductActions', () => {
     })
     expect(actions.primary.key).toBe('member_purchase')
     expect(actions.secondary?.key).toBe('item_purchase')
+  })
+
+  it('uses dual-path labels for free and discount membership benefits', () => {
+    const free = resolveProductActions({
+      ...base,
+      type: 'dashboard',
+      acquisitions: ['member', 'item_purchase'],
+      memberBenefit: 'free',
+      itemPrice: 199
+    })
+    expect(free.primary).toEqual({ key: 'member_purchase', label: '开通个人会员，免费看本商品' })
+    expect(free.secondary).toEqual({ key: 'item_purchase', label: `单品购买 ${formatYuan(199)}` })
+
+    const discount = resolveProductActions({
+      ...base,
+      type: 'report',
+      acquisitions: ['member', 'item_purchase'],
+      identitySubject: 'enterprise',
+      memberBenefit: 'discount',
+      itemPrice: 1990,
+      discountZhe: 6
+    })
+    expect(discount.primary).toEqual({ key: 'member_purchase', label: '开通团队会员，享6折' })
+    expect(discount.secondary).toEqual({ key: 'item_purchase', label: `原价购买 ${formatYuan(1990)}` })
+  })
+
+  it('keeps only member-price purchase after membership is effective on a discount product', () => {
+    expect(resolveProductActions({
+      ...base,
+      type: 'report',
+      acquisitions: ['member', 'item_purchase'],
+      hasEffectiveMembership: true,
+      canPurchaseMembership: false,
+      memberBenefit: 'discount',
+      memberItemPrice: 119
+    }).primary).toEqual({ key: 'item_purchase', label: `会员价购买 ${formatYuan(119)}` })
+  })
+
+  it('hides membership purchase when the account already has a team VIP', () => {
+    expect(resolveProductActions({
+      ...base,
+      type: 'report',
+      acquisitions: ['member', 'item_purchase'],
+      canPurchaseMembership: false,
+      itemPrice: 199
+    }).primary).toEqual({ key: 'item_purchase', label: `单品购买 ${formatYuan(199)}` })
   })
 
   it('opens free products without purchase', () => {

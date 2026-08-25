@@ -167,6 +167,7 @@ function goBills() {
       <!-- 操作按钮 -->
       <div v-if="actions" class="mt-4 space-y-2">
         <button
+          data-testid="product-primary-action"
           class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="actions.primary.disabled"
           @click="emit('action', actions.primary.key)"
@@ -175,6 +176,7 @@ function goBills() {
         </button>
         <button
           v-if="actions.secondary"
+          data-testid="product-secondary-action"
           class="w-full rounded-lg border border-brand-300 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
           @click="emit('action', actions.secondary!.key)"
         >

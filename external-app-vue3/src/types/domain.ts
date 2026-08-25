@@ -550,6 +550,7 @@ export interface Enterprise {
 
 export type EntitlementSource = 'personal' | 'enterprise'
 export type EntitlementType = 'member' | 'item' | 'seat' | 'dataset'
+export type MembershipKind = 'personal' | 'team' | 'combo'
 
 export interface Entitlement {
   id: string
@@ -559,7 +560,9 @@ export interface Entitlement {
   productVersion?: string
   enterpriseId?: string
   ownerId: string
-  /** 会员权益对应的等级；仅 type=member 使用 */
+  /** 会员种类：个人 / 团队 / 组合；缺省时按 source 推断 */
+  membershipKind?: MembershipKind
+  /** 会员权益对应的等级；仅 type=member 使用，兼容旧普通/高级档 */
   memberTier?: MemberTier
   validFrom: string
   validTo?: string

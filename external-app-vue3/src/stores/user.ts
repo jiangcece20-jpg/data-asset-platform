@@ -5,6 +5,7 @@ import { now } from '@/utils/id'
 import { useApiUsageBillsStore } from './apiUsageBills'
 import { useSpaceOrderStore } from './spaceOrders'
 import { useTrustedSpacePurchaseStore } from './trustedSpacePurchase'
+import { useEntitlementStore } from './entitlements'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -49,6 +50,11 @@ export const useUserStore = defineStore('user', {
       const d = new Date()
       d.setMonth(d.getMonth() + months)
       this.context.memberExpiresAt = d.toISOString().slice(0, 10)
+    },
+    revokePersonalMember() {
+      this.context.personalMember = false
+      this.context.personalMemberTier = undefined
+      this.context.memberExpiresAt = undefined
     },
     startEnterpriseAuth() {
       this.context.enterpriseAuthStatus = 'pending'
@@ -122,6 +128,22 @@ export const useUserStore = defineStore('user', {
       this.context.name = member.name
       this.context.role = member.role
       this.enterpriseContextGeneration += 1
+    },
+    /** 原型演示：在个人 / 当前企业管理员 / 当前企业成员之间切换登录身份。 */
+    switchMockPurchaseIdentity(identity: 'personal' | 'enterprise_admin' | 'enterprise_member') {
+      if (identity === 'personal') {
+        this.context.currentMemberId = 'mem-1'
+        this.context.name = '陈静'
+        this.clearEnterpriseContext()
+        return
+      }
+      const memberId = identity === 'enterprise_admin' ? 'mem-1' : 'mem-2'
+      if (this.context.enterpriseAuthStatus !== 'authenticated') {
+        this.context.currentMemberId = memberId
+        this.completeEnterpriseAuth()
+      }
+      this.switchMockEnterpriseMember(memberId)
+      useEntitlementStore().revokePersonalMembership(memberId)
     },
     renewEnterprise(months = 12) {
       const base = new Date(this.enterprise.expiresAt)

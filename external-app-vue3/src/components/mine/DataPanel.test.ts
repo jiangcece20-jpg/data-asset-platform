@@ -13,7 +13,9 @@ function makeRouter() {
     routes: [
       { path: '/', component: Dummy },
       { path: '/app/checkout/dataset/:id', component: Dummy },
+      { path: '/app/payment/dataset/:id', component: Dummy },
       { path: '/portal/checkout/dataset/:id', component: Dummy },
+      { path: '/portal/payment/dataset/:id', component: Dummy },
       { path: '/portal/product/:id', component: Dummy }
     ]
   })
@@ -74,7 +76,7 @@ describe('DataPanel', () => {
     expect(renewButton.exists()).toBe(true)
     await renewButton.trigger('click')
     await flushPromises()
-    expect(portalRouter.currentRoute.value.path).toContain('/portal/checkout/dataset/')
+    expect(portalRouter.currentRoute.value.path).toContain('/portal/payment/dataset/')
     expect(router).toBeTruthy()
   })
 })

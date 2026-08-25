@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import { seedEntitlements } from '@/data/seed'
-import type { Entitlement, MemberTier, Product } from '@/types/domain'
+import type { Entitlement, MemberTier, MembershipKind, Product } from '@/types/domain'
 import { genId, now } from '@/utils/id'
-import { memberTierCoversFree } from '@/domain/memberBenefits'
+import { productMemberBenefit } from '@/domain/membership'
 import { salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useUserStore } from './user'
 import { useCatalogStore } from './catalog'
 
@@ -21,6 +22,11 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function membershipKindOf(entitlement: Entitlement): MembershipKind {
+  if (entitlement.membershipKind) return entitlement.membershipKind
+  return entitlement.source === 'enterprise' ? 'team' : 'personal'
+}
+
 export const useEntitlementStore = defineStore('entitlements', {
   state: () => ({
     list: seedEntitlements.map((e) => ({ ...e })) as Entitlement[]
@@ -32,9 +38,56 @@ export const useEntitlementStore = defineStore('entitlements', {
       return state.list.some((e) =>
         e.source === 'personal'
         && e.type === 'member'
+        && membershipKindOf(e) !== 'team'
         && e.ownerId === user.context.currentMemberId
         && isActive(e, today),
       )
+    },
+    hasTeamMembership(state): boolean {
+      const user = useUserStore()
+      const enterpriseId = user.context.currentEnterpriseId
+      if (!enterpriseId || user.context.enterpriseAuthStatus !== 'authenticated') return false
+      const today = todayStr()
+      return state.list.some((e) =>
+        e.type === 'member'
+        && membershipKindOf(e) === 'team'
+        && e.source === 'enterprise'
+        && e.ownerId === enterpriseId
+        && e.enterpriseId === enterpriseId
+        && isActive(e, today),
+      )
+    },
+    hasAnyTeamMembership(state): boolean {
+      const today = todayStr()
+      return state.list.some((e) =>
+        e.type === 'member'
+        && membershipKindOf(e) === 'team'
+        && isActive(e, today),
+      )
+    },
+    hasComboMembership(state): boolean {
+      const user = useUserStore()
+      const today = todayStr()
+      const subject = currentPurchaseSubject(user)
+      return state.list.some((e) => {
+        if (e.type !== 'member' || membershipKindOf(e) !== 'combo' || !isActive(e, today)) return false
+        if (subject === 'enterprise') {
+          return e.enterpriseId === user.context.currentEnterpriseId || e.ownerId === user.context.currentEnterpriseId
+        }
+        return e.ownerId === user.context.currentMemberId
+      })
+    },
+    hasEffectiveMembership(): boolean {
+      return this.hasComboMembership || (
+        currentPurchaseSubject(useUserStore()) === 'enterprise'
+          ? this.hasTeamMembership
+          : this.hasPersonalMember
+      )
+    },
+    canPurchaseMembership(): boolean {
+      if (this.hasComboMembership || this.hasEffectiveMembership) return false
+      if (currentPurchaseSubject(useUserStore()) === 'enterprise') return !this.hasTeamMembership
+      return !this.hasAnyTeamMembership
     },
     personalMemberTier(state): MemberTier | null {
       const user = useUserStore()
@@ -150,7 +203,7 @@ export const useEntitlementStore = defineStore('entitlements', {
           if (datasetAccess === 'personal') return 'item'
           if (datasetAccess === 'enterprise') return 'enterprise'
         }
-        if (product.acquisitions.includes('member') && this.hasPersonalMember && memberTierCoversFree(product, this.personalMemberTier)) return 'member'
+        if (product.acquisitions.includes('member') && this.hasEffectiveMembership && productMemberBenefit(product) === 'free') return 'member'
         if (this.hasPersonalItem(product, today)) return 'item'
         if (this.hasEnterpriseSeatAccess(product.id)) return 'enterprise'
         return 'none'
@@ -165,12 +218,47 @@ export const useEntitlementStore = defineStore('entitlements', {
         id: genId('ent'),
         source: 'personal',
         type: 'member',
+        membershipKind: 'personal',
         memberTier: tier,
         ownerId: user.context.currentMemberId,
         validFrom: now(),
         validTo: plusMonths(months),
         status: 'active'
       })
+    },
+    grantTeamMember(months = 12) {
+      const user = useUserStore()
+      const enterpriseId = user.context.currentEnterpriseId
+      if (!enterpriseId || user.context.enterpriseAuthStatus !== 'authenticated') {
+        throw new Error('开通团队会员需要当前企业身份')
+      }
+      this.revokePersonalMembership(user.context.currentMemberId)
+      this.list.push({
+        id: genId('ent'),
+        source: 'enterprise',
+        type: 'member',
+        membershipKind: 'team',
+        ownerId: enterpriseId,
+        enterpriseId,
+        validFrom: now(),
+        validTo: plusMonths(months),
+        status: 'active'
+      })
+    },
+    revokePersonalMembership(memberId?: string) {
+      const user = useUserStore()
+      const ownerId = memberId ?? user.context.currentMemberId
+      this.list
+        .filter((e) =>
+          e.source === 'personal'
+          && e.type === 'member'
+          && e.ownerId === ownerId
+          && e.status === 'active',
+        )
+        .forEach((e) => {
+          e.status = 'revoked'
+        })
+      if (ownerId === user.context.currentMemberId) user.revokePersonalMember()
     },
     grantItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const isReport = product.type === 'report'

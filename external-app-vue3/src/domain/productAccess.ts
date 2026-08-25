@@ -1,6 +1,8 @@
 import type { AcquisitionOption, AvailabilityStatus, StandardProductType } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedPurchaseCheck } from '@/types/trustedSpace'
+import type { PurchaseIdentitySubject } from '@/domain/purchaseIdentity'
+import { formatYuan, type ProductMemberBenefit } from '@/domain/membership'
 
 export type ProductActionKey =
   | 'view'
@@ -30,6 +32,13 @@ export interface ProductActionContext {
   enterpriseAuthenticated: boolean
   serviceStatus?: ServiceStatus
   trustedPurchaseCheck?: TrustedPurchaseCheck
+  identitySubject?: PurchaseIdentitySubject
+  memberBenefit?: ProductMemberBenefit
+  hasEffectiveMembership?: boolean
+  canPurchaseMembership?: boolean
+  itemPrice?: number
+  memberItemPrice?: number
+  discountZhe?: number
 }
 
 export function resolveProductActions(context: ProductActionContext): {
@@ -66,12 +75,53 @@ export function resolveProductActions(context: ProductActionContext): {
     return { primary: { key: 'dataset_purchase', label: '购买数据集' } }
   }
   if (context.acquisitions.includes('member')) {
+    return resolveMemberAwareActions(context)
+  }
+  return { primary: { key: 'item_purchase', label: itemPurchaseLabel(context, '单品购买') } }
+}
+
+function itemPriceText(amount?: number): string {
+  return amount != null ? ` ${formatYuan(amount)}` : ''
+}
+
+function itemPurchaseLabel(context: ProductActionContext, fallback: string): string {
+  return `${fallback}${itemPriceText(context.itemPrice)}`.trim()
+}
+
+function resolveMemberAwareActions(context: ProductActionContext): {
+  primary: ProductAction
+  secondary?: ProductAction
+} {
+  const subject = context.identitySubject ?? 'personal'
+  const memberName = subject === 'enterprise' ? '团队会员' : '个人会员'
+  const benefit = context.memberBenefit ?? 'free'
+  const hasMember = Boolean(context.hasEffectiveMembership)
+  const canBuyMember = context.canPurchaseMembership !== false
+  const hasItem = context.acquisitions.includes('item_purchase')
+
+  if (hasMember && benefit === 'discount' && hasItem) {
     return {
-      primary: { key: 'member_purchase', label: '开通会员' },
-      secondary: context.acquisitions.includes('item_purchase')
-        ? { key: 'item_purchase', label: '单品购买' }
-        : undefined
+      primary: {
+        key: 'item_purchase',
+        label: `会员价购买${itemPriceText(context.memberItemPrice)}`.trim()
+      }
     }
   }
-  return { primary: { key: 'item_purchase', label: '单品购买' } }
+
+  if (canBuyMember) {
+    const primaryLabel = benefit === 'discount'
+      ? `开通${memberName}，享${context.discountZhe ?? 6}折`
+      : `开通${memberName}，免费看本商品`
+    const secondaryLabel = benefit === 'discount'
+      ? `原价购买${itemPriceText(context.itemPrice)}`.trim()
+      : itemPurchaseLabel(context, '单品购买')
+    return {
+      primary: { key: 'member_purchase', label: primaryLabel },
+      secondary: hasItem ? { key: 'item_purchase', label: secondaryLabel } : undefined
+    }
+  }
+
+  return {
+    primary: { key: 'item_purchase', label: itemPurchaseLabel(context, '单品购买') }
+  }
 }

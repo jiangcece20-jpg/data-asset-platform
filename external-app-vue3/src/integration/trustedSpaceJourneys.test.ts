@@ -125,7 +125,7 @@ describe('trusted-space README demo contract', () => {
       '万联易达可信空间',
       '数据集接到本平台用数',
       'API 仍在空间使用',
-      '个人/企业购买主体',
+      '当前登录身份',
       '`mem-1`',
       '**管理员**',
       '`mem-2`',

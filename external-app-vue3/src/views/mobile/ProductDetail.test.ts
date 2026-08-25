@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useCatalogStore } from '@/stores/catalog'
+import { useEntitlementStore } from '@/stores/entitlements'
 import ProductDetail from './ProductDetail.vue'
 
 async function mountProductDetail(path = '/app/product/prod-qualification-api') {
@@ -108,5 +109,17 @@ describe('ProductDetail dashboard overview', () => {
     expect(wrapper.text()).toContain('指标描述')
     expect(wrapper.text()).not.toContain('解锁后查看关键内容')
     expect(wrapper.text()).not.toContain('解锁后可阅读完整内容')
+  })
+
+  it('offers dual purchase paths for member-free and member-discount products', async () => {
+    useEntitlementStore().list = []
+
+    const free = await mountProductDetail('/app/product/prod-freight-index')
+    expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，免费看本商品')
+    expect(free.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('单品购买 ¥199')
+
+    const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
+    expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，享6折')
+    expect(discount.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('原价购买 ¥199')
   })
 })

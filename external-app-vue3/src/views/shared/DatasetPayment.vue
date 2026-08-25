@@ -2,8 +2,11 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
+import PurchaseIdentityBanner from '@/components/shared/PurchaseIdentityBanner.vue'
+import { currentPurchaseIdentity } from '@/domain/purchaseIdentity'
 import { useOrderStore } from '@/stores/orders'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useUserStore } from '@/stores/user'
 import { statusMeta } from '@/utils/statusMeta'
 import type { PaymentMethod } from '@/types/domain'
 
@@ -11,10 +14,24 @@ const route = useRoute()
 const router = useRouter()
 const orders = useOrderStore()
 const commerce = useDatasetCommerceStore()
+const user = useUserStore()
 const isPortal = computed(() => route.path.startsWith('/portal'))
 const order = computed(() => orders.list.find((item) => item.id === String(route.params.orderId) && item.productType === 'dataset'))
 const delivery = computed(() => commerce.deliveries.find((item) => item.id === order.value?.biDeliveryId))
 const error = ref('')
+const isRenewal = computed(() => Boolean(route.query.renew))
+const identity = computed(() => {
+  if (order.value?.ownerType === 'enterprise') {
+    return { subject: 'enterprise' as const, typeLabel: '企业' as const, name: user.enterprise.name }
+  }
+  return currentPurchaseIdentity(user, { forcePersonal: true })
+})
+const identityNote = computed(() => {
+  if (identity.value.subject === 'enterprise') {
+    return '本单按当前企业身份支付，订单、发票和权益均归该企业。'
+  }
+  return '本单按当前个人身份支付，订单、权益和用数数据仅本人可使用。'
+})
 const orderStatusLabel = computed(() => order.value ? statusMeta('appOrder', order.value.status).label : '—')
 const deliveryStatusLabel = computed(() => delivery.value ? statusMeta('biDelivery', delivery.value.status).label : '支付后创建')
 const paymentOptions: Array<{ value: PaymentMethod; label: string; note: string }> = [
@@ -67,6 +84,12 @@ function goMyData() {
     query: { menu: 'data', dataTab: 'purchased' }
   })
 }
+
+function goApprovalCenter() {
+  router.push(isPortal.value
+    ? { path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } }
+    : '/app/mine/enterprise?tab=purchase')
+}
 </script>
 
 <template>
@@ -78,8 +101,10 @@ function goMyData() {
           <div><div class="text-xs text-slate-400">数据集订单 {{ order.id }}</div><h1 class="mt-1 text-lg font-semibold text-slate-900">{{ order.productName }}</h1></div>
           <div class="text-2xl font-semibold text-brand-600">¥{{ order.amount.toLocaleString() }}</div>
         </div>
+        <PurchaseIdentityBanner class="mt-4" :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
+        <div v-if="isRenewal" class="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">正在续订更新服务；原订单与已交付版本保留，本次支付成功后延长更新到期日。</div>
         <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-4 text-sm">
-          <div><span class="text-slate-400">购买主体：</span>{{ order.ownerType === 'enterprise' ? '企业' : '个人' }}</div>
+          <div><span class="text-slate-400">购买主体：</span>{{ identity.typeLabel }} · {{ identity.name }}</div>
           <div><span class="text-slate-400">支付方式：</span>{{ selectedPaymentLabel }}（mock）</div>
           <div><span class="text-slate-400">交易状态：</span>{{ orderStatusLabel }}</div>
           <div><span class="text-slate-400">用数交付：</span>{{ deliveryStatusLabel }}</div>
@@ -100,13 +125,19 @@ function goMyData() {
             </button>
           </div>
         </div>
-        <div v-if="order.ownerType === 'enterprise'" class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-700">企业订单只允许企业余额、合同支付或公对公转账，不提供个人支付方式；订单、付款、发票和权益主体保持一致。</div>
+        <div v-if="order.ownerType === 'enterprise' && order.status === 'pending_payment'" class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-700">企业订单只允许企业余额、合同支付或公对公转账，不提供个人支付方式；订单、付款、发票和权益主体保持一致。</div>
         <div v-if="error" class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ error }}</div>
 
         <template v-if="order.status === 'pending_payment'">
           <button data-testid="dataset-pay" class="mt-5 w-full rounded-lg bg-brand-500 py-3 text-sm font-medium text-white" @click="pay(false)">{{ payButtonLabel }}</button>
           <button data-testid="dataset-pay-fail-delivery" class="mt-2 w-full rounded-lg border border-slate-200 py-2.5 text-xs text-slate-500" @click="pay(true)">演示：支付成功，但用数模块首次交付失败</button>
        </template>
+
+        <div v-else-if="order.status === 'pending_approval'" data-testid="dataset-approval-submitted" class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
+          <div class="text-base font-medium text-amber-900">企业采购审批已提交</div>
+          <p class="mt-1 text-sm text-amber-700">订单 {{ order.id }} 待管理员审批；审批通过后再选择企业付款方式。</p>
+          <button class="mt-4 rounded-lg bg-amber-700 px-5 py-2.5 text-sm text-white" @click="goApprovalCenter">查看采购进度</button>
+        </div>
 
         <div v-else-if="order.status === 'payment_pending_confirmation'" data-testid="dataset-payment-pending-confirmation" class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
           <div class="text-base font-medium text-amber-900">付款确认中</div>

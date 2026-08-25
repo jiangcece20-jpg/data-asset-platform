@@ -7,6 +7,8 @@ import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
 import { useUserStore } from './user'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
+import { memberDiscountedAmount, membershipPlanForSubject } from '@/domain/membership'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -79,27 +81,35 @@ export const useOrderStore = defineStore('orders', {
     }
   },
   actions: {
-    // 会员购买（即时支付成功，简化收银台）
-    purchaseMember(months = 12, tier: 'standard' | 'premium' = 'standard') {
+    // 会员购买：个人身份买个人会员，企业身份买团队会员；二者互斥。
+    purchaseMember(months = 12, _tier: 'standard' | 'premium' = 'standard') {
       const entitlements = useEntitlementStore()
       const user = useUserStore()
+      const subject = currentPurchaseSubject(user)
+      const plan = membershipPlanForSubject(subject)
+      if (subject === 'enterprise') {
+        if (entitlements.hasTeamMembership) throw new Error('当前企业已开通团队会员')
+      } else if (entitlements.hasAnyTeamMembership) {
+        throw new Error('已有团队会员，不能再开通个人会员')
+      } else if (entitlements.hasPersonalMember) {
+        throw new Error('已开通个人会员')
+      }
       const order: Order = {
         id: genId('order'),
         channel: 'app',
-        ownerType: 'personal',
-        ownerId: user.context.currentMemberId,
+        ownerType: subject,
+        ownerId: subject === 'enterprise' ? user.context.currentEnterpriseId! : user.context.currentMemberId,
         productId: 'membership',
-        productName: `${tier === 'premium' ? '高级' : '普通'}会员 · ${months} 个月`,
-        selectedTermMonths: months,
-        amount: tier === 'premium'
-          ? (months === 12 ? 599 : 79)
-          : (months === 12 ? 299 : 39),
+        productName: `${plan.name}（${plan.shortName}）`,
+        selectedTermMonths: plan.months,
+        amount: plan.price,
         status: 'entitlement_active',
         createdAt: now(),
         paidAt: now()
       }
       this.list.push(order)
-      entitlements.grantMember(months, tier)
+      if (subject === 'enterprise') entitlements.grantTeamMember(months)
+      else entitlements.grantMember(months, 'standard')
       return order
     },
     // 单品购买
@@ -139,7 +149,7 @@ export const useOrderStore = defineStore('orders', {
       const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
       if (!offer) throw new Error(subject === 'personal' ? '未配置个人价格方案' : '未配置企业价格方案')
       const termMonths = salePeriodMonthsOf(product)
-      const amount = offer.price
+      const amount = memberDiscountedAmount(offer.price, product, useEntitlementStore().hasEffectiveMembership)
       if (subject === 'enterprise') {
         return this.submitEnterpriseOrder(productId, amount, mode, checkoutIntentId)
       }

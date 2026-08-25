@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { seedProducts } from '@/data/products'
 import { useEntitlementStore } from './entitlements'
 import { useUserStore } from './user'
+import { useOrderStore } from './orders'
 
 describe('item entitlement policies', () => {
   beforeEach(() => setActivePinia(createPinia()))
@@ -68,6 +69,31 @@ describe('item entitlement policies', () => {
     expect(store.hasPersonalMember).toBe(true)
     expect(store.personalMemberTier).toBe('standard')
     expect(store.accessLevel(dashboard)).toBe('member')
+  })
+
+  it('activates team membership only in the current enterprise identity', () => {
+    const store = useEntitlementStore()
+    const user = useUserStore()
+    const dashboard = seedProducts.find((product) => product.id === 'prod-freight-index')!
+    const report = seedProducts.find((product) => product.id === 'prod-logistics-monthly')!
+    store.list = []
+    store.grantMember(12, 'standard')
+    expect(store.accessLevel(dashboard)).toBe('member')
+
+    user.switchMockPurchaseIdentity('enterprise_admin')
+    expect(store.hasPersonalMember).toBe(false)
+    expect(store.hasEffectiveMembership).toBe(false)
+    expect(store.accessLevel(dashboard)).toBe('none')
+
+    useOrderStore().purchaseMember()
+    expect(store.hasTeamMembership).toBe(true)
+    expect(store.hasEffectiveMembership).toBe(true)
+    expect(store.accessLevel(dashboard)).toBe('member')
+    expect(store.accessLevel(report)).toBe('none')
+
+    user.switchMockPurchaseIdentity('personal')
+    expect(store.hasEffectiveMembership).toBe(false)
+    expect(store.canPurchaseMembership).toBe(false)
   })
 
   it('scopes enterprise seat access to the current enterprise and its active assigned member', () => {

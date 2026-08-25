@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import PurchaseIdentityBanner from '@/components/shared/PurchaseIdentityBanner.vue'
+import { currentPurchaseIdentity } from '@/domain/purchaseIdentity'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
@@ -17,6 +19,7 @@ const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const submittedOrderId = ref('')
 const checkoutIntent = ref<ReturnType<typeof orders.getEnterpriseReportCheckoutIntent>>()
+const identity = computed(() => currentPurchaseIdentity(user))
 const enterpriseEligible = computed(() =>
   user.isEnterpriseAuthenticated
   && Boolean(user.context.currentEnterpriseId)
@@ -52,9 +55,7 @@ const submittedOrder = computed(() => orders.list.find((o) => o.id === submitted
     <MobileHeader title="企业采购" />
     <div class="px-4 pt-3">
       <div v-if="!submittedOrder" class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div v-if="enterpriseEligible" class="mb-3 rounded-lg bg-slate-50 p-3 text-[12px] text-slate-600">
-          购买主体：{{ user.enterprise.name }}
-        </div>
+        <PurchaseIdentityBanner v-if="enterpriseEligible" class="mb-3" :type-label="identity.typeLabel" :name="identity.name" note="合同采购按当前企业身份提交，不再二次选择主体。" />
         <div v-else class="mb-3 rounded-lg bg-amber-50 p-3 text-[12px] text-amber-700">
           企业购买需由已认证的当前企业成员发起
         </div>

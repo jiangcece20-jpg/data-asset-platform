@@ -18,6 +18,8 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
+import { membershipActionFields } from '@/domain/membership'
 import { publicSpaceChips } from '@/domain/spaceIntent'
 import type { ProductType } from '@/types/domain'
 import type { SpaceBindingStatus } from '@/types/trustedSpace'
@@ -69,6 +71,11 @@ const actions = computed(() => product.value ? resolveProductActions({
   enterpriseAuthenticated: user.isEnterpriseAuthenticated,
   serviceStatus: product.value.serviceStatus,
   trustedPurchaseCheck: trustedPurchaseCheck.value,
+  ...membershipActionFields(product.value, {
+    identitySubject: currentPurchaseSubject(user),
+    hasEffectiveMembership: entitlements.hasEffectiveMembership,
+    canPurchaseMembership: entitlements.canPurchaseMembership
+  })
 }) : null)
 
 const pcActions = computed(() => {
@@ -209,6 +216,14 @@ function goMember() {
 function goItem() {
   router.push(`/portal/checkout/${id.value}`)
 }
+function goDatasetPayment() {
+  try {
+    const { path } = startDatasetPayment(id.value, true)
+    router.push(path)
+  } catch {
+    router.push(`/portal/checkout/dataset/${id.value}`)
+  }
+}
 /** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
 function handleUnlock() {
   const primary = pcActions.value?.primary?.key
@@ -231,7 +246,7 @@ function handleAction(key: ProductActionKey) {
       break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
-    case 'dataset_purchase': router.push(`/portal/checkout/dataset/${id.value}`); break
+    case 'dataset_purchase': goDatasetPayment(); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
   }

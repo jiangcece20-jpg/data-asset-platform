@@ -8,6 +8,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useUserStore } from '@/stores/user'
+import { startDatasetPayment } from '@/domain/purchaseIdentity'
 import type { Entitlement } from '@/types/domain'
 
 const props = defineProps<{ variant: 'mobile' | 'portal' }>()
@@ -45,15 +46,16 @@ const isExpiring = (entitlement: Entitlement) => {
 
 function renew(entitlement: Entitlement) {
   if (!entitlement.productId) return
-  const basePath = props.variant === 'portal' ? '/portal' : '/app'
-  router.push({
-    path: `${basePath}/checkout/dataset/${entitlement.productId}`,
-    query: {
-      subject: entitlement.source,
-      offer: entitlement.datasetOfferId,
-      renew: entitlement.id
-    }
-  })
+  const portal = props.variant === 'portal'
+  try {
+    const { path } = startDatasetPayment(entitlement.productId, portal)
+    router.push({ path, query: { renew: entitlement.id } })
+  } catch {
+    router.push({
+      path: `${portal ? '/portal' : '/app'}/checkout/dataset/${entitlement.productId}`,
+      query: { renew: entitlement.id }
+    })
+  }
 }
 
 function goProduct(productId: string) {

@@ -17,6 +17,7 @@ function secondaryClick() {
   <div class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-slate-100 bg-white p-3">
     <div v-if="priceText" class="text-center text-[12px] text-slate-400">{{ priceText }}</div>
     <button
+      data-testid="product-primary-action"
       class="w-full rounded-full py-3 text-[14px] font-medium text-white"
       :class="primary.disabled ? 'bg-slate-300' : 'bg-brand-500'"
       :disabled="primary.disabled"
@@ -26,6 +27,7 @@ function secondaryClick() {
     </button>
     <button
       v-if="secondary"
+      data-testid="product-secondary-action"
       class="w-full rounded-full border border-brand-500 py-3 text-[14px] font-medium text-brand-600"
       :disabled="secondary.disabled"
       @click="secondaryClick"

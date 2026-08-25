@@ -15,6 +15,8 @@ import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
+import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
+import { membershipActionFields } from '@/domain/membership'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
@@ -66,6 +68,11 @@ const actions = computed(() => {
     hasOpenListingRequest: hasOpenListingRequest.value,
     enterpriseAuthenticated: user.isEnterpriseAuthenticated,
     serviceStatus: current.serviceStatus,
+    ...membershipActionFields(current, {
+      identitySubject: currentPurchaseSubject(user),
+      hasEffectiveMembership: entitlements.hasEffectiveMembership,
+      canPurchaseMembership: entitlements.canPurchaseMembership
+    })
   })
   if (current.type === 'dataset' && current.origin === 'asset_platform' && owned.value) {
     return { ...resolved, primary: { ...resolved.primary, label: '查看我的数据' } }
@@ -135,6 +142,14 @@ function goMember() {
 function goItem() {
   router.push(`/app/checkout/item/${id.value}`)
 }
+function goDatasetPayment() {
+  try {
+    const { path } = startDatasetPayment(id.value, false)
+    router.push(path)
+  } catch {
+    router.push(`/app/checkout/dataset/${id.value}`)
+  }
+}
 /** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
 function handleUnlock() {
   const primary = actions.value?.primary?.key
@@ -156,7 +171,7 @@ function handleAction(key: ProductActionKey) {
       goSpaceIntent(); break
     case 'member_purchase': goMember(); break
     case 'item_purchase': goItem(); break
-    case 'dataset_purchase': router.push(`/app/checkout/dataset/${id.value}`); break
+    case 'dataset_purchase': goDatasetPayment(); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
   }
