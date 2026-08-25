@@ -59,9 +59,10 @@ npm run dev
 1. `/#/app/product/prod-qualification-api`：资格核验 API。主按钮「提交意向单」；登录用户（含个人）可提交。未登录先登录，可先看样例出入参和 API 有无试用接口。不要走跳空间购买。
 2. `/#/admin/space-intents`：运营领取意向单，确认落到认证企业，使用「去空间处理」代办成交。未落到认证企业不能空间成交。数据集接到本平台用数；API 仍在空间使用。
 3. `/#/app/product/prod-enterprise-activity`：空间数据集。展示空间名称「万联易达可信空间」和数据集有无样例；APP 不展示自有/互联。提交意向单后由运营代办，成交后接到本平台用数。
-4. `/#/app/mine?tab=orders`：用户侧意向单只显示已提交、处理中、已完成 / 已关闭。
-5. `/#/admin/products`：点击「同步空间商品」，观察目录快照和同步状态；运营可按自有/互联筛选。
-6. `/#/admin/approval/integration`：查看空间事件版本、死信、镜像状态与主动对账入口。
+4. `/#/app/mine?tab=orders`：用户侧意向单只显示已提交、处理中、已完成 / 已关闭。APP 自营报告企业订单可直接打开 `/#/app/mine?tab=orders&subject=enterprise`。
+5. `/#/app/mine/enterprise/bills`：查看 API 用量账单（API 仍在空间使用后的账单查阅）。
+6. `/#/admin/products`：点击「同步空间商品」，观察目录快照和同步状态；运营可按自有/互联筛选。
+7. `/#/admin/approval/integration`：查看空间事件版本、死信、镜像状态与主动对账入口。
 
 ### Mock 场景与角色
 
