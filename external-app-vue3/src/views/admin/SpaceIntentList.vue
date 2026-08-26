@@ -75,7 +75,7 @@ function operatorContact(item: SpaceIntentOrder) {
 
 <template>
   <div>
-    <PageHeader title="空间意向单" desc="领取后线下确认企业、方案和试用；系统里确认到账后转为买数订单" />
+    <PageHeader title="空间意向单" desc="领取后转为买数订单；确认企业、方案和试用仍在线下完成" />
 
     <div class="mb-3 flex flex-wrap gap-2">
       <select v-model="filterStatus" data-testid="filter-ops-status" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">

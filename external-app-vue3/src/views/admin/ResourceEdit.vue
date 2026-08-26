@@ -15,11 +15,15 @@ import {
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
+import SellerListingShots from '@/components/mine/SellerListingShots.vue'
+import SellerListingCustomShots from '@/components/mine/SellerListingCustomShots.vue'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
+import type { CustomSellingShot, SellingShot } from '@/domain/sellingShotTemplate'
 import {
   listingBlockReason,
   salesStateOf,
   SALES_STATE_LABELS,
+  PRODUCT_SUBTITLE_MAX,
   validateDraftSave,
   validatePublish,
   type FieldError,
@@ -108,6 +112,8 @@ const dashboardForm = reactive({
   metrics: [] as DashboardMetricForm[]
 })
 const dashboardConfigSaved = ref(false)
+const sellingShots = ref<SellingShot[]>([])
+const customSellingShots = ref<CustomSellingShot[]>([])
 /** 数据集关键指标：运营配置、非必填；空则前台不展示 */
 const datasetForm = reactive({
   granularity: '',
@@ -154,6 +160,13 @@ const datasetFields = computed(() => {
   }))
 })
 
+const canConfigureProfiling = computed(() =>
+  resource.value?.type === 'dataset'
+  && datasetFields.value.length > 0
+  && resource.value.origin !== 'trusted_space'
+  && product.value?.dealChannel !== 'space_purchase'
+)
+
 const selectableFields = computed(() => datasetFields.value.filter((f) => f.hasStat))
 const allSelectableChecked = computed(
   () => selectableFields.value.length > 0 && selectableFields.value.every((f) => profilingSelection.value.includes(f.name))
@@ -190,7 +203,8 @@ function currentPublishForm(): PublishForm {
     dashboardMetrics: dashboardForm.metrics.map((metric) => ({
       name: metric.name,
       definition: metric.definition
-    }))
+    })),
+    subtitle: productForm.subtitle
   }
 }
 
@@ -248,6 +262,8 @@ function syncFormFromStore() {
     dashboardConfigSaved.value = false
     reportConfigSaved.value = false
     profilingSaved.value = false
+    sellingShots.value = []
+    customSellingShots.value = []
     return
   }
 
@@ -278,6 +294,8 @@ function syncFormFromStore() {
   productForm.tags = (p.tags || []).join('、')
   productForm.sortWeight = p.sortWeight ?? 50
   productForm.recommendSlot = p.recommendSlot ?? false
+  sellingShots.value = [...(p.sellingShots ?? [])]
+  customSellingShots.value = [...(p.customSellingShots ?? [])]
 
   const offers = commerceOffersOf(p)
   syncItemOffer(itemOfferForm.personal, offers, p.price.itemPrice ?? 0)
@@ -431,6 +449,8 @@ function saveProduct() {
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
     sortWeight: Number(productForm.sortWeight),
     recommendSlot: productForm.recommendSlot,
+    sellingShots: p.type === 'dashboard' ? sellingShots.value : p.sellingShots,
+    customSellingShots: p.type === 'dashboard' ? customSellingShots.value : p.customSellingShots,
     commerceOffers: p.dealChannel === 'app_payment' && p.type !== 'dataset' ? appOffers : p.commerceOffers,
     datasetOffers
   })
@@ -438,7 +458,7 @@ function saveProduct() {
   if (p.type === 'report') persistReportConfig()
   if (p.type === 'dataset') {
     persistDatasetMetrics()
-    persistProfilingFields()
+    if (canConfigureProfiling.value) persistProfilingFields()
   }
   productSaved.value = true
   setTimeout(() => { productSaved.value = false }, 3000)
@@ -550,10 +570,20 @@ function removeDashboardMetric(index: number) {
   dashboardForm.metrics.splice(index, 1)
 }
 
+function persistDashboardShots() {
+  const p = product.value
+  if (!p || p.type !== 'dashboard') return
+  catalog.updateProduct(p.id, {
+    sellingShots: sellingShots.value,
+    customSellingShots: customSellingShots.value
+  })
+}
+
 function persistDashboardConfig() {
   const p = product.value
   const current = p?.typeDetail.dashboard
   if (!p || !current) return
+  persistDashboardShots()
   catalog.updateDashboardDetail(p.id, {
     ...current,
     timeRange: dashboardForm.timeRange.trim(),
@@ -764,7 +794,17 @@ function saveProfilingFields() {
               <input v-model="productForm.name" data-testid="product-name-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
               <p v-if="publishErrors.some((e) => e.field === 'name')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'name')?.message }}</p>
             </label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">商品副标题（推荐语为空时展示）</span><input v-model="productForm.subtitle" data-testid="product-subtitle-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block">
+              <span class="mb-1 block text-xs text-slate-400">商品副标题（推荐语为空时展示，不超过 {{ PRODUCT_SUBTITLE_MAX }} 字）</span>
+              <input
+                v-model="productForm.subtitle"
+                :maxlength="PRODUCT_SUBTITLE_MAX"
+                data-testid="product-subtitle-input"
+                class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm"
+              />
+              <p class="mt-1 text-right text-[11px] text-slate-400">{{ productForm.subtitle.length }}/{{ PRODUCT_SUBTITLE_MAX }}</p>
+              <p v-if="publishErrors.some((e) => e.field === 'subtitle')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'subtitle')?.message }}</p>
+            </label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（商品卡片与详情页优先展示）</span><input v-model="productForm.recommendText" data-testid="product-recommend-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
             <div class="flex items-center gap-4">
@@ -1057,6 +1097,15 @@ function saveProfilingFields() {
           <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
         </div>
 
+        <div class="mt-5 space-y-3 border-t border-slate-100 pt-4" data-testid="dashboard-preview-shots">
+          <div>
+            <div class="text-xs font-medium text-slate-600">看板预览截图</div>
+            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">规则同卖家上架看板：模版 4 槽 + 自定义 1 张，最多不超过 5 个图，用于前台「看板预览」页签。</p>
+          </div>
+          <SellerListingShots v-model="sellingShots" />
+          <SellerListingCustomShots v-model="customSellingShots" />
+        </div>
+
         <div class="mt-4 flex items-center gap-3">
           <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
           <span v-if="dashboardConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
@@ -1064,7 +1113,7 @@ function saveProfilingFields() {
       </div>
 
       <!-- 数据探查配置（仅数据集类型） -->
-      <div v-if="resource.type === 'dataset' && datasetFields.length" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
         <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
 

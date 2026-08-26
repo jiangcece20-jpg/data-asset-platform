@@ -39,7 +39,7 @@ describe('mineQuery', () => {
       tab: 'data',
       menu: 'orders',
       orderTab: 'view'
-    })).toMatchObject({ menu: 'orders', orderTab: 'view' })
+    })).toMatchObject({ menu: 'orders', orderTab: 'buy' })
   })
 
   it('builds patch that writes menu/orderTab and clears conflicting tab when needed', () => {

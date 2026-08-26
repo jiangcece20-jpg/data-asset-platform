@@ -63,7 +63,7 @@ describe('seller listing catalog spec', () => {
     expect(() => assertSellerListingSpec({ ...spec, coverage: '' })).toThrow('请填写地域范围')
     expect(() => assertSellerListingSpec({ ...spec, updateFrequency: '' })).toThrow('请选择更新频率')
     expect(() => assertSellerListingSpec({ ...spec, updateFrequency: '每周一更新' })).toThrow('请选择更新频率')
-    expect(() => assertSellerListingSpec({ ...spec, fields: [] })).toThrow('请至少填写一个字段')
+    expect(() => assertSellerListingSpec({ ...spec, fields: [] })).not.toThrow()
   })
 
   it('writes seller-edited spec onto the published dataset detail', () => {

@@ -322,16 +322,27 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(federated.get('[data-testid="space-kind-readonly"]').text()).toContain('互联')
   })
 
-  it('pauses and delists from the status bar without review buttons', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('caps the product subtitle at 60 characters', async () => {
+    const wrapper = await mountResourceEdit()
+    const input = wrapper.get('[data-testid="product-subtitle-input"]')
+    expect(input.attributes('maxlength')).toBe('60')
+    await input.setValue(`${'看板副标题'.repeat(20)}超长`)
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    expect(wrapper.text()).toContain('副标题不超过 60 字')
+    expect(useCatalogStore().byId('prod-freight-index')?.subtitle).not.toContain('超长')
+  })
+
+  it('lets ops upload dashboard preview screenshots', async () => {
     const wrapper = await mountResourceEdit('res-prod-freight-index')
-    expect(wrapper.find('[data-testid="submit-review"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="approve-publish"]').exists()).toBe(false)
-    await wrapper.get('[data-testid="pause-product"]').trigger('click')
-    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('paused')
-    await wrapper.get('[data-testid="delist-product"]').trigger('click')
-    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('delisted')
-    await wrapper.get('[data-testid="relist-product"]').trigger('click')
-    expect(useCatalogStore().byId('prod-freight-index')?.availability).toBe('published')
+    expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="fill-example-shots"]').trigger('click')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+    expect(useCatalogStore().byId('prod-freight-index')?.sellingShots?.length).toBeGreaterThan(0)
+  })
+
+  it('hides data profiling config on space datasets', async () => {
+    const wrapper = await mountResourceEdit('res-prod-enterprise-activity')
+    expect(wrapper.find('[data-testid="profiling-config"]').exists()).toBe(false)
   })
 })

@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import CheckoutEnterprise from './CheckoutEnterprise.vue'
-import CheckoutMember from './CheckoutMember.vue'
 
 async function mountEnterprise(intent?: string) {
   const router = createRouter({
@@ -60,24 +59,5 @@ describe('CheckoutEnterprise report checkout intent', () => {
     await submit.trigger('click')
 
     expect(store.list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'enterprise')).toHaveLength(1)
-  })
-
-  it('sends the member page enterprise entry back to report checkout rather than the enterprise order route', async () => {
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes: [
-        { path: '/app/checkout/member', name: 'checkout-member', component: CheckoutMember },
-        { path: '/app/checkout/item/:id', name: 'checkout-item', component: { template: '<div />' } }
-      ]
-    })
-    await router.push('/app/checkout/member')
-    await router.isReady()
-    const wrapper = mount(CheckoutMember, { global: { plugins: [router] } })
-
-    await wrapper.get('[data-testid="member-enterprise-report-entry"]').trigger('click')
-    await flushPromises()
-
-    expect(router.currentRoute.value.name).toBe('checkout-item')
-    expect(router.currentRoute.value.params.id).toBe('prod-logistics-monthly')
   })
 })

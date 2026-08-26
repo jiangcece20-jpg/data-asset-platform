@@ -5,7 +5,6 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import {
-  emptyListingField,
   listingCatalogSpecFromArtifact,
   parseListingScenarios,
   type SellerListingCatalogSpec
@@ -107,14 +106,6 @@ watch(sourceProduct, (product) => {
   title.value = `${product.name} · 衍生数据集`
   subtitle.value = `基于已购报告 ${product.typeDetail.report?.version || ''} 加工`
 }, { immediate: true })
-
-function addField() {
-  spec.value.fields = [...spec.value.fields, emptyListingField()]
-}
-
-function removeField(index: number) {
-  spec.value.fields = spec.value.fields.filter((_, i) => i !== index)
-}
 
 function submit() {
   error.value = ''
@@ -240,45 +231,6 @@ function submit() {
         <label class="block text-[12px] text-slate-500">合规声明
           <textarea v-model="spec.complianceNote" data-testid="seller-listing-compliance" rows="2" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
         </label>
-      </div>
-
-      <div class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div class="flex items-center justify-between">
-          <div class="text-[13px] font-medium text-slate-800">字段信息</div>
-          <button type="button" class="text-[11px] text-orange-700" @click="addField">+ 添加字段</button>
-        </div>
-        <div v-for="(field, index) in spec.fields" :key="index" class="space-y-2 rounded-xl border border-slate-100 p-3">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] text-slate-400">字段 {{ index + 1 }}</span>
-            <button type="button" class="text-[11px] text-slate-400" @click="removeField(index)">删除</button>
-          </div>
-          <input v-model="field.name" placeholder="字段名" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-[12px]" />
-          <div class="grid grid-cols-2 gap-2">
-            <input v-model="field.dataType" placeholder="类型" class="rounded-lg border border-slate-200 px-3 py-2 text-[12px]" />
-            <input v-model="field.meaning" placeholder="业务含义" class="rounded-lg border border-slate-200 px-3 py-2 text-[12px]" />
-          </div>
-          <input v-model="field.description" placeholder="描述" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-[12px]" />
-        </div>
-        <div v-if="!spec.fields.length" class="rounded-lg bg-slate-50 px-3 py-4 text-center text-[11px] text-slate-400">请至少添加一个字段</div>
-      </div>
-
-      <div v-if="spec.sampleRows.length" class="space-y-2 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <div class="text-[13px] font-medium text-slate-800">样例数据</div>
-        <p class="text-[11px] leading-relaxed text-slate-500">随用数对象带出，发布后出现在「样例数据」页签。</p>
-        <div class="overflow-x-auto rounded-lg border border-slate-100 text-[11px]">
-          <table class="min-w-full">
-            <thead class="bg-slate-50 text-slate-400">
-              <tr>
-                <th v-for="col in spec.sampleColumns" :key="col" class="px-2 py-1.5 text-left font-medium">{{ col }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(row, index) in spec.sampleRows" :key="index" class="border-t border-slate-50">
-                <td v-for="col in spec.sampleColumns" :key="col" class="px-2 py-1.5 text-slate-600">{{ row[col] }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <div v-if="error" class="rounded-xl bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>

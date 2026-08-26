@@ -31,7 +31,6 @@ const user = useUserStore()
 const tabs: Array<{ value: OrderTab; label: string }> = [
   { value: 'vip', label: 'VIP' },
   { value: 'buy', label: '买数' },
-  { value: 'view', label: '看数' },
   { value: 'intent', label: '意向单' }
 ]
 
@@ -68,7 +67,6 @@ function selectTab(next: OrderTab) {
       @update:subject-filter="emit('update:subjectFilter', $event)"
     />
     <PlaceholderPanel v-else-if="orderTab === 'vip'" title="VIP" class="mt-3" />
-    <PlaceholderPanel v-else-if="orderTab === 'view'" title="看数" class="mt-3" />
     <div v-else-if="orderTab === 'intent'" class="mt-3 space-y-3" data-testid="my-space-intents">
       <MineEntityCard v-for="intent in myIntents" :key="intent.id" :variant="variant">
         <template #title>{{ productName(intent.productId) }}</template>

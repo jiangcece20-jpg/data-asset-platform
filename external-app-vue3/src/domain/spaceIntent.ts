@@ -6,7 +6,7 @@ export const OWNED_SPACE_NAME = '万联易达可信空间'
 export const SPACE_TRIAL_APPLY_LABEL = '提交试用申请'
 
 export const USER_INTENT_HINT =
-  '提交后先不付款。确认企业、确认方案、线下试用都在线下完成，系统不记录这些节点。运营确认到账后会出现在「买数」订单里。'
+  '提交后先不付款。确认企业、确认方案、线下试用都在线下完成，系统不记录这些节点。运营领取后会出现在「买数」订单里。'
 
 export const USER_STATUS_LABELS: Record<SpaceIntentUserStatus, string> = {
   submitted: '已提交',

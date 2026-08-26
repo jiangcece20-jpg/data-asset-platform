@@ -108,9 +108,6 @@ export function assertSellerListingSpec(spec: SellerListingCatalogSpec): SellerL
   if (!valueProposition) throw new Error('请填写价值主张')
   if (!qualityPromise) throw new Error('请填写质量承诺')
   if (!complianceNote) throw new Error('请填写合规声明')
-  if (!fields.length) throw new Error('请至少填写一个字段')
-  const incomplete = fields.find((field) => !field.name || !field.meaning)
-  if (incomplete) throw new Error('每个字段须填写字段名和业务含义')
   const sampleColumns = spec.sampleColumns.length ? spec.sampleColumns : fields.map((field) => field.name)
   return {
     ...spec,

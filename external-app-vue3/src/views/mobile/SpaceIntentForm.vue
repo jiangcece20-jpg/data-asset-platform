@@ -54,7 +54,7 @@ function goMine() {
       <div v-else-if="submitted" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
         <div class="text-3xl">✅</div>
         <div class="mt-2 text-[14px] font-medium text-emerald-700">已提交</div>
-        <div class="mt-1 text-[12px] leading-relaxed text-emerald-600">{{ USER_INTENT_HINT }} 可在「我的 · 意向单」查看进度；到账后改到「买数」。</div>
+        <div class="mt-1 text-[12px] leading-relaxed text-emerald-600">{{ USER_INTENT_HINT }} 可在「我的 · 意向单」查看进度；领取后改到「买数」。</div>
         <button class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white" @click="goMine">
           回我的
         </button>

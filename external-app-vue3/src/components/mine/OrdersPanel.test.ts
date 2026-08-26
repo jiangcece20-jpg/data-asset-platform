@@ -51,11 +51,11 @@ describe('OrdersPanel', () => {
     const { wrapper } = mountOrdersPanel()
     expect(wrapper.find('[data-testid="order-tab-vip"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="order-tab-intent"]').exists()).toBe(true)
 
-    await wrapper.get('[data-testid="order-tab-view"]').trigger('click')
-    expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['view'])
+    await wrapper.get('[data-testid="order-tab-intent"]').trigger('click')
+    expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['intent'])
   })
 
   it('lists space intents with user-facing status only', async () => {
@@ -91,12 +91,12 @@ describe('OrdersPanel', () => {
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
     const selected = wrapper.get('[data-testid="order-tab-buy"]')
     const unselectedVip = wrapper.get('[data-testid="order-tab-vip"]')
-    const unselectedView = wrapper.get('[data-testid="order-tab-view"]')
+    const unselectedIntent = wrapper.get('[data-testid="order-tab-intent"]')
 
     expect(selected.classes()).toContain('border-brand-500')
     expect(selected.classes()).toContain('text-brand-600')
     expect(unselectedVip.classes()).not.toContain('border-brand-500')
-    expect(unselectedView.classes()).not.toContain('border-brand-500')
+    expect(unselectedIntent.classes()).not.toContain('border-brand-500')
   })
 
   it('shows VIP placeholder when orderTab is vip', () => {
@@ -106,10 +106,10 @@ describe('OrdersPanel', () => {
     expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('该模块由其它产品负责')
   })
 
-  it('shows view placeholder when orderTab is view', () => {
-    const { wrapper } = mountOrdersPanel({ orderTab: 'view' })
-    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('看数')
+  it('does not keep a 看数 tab', () => {
+    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    expect(wrapper.text()).not.toContain('看数')
+    expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
   })
 
   it('passes BuyDataOrders props and re-emits subject filter', async () => {

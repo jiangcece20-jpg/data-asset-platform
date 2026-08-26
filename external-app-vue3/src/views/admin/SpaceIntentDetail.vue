@@ -37,7 +37,8 @@ function run(fn: () => void) {
 
 function claim() {
   run(() => {
-    intents.claim(id.value)
+    intents.confirmOfflinePayment(id.value, user.enterprise.id)
+    void router.push('/admin/orders')
   })
 }
 
@@ -79,7 +80,7 @@ const spaceKindLabel = computed(() => {
 })
 
 const canConfirmPayment = computed(() =>
-  intent.value?.opsStatus === 'unclaimed' || intent.value?.opsStatus === 'processing'
+  intent.value?.opsStatus === 'processing' && !intent.value.orderId
 )
 const canFulfill = computed(() =>
   intent.value?.opsStatus === 'converted' && relatedOrder.value?.status === 'paid'
@@ -110,7 +111,7 @@ const operatorContact = computed(() =>
 
 <template>
   <div v-if="intent">
-    <PageHeader :title="`空间意向单 ${intent.id}`" desc="领取后线下确认企业、方案和试用。系统里确认到账后转为买数订单，再协调空间履约。" />
+    <PageHeader :title="`空间意向单 ${intent.id}`" desc="领取后转为买数订单。确认企业、确认方案、线下试用仍在线下完成。" />
 
     <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
 

@@ -42,12 +42,15 @@ export interface PublishForm {
   premiumMemberZhe: number
   hasSpacePrice: boolean
   dashboardMetrics: { name: string; definition: string }[]
+  subtitle?: string
 }
 
 export interface FieldError {
   field: string
   message: string
 }
+
+export const PRODUCT_SUBTITLE_MAX = 60
 
 function zheOk(value: number): boolean {
   return Number.isFinite(value) && value >= 1 && value <= 9.9
@@ -60,6 +63,9 @@ function salePeriodOk(value: number): boolean {
 export function validateDraftSave(form: PublishForm): FieldError[] {
   const errors: FieldError[] = []
   if (!form.name.trim()) errors.push({ field: 'name', message: '请填写商品名称' })
+  if ((form.subtitle ?? '').length > PRODUCT_SUBTITLE_MAX) {
+    errors.push({ field: 'subtitle', message: `副标题不超过 ${PRODUCT_SUBTITLE_MAX} 字` })
+  }
   if (!form.isFree && form.dealChannel === 'app_payment' && !salePeriodOk(form.salePeriodMonths)) {
     errors.push({ field: 'salePeriod', message: '可售卖周期须为正整数' })
   }

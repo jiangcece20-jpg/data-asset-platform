@@ -28,6 +28,8 @@ describe('SellerListingApply prices', () => {
     const wrapper = await mountForm()
     expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('字段信息')
+    expect(wrapper.text()).not.toContain('样例数据')
     expect(wrapper.text()).not.toContain('结算方式')
     expect(wrapper.get('[data-testid="seller-listing-personal-price"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="seller-listing-enterprise-price"]').exists()).toBe(true)

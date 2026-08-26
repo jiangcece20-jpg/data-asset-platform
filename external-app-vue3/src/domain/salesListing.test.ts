@@ -91,6 +91,11 @@ describe('validateDraftSave / validatePublish', () => {
     expect(validateDraftSave({ ...paidForm, name: '  ' }).some((e) => e.field === 'name')).toBe(true)
   })
 
+  it('blocks a subtitle longer than 60 characters', () => {
+    const errors = validateDraftSave({ ...paidForm, subtitle: `${'看板副标题'.repeat(13)}` })
+    expect(errors.some((e) => e.field === 'subtitle' && e.message.includes('60'))).toBe(true)
+  })
+
   it('allows incomplete pricing on draft save', () => {
     expect(validateDraftSave({
       ...paidForm,
