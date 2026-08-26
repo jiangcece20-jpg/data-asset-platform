@@ -22,6 +22,15 @@ async function mountCheckout(productId = 'prod-logistics-monthly') {
   return { wrapper, router }
 }
 
+function checkoutPayButton(wrapper: Awaited<ReturnType<typeof mountCheckout>>['wrapper']) {
+  const dual = wrapper.find('[data-testid="checkout-direct-purchase"]')
+  return dual.exists() ? dual : wrapper.get('[data-testid="purchase-final-confirm"]')
+}
+
+async function clickCheckoutPay(wrapper: Awaited<ReturnType<typeof mountCheckout>>['wrapper']) {
+  await checkoutPayButton(wrapper).trigger('click')
+}
+
 describe('CheckoutItem report purchase subject', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
@@ -32,7 +41,7 @@ describe('CheckoutItem report purchase subject', () => {
     expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="purchase-intent-confirm"]').exists()).toBe(false)
 
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
 
     const order = useOrderStore().list.at(-1)!
     expect(order).toMatchObject({ ownerType: 'personal', ownerId: 'mem-1' })
@@ -45,7 +54,7 @@ describe('CheckoutItem report purchase subject', () => {
     expect(wrapper.get('[data-testid="purchase-identity"]').text()).toContain('万联供应链管理有限公司')
     expect(wrapper.find('[data-testid="purchase-subject-personal"]').exists()).toBe(false)
 
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
 
     const order = useOrderStore().list.at(-1)!
     expect(order.ownerType).toBe('enterprise')
@@ -71,7 +80,7 @@ describe('CheckoutItem report purchase subject', () => {
   it('creates one enterprise online order and entitlement when the pay button is triggered twice immediately', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountCheckout()
-    const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
+    const confirm = checkoutPayButton(wrapper)
 
     await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
 
@@ -82,7 +91,7 @@ describe('CheckoutItem report purchase subject', () => {
   it('keeps the personal pay button idempotent when it is triggered twice immediately', async () => {
     const { wrapper } = await mountCheckout()
     const beforeOrders = useOrderStore().list.filter((order) => order.productId === 'prod-logistics-monthly' && order.ownerType === 'personal').length
-    const confirm = wrapper.get('[data-testid="purchase-final-confirm"]')
+    const confirm = checkoutPayButton(wrapper)
 
     await Promise.all([confirm.trigger('click'), confirm.trigger('click')])
 
@@ -109,7 +118,7 @@ describe('CheckoutItem report purchase subject', () => {
     const contract = wrapper.findAll('button').find((button) => button.text() === '合同采购')!
 
     await contract.trigger('click')
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
     await flushPromises()
 
     const intentId = String(router.currentRoute.value.query.intent)
@@ -139,10 +148,10 @@ describe('CheckoutItem report purchase subject', () => {
 
     expect(router.currentRoute.value.name).toBe('checkout-item')
     expect(wrapper.find('[data-testid="purchase-identity"]').text()).toContain('个人 · 陈静')
-    expect(wrapper.findAll('[data-testid="fixed-item-price"]')).toHaveLength(1)
+    expect(wrapper.find('[data-testid="checkout-dual-path"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="commerce-term-select"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="fixed-purchase-period"]').text()).toContain('12 个月（商品固定）')
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
 
     const order = useOrderStore().list.at(-1)!
     expect(order).toMatchObject({
@@ -159,13 +168,27 @@ describe('CheckoutItem report purchase subject', () => {
     useOrderStore().purchaseMember()
     const { wrapper } = await mountCheckout()
 
-    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toContain('¥119')
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toContain('¥119.4')
+    await clickCheckoutPay(wrapper)
 
     expect(useOrderStore().list.at(-1)).toMatchObject({
       productId: 'prod-logistics-monthly',
       ownerType: 'personal',
-      amount: 119
+      amount: 119.4
+    })
+  })
+
+  it('shows dual-path checkout for non-members on member discount products', async () => {
+    const { wrapper } = await mountCheckout()
+
+    expect(wrapper.find('[data-testid="checkout-dual-path"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="checkout-member-savings"]').text()).toContain('立省')
+    await clickCheckoutPay(wrapper)
+
+    expect(useOrderStore().list.at(-1)).toMatchObject({
+      productId: 'prod-logistics-monthly',
+      ownerType: 'personal',
+      amount: 199
     })
   })
 })
@@ -182,7 +205,7 @@ describe('CheckoutItem seller-market dataset', () => {
     expect(wrapper.text()).not.toContain('自收款')
     expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toContain('¥199')
 
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
     expect(wrapper.text()).toContain('订单待运营开通')
     expect(useOrderStore().list.at(-1)).toMatchObject({
       productId: 'prod-seller-route-board',
@@ -203,7 +226,7 @@ describe('CheckoutItem seller-market dataset', () => {
     expect(wrapper.get('[data-testid="fixed-item-price"]').text()).toMatch(/¥1,?990/)
     expect(wrapper.get('[data-testid="fixed-item-price"]').text()).not.toContain('会员价')
 
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
     expect(useOrderStore().list.at(-1)).toMatchObject({
       productId: 'prod-seller-route-board',
       ownerType: 'enterprise',
@@ -219,7 +242,7 @@ describe('CheckoutItem seller-market dataset', () => {
     const contract = wrapper.findAll('button').find((button) => button.text() === '合同采购')!
 
     await contract.trigger('click')
-    await wrapper.get('[data-testid="purchase-final-confirm"]').trigger('click')
+    await clickCheckoutPay(wrapper)
     await flushPromises()
 
     expect(wrapper.text()).toContain('已提交合同采购')

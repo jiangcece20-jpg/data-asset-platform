@@ -338,6 +338,10 @@ export interface CommerceOffer {
   name: string
   subject: DatasetOfferSubject
   price: number
+  /** 单品营销原价；无则兼容为 price。 */
+  originalPrice?: number
+  /** 单品营销折扣（X 折）；无则兼容为 10 折。 */
+  discountZhe?: number
   currency: 'CNY'
   serviceMode: CommerceServiceMode
   contentKind: CommerceContentKind

@@ -27,7 +27,7 @@ describe('membership', () => {
   it('applies member discount only when membership is effective', () => {
     expect(itemListPriceOf(report, 'personal')).toBe(199)
     expect(memberDiscountedAmount(199, report, false)).toBe(199)
-    expect(memberDiscountedAmount(199, report, true)).toBe(119)
+    expect(memberDiscountedAmount(199, report, true)).toBe(119.4)
     expect(memberDiscountedAmount(1990, report, true)).toBe(1194)
     expect(memberDiscountedAmount(199, freight, true)).toBe(199)
   })

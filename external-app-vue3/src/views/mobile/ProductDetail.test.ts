@@ -130,11 +130,11 @@ describe('ProductDetail dashboard overview', () => {
 
     const free = await mountProductDetail('/app/product/prod-freight-index')
     expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，免费看本商品')
-    expect(free.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('单品购买 ¥199')
+    expect(free.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('直接购买 ¥199')
 
     const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
     expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，享6折')
-    expect(discount.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('原价购买 ¥199')
+    expect(discount.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('直接购买 ¥199')
   })
 })
 

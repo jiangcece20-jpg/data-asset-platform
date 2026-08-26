@@ -9,8 +9,9 @@ import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
+import { checkoutDualPathFields, previewOrderNo } from '@/domain/checkoutDualPath'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +39,20 @@ const amount = computed(() => {
   return memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
 })
 const memberPriced = computed(() => !isSellerMarket.value && amount.value < listPrice.value)
+const dualPath = computed(() => {
+  if (!product.value || !offer.value) {
+    return { showDualPath: false as const }
+  }
+  return checkoutDualPathFields(product.value, {
+    identitySubject: subject.value,
+    hasEffectiveMembership: entitlements.hasEffectiveMembership,
+    canPurchaseMembership: entitlements.canPurchaseMembership,
+    isSellerMarket: isSellerMarket.value,
+    itemPrice: listPrice.value
+  })
+})
+const orderPreviewNo = computed(() => previewOrderNo(id.value))
+const offerSummary = computed(() => (offer.value ? offerDescription(offer.value) : ''))
 
 watch(checkoutAllowed, (allowed) => {
   if (!allowed) router.replace(`/app/product/${id.value}`)
@@ -65,6 +80,10 @@ const paidTitle = computed(() => {
   if (isSellerMarket.value) return '支付成功，订单待运营开通'
   return '支付成功，已解锁本商品'
 })
+
+function goMemberCheckout() {
+  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
+}
 
 function confirmPurchase() {
   if (submitting.value || paid.value || !product.value || !offer.value) return
@@ -131,7 +150,33 @@ function goBackToContext() {
         </div>
         <PurchaseIdentityBanner class="mt-3" :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
 
-        <div v-if="offer" class="mt-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
+        <div
+          v-if="dualPath.showDualPath"
+          class="mt-3 rounded-xl border border-slate-200 bg-white p-3"
+          data-testid="checkout-order-summary"
+        >
+          <div class="text-[12px] font-medium text-slate-700">订单信息</div>
+          <dl class="mt-2 space-y-2 text-[12px]">
+            <div class="flex justify-between gap-3">
+              <dt class="text-slate-400">订单编号</dt>
+              <dd class="text-slate-700">{{ orderPreviewNo }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="text-slate-400">商品名称</dt>
+              <dd class="text-right text-slate-700">{{ product.name }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="text-slate-400">付款金额</dt>
+              <dd class="font-semibold text-brand-600">{{ formatYuan(listPrice) }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+              <dt class="shrink-0 text-slate-400">商品描述</dt>
+              <dd class="text-right text-slate-600">{{ offerSummary }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div v-if="offer && !dualPath.showDualPath" class="mt-3 rounded-xl border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
           <div class="flex items-start justify-between gap-2">
             <span class="text-[13px] font-medium text-slate-800">{{ memberPriced ? '会员价' : offer.name }}</span>
             <span class="text-right">
@@ -165,7 +210,35 @@ function goBackToContext() {
           >合同采购</button>
         </div>
 
+        <div v-if="dualPath.showDualPath" class="mt-4 space-y-2" data-testid="checkout-dual-path">
+          <button
+            data-testid="checkout-direct-purchase"
+            class="w-full rounded-full border border-slate-300 bg-white py-3 text-[14px] font-medium text-slate-700"
+            :disabled="submitting || !offer"
+            @click="confirmPurchase"
+          >
+            直接购买 {{ formatYuan(listPrice) }}
+          </button>
+          <div class="relative">
+            <button
+              data-testid="checkout-become-member"
+              class="w-full rounded-full bg-emerald-500 py-3 text-[14px] font-medium text-white"
+              :disabled="submitting"
+              @click="goMemberCheckout"
+            >
+              成为会员
+            </button>
+            <span
+              v-if="dualPath.savingsLabel"
+              class="absolute -top-2 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-medium text-amber-950 shadow-sm"
+              data-testid="checkout-member-savings"
+            >
+              {{ dualPath.savingsLabel }}
+            </span>
+          </div>
+        </div>
         <button
+          v-else
           data-testid="purchase-final-confirm"
           class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
           :disabled="submitting || !offer"

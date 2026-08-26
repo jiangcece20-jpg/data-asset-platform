@@ -118,8 +118,8 @@ function resolveMemberAwareActions(context: ProductActionContext): {
       ? `开通${memberName}，享${context.discountZhe ?? 6}折`
       : `开通${memberName}，免费看本商品`
     const secondaryLabel = benefit === 'discount'
-      ? `原价购买${itemPriceText(context.itemPrice)}`.trim()
-      : itemPurchaseLabel(context, '单品购买')
+      ? `直接购买${itemPriceText(context.itemPrice)}`.trim()
+      : itemPurchaseLabel(context, '直接购买')
     return {
       primary: { key: 'member_purchase', label: primaryLabel },
       secondary: hasItem ? { key: 'item_purchase', label: secondaryLabel } : undefined

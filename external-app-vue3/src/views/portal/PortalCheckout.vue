@@ -9,8 +9,9 @@ import { useUserStore } from '@/stores/user'
 import { typeMeta } from '@/utils/productMeta'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
-import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
+import { checkoutDualPathFields, previewOrderNo } from '@/domain/checkoutDualPath'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +38,20 @@ const amount = computed(() => {
   return memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
 })
 const memberPriced = computed(() => !isSellerMarket.value && amount.value < listPrice.value)
+const dualPath = computed(() => {
+  if (!product.value || !offer.value) {
+    return { showDualPath: false as const }
+  }
+  return checkoutDualPathFields(product.value, {
+    identitySubject: subject.value,
+    hasEffectiveMembership: entitlements.hasEffectiveMembership,
+    canPurchaseMembership: entitlements.canPurchaseMembership,
+    isSellerMarket: isSellerMarket.value,
+    itemPrice: listPrice.value
+  })
+})
+const orderPreviewNo = computed(() => previewOrderNo(id.value))
+const offerSummary = computed(() => (offer.value ? offerDescription(offer.value) : ''))
 const identityNote = computed(() => {
   if (isSellerMarket.value && subject.value === 'enterprise') {
     return '本单打款到平台。在线支付后订单进入待开通，由运营开通后可查看；合同采购先待平台确认到账。不走会员价。'
@@ -55,6 +70,10 @@ const paidTitle = computed(() => {
 })
 
 const sellerMarket = useSellerMarketStore()
+
+function goMemberCheckout() {
+  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
+}
 
 function confirmPurchase() {
   if (submitting.value || paid.value || !product.value || !offer.value) return
@@ -117,7 +136,33 @@ function confirmPurchase() {
               买家打款到平台。支付成功后订单为「待开通」，由运营开通后才可查看。平台按合同与卖家结算，本商品不享受会员价。
             </div>
 
-            <div v-if="offer" class="rounded-lg border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
+            <div
+              v-if="dualPath.showDualPath"
+              class="rounded-lg border border-slate-200 bg-white p-3"
+              data-testid="checkout-order-summary"
+            >
+              <div class="text-sm font-medium text-slate-700">订单信息</div>
+              <dl class="mt-2 space-y-2 text-sm">
+                <div class="flex justify-between gap-3">
+                  <dt class="text-slate-400">订单编号</dt>
+                  <dd class="text-slate-700">{{ orderPreviewNo }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-slate-400">商品名称</dt>
+                  <dd class="text-right text-slate-700">{{ product.name }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="text-slate-400">付款金额</dt>
+                  <dd class="font-semibold text-brand-600">{{ formatYuan(listPrice) }}</dd>
+                </div>
+                <div class="flex justify-between gap-3">
+                  <dt class="shrink-0 text-slate-400">商品描述</dt>
+                  <dd class="text-right text-slate-600">{{ offerSummary }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div v-if="offer && !dualPath.showDualPath" class="rounded-lg border border-brand-100 bg-brand-50/50 p-3" data-testid="fixed-item-price">
               <div class="flex justify-between gap-2 text-sm">
                 <span>{{ memberPriced ? '会员价' : offer.name }}</span>
                 <strong class="text-brand-600">
@@ -195,15 +240,42 @@ function confirmPurchase() {
               </div>
             </div>
           </div>
+          <div v-if="dualPath.showDualPath" class="space-y-2" data-testid="checkout-dual-path">
+            <button
+              data-testid="checkout-direct-purchase"
+              class="w-full rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              :disabled="submitting || !offer"
+              @click="confirmPurchase"
+            >
+              直接购买 {{ formatYuan(listPrice) }}
+            </button>
+            <div class="relative">
+              <button
+                data-testid="checkout-become-member"
+                class="w-full rounded-lg bg-emerald-500 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"
+                :disabled="submitting"
+                @click="goMemberCheckout"
+              >
+                成为会员
+              </button>
+              <span
+                v-if="dualPath.savingsLabel"
+                class="absolute -top-2 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-medium text-amber-950 shadow-sm"
+                data-testid="checkout-member-savings"
+              >
+                {{ dualPath.savingsLabel }}
+              </span>
+            </div>
+          </div>
           <button
-            v-if="!paid"
+            v-else-if="!paid"
             data-testid="purchase-final-confirm"
             class="mt-4 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
             :disabled="submitting || !offer"
             @click="confirmPurchase"
           >{{ subject === 'enterprise' && enterpriseMode === 'contract' ? `以${identity.name}提交合同采购` : `以${identity.name}支付` }}</button>
           <button
-            v-if="!paid"
+            v-if="!paid && !dualPath.showDualPath"
             class="mt-2 w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600"
             @click="router.back()"
           >取消</button>

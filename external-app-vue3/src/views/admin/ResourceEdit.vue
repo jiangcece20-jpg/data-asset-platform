@@ -38,6 +38,13 @@ import {
   type PublishForm,
   type ResourceEditTab
 } from '@/domain/salesListing'
+import {
+  ITEM_DISCOUNT_ZHE_DEFAULT,
+  itemDiscountZheOk,
+  itemSalePrice,
+  originalPriceOk,
+  resolveItemOfferPricing
+} from '@/domain/itemPricing'
 
 const route = useRoute()
 const router = useRouter()
@@ -156,13 +163,44 @@ type ItemOfferForm = {
   id: string
   enabled: boolean
   subject: 'personal' | 'enterprise'
+  originalPrice: number
+  discountZhe: number
   price: number
   allowDownload: boolean
 }
 const itemOfferForm = reactive({
-  personal: { id: '', enabled: false, subject: 'personal', price: 0, allowDownload: false } as ItemOfferForm,
-  enterprise: { id: '', enabled: false, subject: 'enterprise', price: 0, allowDownload: false } as ItemOfferForm
+  personal: {
+    id: '',
+    enabled: false,
+    subject: 'personal',
+    originalPrice: 0,
+    discountZhe: ITEM_DISCOUNT_ZHE_DEFAULT,
+    price: 0,
+    allowDownload: false
+  } as ItemOfferForm,
+  enterprise: {
+    id: '',
+    enabled: false,
+    subject: 'enterprise',
+    originalPrice: 0,
+    discountZhe: ITEM_DISCOUNT_ZHE_DEFAULT,
+    price: 0,
+    allowDownload: false
+  } as ItemOfferForm
 })
+
+function itemOfferSalePricePreview(offer: ItemOfferForm): string {
+  if (!offer.enabled || !originalPriceOk(offer.originalPrice) || !itemDiscountZheOk(offer.discountZhe)) {
+    return '—'
+  }
+  return `¥${itemSalePrice(offer.originalPrice, offer.discountZhe).toLocaleString()}`
+}
+
+function syncItemOfferPrice(offer: ItemOfferForm) {
+  if (originalPriceOk(offer.originalPrice) && itemDiscountZheOk(offer.discountZhe)) {
+    offer.price = itemSalePrice(offer.originalPrice, offer.discountZhe)
+  }
+}
 
 // --- 数据探查配置 ---
 const profilingSelection = ref<string[]>([])
@@ -223,9 +261,13 @@ function currentPublishForm(): PublishForm {
     isFree: productForm.isFree,
     salePeriodMonths: Number(productForm.salePeriodMonths),
     personalEnabled: itemOfferForm.personal.enabled,
-    personalPrice: Number(itemOfferForm.personal.price),
+    personalPrice: itemSalePrice(Number(itemOfferForm.personal.originalPrice), Number(itemOfferForm.personal.discountZhe)),
+    personalOriginalPrice: Number(itemOfferForm.personal.originalPrice),
+    personalDiscountZhe: Number(itemOfferForm.personal.discountZhe),
     enterpriseEnabled: itemOfferForm.enterprise.enabled,
-    enterprisePrice: Number(itemOfferForm.enterprise.price),
+    enterprisePrice: itemSalePrice(Number(itemOfferForm.enterprise.originalPrice), Number(itemOfferForm.enterprise.discountZhe)),
+    enterpriseOriginalPrice: Number(itemOfferForm.enterprise.originalPrice),
+    enterpriseDiscountZhe: Number(itemOfferForm.enterprise.discountZhe),
     standardMemberMode: productForm.standardMemberMode,
     standardMemberZhe: Number(productForm.standardMemberZhe),
     premiumMemberMode: productForm.premiumMemberMode,
@@ -267,10 +309,14 @@ function syncFormFromStore() {
     productForm.recommendSlot = false
     itemOfferForm.personal.id = ''
     itemOfferForm.personal.enabled = false
+    itemOfferForm.personal.originalPrice = 0
+    itemOfferForm.personal.discountZhe = ITEM_DISCOUNT_ZHE_DEFAULT
     itemOfferForm.personal.price = 0
     itemOfferForm.personal.allowDownload = false
     itemOfferForm.enterprise.id = ''
     itemOfferForm.enterprise.enabled = false
+    itemOfferForm.enterprise.originalPrice = 0
+    itemOfferForm.enterprise.discountZhe = ITEM_DISCOUNT_ZHE_DEFAULT
     itemOfferForm.enterprise.price = 0
     itemOfferForm.enterprise.allowDownload = false
     datasetForm.granularity = ''
@@ -397,7 +443,10 @@ function syncItemOffer(target: ItemOfferForm, offers: CommerceOffer[], fallbackP
   const source = candidates.find((offer) => offer.serviceMode === 'one_time') ?? candidates[0]
   target.id = source?.id ?? `offer-${product.value?.id}-${target.subject}-item`
   target.enabled = Boolean(source)
-  target.price = source?.price ?? fallbackPrice
+  const pricing = resolveItemOfferPricing(source ?? { price: fallbackPrice })
+  target.originalPrice = pricing.originalPrice
+  target.discountZhe = pricing.discountZhe
+  target.price = pricing.salePrice
   target.allowDownload = Boolean(source?.allowDownload)
 }
 
@@ -594,11 +643,14 @@ function contentKindFor(type: ProductType): CommerceContentKind {
 }
 
 function normalizeItemOffer(type: ProductType, form: ItemOfferForm): CommerceOffer {
+  syncItemOfferPrice(form)
   return {
     id: form.id,
     name: form.subject === 'personal' ? '个人单品' : '企业单品',
     subject: form.subject,
     price: Number(form.price),
+    originalPrice: Number(form.originalPrice),
+    discountZhe: Number(form.discountZhe),
     currency: 'CNY',
     serviceMode: 'one_time',
     contentKind: contentKindFor(type),
@@ -1166,21 +1218,41 @@ function saveProfilingFields() {
               :data-testid="`item-offer-${offer.subject}`"
             >
               <div class="text-xs font-medium text-slate-700">{{ offer.subject === 'personal' ? '个人单品' : '企业单品' }}</div>
-              <div class="flex items-center gap-3 text-xs text-slate-600">
+              <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
                 <label class="flex items-center gap-1.5">
                   <input v-model="offer.enabled" type="checkbox" :disabled="productForm.isFree" :data-testid="`item-offer-${offer.subject}-enabled`" />启用
                 </label>
                 <label class="flex items-center gap-1.5" :class="offer.enabled ? '' : 'opacity-50'">
-                  <span>价格 ¥</span>
+                  <span>原价 ¥</span>
                   <input
-                    v-model.number="offer.price"
+                    v-model.number="offer.originalPrice"
                     type="number"
                     min="0"
+                    step="0.1"
                     :disabled="productForm.isFree || !offer.enabled"
-                    :data-testid="`item-offer-${offer.subject}-price`"
-                    class="w-32 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                    :data-testid="`item-offer-${offer.subject}-original-price`"
+                    class="w-28 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                    @input="syncItemOfferPrice(offer)"
                   />
                 </label>
+                <label class="flex items-center gap-1.5" :class="offer.enabled ? '' : 'opacity-50'">
+                  <span>折扣</span>
+                  <input
+                    v-model.number="offer.discountZhe"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    :disabled="productForm.isFree || !offer.enabled"
+                    :data-testid="`item-offer-${offer.subject}-discount-zhe`"
+                    class="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                    @input="syncItemOfferPrice(offer)"
+                  />
+                  <span>折</span>
+                </label>
+                <span class="text-slate-500" :data-testid="`item-offer-${offer.subject}-sale-price-preview`">
+                  → 售价 {{ itemOfferSalePricePreview(offer) }}
+                </span>
               </div>
             </div>
 
@@ -1259,6 +1331,14 @@ function saveProfilingFields() {
             </div>
           </fieldset>
         </div>
+
+        <p
+          v-if="canConfigurePaywall"
+          class="mb-2 text-[11px] text-slate-400"
+          data-testid="paywall-scroll-hint"
+        >
+          下方为自营看板收费内容区，可配置模块/字段/按钮打码。
+        </p>
 
         <DashboardPaywallEditor
           v-if="canConfigurePaywall"

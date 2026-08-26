@@ -1,5 +1,10 @@
 import type { DealChannel, Product } from '@/types/domain'
 import type { Resource } from '@/types/resource'
+import {
+  itemDiscountZheOk,
+  itemSalePrice,
+  originalPriceOk
+} from '@/domain/itemPricing'
 
 export type SalesState = 'unlisted' | 'draft' | 'published' | 'paused' | 'delisted'
 
@@ -34,8 +39,12 @@ export interface PublishForm {
   salePeriodMonths: number
   personalEnabled: boolean
   personalPrice: number
+  personalOriginalPrice: number
+  personalDiscountZhe: number
   enterpriseEnabled: boolean
   enterprisePrice: number
+  enterpriseOriginalPrice: number
+  enterpriseDiscountZhe: number
   standardMemberMode: 'none' | 'free' | 'discount'
   standardMemberZhe: number
   premiumMemberMode: 'none' | 'free' | 'discount'
@@ -54,7 +63,14 @@ export type ResourceEditTab = 'product' | 'pricing' | 'content'
 
 export function tabForPublishField(field: string): ResourceEditTab | undefined {
   if (field === 'name' || field === 'subtitle') return 'product'
-  if (field === 'salePeriod' || field === 'memberZhe' || field === 'pricing' || field === 'itemPrice') {
+  if (
+    field === 'salePeriod'
+    || field === 'memberZhe'
+    || field === 'pricing'
+    || field === 'itemPrice'
+    || field === 'itemOriginalPrice'
+    || field === 'itemDiscountZhe'
+  ) {
     return 'pricing'
   }
   if (field === 'dashboardMetrics') return 'content'
@@ -108,11 +124,35 @@ export function validatePublish(form: PublishForm): FieldError[] {
   if (!form.personalEnabled && !form.enterpriseEnabled && !hasMember) {
     errors.push({ field: 'pricing', message: '请启用免费，或至少配置一种可售方式' })
   }
-  if (form.personalEnabled && !Number.isFinite(form.personalPrice)) {
-    errors.push({ field: 'itemPrice', message: '请填写个人单品价格' })
+  if (form.personalEnabled) {
+    if (!originalPriceOk(form.personalOriginalPrice)) {
+      errors.push({ field: 'itemOriginalPrice', message: '个人单品原价须大于 0 且不超过 9999999，最多 1 位小数' })
+    }
+    if (!itemDiscountZheOk(form.personalDiscountZhe)) {
+      errors.push({ field: 'itemDiscountZhe', message: '个人单品折扣须大于 0 且不超过 10 折，最多 1 位小数' })
+    }
+    if (
+      originalPriceOk(form.personalOriginalPrice)
+      && itemDiscountZheOk(form.personalDiscountZhe)
+      && form.personalPrice !== itemSalePrice(form.personalOriginalPrice, form.personalDiscountZhe)
+    ) {
+      errors.push({ field: 'itemPrice', message: '个人单品售价与原价×折扣不一致' })
+    }
   }
-  if (form.enterpriseEnabled && !Number.isFinite(form.enterprisePrice)) {
-    errors.push({ field: 'itemPrice', message: '请填写企业单品价格' })
+  if (form.enterpriseEnabled) {
+    if (!originalPriceOk(form.enterpriseOriginalPrice)) {
+      errors.push({ field: 'itemOriginalPrice', message: '企业单品原价须大于 0 且不超过 9999999，最多 1 位小数' })
+    }
+    if (!itemDiscountZheOk(form.enterpriseDiscountZhe)) {
+      errors.push({ field: 'itemDiscountZhe', message: '企业单品折扣须大于 0 且不超过 10 折，最多 1 位小数' })
+    }
+    if (
+      originalPriceOk(form.enterpriseOriginalPrice)
+      && itemDiscountZheOk(form.enterpriseDiscountZhe)
+      && form.enterprisePrice !== itemSalePrice(form.enterpriseOriginalPrice, form.enterpriseDiscountZhe)
+    ) {
+      errors.push({ field: 'itemPrice', message: '企业单品售价与原价×折扣不一致' })
+    }
   }
   return errors
 }

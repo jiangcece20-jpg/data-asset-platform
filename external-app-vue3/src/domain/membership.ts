@@ -1,5 +1,6 @@
 import type { Product } from '@/types/domain'
 import { commerceOffersOf } from '@/domain/commerceOffers'
+import { roundPrice1 } from '@/domain/itemPricing'
 import { discountToZhe, resolveMemberBenefits } from '@/domain/memberBenefits'
 import type { PurchaseIdentitySubject } from '@/domain/purchaseIdentity'
 
@@ -65,7 +66,7 @@ export function memberDiscountedAmount(listPrice: number, product: Product, hasE
   if (!hasEffectiveMembership) return listPrice
   const factor = productMemberDiscountFactor(product)
   if (factor == null) return listPrice
-  return Math.round(listPrice * factor)
+  return roundPrice1(listPrice * factor)
 }
 
 export function formatYuan(amount: number): string {
@@ -97,7 +98,7 @@ export function membershipActionFields(product: Product, options: {
     canPurchaseMembership: options.canPurchaseMembership,
     itemPrice,
     memberItemPrice: memberBenefit === 'discount' && itemPrice != null && factor != null
-      ? Math.round(itemPrice * factor)
+      ? roundPrice1(itemPrice * factor)
       : undefined,
     discountZhe: memberBenefit === 'discount' ? discountToZhe(factor) : undefined
   }

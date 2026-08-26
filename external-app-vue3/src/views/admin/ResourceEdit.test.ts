@@ -155,16 +155,32 @@ describe('ResourceEdit product-detail mapping', () => {
     const wrapper = await mountResourceEdit()
     await openTab(wrapper, 'pricing')
 
-    await wrapper.get('[data-testid="item-offer-personal-price"]').setValue('259')
-    await wrapper.get('[data-testid="item-offer-enterprise-price"]').setValue('2590')
+    await wrapper.get('[data-testid="item-offer-personal-original-price"]').setValue('259')
+    await wrapper.get('[data-testid="item-offer-personal-discount-zhe"]').setValue('8.5')
+    await wrapper.get('[data-testid="item-offer-enterprise-original-price"]').setValue('2590')
+    await wrapper.get('[data-testid="item-offer-enterprise-discount-zhe"]').setValue('10')
     await wrapper.get('[data-testid="sale-period-months"]').setValue('18')
     await wrapper.get('[data-testid="save-product"]').trigger('click')
 
     const product = useCatalogStore().byId('prod-freight-index')
     expect(product?.commerceOffers).toHaveLength(2)
     expect(product?.commerceOffers).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: '个人单品', subject: 'personal', price: 259, serviceMode: 'one_time' }),
-      expect.objectContaining({ name: '企业单品', subject: 'enterprise', price: 2590, serviceMode: 'one_time' })
+      expect.objectContaining({
+        name: '个人单品',
+        subject: 'personal',
+        price: 220.2,
+        originalPrice: 259,
+        discountZhe: 8.5,
+        serviceMode: 'one_time'
+      }),
+      expect.objectContaining({
+        name: '企业单品',
+        subject: 'enterprise',
+        price: 2590,
+        originalPrice: 2590,
+        discountZhe: 10,
+        serviceMode: 'one_time'
+      })
     ]))
     expect(product?.commerceOffers?.some((item) => item.serviceMode === 'continuous')).toBe(false)
     expect(product?.salePeriodMonths).toBe(18)

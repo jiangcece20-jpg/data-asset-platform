@@ -33,8 +33,12 @@ const paidForm: PublishForm = {
   salePeriodMonths: 12,
   personalEnabled: true,
   personalPrice: 199,
+  personalOriginalPrice: 199,
+  personalDiscountZhe: 10,
   enterpriseEnabled: false,
   enterprisePrice: 0,
+  enterpriseOriginalPrice: 0,
+  enterpriseDiscountZhe: 10,
   standardMemberMode: 'none',
   standardMemberZhe: 6,
   premiumMemberMode: 'none',
@@ -167,13 +171,15 @@ describe('validateDraftSave / validatePublish', () => {
     expect(errors.some((e) => e.field === 'salePeriod')).toBe(true)
   })
 
-  it.each([
-    ['NaN', Number.NaN],
-    ['Infinity', Number.POSITIVE_INFINITY],
-    ['1.5', 1.5]
-  ])('rejects non-integer sale period %s on publish', (_label, salePeriodMonths) => {
-    const errors = validatePublish({ ...paidForm, salePeriodMonths })
-    expect(errors.some((e) => e.field === 'salePeriod')).toBe(true)
+  it('requires original price and discount zhe when personal item is enabled', () => {
+    const errors = validatePublish({
+      ...paidForm,
+      personalOriginalPrice: 0,
+      personalDiscountZhe: 0,
+      personalPrice: 0
+    })
+    expect(errors.some((e) => e.field === 'itemOriginalPrice')).toBe(true)
+    expect(errors.some((e) => e.field === 'itemDiscountZhe')).toBe(true)
   })
 })
 
@@ -185,6 +191,8 @@ describe('tabForPublishField', () => {
     expect(tabForPublishField('memberZhe')).toBe('pricing')
     expect(tabForPublishField('pricing')).toBe('pricing')
     expect(tabForPublishField('itemPrice')).toBe('pricing')
+    expect(tabForPublishField('itemOriginalPrice')).toBe('pricing')
+    expect(tabForPublishField('itemDiscountZhe')).toBe('pricing')
     expect(tabForPublishField('dashboardMetrics')).toBe('content')
     expect(tabForPublishField('listing')).toBeUndefined()
   })

@@ -69,7 +69,7 @@ describe('resolveProductActions', () => {
       itemPrice: 199
     })
     expect(free.primary).toEqual({ key: 'member_purchase', label: '开通个人会员，免费看本商品' })
-    expect(free.secondary).toEqual({ key: 'item_purchase', label: `单品购买 ${formatYuan(199)}` })
+    expect(free.secondary).toEqual({ key: 'item_purchase', label: `直接购买 ${formatYuan(199)}` })
 
     const discount = resolveProductActions({
       ...base,
@@ -81,7 +81,7 @@ describe('resolveProductActions', () => {
       discountZhe: 6
     })
     expect(discount.primary).toEqual({ key: 'member_purchase', label: '开通团队会员，享6折' })
-    expect(discount.secondary).toEqual({ key: 'item_purchase', label: `原价购买 ${formatYuan(1990)}` })
+    expect(discount.secondary).toEqual({ key: 'item_purchase', label: `直接购买 ${formatYuan(1990)}` })
   })
 
   it('keeps only member-price purchase after membership is effective on a discount product', () => {
