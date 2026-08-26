@@ -33,8 +33,10 @@ import {
   PRODUCT_SUBTITLE_MAX,
   validateDraftSave,
   validatePublish,
+  tabForPublishField,
   type FieldError,
-  type PublishForm
+  type PublishForm,
+  type ResourceEditTab
 } from '@/domain/salesListing'
 
 const route = useRoute()
@@ -70,8 +72,14 @@ function goBack() {
 // ---------------------------------------------------------------------------
 
 const editable = computed(() => resource.value?.type !== 'user_view')
+const activeTab = ref<ResourceEditTab>('product')
 const dealChannel = computed(() => product.value?.dealChannel ?? 'app_payment')
 const publishErrors = ref<FieldError[]>([])
+const tabError = computed(() => {
+  const fields = publishErrors.value.map((e) => e.field)
+  const tabs = new Set(fields.map(tabForPublishField).filter((tab): tab is ResourceEditTab => Boolean(tab)))
+  return tabs
+})
 const salesState = computed(() => salesStateOf(product.value))
 const listingBlocked = computed(() => (resource.value ? listingBlockReason(resource.value) : undefined))
 const canSave = computed(() => editable.value)
@@ -180,6 +188,17 @@ const canConfigureProfiling = computed(() =>
   && resource.value.origin !== 'trusted_space'
   && product.value?.dealChannel !== 'space_purchase'
 )
+
+const hasContentConfig = computed(() => {
+  const res = resource.value
+  if (!res) return false
+  if (res.type === 'dataset') return true
+  if (res.type === 'api' && res.typeDetail.api) return true
+  if (res.type === 'report' && product.value?.typeDetail.report) return true
+  if (res.type === 'dashboard' && product.value?.typeDetail.dashboard) return true
+  if (canConfigureProfiling.value) return true
+  return false
+})
 
 const selectableFields = computed(() => datasetFields.value.filter((f) => f.hasStat))
 const allSelectableChecked = computed(
@@ -383,6 +402,11 @@ function syncItemOffer(target: ItemOfferForm, offers: CommerceOffer[], fallbackP
 }
 
 watch([product, resourceId], syncFormFromStore, { immediate: true })
+
+watch(resourceId, () => {
+  activeTab.value = 'product'
+  publishErrors.value = []
+})
 
 // ---------------------------------------------------------------------------
 // 保存动作
@@ -665,6 +689,8 @@ function confirmPublish() {
   const errors = validatePublish(currentPublishForm())
   if (errors.length) {
     publishErrors.value = errors
+    const tab = tabForPublishField(errors[0].field)
+    if (tab) activeTab.value = tab
     return
   }
   const message = salesState.value === 'delisted'
@@ -744,7 +770,8 @@ function saveProfilingFields() {
         <div class="mt-0.5 text-xs text-slate-400">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
         <p v-if="publishErrors.some((e) => e.field === 'listing')" data-testid="listing-block-error" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'listing')?.message }}</p>
       </div>
-      <button v-if="canSave" data-testid="save-product-bar" class="rounded-lg border border-slate-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
+      <button v-if="canSave" data-testid="save-product" class="rounded-lg border border-slate-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
+      <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
       <button v-if="showPublish" data-testid="publish-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">上架</button>
       <button v-if="salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
       <button v-if="salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
@@ -768,44 +795,34 @@ function saveProfilingFields() {
       </div>
     </div>
 
-    <!-- 类型特有区块：数据集关键指标（运营配置，非必填） -->
-    <div v-if="resource.type === 'dataset'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <div class="mb-3 flex items-center gap-2">
-        <h2 class="text-sm font-semibold text-slate-700">数据集详情</h2>
-        <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">运营配置 · 非必填</span>
-      </div>
-      <p class="mb-4 text-xs leading-relaxed text-slate-400">
-        粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
-      </p>
-      <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
-        <label class="block">
-          <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
-          <input v-model="datasetForm.granularity" data-testid="dataset-metric-granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-xs text-slate-400">时间范围</span>
-          <input v-model="datasetForm.timeRange" data-testid="dataset-metric-time-range" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-xs text-slate-400">数据行数</span>
-          <input v-model="datasetForm.rowCount" data-testid="dataset-metric-row-count" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-        </label>
-        <label class="block">
-          <span class="mb-1 block text-xs text-slate-400">字段数</span>
-          <input v-model="datasetForm.fieldCount" data-testid="dataset-metric-field-count" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-        </label>
-      </div>
-    </div>
-
-    <!-- 类型特有区块：API -->
-    <div v-if="resource.type === 'api' && resource.typeDetail.api" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">API 详情</h2>
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">方法：</span>{{ resource.typeDetail.api.method }}</div>
-        <div><span class="text-slate-500">路径：</span><code class="text-xs">{{ resource.typeDetail.api.pathExample }}</code></div>
-        <div><span class="text-slate-500">版本：</span>{{ resource.typeDetail.api.version }}</div>
-        <div><span class="text-slate-500">SLA：</span>{{ resource.typeDetail.api.sla }}</div>
-      </div>
+    <div
+      v-if="editable"
+      data-testid="resource-edit-tabs"
+      class="mb-6 flex gap-1 border-b border-slate-200"
+      role="tablist"
+    >
+      <button
+        v-for="tab in ([
+          { id: 'product', label: '商品信息' },
+          { id: 'content', label: '内容配置' },
+          { id: 'pricing', label: '价格与权益' }
+        ] as const)"
+        :key="tab.id"
+        type="button"
+        role="tab"
+        :data-testid="`resource-edit-tab-${tab.id}`"
+        :aria-selected="activeTab === tab.id ? 'true' : 'false'"
+        class="relative -mb-px px-4 py-2 text-sm"
+        :class="activeTab === tab.id ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        @click="activeTab = tab.id"
+      >
+        {{ tab.label }}
+        <span
+          v-if="tabError.has(tab.id)"
+          :data-testid="`resource-edit-tab-error-${tab.id}`"
+          class="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-red-500"
+        />
+      </button>
     </div>
 
     <!-- ================================================================== -->
@@ -813,9 +830,9 @@ function saveProfilingFields() {
     <!-- ================================================================== -->
     <template v-if="editable">
 
-      <!-- 商品信息编辑 -->
-      <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息编辑</h2>
+      <!-- 商品信息 Tab -->
+      <div v-if="activeTab === 'product'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息</h2>
 
         <!-- 标题与展示（对应详情页标题卡） -->
         <div class="mb-4">
@@ -893,6 +910,214 @@ function saveProfilingFields() {
             <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
           </div>
         </div>
+      </div>
+
+      <!-- 内容配置 Tab -->
+      <template v-if="activeTab === 'content'">
+
+      <!-- 类型特有区块：数据集关键指标（运营配置，非必填） -->
+      <div v-if="resource.type === 'dataset'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <div class="mb-3 flex items-center gap-2">
+          <h2 class="text-sm font-semibold text-slate-700">数据集详情</h2>
+          <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">运营配置 · 非必填</span>
+        </div>
+        <p class="mb-4 text-xs leading-relaxed text-slate-400">
+          粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
+        </p>
+        <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
+            <input v-model="datasetForm.granularity" data-testid="dataset-metric-granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">时间范围</span>
+            <input v-model="datasetForm.timeRange" data-testid="dataset-metric-time-range" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">数据行数</span>
+            <input v-model="datasetForm.rowCount" data-testid="dataset-metric-row-count" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs text-slate-400">字段数</span>
+            <input v-model="datasetForm.fieldCount" data-testid="dataset-metric-field-count" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 类型特有区块：API -->
+      <div v-if="resource.type === 'api' && resource.typeDetail.api" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-3 text-sm font-semibold text-slate-700">API 详情</h2>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><span class="text-slate-500">方法：</span>{{ resource.typeDetail.api.method }}</div>
+          <div><span class="text-slate-500">路径：</span><code class="text-xs">{{ resource.typeDetail.api.pathExample }}</code></div>
+          <div><span class="text-slate-500">版本：</span>{{ resource.typeDetail.api.version }}</div>
+          <div><span class="text-slate-500">SLA：</span>{{ resource.typeDetail.api.sla }}</div>
+        </div>
+      </div>
+
+      <!-- 报告介绍配置 -->
+      <div v-if="resource.type === 'report' && product?.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-700">报告介绍配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-slate-400">对应前台「报告介绍」中的类型特有字段；通用运营信息（提供方、更新频率等）仍在上方商品信息中维护。来源与上架时间为系统事实，只读展示。</p>
+          </div>
+          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+        </div>
+
+        <div class="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+          <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
+          <div><span class="text-slate-500">上架时间：</span>{{ listedAtOf(product) || '未上架' }}</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">发布日期</span><input v-model="reportForm.publishedAt" data-testid="report-published-at" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" placeholder="YYYY-MM-DD" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告页数</span><input v-model.number="reportForm.pageCount" type="number" min="1" data-testid="report-page-count" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">研究机构</span><input v-model="reportForm.author" data-testid="report-author" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告版本</span><input v-model="reportForm.version" data-testid="report-version" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">适用读者</span><input v-model="reportForm.audience" data-testid="report-audience" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+        </div>
+
+        <p class="mt-4 text-[11px] leading-relaxed text-slate-400">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-report-config" type="button" @click="saveReportConfig">保存报告配置</button>
+          <span v-if="reportConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
+        </div>
+      </div>
+
+      <!-- 看板与指标定义配置 -->
+      <div v-if="resource.type === 'dashboard' && product?.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-slate-400">这些内容对应前台“看板信息”和“指标定义”。指标定义属于购买前说明，所有用户无需解锁即可查看。</p>
+          </div>
+          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">时间范围</span><input v-model="dashboardForm.timeRange" data-testid="dashboard-time-range" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-slate-400">更新周期</span><input v-model="dashboardForm.updateCycle" data-testid="dashboard-update-cycle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">导出规则</span><textarea v-model="dashboardForm.exportRule" rows="2" data-testid="dashboard-export-rule" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+        </div>
+
+        <div class="mt-5 border-t border-slate-100 pt-4">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <div class="text-xs font-medium text-slate-600">指标定义</div>
+              <div class="mt-0.5 text-[11px] text-slate-400">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
+              <p v-if="publishErrors.some((e) => e.field === 'dashboardMetrics')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'dashboardMetrics')?.message }}</p>
+            </div>
+            <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50" type="button" @click="addDashboardMetric">+ 添加指标</button>
+          </div>
+
+          <div class="space-y-3">
+            <div v-for="(metric, index) in dashboardForm.metrics" :key="index" class="rounded-lg border border-slate-200 p-4" :data-testid="`dashboard-metric-${index}`">
+              <div class="mb-3 flex items-center justify-between">
+                <span class="text-xs font-medium text-slate-600">指标 {{ index + 1 }}</span>
+                <button class="text-xs text-red-500 hover:text-red-600" type="button" @click="removeDashboardMetric(index)">删除</button>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">指标名称</span><input v-model="metric.name" :data-testid="`dashboard-metric-name-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-slate-400">支持维度（顿号分隔）</span><input v-model="metric.dimensions" :data-testid="`dashboard-metric-dimensions-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">指标描述</span><textarea v-model="metric.definition" rows="2" :data-testid="`dashboard-metric-definition-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">计算公式</span><input v-model="metric.formula" :data-testid="`dashboard-metric-formula-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
+        </div>
+
+        <div class="mt-5 space-y-3 border-t border-slate-100 pt-4" data-testid="dashboard-preview-shots">
+          <div>
+            <div class="text-xs font-medium text-slate-600">看板预览截图</div>
+            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">规则同卖家上架看板：模版 4 槽 + 自定义 1 张，最多不超过 5 个图，用于前台「看板预览」页签。</p>
+          </div>
+          <SellerListingShots v-model="sellingShots" />
+          <SellerListingCustomShots v-model="customSellingShots" />
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
+          <span v-if="dashboardConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
+        </div>
+      </div>
+
+      <!-- 数据探查配置（仅数据集类型） -->
+      <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
+        <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
+
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-400">
+            <tr>
+              <th class="w-9 px-2 py-2">
+                <input
+                  type="checkbox"
+                  :checked="allSelectableChecked"
+                  :indeterminate.prop="someSelectableChecked"
+                  @change="toggleSelectAll"
+                />
+              </th>
+              <th class="px-2 py-2 font-medium">字段名</th>
+              <th class="px-2 py-2 font-medium">业务含义</th>
+              <th class="px-2 py-2 font-medium">类型</th>
+              <th class="px-2 py-2 font-medium">敏感级</th>
+              <th class="px-2 py-2 font-medium">探查结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="f in datasetFields"
+              :key="f.name"
+              class="border-t border-slate-100"
+              :class="f.sensitive ? 'bg-amber-50/40' : ''"
+            >
+              <td class="px-2 py-2">
+                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" :data-testid="`profiling-field-${f.name}`" />
+              </td>
+              <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
+              <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
+              <td class="px-2 py-2 text-slate-500">{{ f.dataType }}</td>
+              <td class="px-2 py-2">
+                <span v-if="f.sensitive" class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700">
+                  {{ f.sensitivityLabel }}
+                </span>
+                <span v-else class="text-slate-300">—</span>
+              </td>
+              <td class="px-2 py-2">
+                <span v-if="f.hasStat" class="text-emerald-600">已产出</span>
+                <span v-else class="text-slate-300">未产出</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 flex items-center gap-3">
+          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-profiling-config" @click="saveProfilingFields">
+            保存探查配置
+          </button>
+          <span class="text-xs text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
+          <span v-if="profilingSaved" class="text-sm text-emerald-600">已保存</span>
+        </div>
+      </div>
+
+      <p
+        v-if="!hasContentConfig"
+        data-testid="content-tab-empty"
+        class="mb-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-400"
+      >
+        当前资源类型暂无内容配置项
+      </p>
+
+      </template>
+
+      <!-- 价格与权益 Tab -->
+      <div v-if="activeTab === 'pricing'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-slate-700">价格与权益</h2>
 
         <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
         <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
@@ -1052,161 +1277,6 @@ function saveProfilingFields() {
             <div v-for="plan in product.typeDetail.api.pricingPlans" :key="plan.name" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{{ plan.name }} · {{ plan.quota }}</span><span class="font-medium text-slate-700">{{ plan.price }}</span></div>
           </div>
           <div v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">{{ product.price.quoteNote || product.spaceMeta?.billingNote || '以可信空间实际报价为准' }}</div>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-product" @click="saveProduct">保存</button>
-          <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
-        </div>
-      </div>
-
-      <!-- 报告介绍配置 -->
-      <div v-if="resource.type === 'report' && product?.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-700">报告介绍配置</h2>
-            <p class="mt-1 text-xs leading-relaxed text-slate-400">对应前台「报告介绍」中的类型特有字段；通用运营信息（提供方、更新频率等）仍在上方商品信息中维护。来源与上架时间为系统事实，只读展示。</p>
-          </div>
-          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
-        </div>
-
-        <div class="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
-          <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
-          <div><span class="text-slate-500">上架时间：</span>{{ listedAtOf(product) || '未上架' }}</div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">发布日期</span><input v-model="reportForm.publishedAt" data-testid="report-published-at" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" placeholder="YYYY-MM-DD" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告页数</span><input v-model.number="reportForm.pageCount" type="number" min="1" data-testid="report-page-count" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">研究机构</span><input v-model="reportForm.author" data-testid="report-author" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告版本</span><input v-model="reportForm.version" data-testid="report-version" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">适用读者</span><input v-model="reportForm.audience" data-testid="report-audience" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-        </div>
-
-        <p class="mt-4 text-[11px] leading-relaxed text-slate-400">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
-
-        <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-report-config" type="button" @click="saveReportConfig">保存报告配置</button>
-          <span v-if="reportConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
-        </div>
-      </div>
-
-      <!-- 看板与指标定义配置 -->
-      <div v-if="resource.type === 'dashboard' && product?.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
-            <p class="mt-1 text-xs leading-relaxed text-slate-400">这些内容对应前台“看板信息”和“指标定义”。指标定义属于购买前说明，所有用户无需解锁即可查看。</p>
-          </div>
-          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">时间范围</span><input v-model="dashboardForm.timeRange" data-testid="dashboard-time-range" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">更新周期</span><input v-model="dashboardForm.updateCycle" data-testid="dashboard-update-cycle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">导出规则</span><textarea v-model="dashboardForm.exportRule" rows="2" data-testid="dashboard-export-rule" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-        </div>
-
-        <div class="mt-5 border-t border-slate-100 pt-4">
-          <div class="mb-3 flex items-center justify-between">
-            <div>
-              <div class="text-xs font-medium text-slate-600">指标定义</div>
-              <div class="mt-0.5 text-[11px] text-slate-400">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
-              <p v-if="publishErrors.some((e) => e.field === 'dashboardMetrics')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'dashboardMetrics')?.message }}</p>
-            </div>
-            <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50" type="button" @click="addDashboardMetric">+ 添加指标</button>
-          </div>
-
-          <div class="space-y-3">
-            <div v-for="(metric, index) in dashboardForm.metrics" :key="index" class="rounded-lg border border-slate-200 p-4" :data-testid="`dashboard-metric-${index}`">
-              <div class="mb-3 flex items-center justify-between">
-                <span class="text-xs font-medium text-slate-600">指标 {{ index + 1 }}</span>
-                <button class="text-xs text-red-500 hover:text-red-600" type="button" @click="removeDashboardMetric(index)">删除</button>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <label class="block"><span class="mb-1 block text-xs text-slate-400">指标名称</span><input v-model="metric.name" :data-testid="`dashboard-metric-name-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="block"><span class="mb-1 block text-xs text-slate-400">支持维度（顿号分隔）</span><input v-model="metric.dimensions" :data-testid="`dashboard-metric-dimensions-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">指标描述</span><textarea v-model="metric.definition" rows="2" :data-testid="`dashboard-metric-definition-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">计算公式</span><input v-model="metric.formula" :data-testid="`dashboard-metric-formula-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
-        </div>
-
-        <div class="mt-5 space-y-3 border-t border-slate-100 pt-4" data-testid="dashboard-preview-shots">
-          <div>
-            <div class="text-xs font-medium text-slate-600">看板预览截图</div>
-            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">规则同卖家上架看板：模版 4 槽 + 自定义 1 张，最多不超过 5 个图，用于前台「看板预览」页签。</p>
-          </div>
-          <SellerListingShots v-model="sellingShots" />
-          <SellerListingCustomShots v-model="customSellingShots" />
-        </div>
-
-        <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
-          <span v-if="dashboardConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
-        </div>
-      </div>
-
-      <!-- 数据探查配置（仅数据集类型） -->
-      <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
-        <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
-
-        <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-400">
-            <tr>
-              <th class="w-9 px-2 py-2">
-                <input
-                  type="checkbox"
-                  :checked="allSelectableChecked"
-                  :indeterminate.prop="someSelectableChecked"
-                  @change="toggleSelectAll"
-                />
-              </th>
-              <th class="px-2 py-2 font-medium">字段名</th>
-              <th class="px-2 py-2 font-medium">业务含义</th>
-              <th class="px-2 py-2 font-medium">类型</th>
-              <th class="px-2 py-2 font-medium">敏感级</th>
-              <th class="px-2 py-2 font-medium">探查结果</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="f in datasetFields"
-              :key="f.name"
-              class="border-t border-slate-100"
-              :class="f.sensitive ? 'bg-amber-50/40' : ''"
-            >
-              <td class="px-2 py-2">
-                <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" :data-testid="`profiling-field-${f.name}`" />
-              </td>
-              <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
-              <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
-              <td class="px-2 py-2 text-slate-500">{{ f.dataType }}</td>
-              <td class="px-2 py-2">
-                <span v-if="f.sensitive" class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700">
-                  {{ f.sensitivityLabel }}
-                </span>
-                <span v-else class="text-slate-300">—</span>
-              </td>
-              <td class="px-2 py-2">
-                <span v-if="f.hasStat" class="text-emerald-600">已产出</span>
-                <span v-else class="text-slate-300">未产出</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="mt-3 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-profiling-config" @click="saveProfilingFields">
-            保存探查配置
-          </button>
-          <span class="text-xs text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
-          <span v-if="profilingSaved" class="text-sm text-emerald-600">已保存</span>
         </div>
       </div>
     </template>

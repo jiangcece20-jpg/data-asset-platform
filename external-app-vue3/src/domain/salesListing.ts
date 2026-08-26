@@ -50,6 +50,17 @@ export interface FieldError {
   message: string
 }
 
+export type ResourceEditTab = 'product' | 'pricing' | 'content'
+
+export function tabForPublishField(field: string): ResourceEditTab | undefined {
+  if (field === 'name' || field === 'subtitle') return 'product'
+  if (field === 'salePeriod' || field === 'memberZhe' || field === 'pricing' || field === 'itemPrice') {
+    return 'pricing'
+  }
+  if (field === 'dashboardMetrics') return 'content'
+  return undefined
+}
+
 export const PRODUCT_SUBTITLE_MAX = 60
 
 function zheOk(value: number): boolean {

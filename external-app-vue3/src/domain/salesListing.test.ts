@@ -5,6 +5,7 @@ import {
   listingBlockReason,
   salesStateOf,
   SALES_STATE_LABELS,
+  tabForPublishField,
   validateDraftSave,
   validatePublish,
   type PublishForm
@@ -173,5 +174,18 @@ describe('validateDraftSave / validatePublish', () => {
   ])('rejects non-integer sale period %s on publish', (_label, salePeriodMonths) => {
     const errors = validatePublish({ ...paidForm, salePeriodMonths })
     expect(errors.some((e) => e.field === 'salePeriod')).toBe(true)
+  })
+})
+
+describe('tabForPublishField', () => {
+  it('maps publish fields onto resource edit tabs', () => {
+    expect(tabForPublishField('name')).toBe('product')
+    expect(tabForPublishField('subtitle')).toBe('product')
+    expect(tabForPublishField('salePeriod')).toBe('pricing')
+    expect(tabForPublishField('memberZhe')).toBe('pricing')
+    expect(tabForPublishField('pricing')).toBe('pricing')
+    expect(tabForPublishField('itemPrice')).toBe('pricing')
+    expect(tabForPublishField('dashboardMetrics')).toBe('content')
+    expect(tabForPublishField('listing')).toBeUndefined()
   })
 })

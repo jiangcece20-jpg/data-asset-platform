@@ -15,12 +15,51 @@ async function mountResourceEdit(resourceId = 'res-prod-freight-index') {
   return mount(ResourceEdit, { global: { plugins: [router] } })
 }
 
+async function openTab(wrapper: Awaited<ReturnType<typeof mountResourceEdit>>, tab: 'product' | 'pricing' | 'content') {
+  await wrapper.get(`[data-testid="resource-edit-tab-${tab}"]`).trigger('click')
+}
+
 describe('ResourceEdit product-detail mapping', () => {
   beforeEach(() => setActivePinia(createPinia()))
   afterEach(() => vi.restoreAllMocks())
 
+  it('splits editors into three tabs and only renders the active panel', async () => {
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    const tabs = wrapper.get('[data-testid="resource-edit-tabs"]')
+    expect(tabs.findAll('[role="tab"]').map((n) => n.text().replace(/\s+/g, ''))).toEqual([
+      '商品信息',
+      '内容配置',
+      '价格与权益'
+    ])
+    expect(wrapper.get('[data-testid="resource-edit-tab-product"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('[data-testid="product-name-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="dashboard-config-editor"]').exists()).toBe(false)
+
+    await openTab(wrapper, 'content')
+    expect(wrapper.find('[data-testid="dashboard-config-editor"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(false)
+
+    await openTab(wrapper, 'pricing')
+    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="product-name-input"]').exists()).toBe(false)
+  })
+
+  it('keeps save-product on the sales status bar and hides product editors for user views', async () => {
+    const listed = await mountResourceEdit('res-prod-freight-index')
+    expect(listed.get('[data-testid="sales-status-bar"]').get('[data-testid="save-product"]').exists()).toBe(true)
+    await openTab(listed, 'product')
+    expect(listed.findAll('[data-testid="save-product"]')).toHaveLength(1)
+
+    const view = await mountResourceEdit('res-view-driver-performance')
+    expect(view.find('[data-testid="resource-edit-tabs"]').exists()).toBe(false)
+    expect(view.find('[data-testid="save-product"]').exists()).toBe(false)
+  })
+
   it('omits removed sections and legacy pricing controls', async () => {
     const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+    await openTab(wrapper, 'pricing')
 
     expect(wrapper.text()).not.toContain('资产平台同步绑定')
     expect(wrapper.text()).not.toContain('列表内容总结预览')
@@ -57,6 +96,7 @@ describe('ResourceEdit product-detail mapping', () => {
     const product = useCatalogStore().byId('prod-freight-index')
     expect(product?.subtitle).toBe('看板基础副标题')
     expect(product?.recommendText).toBe('详情页优先推荐语')
+    await openTab(wrapper, 'content')
     expect(wrapper.text()).toContain('导出规则')
     expect(wrapper.text()).toContain('货运价格指数')
     expect(wrapper.get('[data-testid="dashboard-config-editor"]').text()).toContain('指标定义')
@@ -64,6 +104,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('configures public metric descriptions and syncs product and resource summaries', async () => {
     const wrapper = await mountResourceEdit()
+    await openTab(wrapper, 'content')
 
     await wrapper.get('[data-testid="dashboard-metric-definition-0"]').setValue('公开展示的指标业务描述')
     await wrapper.get('[data-testid="dashboard-time-range"]').setValue('近 5 年')
@@ -80,6 +121,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('configures report intro fields and syncs product and resource summaries', async () => {
     const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
+    await openTab(wrapper, 'content')
 
     expect(wrapper.text()).not.toContain('报告资源摘要')
     expect(wrapper.get('[data-testid="report-config-editor"]').text()).toContain('来源')
@@ -111,6 +153,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('configures one personal and one enterprise item price', async () => {
     const wrapper = await mountResourceEdit()
+    await openTab(wrapper, 'pricing')
 
     await wrapper.get('[data-testid="item-offer-personal-price"]').setValue('259')
     await wrapper.get('[data-testid="item-offer-enterprise-price"]').setValue('2590')
@@ -129,6 +172,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('makes free mutually exclusive with all paid pricing options', async () => {
     const wrapper = await mountResourceEdit()
+    await openTab(wrapper, 'pricing')
 
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     expect(wrapper.get('[data-testid="paid-pricing-options"]').attributes('disabled')).toBeDefined()
@@ -147,6 +191,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('configures standard and premium member benefits with same-tier mutual exclusion', async () => {
     const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
+    await openTab(wrapper, 'pricing')
 
     await wrapper.get('[data-testid="member-standard-free"]').setValue(true)
     expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-discount"]').element.checked).toBe(false)
@@ -175,6 +220,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('supports member pricing for an asset-platform dataset', async () => {
     const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+    await openTab(wrapper, 'pricing')
 
     await wrapper.get('[data-testid="member-standard-discount"]').setValue(true)
     await wrapper.get('[data-testid="member-standard-zhe"]').setValue('6')
@@ -192,6 +238,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('shows profiling config on an unlisted dataset before a product exists', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await openTab(wrapper, 'content')
     expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
     expect(wrapper.get('[data-testid="profiling-config"]').text()).toContain('数据探查配置')
     expect(wrapper.text()).toContain('plate_no')
@@ -202,6 +249,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('saves profiling selection on an unlisted dataset without creating a product', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await openTab(wrapper, 'content')
     await wrapper.get('[data-testid="profiling-field-speed_kmh"]').setValue(true)
     await wrapper.get('[data-testid="save-profiling-config"]').trigger('click')
     expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
@@ -226,6 +274,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('persists dataset metrics when first-saving an unlisted resource', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await openTab(wrapper, 'content')
     await wrapper.get('[data-testid="dataset-metric-granularity"]').setValue('车辆 × 日')
     await wrapper.get('[data-testid="dataset-metric-time-range"]').setValue('近 6 个月')
     await wrapper.get('[data-testid="dataset-metric-row-count"]').setValue('1280000')
@@ -242,24 +291,22 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('resets type-specific forms when opening an unlisted resource', async () => {
     const wrapper = await mountResourceEdit('res-prod-truck-trajectory')
+    await openTab(wrapper, 'content')
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-granularity"]').element.value).toBe('区县 × 小时')
     await wrapper.vm.$router.push('/admin/resources/res-asset-truck-trajectory')
     await flushPromises()
+    await openTab(wrapper, 'content')
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-granularity"]').element.value).toBe('')
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-time-range"]').element.value).toBe('')
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-row-count"]').element.value).toBe('')
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-field-count"]').element.value).toBe('')
   })
 
-  it('does not show product editors for user views', async () => {
-    const wrapper = await mountResourceEdit('res-view-driver-performance')
-    expect(wrapper.find('[data-testid="save-product"]').exists()).toBe(false)
-  })
-
   it('shows draft actions then publishes after confirm', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
     await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
+    await openTab(wrapper, 'pricing')
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     await wrapper.get('[data-testid="publish-product"]').trigger('click')
     const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
@@ -276,6 +323,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
     const unlisted = await mountResourceEdit('res-asset-truck-trajectory')
     await unlisted.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
+    await openTab(unlisted, 'pricing')
     await unlisted.get('[data-testid="product-free"]').setValue(true)
     await unlisted.get('[data-testid="publish-product"]').trigger('click')
     expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
@@ -311,6 +359,55 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.text()).toContain('请填写商品名称')
   })
 
+  it('jumps to the product tab and marks it when publish fails on name', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('')
+    await openTab(wrapper, 'pricing')
+    await wrapper.get('[data-testid="publish-product"]').trigger('click')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(wrapper.get('[data-testid="resource-edit-tab-product"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.get('[data-testid="resource-edit-tab-error-product"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('请填写商品名称')
+  })
+
+  it('resets to the product tab when opening another resource', async () => {
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await openTab(wrapper, 'content')
+    expect(wrapper.find('[data-testid="dashboard-config-editor"]').exists()).toBe(true)
+    await wrapper.vm.$router.push('/admin/resources/res-asset-truck-trajectory')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="resource-edit-tab-product"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('[data-testid="product-name-input"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="dashboard-config-editor"]').exists()).toBe(false)
+  })
+
+  it('clears publish errors when switching to a listed product resource', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await wrapper.get('[data-testid="product-name-input"]').setValue('')
+    await openTab(wrapper, 'pricing')
+    await wrapper.get('[data-testid="publish-product"]').trigger('click')
+    expect(wrapper.get('[data-testid="resource-edit-tab-error-product"]').exists()).toBe(true)
+
+    await wrapper.vm.$router.push('/admin/resources/res-prod-freight-index')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="resource-edit-tab-error-product"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="resource-edit-tab-product"]').attributes('aria-selected')).toBe('true')
+  })
+
+  it('shows content tab empty state when no type-specific config exists', async () => {
+    const wrapper = await mountResourceEdit('res-asset-warehouse-api')
+    await openTab(wrapper, 'content')
+    expect(wrapper.get('[data-testid="content-tab-empty"]').text()).toContain('当前资源类型暂无内容配置项')
+  })
+
+  it('shows API detail on content tab without empty state when api typeDetail exists', async () => {
+    const wrapper = await mountResourceEdit('res-prod-qualification-api')
+    await openTab(wrapper, 'content')
+    expect(wrapper.text()).toContain('API 详情')
+    expect(wrapper.find('[data-testid="content-tab-empty"]').exists()).toBe(false)
+  })
+
   it('shows readonly 自有/互联 source type for space products', async () => {
     const owned = await mountResourceEdit('res-prod-enterprise-activity')
     expect(owned.get('[data-testid="space-kind-readonly"]').text()).toContain('来源类型')
@@ -334,6 +431,7 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('lets ops upload dashboard preview screenshots', async () => {
     const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await openTab(wrapper, 'content')
     expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(true)
     await wrapper.get('[data-testid="fill-example-shots"]').trigger('click')
@@ -343,15 +441,16 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('hides data profiling config on space datasets', async () => {
     const wrapper = await mountResourceEdit('res-prod-enterprise-activity')
+    await openTab(wrapper, 'content')
     expect(wrapper.find('[data-testid="profiling-config"]').exists()).toBe(false)
   })
 
   it('lets ops mark owned paid dashboard modules and button free attempts', async () => {
     const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await openTab(wrapper, 'pricing')
     const editor = wrapper.get('[data-testid="dashboard-paywall-editor"]')
     const html = wrapper.html()
     expect(html.indexOf('data-testid="pricing-plan-editor"')).toBeLessThan(html.indexOf('data-testid="dashboard-paywall-editor"'))
-    expect(html.indexOf('data-testid="dashboard-paywall-editor"')).toBeLessThan(html.indexOf('data-testid="dashboard-config-editor"'))
     expect(editor.text()).toContain('收费内容区')
     expect(editor.text()).toContain('运价指数')
     expect(editor.text()).toContain('较上期')
@@ -372,11 +471,13 @@ describe('ResourceEdit product-detail mapping', () => {
 
   it('hides dashboard paywall config on space products', async () => {
     const wrapper = await mountResourceEdit('res-prod-enterprise-activity')
+    await openTab(wrapper, 'pricing')
     expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(false)
   })
 
   it('hides dashboard paywall config when the owned dashboard is marked free', async () => {
     const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await openTab(wrapper, 'pricing')
     expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(true)
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(false)
