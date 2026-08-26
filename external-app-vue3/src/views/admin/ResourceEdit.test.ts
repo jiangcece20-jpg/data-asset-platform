@@ -345,4 +345,40 @@ describe('ResourceEdit product-detail mapping', () => {
     const wrapper = await mountResourceEdit('res-prod-enterprise-activity')
     expect(wrapper.find('[data-testid="profiling-config"]').exists()).toBe(false)
   })
+
+  it('lets ops mark owned paid dashboard modules and button free attempts', async () => {
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    const editor = wrapper.get('[data-testid="dashboard-paywall-editor"]')
+    const html = wrapper.html()
+    expect(html.indexOf('data-testid="pricing-plan-editor"')).toBeLessThan(html.indexOf('data-testid="dashboard-paywall-editor"'))
+    expect(html.indexOf('data-testid="dashboard-paywall-editor"')).toBeLessThan(html.indexOf('data-testid="dashboard-config-editor"'))
+    expect(editor.text()).toContain('收费内容区')
+    expect(editor.text()).toContain('运价指数')
+    expect(editor.text()).toContain('较上期')
+
+    await wrapper.get('[data-testid="paywall-module-freight-index"]').setValue(true)
+    expect(wrapper.get('[data-testid="paywall-field-freight-index-index"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('[data-testid="paywall-module-freight-index"]').setValue(false)
+    await wrapper.get('[data-testid="paywall-button-freight-index-query"]').setValue(true)
+    await wrapper.get('[data-testid="paywall-button-attempts-freight-index-query"]').setValue('3')
+    await wrapper.get('[data-testid="save-product"]').trigger('click')
+
+    const paywall = useCatalogStore().byId('prod-freight-index')?.typeDetail.dashboard?.paywall
+    expect(paywall?.maskedButtons).toEqual([
+      { moduleId: 'freight-index', buttonId: 'query', freeAttempts: 3 }
+    ])
+  })
+
+  it('hides dashboard paywall config on space products', async () => {
+    const wrapper = await mountResourceEdit('res-prod-enterprise-activity')
+    expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(false)
+  })
+
+  it('hides dashboard paywall config when the owned dashboard is marked free', async () => {
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="product-free"]').setValue(true)
+    expect(wrapper.find('[data-testid="dashboard-paywall-editor"]').exists()).toBe(false)
+  })
 })

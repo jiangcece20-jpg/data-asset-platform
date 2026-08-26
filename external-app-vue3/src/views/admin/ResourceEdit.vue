@@ -17,8 +17,15 @@ import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
 import SellerListingShots from '@/components/mine/SellerListingShots.vue'
 import SellerListingCustomShots from '@/components/mine/SellerListingCustomShots.vue'
+import DashboardPaywallEditor from '@/components/admin/DashboardPaywallEditor.vue'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
 import type { CustomSellingShot, SellingShot } from '@/domain/sellingShotTemplate'
+import {
+  canConfigureDashboardPaywall,
+  emptyPaywallSelection,
+  syncedPaywallCatalogOf,
+  type DashboardPaywallSelection
+} from '@/domain/dashboardPaywall'
 import {
   listingBlockReason,
   salesStateOf,
@@ -114,6 +121,13 @@ const dashboardForm = reactive({
 const dashboardConfigSaved = ref(false)
 const sellingShots = ref<SellingShot[]>([])
 const customSellingShots = ref<CustomSellingShot[]>([])
+const paywallSelection = ref<DashboardPaywallSelection>(emptyPaywallSelection())
+const canConfigurePaywall = computed(() =>
+  canConfigureDashboardPaywall(product.value, productForm.isFree)
+)
+const paywallCatalog = computed(() =>
+  product.value ? syncedPaywallCatalogOf(product.value) : []
+)
 /** 数据集关键指标：运营配置、非必填；空则前台不展示 */
 const datasetForm = reactive({
   granularity: '',
@@ -264,6 +278,7 @@ function syncFormFromStore() {
     profilingSaved.value = false
     sellingShots.value = []
     customSellingShots.value = []
+    paywallSelection.value = emptyPaywallSelection()
     return
   }
 
@@ -316,6 +331,13 @@ function syncFormFromStore() {
       dimensions: metric.dimensions.join('、')
     }))
   )
+  paywallSelection.value = dashboard?.paywall
+    ? {
+        maskedModuleIds: [...dashboard.paywall.maskedModuleIds],
+        maskedFieldKeys: [...dashboard.paywall.maskedFieldKeys],
+        maskedButtons: dashboard.paywall.maskedButtons.map((item) => ({ ...item }))
+      }
+    : emptyPaywallSelection()
 
   // 数据集关键指标（运营配置）
   const dataset = p.typeDetail.dataset
@@ -597,7 +619,17 @@ function persistDashboardConfig() {
       preview: 'visible',
       previewValue: current.metrics[index]?.previewValue,
       previewChange: current.metrics[index]?.previewChange
-    }))
+    })),
+    ...(canConfigurePaywall.value
+      ? {
+          paywallCatalog: syncedPaywallCatalogOf(p),
+          paywall: {
+            maskedModuleIds: [...paywallSelection.value.maskedModuleIds],
+            maskedFieldKeys: [...paywallSelection.value.maskedFieldKeys],
+            maskedButtons: paywallSelection.value.maskedButtons.map((item) => ({ ...item }))
+          }
+        }
+      : {})
   })
 }
 
@@ -1002,6 +1034,13 @@ function saveProfilingFields() {
             </div>
           </fieldset>
         </div>
+
+        <DashboardPaywallEditor
+          v-if="canConfigurePaywall"
+          class="mb-4 border-t border-slate-100 pt-4"
+          :catalog="paywallCatalog"
+          v-model="paywallSelection"
+        />
 
         <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
           <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>

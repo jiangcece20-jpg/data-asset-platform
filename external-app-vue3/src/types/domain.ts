@@ -215,6 +215,35 @@ export interface ReportDetail {
   boundAssetId?: string
 }
 
+export interface DashboardPaywallField {
+  id: string
+  label: string
+}
+
+export interface DashboardPaywallButton {
+  id: string
+  label: string
+}
+
+export interface DashboardPaywallModule {
+  id: string
+  label: string
+  fields: DashboardPaywallField[]
+  buttons: DashboardPaywallButton[]
+}
+
+export interface DashboardPaywallButtonMask {
+  moduleId: string
+  buttonId: string
+  freeAttempts: number
+}
+
+export interface DashboardPaywallSelection {
+  maskedModuleIds: string[]
+  maskedFieldKeys: string[]
+  maskedButtons: DashboardPaywallButtonMask[]
+}
+
 export interface DashboardDetail {
   timeRange: string
   updateCycle: string
@@ -242,6 +271,10 @@ export interface DashboardDetail {
   // 数据源绑定：BI 看板嵌入地址，及在资产/BI 平台的看板编号
   sourceUrl?: string
   boundAssetId?: string
+  /** 关联看板同步的收费内容结构；运营只勾选，不增删。 */
+  paywallCatalog?: DashboardPaywallModule[]
+  /** 要打码的模块 / 字段 / 按钮；未勾选表示购买前可见。 */
+  paywall?: DashboardPaywallSelection
 }
 
 // ---------------------------------------------------------------------------

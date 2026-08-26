@@ -326,7 +326,19 @@ export const useCatalogStore = defineStore('catalog', {
       const cloneDetail = (): DashboardDetail => ({
         ...detail,
         metrics: detail.metrics.map((metric) => ({ ...metric, dimensions: [...metric.dimensions] })),
-        panels: detail.panels.map((panel) => ({ ...panel }))
+        panels: detail.panels.map((panel) => ({ ...panel })),
+        paywallCatalog: detail.paywallCatalog?.map((module) => ({
+          ...module,
+          fields: module.fields.map((field) => ({ ...field })),
+          buttons: module.buttons.map((button) => ({ ...button }))
+        })),
+        paywall: detail.paywall
+          ? {
+              maskedModuleIds: [...detail.paywall.maskedModuleIds],
+              maskedFieldKeys: [...detail.paywall.maskedFieldKeys],
+              maskedButtons: detail.paywall.maskedButtons.map((item) => ({ ...item }))
+            }
+          : undefined
       })
       product.typeDetail = { ...product.typeDetail, dashboard: cloneDetail() }
       product.updatedAt = now()
