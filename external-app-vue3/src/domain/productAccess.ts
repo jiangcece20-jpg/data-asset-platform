@@ -114,19 +114,46 @@ function resolveMemberAwareActions(context: ProductActionContext): {
   }
 
   if (canBuyMember) {
+    if (hasItem) {
+      return {
+        primary: { key: 'item_purchase', label: '立即购买' }
+      }
+    }
     const primaryLabel = benefit === 'discount'
       ? `开通${memberName}，享${context.discountZhe ?? 6}折`
       : `开通${memberName}，免费看本商品`
-    const secondaryLabel = benefit === 'discount'
-      ? `直接购买${itemPriceText(context.itemPrice)}`.trim()
-      : itemPurchaseLabel(context, '直接购买')
     return {
-      primary: { key: 'member_purchase', label: primaryLabel },
-      secondary: hasItem ? { key: 'item_purchase', label: secondaryLabel } : undefined
+      primary: { key: 'member_purchase', label: primaryLabel }
     }
   }
 
   return {
     primary: { key: 'item_purchase', label: itemPurchaseLabel(context, '单品购买') }
   }
+}
+
+const listActionLabelByKey: Record<ProductActionKey, string> = {
+  view: '立即查看',
+  request_listing: '可申请上架',
+  listing_progress: '查看进度',
+  enterprise_auth: '企业认证',
+  space_purchase: '提交试用申请',
+  submit_space_intent: '提交试用申请',
+  free_view: '免费查看',
+  member_purchase: '开通会员',
+  item_purchase: '购买',
+  dataset_purchase: '购买数据集',
+  unavailable: '暂不可购'
+}
+
+/** 列表卡片右下角轻量按钮文案，与详情 §3.1 主动作一致但省略价格。 */
+export function resolveProductListActionHint(context: ProductActionContext): string {
+  const { primary } = resolveProductActions(context)
+  if (primary.key === 'unavailable') return primary.label
+  if (primary.key === 'item_purchase') {
+    if (primary.label.startsWith('会员价购买')) return '会员价购买'
+    if (context.type === 'dataset') return '购买数据集'
+    return '购买'
+  }
+  return listActionLabelByKey[primary.key] ?? primary.label
 }

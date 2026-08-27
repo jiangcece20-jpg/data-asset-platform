@@ -12,13 +12,16 @@ export interface CheckoutDualPathContext {
 }
 
 export function shouldShowCheckoutDualPath(context: CheckoutDualPathContext): boolean {
-  if (context.identitySubject === 'enterprise') return false
   if (context.isSellerMarket) return false
   if (context.hasEffectiveMembership) return false
   if (context.canPurchaseMembership === false) return false
   if (!context.product.acquisitions.includes('member')) return false
   if (!context.product.acquisitions.includes('item_purchase')) return false
   return productMemberBenefit(context.product) !== 'none'
+}
+
+export function becomeMemberLabel(subject: PurchaseIdentitySubject): string {
+  return subject === 'enterprise' ? '成为团队会员' : '成为个人会员'
 }
 
 export function memberPurchaseSavingsAmount(
@@ -61,6 +64,7 @@ export function checkoutDualPathFields(product: Product, options: {
   return {
     showDualPath,
     savingsLabel: showDualPath ? memberPurchaseSavingsLabel(options.itemPrice, product) : undefined,
+    memberButtonLabel: showDualPath ? becomeMemberLabel(options.identitySubject) : undefined,
     memberBenefit: membership.memberBenefit
   }
 }

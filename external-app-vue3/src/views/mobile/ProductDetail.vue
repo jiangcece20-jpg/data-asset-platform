@@ -24,6 +24,7 @@ import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain
 import { billingRuleNotes } from '@/domain/productDetailFields'
 import { productTopicTags } from '@/domain/productListChips'
 import { USER_INTENT_HINT, SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
+import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -41,9 +42,17 @@ const topicTags = computed(() => (product.value ? productTopicTags(product.value
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 const billingRules = computed(() => billingRuleNotes(product.value))
+const purchaseSubject = computed(() => currentPurchaseSubject(user))
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
+const detailPrice = computed(() => {
+  if (!product.value || owned.value) return null
+  return productDetailPriceSummary(product.value, purchaseSubject.value)
+})
+const currentCommerceOffers = computed(() =>
+  commerceOffers.value.filter((offer) => offer.subject === purchaseSubject.value)
+)
 const contentUnlocked = computed(() => {
   if (!product.value) return false
   if (product.value.acquisitions.includes('free')) return true
@@ -260,6 +269,24 @@ function handleAction(key: ProductActionKey) {
     </div>
 
    <!-- 交易承接：用户看过内容后再了解报价、方案与购买资格。 -->
+    <div
+      v-if="detailPrice && !owned"
+      class="mx-4 mt-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 shadow-card"
+      data-testid="product-price-summary"
+    >
+      <div class="flex flex-wrap items-end gap-6">
+        <div v-if="detailPrice.listPriceText">
+          <div class="text-[11px] text-slate-500">价格</div>
+          <div class="text-[22px] font-semibold text-slate-900">{{ detailPrice.listPriceText }}</div>
+        </div>
+        <div v-if="detailPrice.memberPriceText">
+          <div class="text-[11px] text-slate-500">会员价</div>
+          <div class="text-[22px] font-semibold text-brand-600">{{ detailPrice.memberPriceText }}</div>
+        </div>
+      </div>
+      <div v-if="detailPrice.purchaseNote" class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ detailPrice.purchaseNote }}</div>
+    </div>
+
     <div v-if="pricingInfo && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -275,9 +302,9 @@ function handleAction(key: ProductActionKey) {
       </div>
     </div>
 
-    <div v-if="commerceOffers.length && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
+    <div v-if="(product.dealChannel === 'space_purchase' ? commerceOffers.length : currentCommerceOffers.length) && !owned && !detailPrice" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
       <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">{{ product.dealChannel === 'space_purchase' ? '价格方案' : '购买价格' }}</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : `固定购买周期 ${salePeriodMonthsOf(product)} 个月` }}</span></div>
-      <div v-for="offer in commerceOffers" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
+      <div v-for="offer in (product.dealChannel === 'space_purchase' ? commerceOffers : currentCommerceOffers)" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
         <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }}</div></div>
         <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
       </div>

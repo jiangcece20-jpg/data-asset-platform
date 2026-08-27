@@ -125,16 +125,21 @@ describe('ProductDetail dashboard overview', () => {
     expect(wrapper.text()).not.toContain('解锁后可阅读完整内容')
   })
 
-  it('offers dual purchase paths for member-free and member-discount products', async () => {
+  it('offers a single purchase button and routes to checkout for member-eligible products', async () => {
     useEntitlementStore().list = []
 
     const free = await mountProductDetail('/app/product/prod-freight-index')
-    expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，免费看本商品')
-    expect(free.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('直接购买 ¥199')
+    expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('¥199')
+    expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('会员免费')
+    expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即购买')
+    expect(free.wrapper.find('[data-testid="product-secondary-action"]').exists()).toBe(false)
+    await free.wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await flushPromises()
+    expect(free.router.currentRoute.value.path).toBe('/app/checkout/item/prod-freight-index')
 
     const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
-    expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('开通个人会员，享6折')
-    expect(discount.wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('直接购买 ¥199')
+    expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即购买')
+    expect(discount.wrapper.find('[data-testid="product-secondary-action"]').exists()).toBe(false)
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveProductActions, type ProductActionContext } from './productAccess'
+import { resolveProductActions, resolveProductListActionHint, type ProductActionContext } from './productAccess'
 import { formatYuan } from './membership'
 
 const base: ProductActionContext = {
@@ -18,6 +18,25 @@ const ownedProduct: ProductActionContext = {
 }
 
 describe('resolveProductActions', () => {
+  it('uses purchase CTA on list cards when both member and item paths exist', () => {
+    expect(resolveProductListActionHint({
+      ...base,
+      type: 'dashboard',
+      acquisitions: ['member', 'item_purchase'],
+      memberBenefit: 'free',
+      itemPrice: 199
+    })).toBe('购买')
+  })
+
+  it('keeps member-only list CTA when there is no item price', () => {
+    expect(resolveProductListActionHint({
+      ...base,
+      type: 'dashboard',
+      acquisitions: ['member'],
+      memberBenefit: 'free'
+    })).toBe('开通会员')
+  })
+
   it('prioritizes existing access', () => {
     expect(resolveProductActions({ ...base, hasAccess: true }).primary.key).toBe('view')
   })
@@ -50,17 +69,27 @@ describe('resolveProductActions', () => {
     }).primary).toEqual({ key: 'submit_space_intent', label: '提交试用申请' })
   })
 
-  it('offers membership first and item purchase second', () => {
+  it('offers a single purchase button when both member and item paths exist', () => {
     const actions = resolveProductActions({
       ...base,
       type: 'report',
-      acquisitions: ['member', 'item_purchase']
+      acquisitions: ['member', 'item_purchase'],
+      itemPrice: 199
     })
-    expect(actions.primary.key).toBe('member_purchase')
-    expect(actions.secondary?.key).toBe('item_purchase')
+    expect(actions.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(actions.secondary).toBeUndefined()
   })
 
-  it('uses dual-path labels for free and discount membership benefits', () => {
+  it('keeps member-only CTA when there is no item price', () => {
+    expect(resolveProductActions({
+      ...base,
+      type: 'dashboard',
+      acquisitions: ['member'],
+      memberBenefit: 'free'
+    }).primary).toEqual({ key: 'member_purchase', label: '开通个人会员，免费看本商品' })
+  })
+
+  it('uses the same purchase label for free and discount membership benefits', () => {
     const free = resolveProductActions({
       ...base,
       type: 'dashboard',
@@ -68,8 +97,8 @@ describe('resolveProductActions', () => {
       memberBenefit: 'free',
       itemPrice: 199
     })
-    expect(free.primary).toEqual({ key: 'member_purchase', label: '开通个人会员，免费看本商品' })
-    expect(free.secondary).toEqual({ key: 'item_purchase', label: `直接购买 ${formatYuan(199)}` })
+    expect(free.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(free.secondary).toBeUndefined()
 
     const discount = resolveProductActions({
       ...base,
@@ -80,8 +109,8 @@ describe('resolveProductActions', () => {
       itemPrice: 1990,
       discountZhe: 6
     })
-    expect(discount.primary).toEqual({ key: 'member_purchase', label: '开通团队会员，享6折' })
-    expect(discount.secondary).toEqual({ key: 'item_purchase', label: `直接购买 ${formatYuan(1990)}` })
+    expect(discount.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(discount.secondary).toBeUndefined()
   })
 
   it('keeps only member-price purchase after membership is effective on a discount product', () => {

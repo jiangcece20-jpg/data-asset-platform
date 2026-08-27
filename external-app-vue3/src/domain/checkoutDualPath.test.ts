@@ -18,10 +18,17 @@ function discountProduct(): Product {
 }
 
 describe('checkoutDualPath', () => {
-  it('shows dual path for non-members on member-benefit products', () => {
+  it('shows dual path for personal and enterprise non-members', () => {
     expect(shouldShowCheckoutDualPath({
       product: discountProduct(),
       identitySubject: 'personal',
+      hasEffectiveMembership: false,
+      canPurchaseMembership: true,
+      isSellerMarket: false
+    })).toBe(true)
+    expect(shouldShowCheckoutDualPath({
+      product: discountProduct(),
+      identitySubject: 'enterprise',
       hasEffectiveMembership: false,
       canPurchaseMembership: true,
       isSellerMarket: false
@@ -60,6 +67,20 @@ describe('checkoutDualPath', () => {
     })
     expect(fields.showDualPath).toBe(true)
     expect(fields.savingsLabel).toContain('立省')
+    expect(fields.memberButtonLabel).toBe('成为个人会员')
+  })
+
+  it('uses team member label for enterprise checkout', () => {
+    const fields = checkoutDualPathFields(discountProduct(), {
+      identitySubject: 'enterprise',
+      hasEffectiveMembership: false,
+      canPurchaseMembership: true,
+      isSellerMarket: false,
+      itemPrice: 1990
+    })
+    expect(fields.showDualPath).toBe(true)
+    expect(fields.memberButtonLabel).toBe('成为团队会员')
+    expect(fields.savingsLabel).toBe('会员购买立省 ¥796')
   })
 
   it('generates a preview order number', () => {

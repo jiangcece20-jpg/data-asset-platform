@@ -57,4 +57,11 @@ describe('ProductCard list chips', () => {
     expect(row.text()).toContain('陈静')
     expect(row.text()).not.toContain('入驻商家')
   })
+
+  it('shows price summary without purchase button for member-eligible dashboard', async () => {
+    const wrapper = await mountCard('prod-freight-index')
+    expect(wrapper.get('[data-testid="product-card-price"]').text()).toBe('¥199 起 · 会员免费')
+    expect(wrapper.text()).not.toContain('会员解锁')
+    expect(wrapper.find('.rounded-full.bg-brand-500').exists()).toBe(false)
+  })
 })

@@ -256,7 +256,7 @@ function confirmPurchase() {
                 :disabled="submitting"
                 @click="goMemberCheckout"
               >
-                成为会员
+                {{ dualPath.memberButtonLabel ?? '成为会员' }}
               </button>
               <span
                 v-if="dualPath.savingsLabel"

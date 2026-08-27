@@ -7,6 +7,9 @@ import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
+import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
+import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
+import { useUserStore } from '@/stores/user'
 import { SPACE_TRIAL_APPLY_LABEL, USER_INTENT_HINT } from '@/domain/spaceIntent'
 
 const props = defineProps<{
@@ -18,8 +21,18 @@ const props = defineProps<{
 
 const emit = defineEmits<{ action: [key: ProductActionKey] }>()
 const router = useRouter()
+const user = useUserStore()
 const pricingInfo = computed(() => pricingPresentation(props.product))
 const billingRules = computed(() => billingRuleNotes(props.product))
+const purchaseSubject = computed(() => currentPurchaseSubject(user))
+const detailPrice = computed(() => {
+  if (props.owned) return null
+  return productDetailPriceSummary(props.product, purchaseSubject.value)
+})
+const commerceOffers = computed(() => commerceOffersOf(props.product))
+const currentCommerceOffers = computed(() =>
+  commerceOffers.value.filter((offer) => offer.subject === purchaseSubject.value)
+)
 
 const trustedPurchaseEligibility = computed(() => {
   if (props.product.dealChannel !== 'space_purchase' || props.owned) return null
@@ -33,7 +46,10 @@ const trustedPurchaseEligibility = computed(() => {
 })
 
 const priceText = computed(() => {
-  if (commerceOffers.value.length) return `¥${Math.min(...commerceOffers.value.map((offer) => offer.price)).toLocaleString()} 起`
+  if (detailPrice.value?.listPriceText) return detailPrice.value.listPriceText
+  if (currentCommerceOffers.value.length) {
+    return `¥${Math.min(...currentCommerceOffers.value.map((offer) => offer.price)).toLocaleString()} 起`
+  }
   const m = props.product.price.model
   if (m === 'free') return '免费'
   if (m === 'member_free') return '会员免费'
@@ -43,7 +59,9 @@ const priceText = computed(() => {
 })
 
 const priceSub = computed(() => {
-  if (commerceOffers.value.length) return props.product.dealChannel === 'space_purchase' ? '可信空间同步价格方案' : `个人 / 企业单品价 · 固定 ${salePeriodMonthsOf(props.product)} 个月`
+  if (detailPrice.value?.memberPriceText) return `会员价 ${detailPrice.value.memberPriceText}`
+  if (detailPrice.value?.purchaseNote) return detailPrice.value.purchaseNote
+  if (currentCommerceOffers.value.length) return props.product.dealChannel === 'space_purchase' ? '可信空间同步价格方案' : `个人 / 企业单品价 · 固定 ${salePeriodMonthsOf(props.product)} 个月`
   const m = props.product.price.model
   if (m === 'free') return ''
   if (m === 'member_free') return '开通会员后免费使用'
@@ -54,7 +72,6 @@ const priceSub = computed(() => {
 
 /** API 多套餐价格：存在时全部同时展示 */
 const apiPlans = computed(() => props.product.typeDetail.api?.pricingPlans ?? [])
-const commerceOffers = computed(() => commerceOffersOf(props.product))
 
 const acquisitionText = computed(() => {
   const a = props.product.acquisitions
@@ -123,8 +140,8 @@ function goBills() {
         </div>
       </div>
 
-      <div v-if="commerceOffers.length" class="mt-3 space-y-2" data-testid="commerce-price-plans">
-        <div v-for="offer in commerceOffers" :key="offer.id" class="rounded-lg border px-3 py-2" :class="offer.recommended ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200'">
+      <div v-if="(product.dealChannel === 'space_purchase' ? commerceOffers.length : currentCommerceOffers.length) && !detailPrice" class="mt-3 space-y-2" data-testid="commerce-price-plans">
+        <div v-for="offer in (product.dealChannel === 'space_purchase' ? commerceOffers : currentCommerceOffers)" :key="offer.id" class="rounded-lg border px-3 py-2" :class="offer.recommended ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200'">
           <div class="flex items-center justify-between gap-2"><div class="text-sm font-medium text-slate-800">{{ offer.name }} <span v-if="offer.recommended" class="ml-1 rounded bg-brand-500 px-1.5 py-0.5 text-[10px] text-white">推荐</span></div><div class="font-bold text-brand-600">¥{{ offer.price.toLocaleString() }}</div></div>
           <div class="mt-1 text-xs text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }} · {{ offer.accessScope === 'named_seats' ? `${offer.seats}席位` : offer.accessScope === 'enterprise_wide' ? '企业全员' : '仅本人' }}</div>
         </div>

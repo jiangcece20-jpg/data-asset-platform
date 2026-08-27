@@ -178,6 +178,15 @@ describe('CheckoutItem report purchase subject', () => {
     })
   })
 
+  it('shows dual-path checkout for enterprise non-members on member discount products', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper } = await mountCheckout()
+
+    expect(wrapper.find('[data-testid="checkout-dual-path"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="checkout-become-member"]').text()).toContain('成为团队会员')
+    expect(wrapper.get('[data-testid="checkout-direct-purchase"]').text()).toContain('¥1,990')
+  })
+
   it('shows dual-path checkout for non-members on member discount products', async () => {
     const { wrapper } = await mountCheckout()
 
