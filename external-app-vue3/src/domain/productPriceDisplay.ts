@@ -107,7 +107,7 @@ export function productDetailPriceSummary(product: Product, subject: PurchaseIde
     listPriceText: hasItem ? formatYuan(listPrice!) : undefined,
     memberPriceText,
     memberPrice,
-    purchaseNote: hasItem && hasMember ? '点击「立即购买」后选择直接购买或开通会员' : undefined
+    purchaseNote: hasItem && hasMember ? '可直接购买，或开通会员享权益价' : undefined
   }
 }
 

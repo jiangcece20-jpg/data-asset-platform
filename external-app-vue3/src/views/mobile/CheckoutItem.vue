@@ -43,6 +43,9 @@ const dualPath = computed(() => {
   if (!product.value || !offer.value) {
     return { showDualPath: false as const }
   }
+  if (route.query.skipDual === '1') {
+    return { showDualPath: false as const }
+  }
   return checkoutDualPathFields(product.value, {
     identitySubject: subject.value,
     hasEffectiveMembership: entitlements.hasEffectiveMembership,

@@ -6,6 +6,8 @@ import OrderCenter from './OrderCenter.vue'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
 import { useUserStore } from '@/stores/user'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
+import { seedSpaceIntents } from '@/data/seed'
 import type { Order } from '@/types/domain'
 import type { SpaceOrderMirror } from '@/types/trustedSpace'
 
@@ -36,7 +38,10 @@ async function mountView() {
 }
 
 describe('OrderCenter', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useSpaceIntentStore().list = []
+  })
 
   it('registers the orders route', () => {
     expect(makeRouter().hasRoute('admin-orders')).toBe(true)
@@ -115,5 +120,54 @@ describe('OrderCenter', () => {
     })]
     const free = await mountView()
     expect(free.get('[data-id="o-free"] [data-testid="order-expiry"]').text()).toMatch(/^会员到期 /)
+  })
+
+  it('shows seed space intents by default in the order center', async () => {
+    useSpaceIntentStore().list = seedSpaceIntents.map((item) => ({ ...item }))
+    useOrderStore().list = []
+    useSpaceOrderStore().clearMirrors()
+    const wrapper = await mountView()
+    const intentRows = wrapper.findAll('[data-row-kind="space_intent"]')
+    expect(intentRows.length).toBeGreaterThanOrEqual(3)
+    expect(wrapper.text()).toContain('意向单')
+    expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
+    expect(wrapper.text()).toContain('企业物流活跃度数据集')
+    expect(wrapper.text()).toContain('待处理意向')
+  })
+
+  it('lists space purchase intents in the order center with intent transaction status', async () => {
+    useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '司机核验',
+      requestedEnterpriseName: '希望落到的物流公司'
+    })
+    const wrapper = await mountView()
+    const row = wrapper.get('[data-row-kind="space_intent"]')
+    expect(row.text()).toContain('意向单')
+    expect(row.text()).toContain('空间购买（意向）')
+    expect(row.get('[data-testid="buyer-enterprise"]').text()).toBe('希望落到的物流公司')
+    expect(row.get('[data-testid="operator-contact"]').text()).toBe('陈静 · 13800000000')
+    expect(row.get('[data-testid="product-type"]').text()).toBe('API')
+  })
+
+  it('shows the authenticated enterprise name after an intent is claimed from the order center', async () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '司机核验'
+    })
+    store.claim(intent.id, user.enterprise.id)
+    const wrapper = await mountView()
+    await flushPromises()
+    const row = wrapper.get(`[data-id="${intent.id}"]`)
+    expect(row.get('[data-testid="buyer-enterprise"]').text()).toBe('万联供应链管理有限公司')
+    expect(row.text()).toContain('处理中')
+    expect(wrapper.find('[data-testid="close-reason"]').exists()).toBe(false)
   })
 })

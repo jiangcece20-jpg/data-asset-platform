@@ -15,7 +15,7 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
-import { membershipActionFields } from '@/domain/membership'
+import { formatYuan, membershipActionFields } from '@/domain/membership'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
@@ -25,6 +25,7 @@ import { billingRuleNotes } from '@/domain/productDetailFields'
 import { productTopicTags } from '@/domain/productListChips'
 import { USER_INTENT_HINT, SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
 import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
+import { checkoutDualPathFields } from '@/domain/checkoutDualPath'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -90,6 +91,31 @@ const actions = computed(() => {
   return resolved
 })
 
+const dualPath = computed(() => {
+  const current = product.value
+  if (!current || owned.value) return { showDualPath: false as const }
+  const itemPrice = detailPrice.value?.listPrice
+    ?? currentCommerceOffers.value[0]?.price
+    ?? 0
+  return checkoutDualPathFields(current, {
+    identitySubject: purchaseSubject.value,
+    hasEffectiveMembership: entitlements.hasEffectiveMembership,
+    canPurchaseMembership: entitlements.canPurchaseMembership,
+    isSellerMarket: current.origin === 'seller_market',
+    itemPrice
+  })
+})
+
+/** 会员+单品且非会员时：详情底栏直接展示双路径，不再先点「立即购买」再进结算选路径 */
+const showDetailDualPath = computed(() =>
+  Boolean(dualPath.value.showDualPath && actions.value?.primary.key === 'item_purchase')
+)
+
+const dualPathDirectLabel = computed(() => {
+  const price = detailPrice.value?.listPrice ?? currentCommerceOffers.value[0]?.price
+  return price != null ? `直接购买 ${formatYuan(price)}` : '直接购买'
+})
+
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
     { key: 'basic', label: '基本信息' },
@@ -149,8 +175,14 @@ function goSpaceIntent() {
 function goMember() {
   router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
 }
-function goItem() {
-  router.push(`/app/checkout/item/${id.value}`)
+function goItem(options?: { skipDual?: boolean }) {
+  router.push({
+    path: `/app/checkout/item/${id.value}`,
+    query: options?.skipDual ? { skipDual: '1' } : undefined
+  })
+}
+function goDirectPurchase() {
+  goItem({ skipDual: true })
 }
 function goDatasetPayment() {
   try {
@@ -342,9 +374,38 @@ function handleAction(key: ProductActionKey) {
       </div>
     </div>
 
-    <!-- 底部固定操作区 -->
+    <!-- 底部固定操作区：会员+单品未开通会员时直接展示双路径 -->
+    <div
+      v-if="showDetailDualPath"
+      class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-slate-100 bg-white p-3"
+      data-testid="product-dual-path"
+    >
+      <button
+        data-testid="product-direct-purchase"
+        class="w-full rounded-full border border-slate-300 bg-white py-3 text-[14px] font-medium text-slate-700"
+        @click="goDirectPurchase"
+      >
+        {{ dualPathDirectLabel }}
+      </button>
+      <div class="relative">
+        <button
+          data-testid="product-become-member"
+          class="w-full rounded-full bg-emerald-500 py-3 text-[14px] font-medium text-white"
+          @click="goMember"
+        >
+          {{ dualPath.memberButtonLabel ?? '成为会员' }}
+        </button>
+        <span
+          v-if="dualPath.savingsLabel"
+          class="absolute -top-2 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-medium text-amber-950 shadow-sm"
+          data-testid="product-member-savings"
+        >
+          {{ dualPath.savingsLabel }}
+        </span>
+      </div>
+    </div>
     <ProductPrimaryAction
-      v-if="actions"
+      v-else-if="actions"
       :primary="actions.primary"
       :secondary="actions.secondary"
       @action="handleAction"

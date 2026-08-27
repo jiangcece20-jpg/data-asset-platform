@@ -31,6 +31,16 @@ export function canConfirmPayment(intent: { enterpriseId?: string }): boolean {
   return Boolean(intent.enterpriseId)
 }
 
+export function canConfirmTransaction(intent: {
+  opsStatus: SpaceIntentOpsStatus
+  enterpriseId?: string
+  orderId?: string
+}): boolean {
+  return intent.opsStatus === 'processing'
+    && Boolean(intent.enterpriseId)
+    && !intent.orderId
+}
+
 export type SpaceIntentOpsAction = 'claim' | 'confirm_payment' | 'close'
 
 export function nextOpsStatus(

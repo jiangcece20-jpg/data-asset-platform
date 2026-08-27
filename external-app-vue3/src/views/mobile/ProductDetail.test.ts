@@ -14,7 +14,8 @@ async function mountProductDetail(path = '/app/product/prod-qualification-api') 
       { path: '/app/space-intent/:id', name: 'space-intent', component: { template: '<div />' } },
       { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } },
       { path: '/app/checkout/item/:id', name: 'checkout-item', component: { template: '<div />' } },
-      { path: '/app/checkout/dataset/:id', name: 'checkout-dataset', component: { template: '<div />' } }
+      { path: '/app/checkout/dataset/:id', name: 'checkout-dataset', component: { template: '<div />' } },
+      { path: '/app/checkout/member', name: 'checkout-member', component: { template: '<div />' } }
     ]
   })
   await router.push(path)
@@ -125,21 +126,28 @@ describe('ProductDetail dashboard overview', () => {
     expect(wrapper.text()).not.toContain('解锁后可阅读完整内容')
   })
 
-  it('offers a single purchase button and routes to checkout for member-eligible products', async () => {
+  it('shows dual-path actions on the detail page for member-eligible products', async () => {
     useEntitlementStore().list = []
 
     const free = await mountProductDetail('/app/product/prod-freight-index')
     expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('¥199')
     expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('会员免费')
-    expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即购买')
-    expect(free.wrapper.find('[data-testid="product-secondary-action"]').exists()).toBe(false)
-    await free.wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    expect(free.wrapper.find('[data-testid="product-primary-action"]').exists()).toBe(false)
+    expect(free.wrapper.get('[data-testid="product-dual-path"]').exists()).toBe(true)
+    expect(free.wrapper.get('[data-testid="product-direct-purchase"]').text()).toContain('直接购买')
+    expect(free.wrapper.get('[data-testid="product-become-member"]').text()).toContain('成为个人会员')
+    expect(free.wrapper.get('[data-testid="product-member-savings"]').text()).toContain('立省')
+    await free.wrapper.get('[data-testid="product-direct-purchase"]').trigger('click')
     await flushPromises()
     expect(free.router.currentRoute.value.path).toBe('/app/checkout/item/prod-freight-index')
+    expect(free.router.currentRoute.value.query.skipDual).toBe('1')
 
     const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
-    expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即购买')
-    expect(discount.wrapper.find('[data-testid="product-secondary-action"]').exists()).toBe(false)
+    expect(discount.wrapper.find('[data-testid="product-primary-action"]').exists()).toBe(false)
+    expect(discount.wrapper.get('[data-testid="product-dual-path"]').exists()).toBe(true)
+    await discount.wrapper.get('[data-testid="product-become-member"]').trigger('click')
+    await flushPromises()
+    expect(discount.router.currentRoute.value.path).toBe('/app/checkout/member')
   })
 })
 

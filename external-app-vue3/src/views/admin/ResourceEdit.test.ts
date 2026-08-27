@@ -211,11 +211,14 @@ describe('ResourceEdit product-detail mapping', () => {
 
     await wrapper.get('[data-testid="member-standard-free"]').setValue(true)
     expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-discount"]').element.checked).toBe(false)
+    expect(wrapper.get('[data-testid="member-standard-original-price"]').exists()).toBe(true)
 
     await wrapper.get('[data-testid="member-standard-discount"]').setValue(true)
     expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-free"]').element.checked).toBe(false)
     expect(wrapper.get('[data-testid="member-standard-zhe"]').exists()).toBe(true)
     await wrapper.get('[data-testid="member-standard-zhe"]').setValue('7')
+    await wrapper.get('[data-testid="member-standard-original-price"]').setValue('200')
+    expect(wrapper.get('[data-testid="member-standard-price-preview"]').text()).toContain('会员价 ¥140')
 
     await wrapper.get('[data-testid="member-premium-free"]').setValue(true)
     expect(wrapper.get<HTMLInputElement>('[data-testid="member-standard-discount"]').element.checked).toBe(true)

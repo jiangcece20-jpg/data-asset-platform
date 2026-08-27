@@ -113,7 +113,7 @@ describe('trusted-space README demo contract', () => {
   it('documents the direct routes, role switching, authority boundaries, and report purchase subjects', () => {
     for (const route of [
       '/#/app/product/prod-qualification-api',
-      '/#/admin/space-intents',
+      '/#/admin/orders',
       '/#/app/mine?tab=orders&subject=enterprise',
       '/#/app/mine/enterprise/bills',
       '/#/admin/products',

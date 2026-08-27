@@ -5,6 +5,7 @@ import PageHeader from '@/components/admin/PageHeader.vue'
 import { OPS_STATUS_LABELS } from '@/domain/spaceIntent'
 import { buyerEnterpriseName, operatorContactText } from '@/domain/opsPurchaseParty'
 import { productTypeLabels } from '@/domain/myCenter'
+import { statusMeta } from '@/utils/statusMeta'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
@@ -37,14 +38,20 @@ function run(fn: () => void) {
 
 function claim() {
   run(() => {
-    intents.confirmOfflinePayment(id.value, user.enterprise.id)
-    void router.push('/admin/orders')
+    intents.claim(id.value, user.enterprise.id)
   })
 }
 
-function confirmPayment() {
+function confirmTransaction() {
   run(() => {
     intents.confirmOfflinePayment(id.value, user.enterprise.id)
+  })
+}
+
+function confirmOrderPayment() {
+  if (!relatedOrder.value) return
+  run(() => {
+    orders.confirmSpaceIntentPayment(relatedOrder.value!.id)
   })
 }
 
@@ -61,6 +68,7 @@ function close() {
   }
   run(() => {
     intents.close(id.value, closeReason.value.trim())
+    closeReason.value = ''
   })
 }
 
@@ -73,18 +81,30 @@ function goSpaceOps() {
   })
 }
 
+function goOrders() {
+  void router.push('/admin/orders')
+}
+
 const spaceKindLabel = computed(() => {
   if (product.value?.spaceKind === 'owned') return '自有'
   if (product.value?.spaceKind === 'federated') return '互联'
   return '—'
 })
 
-const canConfirmPayment = computed(() =>
-  intent.value?.opsStatus === 'processing' && !intent.value.orderId
+const canConfirmTransaction = computed(() =>
+  intent.value?.opsStatus === 'processing'
+  && Boolean(intent.value.enterpriseId)
+  && !intent.value.orderId
 )
+
+const canConfirmOrderPayment = computed(() =>
+  relatedOrder.value?.status === 'payment_pending_confirmation'
+)
+
 const canFulfill = computed(() =>
   intent.value?.opsStatus === 'converted' && relatedOrder.value?.status === 'paid'
 )
+
 const canClose = computed(() =>
   intent.value?.opsStatus === 'unclaimed' || intent.value?.opsStatus === 'processing'
 )
@@ -107,11 +127,18 @@ const operatorContact = computed(() =>
     }, user.enterprise)
     : '—'
 )
+
+const orderStatusLabel = computed(() =>
+  relatedOrder.value ? statusMeta('appOrder', relatedOrder.value.status).label : ''
+)
 </script>
 
 <template>
   <div v-if="intent">
-    <PageHeader :title="`空间意向单 ${intent.id}`" desc="领取后转为买数订单。确认企业、确认方案、线下试用仍在线下完成。" />
+    <PageHeader
+      :title="`意向单 ${intent.id}`"
+      desc="领取后在空间侧线下确认企业、方案与试用；运营确认交易后转买数订单，到账后再开通履约。"
+    />
 
     <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
 
@@ -129,27 +156,36 @@ const operatorContact = computed(() =>
         经办人：<span data-testid="operator-contact">{{ operatorContact }}</span>
         · 场景：{{ intent.scenario }}
       </div>
-      <div class="mt-1 text-[12px] text-slate-400">
-        <template v-if="relatedOrder">买数订单 {{ relatedOrder.id }} · {{ relatedOrder.status === 'paid' ? '履约中' : '已完成' }}</template>
+      <div v-if="relatedOrder" class="mt-1 text-[12px] text-slate-400" data-testid="related-order">
+        买数订单 {{ relatedOrder.id }} · 交易状态 {{ orderStatusLabel }}
       </div>
       <div class="mt-2 text-[12px] leading-relaxed text-slate-400">
-        确认企业、确认方案、线下试用均在线下完成，系统不增加这些节点。
+        确认企业、确认方案、线下试用均在空间侧线下完成，系统不记录这些节点。
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
       <button
         v-if="intent.opsStatus === 'unclaimed'"
+        data-testid="claim-intent"
         class="rounded-lg bg-blue-500 px-3 py-1.5 text-[12px] text-white"
         @click="claim"
       >
         领取
       </button>
       <button
-        v-if="canConfirmPayment"
-        data-testid="confirm-payment"
+        v-if="canConfirmTransaction"
+        data-testid="confirm-transaction"
         class="rounded-lg bg-blue-500 px-3 py-1.5 text-[12px] text-white"
-        @click="confirmPayment"
+        @click="confirmTransaction"
+      >
+        确认交易
+      </button>
+      <button
+        v-if="canConfirmOrderPayment"
+        data-testid="confirm-order-payment"
+        class="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] text-white"
+        @click="confirmOrderPayment"
       >
         确认到账
       </button>
@@ -169,16 +205,31 @@ const operatorContact = computed(() =>
       >
         {{ intent.productType === 'dataset' ? '完成接入' : '完成开通' }}
       </button>
+      <button
+        class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] text-slate-600"
+        @click="goOrders"
+      >
+        返回订单中心
+      </button>
     </div>
 
-    <div v-if="canClose" class="mt-4 flex flex-wrap items-center gap-2">
-      <input
-        v-model="closeReason"
-        data-testid="close-reason"
-        placeholder="关闭原因（必填）"
-        class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]"
-      />
-      <button class="rounded-lg bg-slate-400 px-3 py-1.5 text-[12px] text-white" @click="close">关闭</button>
+    <div v-if="canClose" class="mt-6 rounded-xl border border-slate-200 bg-white p-4" data-testid="close-intent-panel">
+      <div class="mb-2 text-[12px] font-medium text-slate-700">关闭意向单</div>
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          v-model="closeReason"
+          data-testid="close-reason"
+          placeholder="关闭原因（必填）"
+          class="min-w-[240px] flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-[12px]"
+        />
+        <button
+          data-testid="close-intent"
+          class="rounded-lg bg-slate-500 px-3 py-1.5 text-[12px] text-white"
+          @click="close"
+        >
+          关闭
+        </button>
+      </div>
     </div>
   </div>
   <div v-else class="py-10 text-center text-[13px] text-slate-400">意向单不存在</div>

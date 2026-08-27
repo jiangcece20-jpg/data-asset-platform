@@ -303,6 +303,17 @@ export const useOrderStore = defineStore('orders', {
       const order = this.list.find((o) => o.id === orderId)
       if (order) order.contractStatus = 'contract_signed'
     },
+    /** 空间意向转单：运营确认线下到账，进入履约（不自动开通权益） */
+    confirmSpaceIntentPayment(orderId: string) {
+      const order = this.list.find((o) => o.id === orderId)
+      if (!order?.spaceIntentId) throw new Error('仅空间意向转单可确认到账')
+      if (order.status !== 'payment_pending_confirmation') throw new Error('仅待确认到账订单可操作')
+      order.status = 'paid'
+      order.paidAt = now()
+      order.contractStatus = 'payment_confirmed'
+      order.note = '运营已确认到账，履约中'
+      return order
+    },
     cancelOrder(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
       if (order) order.status = 'payment_cancelled'
@@ -384,16 +395,15 @@ export const useOrderStore = defineStore('orders', {
         productName: input.product.name,
         productType: input.product.type,
         amount: offer?.price ?? 0,
-        status: 'paid',
+        status: 'payment_pending_confirmation',
         createdAt: stamp,
-        paidAt: stamp,
-        contractStatus: 'payment_confirmed',
+        contractStatus: 'contract_signed',
         paymentMethod: 'enterprise_bank_transfer',
         operatorMemberId: input.operatorMemberId,
         datasetOfferId: offer?.id,
         selectedTermMonths: offer?.termMonths,
         spaceIntentId: input.intentId,
-        note: '线下付款已确认到账，履约中'
+        note: '空间侧线下方案已确认，待运营确认到账后开通履约'
       }
       this.list.push(order)
       return order

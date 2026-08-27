@@ -7,6 +7,7 @@ import type {
   DemandLead,
   ApprovalRecord
 } from '@/types/domain'
+import type { SpaceIntentOrder } from '@/types/spaceIntent'
 
 export { seedProducts } from './products'
 export { seedResources, userViewResources } from './resources'
@@ -311,6 +312,63 @@ export const seedOrders: Order[] = [
 ]
 
 export const seedTrials: TrialApplication[] = []
+
+/** 空间购买意向单演示数据：订单中心默认可见，便于运营演示领取流程。 */
+export const seedSpaceIntents: SpaceIntentOrder[] = [
+  {
+    id: 'intent-seed-001',
+    productId: 'prod-qualification-api',
+    productType: 'api',
+    ownerMemberId: 'mem-2',
+    contactName: '王涛',
+    contactPhone: '139****7710',
+    scenario: '承运商准入 · 司机从业证批量核验',
+    requestedEnterpriseName: '华东某第三方物流有限公司',
+    opsStatus: 'unclaimed',
+    createdAt: '2026-08-26 09:12',
+    updatedAt: '2026-08-26 09:12'
+  },
+  {
+    id: 'intent-seed-002',
+    productId: 'prod-enterprise-activity',
+    productType: 'dataset',
+    ownerMemberId: 'mem-1',
+    contactName: '陈静',
+    contactPhone: '138****2201',
+    scenario: '合作企业活跃度评估 · 年度订阅试用',
+    enterpriseId: 'ent-wanlian-logistics',
+    opsStatus: 'processing',
+    createdAt: '2026-08-25 16:40',
+    updatedAt: '2026-08-26 10:05'
+  },
+  {
+    id: 'intent-seed-003',
+    productId: 'prod-space-port-throughput',
+    productType: 'dataset',
+    ownerMemberId: 'mem-3',
+    contactName: '李梅',
+    contactPhone: '136****3345',
+    scenario: '港口产能分析 · 近12个月吞吐量',
+    requestedEnterpriseName: '某临港产业研究咨询机构',
+    opsStatus: 'unclaimed',
+    createdAt: '2026-08-24 11:28',
+    updatedAt: '2026-08-24 11:28'
+  },
+  {
+    id: 'intent-seed-004',
+    productId: 'prod-qualification-api',
+    productType: 'api',
+    ownerMemberId: 'mem-4',
+    contactName: '赵鹏',
+    contactPhone: '137****9982',
+    scenario: '司机核验（重复申请）',
+    requestedEnterpriseName: '个人',
+    opsStatus: 'closed',
+    closeReason: '客户已线下签约，改走空间直购',
+    createdAt: '2026-08-20 14:00',
+    updatedAt: '2026-08-21 09:30'
+  }
+]
 
 // 需求回流演示：四条对象/地域/时间一致的相似需求（跨来源），可聚合为一个供给任务。
 export const seedDemands: DemandLead[] = [

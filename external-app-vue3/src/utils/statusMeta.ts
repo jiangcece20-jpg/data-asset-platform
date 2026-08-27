@@ -41,7 +41,8 @@ const dictionaries: Record<string, Record<string, Meta>> = {
    paid: { label: '已支付', tone: 'blue' },
     pending_activation: { label: '待开通', tone: 'amber' },
    refunded: { label: '已退款', tone: 'slate' },
-   entitlement_active: { label: '权益已生效', tone: 'green' }
+    entitlement_active: { label: '权益已生效', tone: 'green' },
+    intent: { label: '意向单', tone: 'purple' }
   },
   biDelivery: {
     pending: { label: '待创建', tone: 'slate' },

@@ -8,7 +8,10 @@ import { useOrderStore } from './orders'
 import { userStatusOf } from '@/domain/spaceIntent'
 
 describe('spaceIntents store', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useSpaceIntentStore().list = []
+  })
 
   it('allows a personal user to submit an intent', () => {
     const store = useSpaceIntentStore()
@@ -23,20 +26,7 @@ describe('spaceIntents store', () => {
     expect(intent.ownerMemberId).toBe(useUserStore().context.currentMemberId)
   })
 
-  it('rejects payment confirmation before an enterprise is attached', () => {
-    const store = useSpaceIntentStore()
-    const intent = store.submit({
-      productId: 'prod-qualification-api',
-      contactName: '陈静',
-      contactPhone: '13800000000',
-      scenario: '核验'
-    })
-    store.claim(intent.id)
-    expect(() => store.confirmOfflinePayment(intent.id, '')).toThrow('确认到账必须落到认证企业')
-    expect(useOrderStore().list.some((order) => order.spaceIntentId === intent.id)).toBe(false)
-  })
-
-  it('converts an API intent into a fulfilling buy-data order without dataset entitlement', () => {
+  it('does not create an order when claimed', () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
     const store = useSpaceIntentStore()
@@ -46,7 +36,34 @@ describe('spaceIntents store', () => {
       contactPhone: '13800000000',
       scenario: '核验'
     })
+    store.claim(intent.id, user.enterprise.id)
+    expect(intent.opsStatus).toBe('processing')
+    expect(useOrderStore().list.some((order) => order.spaceIntentId === intent.id)).toBe(false)
+  })
+
+  it('rejects transaction confirmation before enterprise is attached', () => {
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '核验'
+    })
     store.claim(intent.id)
+    expect(() => store.confirmOfflinePayment(intent.id, '')).toThrow('确认交易必须落到认证企业')
+  })
+
+  it('converts an API intent into a fulfilling buy-data order after ops confirmation', () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '核验'
+    })
+    store.claim(intent.id, user.enterprise.id)
     store.confirmOfflinePayment(intent.id, user.enterprise.id)
     expect(intent.opsStatus).toBe('converted')
     const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)
@@ -54,9 +71,11 @@ describe('spaceIntents store', () => {
       ownerType: 'enterprise',
       ownerId: user.enterprise.id,
       productType: 'api',
-      status: 'paid',
+      status: 'payment_pending_confirmation',
       paymentMethod: 'enterprise_bank_transfer'
     })
+    useOrderStore().confirmSpaceIntentPayment(order!.id)
+    expect(order?.status).toBe('paid')
     expect(store.userVisibleByOwner(user.context.currentMemberId).some((item) => item.id === intent.id)).toBe(false)
     store.completeFulfillment(intent.id)
     expect(order?.status).toBe('entitlement_active')
@@ -74,9 +93,12 @@ describe('spaceIntents store', () => {
       contactPhone: '13800000000',
       scenario: '画像'
     })
+    store.claim(intent.id, user.enterprise.id)
     store.confirmOfflinePayment(intent.id, user.enterprise.id)
     expect(intent.opsStatus).toBe('converted')
     const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)
+    expect(order?.status).toBe('payment_pending_confirmation')
+    useOrderStore().confirmSpaceIntentPayment(order!.id)
     expect(order?.status).toBe('paid')
     expect(useEntitlementStore().list.some((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')).toBe(false)
     store.completeFulfillment(intent.id)
@@ -94,12 +116,15 @@ describe('spaceIntents store', () => {
       contactPhone: '13800000000',
       scenario: '画像'
     })
+    store.claim(intent.id, user.enterprise.id)
     store.confirmOfflinePayment(intent.id, user.enterprise.id)
     const product = useCatalogStore().byId('prod-enterprise-activity')!
     product.datasetOffers = []
+    const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)!
+    useOrderStore().confirmSpaceIntentPayment(order.id)
     expect(() => store.completeFulfillment(intent.id)).toThrow('空间数据集缺少方案，无法接入')
     expect(intent.opsStatus).toBe('converted')
-    expect(useOrderStore().list.find((item) => item.spaceIntentId === intent.id)?.status).toBe('paid')
+    expect(order.status).toBe('paid')
     expect(useEntitlementStore().list.some((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')).toBe(false)
   })
 
@@ -113,12 +138,15 @@ describe('spaceIntents store', () => {
       contactPhone: '13800000000',
       scenario: '画像'
     })
+    store.claim(intent.id, user.enterprise.id)
     store.confirmOfflinePayment(intent.id, user.enterprise.id)
+    const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)!
+    useOrderStore().confirmSpaceIntentPayment(order.id)
     store.completeFulfillment(intent.id)
     const datasetEntitlements = () =>
       useEntitlementStore().list.filter((e) => e.productId === 'prod-enterprise-activity' && e.type === 'dataset')
     expect(datasetEntitlements()).toHaveLength(1)
-    expect(() => store.completeFulfillment(intent.id)).toThrow('仅履约中订单可完成履约')
+    expect(() => store.completeFulfillment(intent.id)).toThrow('仅待确认或履约中订单可完成履约')
     expect(datasetEntitlements()).toHaveLength(1)
   })
 })

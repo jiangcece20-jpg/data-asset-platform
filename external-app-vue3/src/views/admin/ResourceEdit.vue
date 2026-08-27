@@ -43,7 +43,8 @@ import {
   itemDiscountZheOk,
   itemSalePrice,
   originalPriceOk,
-  resolveItemOfferPricing
+  resolveItemOfferPricing,
+  roundPrice1
 } from '@/domain/itemPricing'
 
 const route = useRoute()
@@ -106,8 +107,11 @@ const productForm = reactive({
   /** 普通/高级会员：同级免费与折扣互斥 */
   standardMemberMode: 'none' as 'none' | 'free' | 'discount',
   standardMemberZhe: 6,
+  /** 叠会员折前的参照价，默认同步个人单品售价 */
+  standardMemberOriginalPrice: 0,
   premiumMemberMode: 'none' as 'none' | 'free' | 'discount',
   premiumMemberZhe: 6,
+  premiumMemberOriginalPrice: 0,
   coverage: '',
   updateFrequency: '',
   deliveryMethod: '',
@@ -200,6 +204,34 @@ function syncItemOfferPrice(offer: ItemOfferForm) {
   if (originalPriceOk(offer.originalPrice) && itemDiscountZheOk(offer.discountZhe)) {
     offer.price = itemSalePrice(offer.originalPrice, offer.discountZhe)
   }
+  if (offer.subject === 'personal') syncMemberOriginalPrices()
+}
+
+function personalItemSalePrice(): number | undefined {
+  const offer = itemOfferForm.personal
+  if (!offer.enabled || !originalPriceOk(offer.originalPrice) || !itemDiscountZheOk(offer.discountZhe)) {
+    return undefined
+  }
+  return itemSalePrice(offer.originalPrice, offer.discountZhe)
+}
+
+function syncMemberOriginalPrices() {
+  const sale = personalItemSalePrice()
+  if (sale == null) return
+  if (productForm.standardMemberMode !== 'none') productForm.standardMemberOriginalPrice = sale
+  if (productForm.premiumMemberMode !== 'none') productForm.premiumMemberOriginalPrice = sale
+}
+
+function memberTierPricePreview(tier: MemberTier): string {
+  const mode = tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode
+  if (mode === 'none') return '—'
+  const original = tier === 'standard' ? productForm.standardMemberOriginalPrice : productForm.premiumMemberOriginalPrice
+  const base = originalPriceOk(original) ? original : personalItemSalePrice()
+  if (base == null) return '—'
+  if (mode === 'free') return `会员免费（参照 ¥${base.toLocaleString()}）`
+  const zhe = tier === 'standard' ? productForm.standardMemberZhe : productForm.premiumMemberZhe
+  if (!itemDiscountZheOk(zhe)) return '—'
+  return `会员价 ¥${roundPrice1(base * (zhe / 10)).toLocaleString()}`
 }
 
 // --- 数据探查配置 ---
@@ -295,8 +327,10 @@ function syncFormFromStore() {
     productForm.salePeriodMonths = 12
     productForm.standardMemberMode = 'none'
     productForm.standardMemberZhe = 6
+    productForm.standardMemberOriginalPrice = 0
     productForm.premiumMemberMode = 'none'
     productForm.premiumMemberZhe = 6
+    productForm.premiumMemberOriginalPrice = 0
     productForm.coverage = ''
     productForm.updateFrequency = ''
     productForm.deliveryMethod = ''
@@ -362,6 +396,11 @@ function syncFormFromStore() {
   productForm.standardMemberZhe = discountToZhe(standard?.discount ?? p.price.memberDiscount)
   productForm.premiumMemberMode = premium ? premium.mode : 'none'
   productForm.premiumMemberZhe = discountToZhe(premium?.discount ?? p.price.premiumMemberDiscount)
+
+  const offers = commerceOffersOf(p)
+  syncItemOffer(itemOfferForm.personal, offers, p.price.itemPrice ?? 0)
+  syncItemOffer(itemOfferForm.enterprise, offers, (p.price.itemPrice ?? 0) * 10)
+  syncMemberOriginalPrices()
   productForm.coverage = p.coverage
   productForm.updateFrequency = coerceUpdateFrequency(p.updateFrequency)
   productForm.deliveryMethod = p.deliveryMethod
@@ -376,10 +415,6 @@ function syncFormFromStore() {
   productForm.recommendSlot = p.recommendSlot ?? false
   sellingShots.value = [...(p.sellingShots ?? [])]
   customSellingShots.value = [...(p.customSellingShots ?? [])]
-
-  const offers = commerceOffersOf(p)
-  syncItemOffer(itemOfferForm.personal, offers, p.price.itemPrice ?? 0)
-  syncItemOffer(itemOfferForm.enterprise, offers, (p.price.itemPrice ?? 0) * 10)
 
   // 看板展示配置：原型阶段由商品 Mock 初始化，保存时同步商品与关联资源。
   const dashboard = p.typeDetail.dashboard
@@ -633,6 +668,7 @@ function setMemberMode(tier: MemberTier, mode: 'none' | 'free' | 'discount') {
     productForm.premiumMemberMode = mode
     if (mode === 'discount' && !productForm.premiumMemberZhe) productForm.premiumMemberZhe = 6
   }
+  if (mode !== 'none') syncMemberOriginalPrices()
 }
 
 function contentKindFor(type: ProductType): CommerceContentKind {
@@ -1298,10 +1334,36 @@ function saveProfilingFields() {
                     折扣
                   </label>
                   <label
+                    v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) !== 'none'"
+                    class="flex items-center gap-1.5"
+                  >
+                    <span class="text-slate-400">原价 ¥</span>
+                    <input
+                      v-if="tier === 'standard'"
+                      v-model.number="productForm.standardMemberOriginalPrice"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      :disabled="productForm.isFree"
+                      data-testid="member-standard-original-price"
+                      class="w-28 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 disabled:bg-slate-50"
+                    />
+                    <input
+                      v-else
+                      v-model.number="productForm.premiumMemberOriginalPrice"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      :disabled="productForm.isFree"
+                      data-testid="member-premium-original-price"
+                      class="w-28 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label
                     v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'discount'"
                     class="flex items-center gap-1.5"
                   >
-                    <span class="text-slate-400">打</span>
+                    <span class="text-slate-400">折扣</span>
                     <input
                       v-if="tier === 'standard'"
                       v-model.number="productForm.standardMemberZhe"
@@ -1326,6 +1388,13 @@ function saveProfilingFields() {
                     />
                     <span class="text-slate-400">折</span>
                   </label>
+                  <span
+                    v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) !== 'none'"
+                    class="text-slate-500"
+                    :data-testid="`member-${tier}-price-preview`"
+                  >
+                    → {{ memberTierPricePreview(tier) }}
+                  </span>
               </div>
             </div>
             </div>

@@ -37,7 +37,7 @@ describe('productDetailPriceSummary', () => {
       listPriceText: '¥199',
       memberPriceText: '¥119.4',
       memberPrice: 119.4,
-      purchaseNote: '点击「立即购买」后选择直接购买或开通会员'
+      purchaseNote: '可直接购买，或开通会员享权益价'
     })
   })
 

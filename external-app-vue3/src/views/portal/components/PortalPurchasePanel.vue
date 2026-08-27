@@ -8,8 +8,11 @@ import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
 import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
+import { checkoutDualPathFields } from '@/domain/checkoutDualPath'
+import { formatYuan } from '@/domain/membership'
 import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useUserStore } from '@/stores/user'
+import { useEntitlementStore } from '@/stores/entitlements'
 import { SPACE_TRIAL_APPLY_LABEL, USER_INTENT_HINT } from '@/domain/spaceIntent'
 
 const props = defineProps<{
@@ -22,6 +25,7 @@ const props = defineProps<{
 const emit = defineEmits<{ action: [key: ProductActionKey] }>()
 const router = useRouter()
 const user = useUserStore()
+const entitlements = useEntitlementStore()
 const pricingInfo = computed(() => pricingPresentation(props.product))
 const billingRules = computed(() => billingRuleNotes(props.product))
 const purchaseSubject = computed(() => currentPurchaseSubject(user))
@@ -33,6 +37,35 @@ const commerceOffers = computed(() => commerceOffersOf(props.product))
 const currentCommerceOffers = computed(() =>
   commerceOffers.value.filter((offer) => offer.subject === purchaseSubject.value)
 )
+
+const dualPath = computed(() => {
+  if (props.owned) return { showDualPath: false as const }
+  const itemPrice = detailPrice.value?.listPrice ?? currentCommerceOffers.value[0]?.price ?? 0
+  return checkoutDualPathFields(props.product, {
+    identitySubject: purchaseSubject.value,
+    hasEffectiveMembership: entitlements.hasEffectiveMembership,
+    canPurchaseMembership: entitlements.canPurchaseMembership,
+    isSellerMarket: props.product.origin === 'seller_market',
+    itemPrice
+  })
+})
+
+const showDetailDualPath = computed(() =>
+  Boolean(dualPath.value.showDualPath && props.actions?.primary.key === 'item_purchase')
+)
+
+const dualPathDirectLabel = computed(() => {
+  const price = detailPrice.value?.listPrice ?? currentCommerceOffers.value[0]?.price
+  return price != null ? `直接购买 ${formatYuan(price)}` : '直接购买'
+})
+
+function goDirectPurchase() {
+  router.push({ path: `/portal/checkout/${props.product.id}`, query: { skipDual: '1' } })
+}
+
+function goMemberCheckout() {
+  router.push({ path: '/app/checkout/member', query: { returnProduct: props.product.id } })
+}
 
 const trustedPurchaseEligibility = computed(() => {
   if (props.product.dealChannel !== 'space_purchase' || props.owned) return null
@@ -181,8 +214,33 @@ function goBills() {
         <div class="mt-0.5 text-xs text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的数据”查看交付并进入用数模块' : '可直接查看完整内容' }}</div>
       </div>
 
-      <!-- 操作按钮 -->
-      <div v-if="actions" class="mt-4 space-y-2">
+      <!-- 操作按钮：会员+单品未开通时直接双路径 -->
+      <div v-if="showDetailDualPath" class="mt-4 space-y-2" data-testid="product-dual-path">
+        <button
+          data-testid="product-direct-purchase"
+          class="w-full rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          @click="goDirectPurchase"
+        >
+          {{ dualPathDirectLabel }}
+        </button>
+        <div class="relative">
+          <button
+            data-testid="product-become-member"
+            class="w-full rounded-lg bg-emerald-500 py-2.5 text-sm font-medium text-white hover:bg-emerald-600"
+            @click="goMemberCheckout"
+          >
+            {{ dualPath.memberButtonLabel ?? '成为会员' }}
+          </button>
+          <span
+            v-if="dualPath.savingsLabel"
+            class="absolute -top-2 right-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-medium text-amber-950"
+            data-testid="product-member-savings"
+          >
+            {{ dualPath.savingsLabel }}
+          </span>
+        </div>
+      </div>
+      <div v-else-if="actions" class="mt-4 space-y-2">
         <button
           data-testid="product-primary-action"
           class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"

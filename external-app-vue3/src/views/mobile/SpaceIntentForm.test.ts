@@ -22,7 +22,10 @@ async function mountForm(path = '/app/space-intent/prod-qualification-api') {
 }
 
 describe('SpaceIntentForm', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useSpaceIntentStore().list = []
+  })
 
   it('submits an unclaimed intent and shows 已提交', async () => {
     const wrapper = await mountForm()

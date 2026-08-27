@@ -146,6 +146,17 @@ describe('resolveProductActions', () => {
     })
   })
 
+  it('routes APP-owned datasets with member benefits to item checkout dual path', () => {
+    expect(resolveProductActions({
+      ...base,
+      acquisitions: ['member', 'item_purchase'],
+      itemPrice: 199
+    }).primary).toEqual({
+      key: 'item_purchase',
+      label: '立即购买'
+    })
+  })
+
   it('routes seller-market datasets to item checkout', () => {
     expect(resolveProductActions({
       ...base,

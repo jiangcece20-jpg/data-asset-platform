@@ -37,7 +37,10 @@ function mountOrdersPanel(props: Partial<InstanceType<typeof OrdersPanel>['$prop
 }
 
 describe('OrdersPanel', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useSpaceIntentStore().list = []
+  })
 
   it('switches between buy content and placeholders', async () => {
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy', variant: 'mobile' })
@@ -75,13 +78,15 @@ describe('OrdersPanel', () => {
   it('hides converted intents from the intent tab after payment confirmation', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
-    const intent = useSpaceIntentStore().submit({
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
       productId: 'prod-qualification-api',
       contactName: '陈静',
       contactPhone: '13800000000',
       scenario: '核验'
     })
-    useSpaceIntentStore().confirmOfflinePayment(intent.id, user.enterprise.id)
+    store.claim(intent.id, user.enterprise.id)
+    store.confirmOfflinePayment(intent.id, user.enterprise.id)
     const { wrapper } = mountOrdersPanel({ orderTab: 'intent' })
     expect(wrapper.text()).toContain('暂无意向单')
     expect(wrapper.text()).not.toContain('道路运输从业人员资格核验 API')

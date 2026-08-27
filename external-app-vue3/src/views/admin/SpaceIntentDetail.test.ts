@@ -5,18 +5,19 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { OPS_STATUS_LABELS } from '@/domain/spaceIntent'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useOrderStore } from '@/stores/orders'
+import { useUserStore } from '@/stores/user'
 import SpaceIntentDetail from './SpaceIntentDetail.vue'
 
 async function mountDetail(intentId: string) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/admin/space-intents/:id', name: 'admin-space-intents-detail', component: SpaceIntentDetail },
+      { path: '/admin/orders/intents/:id', name: 'admin-order-intent-detail', component: SpaceIntentDetail },
       { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } },
       { path: '/admin/orders', name: 'admin-orders', component: { template: '<div />' } }
     ]
   })
-  await router.push(`/admin/space-intents/${intentId}`)
+  await router.push(`/admin/orders/intents/${intentId}`)
   await router.isReady()
   return { wrapper: mount(SpaceIntentDetail, { global: { plugins: [router] } }), router }
 }
@@ -30,48 +31,39 @@ function submitPersonalApi() {
   })
 }
 
-async function clickLabel(wrapper: Awaited<ReturnType<typeof mountDetail>>['wrapper'], label: string) {
-  const btn = wrapper.findAll('button').find((item) => item.text() === label)
-  expect(btn, `missing button ${label}`).toBeTruthy()
-  await btn!.trigger('click')
+async function clickTestId(wrapper: Awaited<ReturnType<typeof mountDetail>>['wrapper'], testId: string) {
+  await wrapper.get(`[data-testid="${testId}"]`).trigger('click')
   await flushPromises()
 }
 
 describe('SpaceIntentDetail', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useSpaceIntentStore().list = []
+    useUserStore().completeEnterpriseAuth()
+  })
 
-  it('turns an unclaimed intent into a buy-data order and opens the order center', async () => {
+  it('claims an intent, confirms transaction and payment before fulfillment', async () => {
     const intent = submitPersonalApi()
-    const { wrapper, router } = await mountDetail(intent.id)
+    const { wrapper } = await mountDetail(intent.id)
 
     expect(wrapper.text()).toContain(OPS_STATUS_LABELS.unclaimed)
-    expect(wrapper.find('[data-testid="go-space-ops"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('确认企业、确认方案、线下试用均在线下完成')
 
-    await clickLabel(wrapper, '领取')
+    await clickTestId(wrapper, 'claim-intent')
+    expect(intent.opsStatus).toBe('processing')
+    expect(useOrderStore().list.some((item) => item.spaceIntentId === intent.id)).toBe(false)
+    expect(wrapper.find('[data-testid="confirm-transaction"]').exists()).toBe(true)
+
+    await clickTestId(wrapper, 'confirm-transaction')
     expect(intent.opsStatus).toBe('converted')
     const order = useOrderStore().list.find((item) => item.spaceIntentId === intent.id)
+    expect(order?.status).toBe('payment_pending_confirmation')
+
+    await clickTestId(wrapper, 'confirm-order-payment')
     expect(order?.status).toBe('paid')
-    expect(router.currentRoute.value.path).toBe('/admin/orders')
 
-    await router.push(`/admin/space-intents/${intent.id}`)
-    await flushPromises()
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.converted)
-
-    await wrapper.get('[data-testid="go-space-ops"]').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value).toMatchObject({
-      name: 'space-bridge',
-      params: { id: intent.productId },
-      query: { intent: `ops-${intent.id}` }
-    })
-
-    await router.push(`/admin/space-intents/${intent.id}`)
-    await flushPromises()
-
-    await clickLabel(wrapper, '完成开通')
+    await clickTestId(wrapper, 'complete-fulfillment')
     expect(order?.status).toBe('entitlement_active')
-    expect(wrapper.find('[data-testid="complete-fulfillment"]').exists()).toBe(false)
   })
 
   it('keeps a dataset order in fulfillment until complete-delivery is shown', async () => {
@@ -82,13 +74,11 @@ describe('SpaceIntentDetail', () => {
       contactPhone: '13800000000',
       scenario: '画像'
     })
-    const { wrapper, router } = await mountDetail(intent.id)
+    const { wrapper } = await mountDetail(intent.id)
 
-    await clickLabel(wrapper, '领取')
-    expect(intent.opsStatus).toBe('converted')
-    await router.push(`/admin/space-intents/${intent.id}`)
-    await flushPromises()
-    expect(wrapper.text()).toContain(OPS_STATUS_LABELS.converted)
+    await clickTestId(wrapper, 'claim-intent')
+    await clickTestId(wrapper, 'confirm-transaction')
+    await clickTestId(wrapper, 'confirm-order-payment')
     expect(wrapper.findAll('button').some((item) => item.text() === '完成接入')).toBe(true)
   })
 
@@ -112,13 +102,12 @@ describe('SpaceIntentDetail', () => {
     expect(wrapper.get('[data-testid="product-type"]').text()).toBe('API')
   })
 
-  it('shows the buyer enterprise on the order after claim', async () => {
+  it('closes an intent from the detail page only', async () => {
     const intent = submitPersonalApi()
-    const { wrapper, router } = await mountDetail(intent.id)
-    await clickLabel(wrapper, '领取')
-    await router.push(`/admin/space-intents/${intent.id}`)
-    await flushPromises()
-    expect(wrapper.get('[data-testid="buyer-enterprise"]').text()).toBe('万联供应链管理有限公司')
-    expect(wrapper.get('[data-testid="operator-contact"]').text()).toBe('陈静 · 13800000000')
+    const { wrapper } = await mountDetail(intent.id)
+    await wrapper.get('[data-testid="close-reason"]').setValue('客户放弃')
+    await clickTestId(wrapper, 'close-intent')
+    expect(intent.opsStatus).toBe('closed')
+    expect(intent.closeReason).toBe('客户放弃')
   })
 })

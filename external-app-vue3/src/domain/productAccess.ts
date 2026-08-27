@@ -77,6 +77,9 @@ export function resolveProductActions(context: ProductActionContext): {
     if (context.origin === 'seller_market') {
       return { primary: { key: 'item_purchase', label: '购买数据集' } }
     }
+    if (context.acquisitions.includes('member')) {
+      return resolveMemberAwareActions(context)
+    }
     return { primary: { key: 'dataset_purchase', label: '购买数据集' } }
   }
   if (context.acquisitions.includes('member')) {
