@@ -153,17 +153,47 @@ export function setButtonFreeAttempts(
   }
 }
 
+function metricFieldId(index: number): string {
+  return `metric-${index}`
+}
+
+function fieldsForPanel(
+  panelIndex: number,
+  panelCount: number,
+  metrics: NonNullable<Product['typeDetail']['dashboard']>['metrics'] = []
+): DashboardPaywallField[] {
+  if (!metrics.length) return []
+  if (metrics.length === panelCount) {
+    const metric = metrics[panelIndex]
+    return metric ? [{ id: metricFieldId(panelIndex), label: metric.name }] : []
+  }
+  return metrics.map((metric, index) => ({ id: metricFieldId(index), label: metric.name }))
+}
+
+function defaultButtonsForPanel(panel: { chartType: 'line' | 'bar' | 'number' }): DashboardPaywallButton[] {
+  if (panel.chartType === 'line' || panel.chartType === 'bar') {
+    return [{ id: 'filter', label: '筛选' }]
+  }
+  if (panel.chartType === 'number') {
+    return [{ id: 'query', label: '查询' }]
+  }
+  return []
+}
+
 export function syncedPaywallCatalogOf(
   product: Product,
   fallback: DashboardPaywallModule[] = FREIGHT_PAYWALL_CATALOG
 ): DashboardPaywallModule[] {
-  const stored = product.typeDetail.dashboard?.paywallCatalog
+  const dashboard = product.typeDetail.dashboard
+  const stored = dashboard?.paywallCatalog
   if (stored?.length) return stored
   if (product.id === 'prod-freight-index') return fallback
-  return (product.typeDetail.dashboard?.panels ?? []).map((panel) => ({
+  const panels = dashboard?.panels ?? []
+  const metrics = dashboard?.metrics ?? []
+  return panels.map((panel, index) => ({
     id: panel.id,
     label: panel.title,
-    fields: [],
-    buttons: []
+    fields: fieldsForPanel(index, panels.length, metrics),
+    buttons: defaultButtonsForPanel(panel)
   }))
 }

@@ -81,4 +81,35 @@ describe('paywall selection', () => {
     expect(modules[0]?.fields.map((item) => item.label)).toEqual(['指数', '较上期', '解读'])
     expect(modules[0]?.buttons.map((item) => item.label)).toEqual(['查询'])
   })
+
+  it('derives module-scoped fields from dashboard panels and metrics', () => {
+    const modules = syncedPaywallCatalogOf(
+      product({
+        id: 'prod-highway-index',
+        typeDetail: {
+          dashboard: {
+            metrics: [
+              { name: '景气指数', definition: '', formula: '', dimensions: [], preview: 'visible' },
+              { name: '运力供需比', definition: '', formula: '', dimensions: [], preview: 'masked' },
+              { name: '重点线路运价', definition: '', formula: '', dimensions: [], preview: 'masked' }
+            ],
+            panels: [
+              { id: 'panel-trend', title: '景气指数走势', chartType: 'line', preview: 'visible', summary: '' },
+              { id: 'panel-region', title: '区域运力供需对比', chartType: 'bar', preview: 'masked', summary: '' },
+              { id: 'panel-kpi', title: '本周核心指标', chartType: 'number', preview: 'masked', summary: '' }
+            ],
+            timeRange: '',
+            updateCycle: '',
+            exportRule: ''
+          }
+        }
+      })
+    )
+    expect(modules.map((item) => item.label)).toEqual(['景气指数走势', '区域运力供需对比', '本周核心指标'])
+    expect(modules[0]?.fields).toEqual([{ id: 'metric-0', label: '景气指数' }])
+    expect(modules[1]?.fields).toEqual([{ id: 'metric-1', label: '运力供需比' }])
+    expect(modules[2]?.fields).toEqual([{ id: 'metric-2', label: '重点线路运价' }])
+    expect(modules[0]?.buttons).toEqual([{ id: 'filter', label: '筛选' }])
+    expect(modules[2]?.buttons).toEqual([{ id: 'query', label: '查询' }])
+  })
 })
