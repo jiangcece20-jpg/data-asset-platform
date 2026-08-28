@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCatalogStore } from '@/stores/catalog'
+import ReportPreviewImagesEditor from '@/components/admin/ReportPreviewImagesEditor.vue'
 import ResourceEdit from './ResourceEdit.vue'
 
 async function mountResourceEdit(resourceId = 'res-prod-freight-index') {
@@ -151,6 +152,23 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(resource?.typeDetail.report?.author).toBe('公路物流研究中心')
   })
 
+  it('persists report preview images for app and pc when saving report config', async () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+    const wrapper = await mountResourceEdit('res-prod-logistics-monthly')
+    await openTab(wrapper, 'content')
+
+    await wrapper.findComponent(ReportPreviewImagesEditor).vm.$emit('update:modelValue', {
+      app: [png],
+      pc: [png, png]
+    })
+    await flushPromises()
+    await wrapper.get('[data-testid="save-report-config"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-logistics-monthly')
+    expect(product?.typeDetail.report?.previewImages?.app).toEqual([png])
+    expect(product?.typeDetail.report?.previewImages?.pc).toEqual([png, png])
+  })
+
   it('configures one personal and one enterprise item price', async () => {
     const wrapper = await mountResourceEdit()
     await openTab(wrapper, 'pricing')
@@ -277,18 +295,15 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(fields.find((field) => field.name === 'district_code')?.profilingEnabled).toBeFalsy()
   })
 
-  it('lets an unlisted resource edit product fields and save as draft', async () => {
+  it('lets an unlisted resource save pricing draft without creating a product', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
-    expect(wrapper.get('[data-testid="save-product"]').exists()).toBe(true)
-    expect(wrapper.text()).not.toContain('尚未包装为商品')
     await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹商品草稿')
+    await openTab(wrapper, 'pricing')
+    await wrapper.get('[data-testid="sale-period-months"]').setValue('6')
     await wrapper.get('[data-testid="save-product"]').trigger('click')
     const catalog = useCatalogStore()
-    const created = catalog.productForResource('res-asset-truck-trajectory')
-    expect(created?.name).toBe('货车轨迹商品草稿')
-    expect(created?.availability).toBe('preparing')
-    expect(created?.status).toBe('draft')
-    expect(catalog.discoverable.some((p) => p.id === created?.id)).toBe(false)
+    expect(catalog.productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(catalog.resourceById('res-asset-truck-trajectory')?.pricingDraft?.salePeriodMonths).toBe(6)
   })
 
   it('persists dataset metrics when first-saving an unlisted resource', async () => {
@@ -299,13 +314,7 @@ describe('ResourceEdit product-detail mapping', () => {
     await wrapper.get('[data-testid="dataset-metric-row-count"]').setValue('1280000')
     await wrapper.get('[data-testid="dataset-metric-field-count"]').setValue('8')
     await wrapper.get('[data-testid="save-product"]').trigger('click')
-    const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
-    expect(created?.typeDetail.dataset).toMatchObject({
-      granularity: '车辆 × 日',
-      timeRange: '近 6 个月',
-      rowCount: 1280000,
-      fieldCount: 8
-    })
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
   })
 
   it('resets type-specific forms when opening an unlisted resource', async () => {
@@ -321,13 +330,11 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.get<HTMLInputElement>('[data-testid="dataset-metric-field-count"]').element.value).toBe('')
   })
 
-  it('shows draft actions then publishes after confirm', async () => {
+  it('creates product on publish from resource draft', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
     await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
     await openTab(wrapper, 'pricing')
-    await wrapper.get('[data-testid="associate-product-btn"]').trigger('click')
-    await wrapper.get('[data-testid="associate-product-create"]').trigger('click')
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     await wrapper.get('[data-testid="publish-product"]').trigger('click')
     const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
@@ -345,11 +352,9 @@ describe('ResourceEdit product-detail mapping', () => {
     const unlisted = await mountResourceEdit('res-asset-truck-trajectory')
     await unlisted.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
     await openTab(unlisted, 'pricing')
-    await unlisted.get('[data-testid="associate-product-btn"]').trigger('click')
-    await unlisted.get('[data-testid="associate-product-create"]').trigger('click')
     await unlisted.get('[data-testid="product-free"]').setValue(true)
     await unlisted.get('[data-testid="publish-product"]').trigger('click')
-    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')?.availability).toBe('preparing')
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
   })
 
   it('shows resume and delist for a paused asset-platform product even when listing is blocked', async () => {
@@ -362,7 +367,7 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(useCatalogStore().byId('prod-warehouse-turnover-risk')?.availability).toBe('published')
   })
 
-  it('shows listing block reason instead of silently skipping draft save', async () => {
+  it('allows draft save but hides publish when listing is blocked', async () => {
     const catalog = useCatalogStore()
     const resource = catalog.resourceById('res-asset-truck-trajectory')
     expect(resource).toBeDefined()
@@ -371,7 +376,8 @@ describe('ResourceEdit product-detail mapping', () => {
     await wrapper.get('[data-testid="product-name-input"]').setValue('不能上架的草稿')
     await wrapper.get('[data-testid="save-product"]').trigger('click')
     expect(catalog.productForResource('res-asset-truck-trajectory')).toBeUndefined()
-    expect(wrapper.get('[data-testid="listing-block-error"]').text()).toContain('仅已发布且允许商业化的资产可上架')
+    expect(wrapper.find('[data-testid="publish-product"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="sales-status-bar"]').text()).toContain('仅已发布且允许商业化的资产可上架')
   })
 
   it('does not publish when name is empty', async () => {
@@ -393,19 +399,48 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.text()).toContain('请填写商品名称')
   })
 
-  it('gates pricing config behind associate-product for unlisted resources', async () => {
+  it('shows pricing draft on unlisted resources without associate field', async () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
     await openTab(wrapper, 'pricing')
-    expect(wrapper.find('[data-testid="associate-product-btn"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(false)
-
-    await wrapper.get('[data-testid="associate-product-btn"]').trigger('click')
-    expect(wrapper.find('[data-testid="associate-product-modal"]').exists()).toBe(true)
-    await wrapper.get('[data-testid="associate-product-create"]').trigger('click')
-
-    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeDefined()
     expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="associate-product-btn"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="product-group-field"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="resource-pricing-draft-hint"]').exists()).toBe(true)
+  })
+
+  it('packs multiple products and shows them as removable tags', async () => {
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await wrapper.get('[data-testid="associate-product-add"]').trigger('click')
+    await wrapper.get('[data-testid="associate-product-option-prod-cold-chain-dashboard"]').trigger('click')
+    await wrapper.get('[data-testid="associate-product-option-prod-port-dashboard-free"]').trigger('click')
+    expect(wrapper.get('[data-testid="associate-product-selected-count"]').text()).toContain('已选 2 个')
+    await wrapper.get('[data-testid="associate-product-confirm"]').trigger('click')
+    const catalog = useCatalogStore()
+    expect(catalog.groupMembersOf('prod-freight-index').map((item) => item.id)).toEqual([
+      'prod-freight-index',
+      'prod-cold-chain-dashboard',
+      'prod-port-dashboard-free'
+    ])
+    expect(wrapper.find('[data-testid="product-group-tag-prod-cold-chain-dashboard"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="product-group-tag-prod-port-dashboard-free"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="product-group-remove-prod-cold-chain-dashboard"]').trigger('click')
+    expect(catalog.groupMembersOf('prod-freight-index').map((item) => item.id)).toEqual([
+      'prod-freight-index',
+      'prod-port-dashboard-free'
+    ])
+    expect(wrapper.find('[data-testid="product-group-tag-prod-cold-chain-dashboard"]').exists()).toBe(false)
+  })
+
+  it('shows linked-here and linked-elsewhere labels in the associate modal', async () => {
+    const catalog = useCatalogStore()
+    catalog.packProductsIntoGroup('prod-freight-index', ['prod-cold-chain-dashboard'])
+    catalog.packProductIntoGroup('prod-logistics-monthly', 'prod-port-dashboard-free')
+
+    const wrapper = await mountResourceEdit('res-prod-freight-index')
+    await wrapper.get('[data-testid="associate-product-add"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="associate-product-tag-prod-cold-chain-dashboard"]').text()).toBe('已关联')
+    expect(wrapper.get('[data-testid="associate-product-tag-prod-port-dashboard-free"]').text()).toContain('已关联至')
+    expect(wrapper.get('[data-testid="associate-product-tag-prod-port-dashboard-free"]').text()).toContain('物流')
   })
 
   it('resets to the product tab when opening another resource', async () => {
@@ -467,14 +502,21 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(useCatalogStore().byId('prod-freight-index')?.subtitle).not.toContain('超长')
   })
 
-  it('lets ops upload dashboard preview screenshots', async () => {
+  it('persists dashboard preview images for app and pc when saving dashboard config', async () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
     const wrapper = await mountResourceEdit('res-prod-freight-index')
     await openTab(wrapper, 'content')
-    expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(true)
-    await wrapper.get('[data-testid="fill-example-shots"]').trigger('click')
-    await wrapper.get('[data-testid="save-product"]').trigger('click')
-    expect(useCatalogStore().byId('prod-freight-index')?.sellingShots?.length).toBeGreaterThan(0)
+
+    await wrapper.findComponent(ReportPreviewImagesEditor).vm.$emit('update:modelValue', {
+      app: [png],
+      pc: [png]
+    })
+    await flushPromises()
+    await wrapper.get('[data-testid="save-dashboard-config"]').trigger('click')
+
+    const product = useCatalogStore().byId('prod-freight-index')
+    expect(product?.typeDetail.dashboard?.previewImages?.app).toEqual([png])
+    expect(product?.typeDetail.dashboard?.previewImages?.pc).toEqual([png])
   })
 
   it('hides data profiling config on space datasets', async () => {

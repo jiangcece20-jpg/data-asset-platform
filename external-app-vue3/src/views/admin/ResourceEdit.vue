@@ -15,18 +15,29 @@ import {
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
-import SellerListingShots from '@/components/mine/SellerListingShots.vue'
-import SellerListingCustomShots from '@/components/mine/SellerListingCustomShots.vue'
 import DashboardPaywallEditor from '@/components/admin/DashboardPaywallEditor.vue'
 import ProductAssociateModal from '@/components/admin/ProductAssociateModal.vue'
+import ProductGroupField from '@/components/admin/ProductGroupField.vue'
+import ReportPreviewImagesEditor from '@/components/admin/ReportPreviewImagesEditor.vue'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
-import type { CustomSellingShot, SellingShot } from '@/domain/sellingShotTemplate'
 import {
   canConfigureDashboardPaywall,
+  canConfigureResourceDraftPaywall,
   emptyPaywallSelection,
+  syncedPaywallCatalogFromResource,
   syncedPaywallCatalogOf,
   type DashboardPaywallSelection
 } from '@/domain/dashboardPaywall'
+import {
+  emptyReportPreviewImages,
+  normalizeReportPreviewImages,
+  type ReportPreviewImages
+} from '@/domain/reportPreview'
+import {
+  applyResourcePricingDraftToForms,
+  buildResourcePricingDraft,
+  paywallFromResource
+} from '@/domain/resourcePricingDraft'
 import {
   listingBlockReason,
   salesStateOf,
@@ -82,7 +93,13 @@ function goBack() {
 
 const editable = computed(() => resource.value?.type !== 'user_view')
 const activeTab = ref<ResourceEditTab>('product')
-const dealChannel = computed(() => product.value?.dealChannel ?? 'app_payment')
+const dealChannel = computed(() => {
+  if (product.value) return product.value.dealChannel
+  const res = resource.value
+  if (!res) return 'app_payment'
+  if (res.type === 'api' || res.origin === 'trusted_space') return 'space_purchase'
+  return 'app_payment'
+})
 const publishErrors = ref<FieldError[]>([])
 const tabError = computed(() => {
   const fields = publishErrors.value.map((e) => e.field)
@@ -139,17 +156,30 @@ const dashboardForm = reactive({
   metrics: [] as DashboardMetricForm[]
 })
 const dashboardConfigSaved = ref(false)
-const sellingShots = ref<SellingShot[]>([])
-const customSellingShots = ref<CustomSellingShot[]>([])
+const dashboardPreviewImages = ref<ReportPreviewImages>(emptyReportPreviewImages())
+const reportPreviewImages = ref<ReportPreviewImages>(emptyReportPreviewImages())
 const paywallSelection = ref<DashboardPaywallSelection>(emptyPaywallSelection())
 const canConfigurePaywall = computed(() =>
-  canConfigureDashboardPaywall(product.value, productForm.isFree)
+  product.value
+    ? canConfigureDashboardPaywall(product.value, productForm.isFree)
+    : canConfigureResourceDraftPaywall(resource.value, productForm.isFree)
 )
-const paywallCatalog = computed(() =>
-  product.value ? syncedPaywallCatalogOf(product.value) : []
-)
+const paywallCatalog = computed(() => {
+  if (product.value) return syncedPaywallCatalogOf(product.value)
+  if (resource.value?.type === 'dashboard') return syncedPaywallCatalogFromResource(resource.value)
+  return []
+})
 const showAssociateModal = ref(false)
-const associateCandidates = computed(() => catalog.unboundProducts)
+const associateCandidates = computed(() =>
+  product.value ? catalog.productPackCandidates(product.value.id) : []
+)
+const packedAssociates = computed(() => {
+  if (!product.value) return []
+  return catalog
+    .groupMembersOf(product.value.id)
+    .filter((item) => item.id !== product.value!.id)
+    .map((item) => ({ id: item.id, name: item.name }))
+})
 /** 数据集关键指标：运营配置、非必填；空则前台不展示 */
 const datasetForm = reactive({
   granularity: '',
@@ -267,8 +297,8 @@ const hasContentConfig = computed(() => {
   if (!res) return false
   if (res.type === 'dataset') return true
   if (res.type === 'api' && res.typeDetail.api) return true
-  if (res.type === 'report' && product.value?.typeDetail.report) return true
-  if (res.type === 'dashboard' && product.value?.typeDetail.dashboard) return true
+  if (res.type === 'report' && (product.value?.typeDetail.report || res.typeDetail.report)) return true
+  if (res.type === 'dashboard' && (product.value?.typeDetail.dashboard || res.typeDetail.dashboard)) return true
   if (canConfigureProfiling.value) return true
   return false
 })
@@ -364,12 +394,15 @@ function syncFormFromStore() {
     dashboardForm.updateCycle = ''
     dashboardForm.exportRule = ''
     dashboardForm.metrics.splice(0)
+    dashboardPreviewImages.value = emptyReportPreviewImages()
     reportForm.publishedAt = ''
     reportForm.pageCount = 0
     reportForm.author = ''
     reportForm.version = ''
     reportForm.audience = ''
     reportForm.license = ''
+    reportPreviewImages.value = emptyReportPreviewImages()
+    dashboardPreviewImages.value = emptyReportPreviewImages()
     profilingSelection.value = (resource.value?.typeDetail.dataset?.fields ?? [])
       .filter((f) => f.profilingEnabled)
       .map((f) => f.name)
@@ -378,9 +411,36 @@ function syncFormFromStore() {
     dashboardConfigSaved.value = false
     reportConfigSaved.value = false
     profilingSaved.value = false
-    sellingShots.value = []
-    customSellingShots.value = []
-    paywallSelection.value = emptyPaywallSelection()
+    paywallSelection.value = paywallFromResource(resource.value) ?? emptyPaywallSelection()
+    applyResourcePricingDraftToForms(resource.value?.pricingDraft, {
+      isFree: productForm.isFree,
+      salePeriodMonths: productForm.salePeriodMonths,
+      personalOffer: itemOfferForm.personal,
+      enterpriseOffer: itemOfferForm.enterprise,
+      standardMemberMode: productForm.standardMemberMode,
+      standardMemberZhe: productForm.standardMemberZhe,
+      standardMemberOriginalPrice: productForm.standardMemberOriginalPrice,
+      premiumMemberMode: productForm.premiumMemberMode,
+      premiumMemberZhe: productForm.premiumMemberZhe,
+      premiumMemberOriginalPrice: productForm.premiumMemberOriginalPrice
+    })
+    const resDashboard = resource.value?.typeDetail.dashboard
+    if (resDashboard) {
+      dashboardForm.timeRange = resDashboard.timeRange ?? ''
+      dashboardForm.updateCycle = resDashboard.updateCycle ?? ''
+      dashboardForm.exportRule = resDashboard.exportRule ?? ''
+      dashboardForm.metrics.splice(
+        0,
+        dashboardForm.metrics.length,
+        ...(resDashboard.metrics ?? []).map((metric) => ({
+          name: metric.name,
+          definition: metric.definition,
+          formula: metric.formula,
+          dimensions: metric.dimensions.join('、')
+        }))
+      )
+      dashboardPreviewImages.value = normalizeReportPreviewImages(resDashboard.previewImages)
+    }
     return
   }
 
@@ -416,8 +476,6 @@ function syncFormFromStore() {
   productForm.tags = (p.tags || []).join('、')
   productForm.sortWeight = p.sortWeight ?? 50
   productForm.recommendSlot = p.recommendSlot ?? false
-  sellingShots.value = [...(p.sellingShots ?? [])]
-  customSellingShots.value = [...(p.customSellingShots ?? [])]
 
   // 看板展示配置：原型阶段由商品 Mock 初始化，保存时同步商品与关联资源。
   const dashboard = p.typeDetail.dashboard
@@ -434,6 +492,7 @@ function syncFormFromStore() {
       dimensions: metric.dimensions.join('、')
     }))
   )
+  dashboardPreviewImages.value = normalizeReportPreviewImages(dashboard?.previewImages)
   paywallSelection.value = dashboard?.paywall
     ? {
         maskedModuleIds: [...dashboard.paywall.maskedModuleIds],
@@ -464,6 +523,7 @@ function syncFormFromStore() {
   reportForm.version = report?.version ?? ''
   reportForm.audience = report?.audience ?? ''
   reportForm.license = report?.license ?? ''
+  reportPreviewImages.value = normalizeReportPreviewImages(report?.previewImages)
 
   // 探查字段
   profilingSelection.value = (p.typeDetail.dataset?.fields ?? [])
@@ -499,6 +559,68 @@ watch(resourceId, () => {
 // 保存动作
 // ---------------------------------------------------------------------------
 
+function saveResourceDraft() {
+  const res = resource.value
+  if (!res || res.type === 'user_view' || product.value) return
+  const memberBenefits = productForm.isFree ? [] : buildMemberBenefitsFromForm()
+  const hasItemOffer = itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+  const legacyMember = deriveLegacyMemberFields(
+    memberBenefits,
+    { model: productForm.isFree ? 'free' : 'item_only', itemPrice: itemOfferForm.personal.price || 100 },
+    productForm.isFree,
+    hasItemOffer
+  )
+  catalog.updateResourcePricingDraft(
+    res.id,
+    buildResourcePricingDraft({
+      isFree: productForm.isFree,
+      salePeriodMonths: Math.max(1, Number(productForm.salePeriodMonths) || 12),
+      personalOffer: { ...itemOfferForm.personal },
+      enterpriseOffer: { ...itemOfferForm.enterprise },
+      standardMemberMode: productForm.standardMemberMode,
+      standardMemberZhe: productForm.standardMemberZhe,
+      standardMemberOriginalPrice: productForm.standardMemberOriginalPrice,
+      premiumMemberMode: productForm.premiumMemberMode,
+      premiumMemberZhe: productForm.premiumMemberZhe,
+      premiumMemberOriginalPrice: productForm.premiumMemberOriginalPrice,
+      memberBenefits,
+      acquisitions: buildAcquisitions(productForm.isFree, memberBenefits.length > 0, hasItemOffer),
+      price: legacyMember.price,
+      paywall: canConfigurePaywall.value ? paywallSelection.value : undefined,
+      paywallCatalog: canConfigurePaywall.value ? paywallCatalog.value : undefined
+    })
+  )
+  productSaved.value = true
+  setTimeout(() => { productSaved.value = false }, 3000)
+}
+
+function ensureListedProduct() {
+  const res = resource.value
+  if (!res || product.value) return product.value
+  const blocked = listingBlockReason(res)
+  if (blocked) {
+    publishErrors.value = [{ field: 'listing', message: blocked }]
+    return undefined
+  }
+  saveResourceDraft()
+  return catalog.listResource(res.id, {
+    name: productForm.name.trim(),
+    subtitle: productForm.subtitle,
+    price: {
+      model: productForm.isFree ? 'free' : 'item_only',
+      itemPrice: itemOfferForm.personal.price || 100,
+      unit: '元/次'
+    },
+    acquisitions: buildAcquisitions(
+      productForm.isFree,
+      productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
+      itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+    ),
+    scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
+    tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
+  })
+}
+
 function saveProduct() {
   const res = resource.value
   if (!res || res.type === 'user_view') return
@@ -508,30 +630,12 @@ function saveProduct() {
     return
   }
   publishErrors.value = []
-  let p = product.value
-  if (!p) {
-    const blocked = listingBlockReason(res)
-    if (blocked) {
-      publishErrors.value = [{ field: 'listing', message: blocked }]
-      return
-    }
-    p = catalog.listResource(res.id, {
-      name: productForm.name.trim(),
-      subtitle: productForm.subtitle,
-      price: {
-        model: productForm.isFree ? 'free' : 'item_only',
-        itemPrice: itemOfferForm.personal.price || 100,
-        unit: '元/次'
-      },
-      acquisitions: buildAcquisitions(
-        productForm.isFree,
-        productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
-        itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
-      ),
-      scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
-      tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
-    })
+  if (!product.value) {
+    if (res.type === 'dashboard') persistResourceDashboardDetail()
+    saveResourceDraft()
+    return
   }
+  let p = product.value
   const appOffers = p.dealChannel === 'app_payment' && !productForm.isFree
     ? [itemOfferForm.personal, itemOfferForm.enterprise]
         .filter((offer) => offer.enabled)
@@ -582,11 +686,9 @@ function saveProduct() {
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
     sortWeight: Number(productForm.sortWeight),
     recommendSlot: productForm.recommendSlot,
-    sellingShots: p.type === 'dashboard' ? sellingShots.value : p.sellingShots,
-    customSellingShots: p.type === 'dashboard' ? customSellingShots.value : p.customSellingShots,
     commerceOffers: p.dealChannel === 'app_payment' && p.type !== 'dataset' ? appOffers : p.commerceOffers,
     datasetOffers
-  })
+  }, { syncGroup: true })
   if (p.type === 'dashboard') persistDashboardConfig()
   if (p.type === 'report') persistReportConfig()
   if (p.type === 'dataset') {
@@ -707,22 +809,8 @@ function removeDashboardMetric(index: number) {
   dashboardForm.metrics.splice(index, 1)
 }
 
-function persistDashboardShots() {
-  const p = product.value
-  if (!p || p.type !== 'dashboard') return
-  catalog.updateProduct(p.id, {
-    sellingShots: sellingShots.value,
-    customSellingShots: customSellingShots.value
-  })
-}
-
-function persistDashboardConfig() {
-  const p = product.value
-  const current = p?.typeDetail.dashboard
-  if (!p || !current) return
-  persistDashboardShots()
-  catalog.updateDashboardDetail(p.id, {
-    ...current,
+function buildDashboardDetailFromForm(current?: DashboardDetail): DashboardDetail {
+  return {
     timeRange: dashboardForm.timeRange.trim(),
     updateCycle: dashboardForm.updateCycle.trim(),
     exportRule: dashboardForm.exportRule.trim(),
@@ -731,13 +819,15 @@ function persistDashboardConfig() {
       definition: metric.definition.trim(),
       formula: metric.formula.trim(),
       dimensions: metric.dimensions.split(/[、,，]/).map((item) => item.trim()).filter(Boolean),
-      preview: 'visible',
-      previewValue: current.metrics[index]?.previewValue,
-      previewChange: current.metrics[index]?.previewChange
+      preview: 'visible' as const,
+      previewValue: current?.metrics[index]?.previewValue,
+      previewChange: current?.metrics[index]?.previewChange
     })),
+    panels: current?.panels ?? [],
+    previewImages: normalizeReportPreviewImages(dashboardPreviewImages.value),
     ...(canConfigurePaywall.value
       ? {
-          paywallCatalog: syncedPaywallCatalogOf(p),
+          paywallCatalog: paywallCatalog.value,
           paywall: {
             maskedModuleIds: [...paywallSelection.value.maskedModuleIds],
             maskedFieldKeys: [...paywallSelection.value.maskedFieldKeys],
@@ -745,7 +835,25 @@ function persistDashboardConfig() {
           }
         }
       : {})
-  })
+  }
+}
+
+function persistResourceDashboardDetail() {
+  const res = resource.value
+  if (!res || res.type !== 'dashboard' || product.value) return
+  catalog.updateResourceDashboardDetail(res.id, buildDashboardDetailFromForm(res.typeDetail.dashboard))
+}
+
+function persistDashboardConfig() {
+  if (!product.value) {
+    persistResourceDashboardDetail()
+    saveResourceDraft()
+    return
+  }
+  const p = product.value
+  const current = p?.typeDetail.dashboard
+  if (!p || !current) return
+  catalog.updateDashboardDetail(p.id, buildDashboardDetailFromForm(current))
 }
 
 function saveDashboardConfig() {
@@ -766,7 +874,8 @@ function persistReportConfig() {
     author: reportForm.author.trim(),
     version: reportForm.version.trim(),
     audience: reportForm.audience.trim(),
-    license: reportForm.license.trim()
+    license: reportForm.license.trim(),
+    previewImages: normalizeReportPreviewImages(reportPreviewImages.value)
   })
 }
 
@@ -788,6 +897,10 @@ function confirmPublish() {
     ? '重新上架后将出现在前台，确认？'
     : '上架后将出现在前台搜索和购买，确认上架？'
   if (!window.confirm(message)) return
+  if (!product.value) {
+    const created = ensureListedProduct()
+    if (!created) return
+  }
   saveProduct()
   if (!product.value) return
   catalog.publishProduct(product.value.id)
@@ -832,46 +945,26 @@ function saveProfilingFields() {
   setTimeout(() => { profilingSaved.value = false }, 3000)
 }
 
-function createAndAssociateProduct() {
-  const res = resource.value
-  if (!res || res.type === 'user_view' || product.value) return
-  const blocked = listingBlockReason(res)
-  if (blocked) {
-    publishErrors.value = [{ field: 'listing', message: blocked }]
-    showAssociateModal.value = false
-    return
-  }
-  const name = productForm.name.trim() || res.resourceName
-  if (!productForm.name.trim()) productForm.name = name
-  catalog.listResource(res.id, {
-    name,
-    subtitle: productForm.subtitle,
-    price: {
-      model: productForm.isFree ? 'free' : 'item_only',
-      itemPrice: itemOfferForm.personal.price || 100,
-      unit: '元/次'
-    },
-    acquisitions: buildAcquisitions(
-      productForm.isFree,
-      productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
-      itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
-    ),
-    scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
-    tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
-  })
-  showAssociateModal.value = false
-}
-
-function confirmAssociateProduct(productId: string) {
-  const res = resource.value
-  if (!res || product.value) return
+function confirmPackProduct(targetProductIds: string[]) {
+  const source = product.value
+  if (!source || !targetProductIds.length) return
   try {
-    const linked = catalog.associateProduct(res.id, productId)
-    if (!productForm.name.trim()) productForm.name = linked.name
+    catalog.packProductsIntoGroup(source.id, targetProductIds)
     showAssociateModal.value = false
     publishErrors.value = []
+    syncFormFromStore()
   } catch (err) {
     publishErrors.value = [{ field: 'listing', message: err instanceof Error ? err.message : '关联失败' }]
+  }
+}
+
+function removePackedAssociate(targetProductId: string) {
+  try {
+    catalog.unpackProductFromGroup(targetProductId)
+    publishErrors.value = []
+    syncFormFromStore()
+  } catch (err) {
+    publishErrors.value = [{ field: 'listing', message: err instanceof Error ? err.message : '移除关联失败' }]
   }
 }
 </script>
@@ -967,6 +1060,13 @@ function confirmAssociateProduct(productId: string) {
       <!-- 商品信息 Tab -->
       <div v-if="activeTab === 'product'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息</h2>
+
+        <ProductGroupField
+          v-if="product"
+          :associates="packedAssociates"
+          @add="showAssociateModal = true"
+          @remove="removePackedAssociate"
+        />
 
         <!-- 标题与展示（对应详情页标题卡） -->
         <div class="mb-4">
@@ -1113,6 +1213,13 @@ function confirmAssociateProduct(productId: string) {
           <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
         </div>
 
+        <ReportPreviewImagesEditor
+          v-model="reportPreviewImages"
+          app-hint="用于移动端商品详情「报表预览」"
+          pc-hint="用于门户商品详情「报表预览」"
+          description="上传后在商品详情页「报表预览」展示；APP 与 PC 分别维护，每端最多 3 张。"
+        />
+
         <p class="mt-4 text-[11px] leading-relaxed text-slate-400">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
 
         <div class="mt-4 flex items-center gap-3">
@@ -1122,7 +1229,7 @@ function confirmAssociateProduct(productId: string) {
       </div>
 
       <!-- 看板与指标定义配置 -->
-      <div v-if="resource.type === 'dashboard' && product?.typeDetail.dashboard" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
+      <div v-if="resource.type === 'dashboard' && (product?.typeDetail.dashboard || resource.typeDetail.dashboard)" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
@@ -1165,14 +1272,14 @@ function confirmAssociateProduct(productId: string) {
           <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
         </div>
 
-        <div class="mt-5 space-y-3 border-t border-slate-100 pt-4" data-testid="dashboard-preview-shots">
-          <div>
-            <div class="text-xs font-medium text-slate-600">看板预览截图</div>
-            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">规则同卖家上架看板：模版 4 槽 + 自定义 1 张，最多不超过 5 个图，用于前台「看板预览」页签。</p>
-          </div>
-          <SellerListingShots v-model="sellingShots" />
-          <SellerListingCustomShots v-model="customSellingShots" />
-        </div>
+        <ReportPreviewImagesEditor
+          v-model="dashboardPreviewImages"
+          title="看板预览图"
+          test-id="dashboard-preview"
+          app-hint="用于移动端商品详情「看板预览」"
+          pc-hint="用于门户商品详情「看板预览」"
+          description="上传后在商品详情页「看板预览」展示；APP 与 PC 分别维护，每端最多 3 张。"
+        />
 
         <div class="mt-4 flex items-center gap-3">
           <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
@@ -1253,24 +1360,23 @@ function confirmAssociateProduct(productId: string) {
       <div v-if="activeTab === 'pricing'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-4 text-sm font-semibold text-slate-700">价格与权益</h2>
 
-        <div
-          v-if="salesState === 'unlisted'"
-          data-testid="associate-product-gate"
-          class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center"
+        <ProductGroupField
+          v-if="product"
+          :associates="packedAssociates"
+          @add="showAssociateModal = true"
+          @remove="removePackedAssociate"
+        />
+
+        <p
+          v-else-if="salesState === 'unlisted'"
+          class="mb-4 text-[11px] text-slate-400"
+          data-testid="resource-pricing-draft-hint"
         >
-          <p class="mb-3 text-xs text-slate-500">需先关联商品后才能配置价格与权益。</p>
-          <button
-            type="button"
-            data-testid="associate-product-btn"
-            class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700"
-            @click="showAssociateModal = true"
-          >
-            关联商品
-          </button>
-        </div>
+          价格与打码保存在资源草稿；点击「上架」后生成商品。
+        </p>
 
         <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
-        <div v-else-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
+        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
           <div class="mb-1 flex items-center justify-between gap-3">
             <div class="text-xs font-medium text-slate-600">
               价格方案
@@ -1467,7 +1573,7 @@ function confirmAssociateProduct(productId: string) {
         </div>
 
         <p
-          v-if="salesState !== 'unlisted' && canConfigurePaywall"
+          v-if="canConfigurePaywall"
           class="mb-2 text-[11px] text-slate-400"
           data-testid="paywall-scroll-hint"
         >
@@ -1475,13 +1581,13 @@ function confirmAssociateProduct(productId: string) {
         </p>
 
         <DashboardPaywallEditor
-          v-if="salesState !== 'unlisted' && canConfigurePaywall"
+          v-if="canConfigurePaywall"
           class="mb-4 border-t border-slate-100 pt-4"
           :catalog="paywallCatalog"
           v-model="paywallSelection"
         />
 
-        <div v-if="salesState !== 'unlisted' && product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
+        <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
           <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>
           <p class="mb-2 text-[11px] text-slate-400">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
           <div v-if="product.datasetOffers?.length" class="space-y-2">
@@ -1500,11 +1606,11 @@ function confirmAssociateProduct(productId: string) {
   </div>
 
   <ProductAssociateModal
+    v-if="product"
     :open="showAssociateModal"
     :candidates="associateCandidates"
-    :resource-name="resource?.resourceName || ''"
+    :source-product-name="product.name"
     @close="showAssociateModal = false"
-    @create="createAndAssociateProduct"
-    @confirm="confirmAssociateProduct"
+    @confirm="confirmPackProduct"
   />
 </template>

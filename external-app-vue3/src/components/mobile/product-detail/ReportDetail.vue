@@ -3,10 +3,11 @@ import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
+import ReportPreviewGallery from '@/components/shared/ReportPreviewGallery.vue'
 
 const props = defineProps<{
   product: Product
-  activeTab: 'overview' | 'catalog' | 'reader'
+  activeTab: 'overview' | 'catalog' | 'reader' | 'preview'
   unlocked: boolean
 }>()
 
@@ -52,8 +53,14 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
 <template>
   <div v-if="detail">
+    <!-- 报表预览 -->
+    <div v-if="activeTab === 'preview'" class="space-y-3">
+      <ReportPreviewGallery :preview-images="detail.previewImages" platform="app" />
+      <ProductContentPeek :product="product" />
+    </div>
+
     <!-- 报告介绍 -->
-    <template v-if="activeTab === 'overview'">
+    <template v-else-if="activeTab === 'overview'">
       <InfoGrid :items="basicItems" />
       <div
         v-if="product.entitlementPolicy?.kind === 'report_version'"

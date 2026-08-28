@@ -5,6 +5,7 @@ import type {
   DashboardPaywallSelection,
   Product
 } from '@/types/domain'
+import type { Resource } from '@/types/resource'
 
 export type {
   DashboardPaywallButton,
@@ -178,6 +179,28 @@ function defaultButtonsForPanel(panel: { chartType: 'line' | 'bar' | 'number' })
     return [{ id: 'query', label: '查询' }]
   }
   return []
+}
+
+export function canConfigureResourceDraftPaywall(resource: Resource | undefined, isFree?: boolean): boolean {
+  if (!resource || resource.type !== 'dashboard') return false
+  if (resource.origin !== 'app_content') return false
+  if (resource.type === 'api' || resource.origin === 'trusted_space') return false
+  const free = isFree ?? resource.pricingDraft?.isFree ?? false
+  return !free
+}
+
+export function syncedPaywallCatalogFromResource(resource: Resource): DashboardPaywallModule[] {
+  const dashboard = resource.typeDetail.dashboard
+  const stored = dashboard?.paywallCatalog ?? resource.pricingDraft?.paywallCatalog
+  if (stored?.length) return stored
+  const panels = dashboard?.panels ?? []
+  const metrics = dashboard?.metrics ?? []
+  return panels.map((panel, index) => ({
+    id: panel.id,
+    label: panel.title,
+    fields: fieldsForPanel(index, panels.length, metrics),
+    buttons: defaultButtonsForPanel(panel)
+  }))
 }
 
 export function syncedPaywallCatalogOf(

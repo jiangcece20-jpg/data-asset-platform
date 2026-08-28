@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { Product, PreviewMode } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
-import SellingShotGallery from '@/components/SellingShotGallery.vue'
+import ReportPreviewGallery from '@/components/shared/ReportPreviewGallery.vue'
 
 export interface InfoItem {
   label: string
@@ -95,11 +95,11 @@ function displayValue(value: string | number | null | undefined): string {
 
     <!-- Tab: preview 看板预览（2 列） -->
     <div v-else-if="activeTab === 'preview'" class="grid grid-cols-2 gap-4">
-      <SellingShotGallery
-        v-if="product.sellingShots?.length || product.customSellingShots?.length"
+      <ReportPreviewGallery
+        :preview-images="detail.previewImages"
+        platform="pc"
+        title="看板预览"
         class="col-span-2"
-        :shots="product.sellingShots"
-        :custom-shots="product.customSellingShots"
       />
       <ProductContentPeek :product="product" class="col-span-2" />
       <div

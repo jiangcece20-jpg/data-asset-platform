@@ -105,10 +105,24 @@ describe('ProductDetail dashboard overview', () => {
     expect(dashboard.text()).toContain('导出规则')
   })
 
+  it('opens a report preview tab and shows uploaded app preview images', async () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+    const product = useCatalogStore().byId('prod-logistics-monthly')
+    if (product?.typeDetail.report) {
+      product.typeDetail.report.previewImages = { app: [png], pc: [] }
+    }
+
+    const { wrapper } = await mountProductDetail('/app/product/prod-logistics-monthly')
+
+    await wrapper.get('button[data-tab="preview"]').trigger('click')
+    expect(wrapper.get('button[data-tab="preview"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('[data-testid="report-preview-slide-app-0"]').exists()).toBe(true)
+  })
+
   it('opens a report in online reading with a visible report preview', async () => {
     const { wrapper } = await mountProductDetail('/app/product/prod-logistics-monthly')
 
-    expect(wrapper.get('button[data-tab="reader"]').attributes('aria-selected')).toBe('true')
+    await wrapper.get('button[data-tab="reader"]').trigger('click')
     expect(wrapper.get('[data-testid="content-first-preview"]').text()).toContain('行业运行总览')
     expect(wrapper.text()).toContain('2026年6月，全国公路物流运行总体平稳')
   })

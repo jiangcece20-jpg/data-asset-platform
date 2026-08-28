@@ -9,6 +9,8 @@ import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { genId, now } from '@/utils/id'
 import { matchesOpsFilter, matchesVenueFilter } from '@/domain/productListChips'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
+import { groupMembers, isPackagedProduct, packCandidates, type ProductPackCandidate } from '@/domain/productGroup'
+import type { ResourcePricingDraft } from '@/types/resource'
 
 function cloneTypeDetail(detail: ResourceTypeDetail): ResourceTypeDetail {
   return JSON.parse(JSON.stringify(detail)) as ResourceTypeDetail
@@ -21,6 +23,7 @@ function cloneProducts(): Product[] {
     scenarios: [...(p.scenarios || [])],
     tags: [...(p.tags || [])],
     acquisitions: [...(p.acquisitions || [])],
+    productGroupId: p.productGroupId ?? `pgroup-${p.id}`,
     spaceMeta: p.spaceMeta ? { ...p.spaceMeta } : undefined
   }))
 }
@@ -28,8 +31,47 @@ function cloneProducts(): Product[] {
 function cloneResources(): Resource[] {
   return [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({
     ...r,
+    pricingDraft: r.pricingDraft ? JSON.parse(JSON.stringify(r.pricingDraft)) : undefined,
     typeDetail: cloneTypeDetail(r.typeDetail)
   }))
+}
+
+function pricingSnapshot(product: Product): Partial<Product> {
+  return {
+    price: { ...product.price },
+    memberBenefits: product.memberBenefits?.map((item) => ({ ...item })),
+    memberIncluded: product.memberIncluded,
+    acquisitions: [...product.acquisitions],
+    salePeriodMonths: product.salePeriodMonths,
+    commerceOffers: product.commerceOffers?.map((item) => ({ ...item })),
+    datasetOffers: product.datasetOffers?.map((item) => ({ ...item })),
+    availability: product.availability,
+    status: product.status
+  }
+}
+
+function applyPaywallSnapshot(product: Product, source: Product) {
+  if (product.type !== 'dashboard' || source.type !== 'dashboard') return
+  const dashboard = source.typeDetail.dashboard
+  if (!dashboard || !product.typeDetail.dashboard) return
+  product.typeDetail = {
+    ...product.typeDetail,
+    dashboard: {
+      ...product.typeDetail.dashboard,
+      paywall: dashboard.paywall
+        ? {
+            maskedModuleIds: [...dashboard.paywall.maskedModuleIds],
+            maskedFieldKeys: [...dashboard.paywall.maskedFieldKeys],
+            maskedButtons: dashboard.paywall.maskedButtons.map((item) => ({ ...item }))
+          }
+        : undefined,
+      paywallCatalog: dashboard.paywallCatalog?.map((module) => ({
+        ...module,
+        fields: module.fields.map((field) => ({ ...field })),
+        buttons: module.buttons.map((button) => ({ ...button }))
+      }))
+    }
+  }
 }
 
 export const useCatalogStore = defineStore('catalog', {
@@ -54,9 +96,11 @@ export const useCatalogStore = defineStore('catalog', {
     productForResource(state) {
       return (resourceId: string) => state.products.find((p) => p.resourceId === resourceId)
     },
-    /** 尚未绑定到现存资源的商品，可供「关联商品」弹窗选择。 */
-    unboundProducts(state): Product[] {
-      return state.products.filter((p) => !p.resourceId || !state.resources.some((r) => r.id === p.resourceId))
+    groupMembersOf(state) {
+      return (productId: string) => groupMembers(state.products, productId)
+    },
+    productPackCandidates(state) {
+      return (editorProductId: string): ProductPackCandidate[] => packCandidates(state.products, editorProductId)
     },
     internalViews(state) {
       return (enterpriseId?: string) =>
@@ -76,19 +120,81 @@ export const useCatalogStore = defineStore('catalog', {
     }
   },
   actions: {
-    associateProduct(resourceId: string, productId: string) {
-      const resource = this.resources.find((r) => r.id === resourceId)
+    updateResourcePricingDraft(resourceId: string, draft: ResourcePricingDraft) {
+      const resource = this.resources.find((item) => item.id === resourceId)
       if (!resource) throw new Error('资源不存在')
-      if (resource.type === 'user_view') throw new Error('用数视图不可上架')
-      if (this.products.some((p) => p.resourceId === resourceId)) throw new Error('该资源已有上架商品')
-      const product = this.products.find((p) => p.id === productId)
-      if (!product) throw new Error('商品不存在')
-      const boundResource = product.resourceId ? this.resources.find((r) => r.id === product.resourceId) : undefined
-      if (boundResource) throw new Error('商品已绑定其他资源')
-      if (resource.origin === 'asset_platform' && (resource.assetStatus !== 'published' || !resource.commercializable)) {
-        throw new Error('仅已上架且允许商业化的资产可包装为商品')
+      resource.pricingDraft = JSON.parse(JSON.stringify(draft))
+      if (draft.paywall || draft.paywallCatalog) {
+        const dashboard = resource.typeDetail.dashboard
+        if (dashboard) {
+          resource.typeDetail = {
+            ...resource.typeDetail,
+            dashboard: {
+              ...dashboard,
+              paywall: draft.paywall
+                ? {
+                    maskedModuleIds: [...draft.paywall.maskedModuleIds],
+                    maskedFieldKeys: [...draft.paywall.maskedFieldKeys],
+                    maskedButtons: draft.paywall.maskedButtons.map((item) => ({ ...item }))
+                  }
+                : dashboard.paywall,
+              paywallCatalog: draft.paywallCatalog ?? dashboard.paywallCatalog
+            }
+          }
+        }
       }
-      product.resourceId = resourceId
+      resource.updatedAt = now()
+    },
+    syncProductGroupFromSource(sourceProductId: string) {
+      const source = this.products.find((item) => item.id === sourceProductId)
+      if (!source?.productGroupId) return
+      const snapshot = pricingSnapshot(source)
+      for (const member of groupMembers(this.products, sourceProductId)) {
+        if (member.id === sourceProductId) continue
+        Object.assign(member, snapshot, { updatedAt: now() })
+        applyPaywallSnapshot(member, source)
+      }
+    },
+    packProductIntoGroup(sourceProductId: string, targetProductId: string) {
+      const source = this.products.find((item) => item.id === sourceProductId)
+      const target = this.products.find((item) => item.id === targetProductId)
+      if (!source || !target) throw new Error('商品不存在')
+      if (sourceProductId === targetProductId) throw new Error('不能关联自身')
+      if (isPackagedProduct(this.products, targetProductId) && target.productGroupId !== source.productGroupId) {
+        throw new Error('目标商品已在其它打包组')
+      }
+      const groupId = source.productGroupId || genId('pgroup')
+      source.productGroupId = groupId
+      target.productGroupId = groupId
+      this.syncProductGroupFromSource(sourceProductId)
+      return groupMembers(this.products, sourceProductId)
+    },
+    packProductsIntoGroup(sourceProductId: string, targetProductIds: string[]) {
+      const uniqueIds = [...new Set(targetProductIds.filter(Boolean))]
+      if (!uniqueIds.length) throw new Error('请选择至少一个商品')
+      const source = this.products.find((item) => item.id === sourceProductId)
+      if (!source) throw new Error('商品不存在')
+      for (const targetProductId of uniqueIds) {
+        if (targetProductId === sourceProductId) throw new Error('不能关联自身')
+        const target = this.products.find((item) => item.id === targetProductId)
+        if (!target) throw new Error('商品不存在')
+        if (isPackagedProduct(this.products, targetProductId) && target.productGroupId !== source.productGroupId) {
+          throw new Error(`「${target.name}」已在其它打包组`)
+        }
+      }
+      const groupId = source.productGroupId || genId('pgroup')
+      source.productGroupId = groupId
+      for (const targetProductId of uniqueIds) {
+        const target = this.products.find((item) => item.id === targetProductId)!
+        target.productGroupId = groupId
+      }
+      this.syncProductGroupFromSource(sourceProductId)
+      return groupMembers(this.products, sourceProductId)
+    },
+    unpackProductFromGroup(productId: string) {
+      const product = this.products.find((item) => item.id === productId)
+      if (!product) throw new Error('商品不存在')
+      product.productGroupId = genId('pgroup')
       product.updatedAt = now()
       return product
     },
@@ -104,6 +210,7 @@ export const useCatalogStore = defineStore('catalog', {
       const product: Product = {
         id: genId('prod'),
         resourceId,
+        productGroupId: genId('pgroup'),
         name: form.name,
         subtitle: form.subtitle,
         type: resource.type as Product['type'],
@@ -150,7 +257,46 @@ export const useCatalogStore = defineStore('catalog', {
         serviceStatus: 'normal'
       }
       this.products.push(product)
+      this.applyResourceDraftToProduct(resource, product)
       return product
+    },
+    applyResourceDraftToProduct(resource: Resource, product: Product) {
+      const draft = resource.pricingDraft
+      if (!draft) return
+      if (draft.isFree) {
+        product.acquisitions = ['free']
+        product.price = { model: 'free' }
+        product.memberBenefits = []
+        product.memberIncluded = false
+      } else {
+        product.acquisitions = [...(product.acquisitions.filter((item) => item !== 'free'))]
+        product.salePeriodMonths = draft.salePeriodMonths ?? product.salePeriodMonths
+        if (draft.personalOffer?.enabled || draft.enterpriseOffer?.enabled) {
+          if (!product.acquisitions.includes('item_purchase')) product.acquisitions.push('item_purchase')
+        }
+        product.price = {
+          ...product.price,
+          model: product.price.model === 'free' ? 'item_only' : product.price.model,
+          itemPrice: draft.personalOffer?.price || product.price.itemPrice
+        }
+      }
+      if (product.type === 'dashboard' && product.typeDetail.dashboard && (draft.paywall || draft.paywallCatalog)) {
+        product.typeDetail = {
+          ...product.typeDetail,
+          dashboard: {
+            ...product.typeDetail.dashboard,
+            paywall: draft.paywall
+              ? {
+                  maskedModuleIds: [...draft.paywall.maskedModuleIds],
+                  maskedFieldKeys: [...draft.paywall.maskedFieldKeys],
+                  maskedButtons: draft.paywall.maskedButtons.map((item) => ({ ...item }))
+                }
+              : product.typeDetail.dashboard.paywall,
+            paywallCatalog: draft.paywallCatalog ?? product.typeDetail.dashboard.paywallCatalog
+          }
+        }
+      }
+      product.updatedAt = now()
     },
     submitProductReview(productId: string) {
       const product = this.products.find((item) => item.id === productId)
@@ -178,22 +324,19 @@ export const useCatalogStore = defineStore('catalog', {
       product.availability = 'published'
       product.listedAt = now()
       product.updatedAt = now()
+      this.syncGroupAvailability(productId, 'published', 'published')
       return product
     },
     pauseProduct(productId: string) {
       const product = this.products.find((item) => item.id === productId)
       if (!product || product.availability !== 'published') throw new Error('仅已上架商品可暂停新购')
-      product.availability = 'paused'
-      product.status = 'published'
-      product.updatedAt = now()
+      this.syncGroupAvailability(productId, 'paused', 'published')
       return product
     },
     resumeProduct(productId: string) {
       const product = this.products.find((item) => item.id === productId)
       if (!product || product.availability !== 'paused') throw new Error('仅暂停新购的商品可恢复销售')
-      product.availability = 'published'
-      product.status = 'published'
-      product.updatedAt = now()
+      this.syncGroupAvailability(productId, 'published', 'published')
       return product
     },
     delistProduct(productId: string) {
@@ -202,9 +345,14 @@ export const useCatalogStore = defineStore('catalog', {
       if (p.availability !== 'published' && p.availability !== 'paused') {
         throw new Error('仅已上架或暂停新购的商品可下架')
       }
-      p.availability = 'delisted'
-      p.status = 'delisted'
-      p.updatedAt = now()
+      this.syncGroupAvailability(productId, 'delisted', 'delisted')
+    },
+    syncGroupAvailability(productId: string, availability: AvailabilityStatus, status: ProductStatus) {
+      for (const member of groupMembers(this.products, productId)) {
+        member.availability = availability
+        member.status = status
+        member.updatedAt = now()
+      }
     },
     searchInternalViews(query: string, enterpriseId?: string): Resource[] {
       const q = query.trim().toLowerCase()
@@ -294,10 +442,13 @@ export const useCatalogStore = defineStore('catalog', {
       apply(product?.typeDetail.dataset)
       if (product) product.updatedAt = now()
     },
-    updateProduct(productId: string, patch: Partial<Product>) {
+    updateProduct(productId: string, patch: Partial<Product>, options?: { syncGroup?: boolean }) {
       const idx = this.products.findIndex((x) => x.id === productId)
       if (idx >= 0) {
         this.products[idx] = { ...this.products[idx], ...patch, updatedAt: now() }
+        if (options?.syncGroup !== false && this.products[idx].productGroupId) {
+          this.syncProductGroupFromSource(productId)
+        }
       }
     },
     /**
@@ -340,6 +491,35 @@ export const useCatalogStore = defineStore('catalog', {
         resource.updatedAt = now()
       }
     },
+    updateResourceDashboardDetail(resourceId: string, detail: DashboardDetail) {
+      const resource = this.resources.find((item) => item.id === resourceId)
+      if (!resource || resource.type !== 'dashboard') return
+      const cloneDetail = (): DashboardDetail => ({
+        ...detail,
+        metrics: detail.metrics.map((metric) => ({ ...metric, dimensions: [...metric.dimensions] })),
+        panels: detail.panels.map((panel) => ({ ...panel })),
+        paywallCatalog: detail.paywallCatalog?.map((module) => ({
+          ...module,
+          fields: module.fields.map((field) => ({ ...field })),
+          buttons: module.buttons.map((button) => ({ ...button }))
+        })),
+        paywall: detail.paywall
+          ? {
+              maskedModuleIds: [...detail.paywall.maskedModuleIds],
+              maskedFieldKeys: [...detail.paywall.maskedFieldKeys],
+              maskedButtons: detail.paywall.maskedButtons.map((item) => ({ ...item }))
+            }
+          : undefined,
+        previewImages: detail.previewImages
+          ? {
+              app: [...detail.previewImages.app],
+              pc: [...detail.previewImages.pc]
+            }
+          : undefined
+      })
+      resource.typeDetail = { ...resource.typeDetail, dashboard: cloneDetail() }
+      resource.updatedAt = now()
+    },
     updateDashboardDetail(productId: string, detail: DashboardDetail) {
       const product = this.products.find((item) => item.id === productId)
       if (!product || product.type !== 'dashboard') return
@@ -357,6 +537,12 @@ export const useCatalogStore = defineStore('catalog', {
               maskedModuleIds: [...detail.paywall.maskedModuleIds],
               maskedFieldKeys: [...detail.paywall.maskedFieldKeys],
               maskedButtons: detail.paywall.maskedButtons.map((item) => ({ ...item }))
+            }
+          : undefined,
+        previewImages: detail.previewImages
+          ? {
+              app: [...detail.previewImages.app],
+              pc: [...detail.previewImages.pc]
             }
           : undefined
       })
@@ -378,7 +564,13 @@ export const useCatalogStore = defineStore('catalog', {
       const cloneDetail = (): ReportDetail => ({
         ...detail,
         catalog: detail.catalog.map((item) => ({ ...item })),
-        blocks: detail.blocks.map((block) => ({ ...block }))
+        blocks: detail.blocks.map((block) => ({ ...block })),
+        previewImages: detail.previewImages
+          ? {
+              app: [...detail.previewImages.app],
+              pc: [...detail.previewImages.pc]
+            }
+          : undefined
       })
       product.typeDetail = { ...product.typeDetail, report: cloneDetail() }
       product.updatedAt = now()

@@ -104,6 +104,7 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
+    { key: 'preview', label: '报表预览' },
     { key: 'reader', label: '在线阅读' },
     { key: 'catalog', label: '目录' },
     { key: 'overview', label: '报告介绍' }
@@ -116,12 +117,19 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
   ]
 }
 
+const defaultTabByType: Record<ProductType, string> = {
+  dataset: 'basic',
+  api: 'basic',
+  report: 'reader',
+  dashboard: 'preview'
+}
+
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
 
 watch(id, () => {
   const p = product.value
-  if (p) activeTab.value = tabsByType[p.type][0].key
+  if (p) activeTab.value = defaultTabByType[p.type]
 }, { immediate: true })
 
 onMounted(() => {

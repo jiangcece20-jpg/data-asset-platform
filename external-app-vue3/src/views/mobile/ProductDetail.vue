@@ -130,6 +130,7 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
     { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
+    { key: 'preview', label: '报表预览' },
     { key: 'reader', label: '在线阅读' },
     { key: 'catalog', label: '目录' },
     { key: 'overview', label: '报告介绍' }
@@ -144,6 +145,12 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
 
 const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
 const activeTab = ref('basic')
+const defaultTabByType: Record<ProductType, string> = {
+  dataset: 'basic',
+  api: 'basic',
+  report: 'reader',
+  dashboard: 'preview'
+}
 // 概览页并入「商品说明书」；内容优先后概览不再是默认首个页签。
 const overviewTabByType: Record<ProductType, string> = {
   dataset: 'basic',
@@ -155,7 +162,7 @@ const isOverviewTab = computed(() => product.value != null && activeTab.value ==
 
 watch(id, () => {
   const p = product.value
-  if (p) activeTab.value = tabsByType[p.type][0].key
+  if (p) activeTab.value = defaultTabByType[p.type]
 }, { immediate: true })
 
 onMounted(() => {

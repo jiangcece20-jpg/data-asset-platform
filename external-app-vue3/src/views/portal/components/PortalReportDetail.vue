@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
+import ReportPreviewGallery from '@/components/shared/ReportPreviewGallery.vue'
 
 export interface InfoItem {
   label: string
@@ -138,6 +139,12 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
           {{ row.readable ? '可阅读' : '会员/单篇' }}
         </span>
       </div>
+    </div>
+
+    <!-- 报表预览 -->
+    <div v-else-if="activeTab === 'preview'" class="space-y-4">
+      <ReportPreviewGallery :preview-images="detail.previewImages" platform="pc" title="报表预览" />
+      <ProductContentPeek :product="product" />
     </div>
 
     <!-- 在线阅读：左侧目录侧边栏 + 右侧正文区 -->

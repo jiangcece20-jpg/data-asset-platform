@@ -9,7 +9,9 @@ import type {
   DatasetDetail,
   ApiDetail,
   ReportDetail,
-  DashboardDetail
+  DashboardDetail,
+  DashboardPaywallModule,
+  DashboardPaywallSelection
 } from './domain'
 import type { AssetChangeRisk } from './domain'
 
@@ -58,6 +60,31 @@ export interface Resource {
   lastCheckedAt?: string
   changeRisk?: AssetChangeRisk
   changeSummary?: string
+  /** 未上架资源的定价与打码草稿；上架时写入商品。 */
+  pricingDraft?: ResourcePricingDraft
+}
+
+export interface ResourcePricingDraftItemOffer {
+  enabled: boolean
+  originalPrice: number
+  discountZhe: number
+  price: number
+  allowDownload: boolean
+}
+
+export interface ResourcePricingDraft {
+  isFree?: boolean
+  salePeriodMonths?: number
+  personalOffer?: ResourcePricingDraftItemOffer
+  enterpriseOffer?: ResourcePricingDraftItemOffer
+  standardMemberMode?: 'none' | 'free' | 'discount'
+  standardMemberZhe?: number
+  standardMemberOriginalPrice?: number
+  premiumMemberMode?: 'none' | 'free' | 'discount'
+  premiumMemberZhe?: number
+  premiumMemberOriginalPrice?: number
+  paywall?: DashboardPaywallSelection
+  paywallCatalog?: DashboardPaywallModule[]
 }
 
 /** 上架表单数据（从资源创建商品时填写） */

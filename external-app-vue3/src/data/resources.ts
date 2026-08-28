@@ -1,4 +1,4 @@
-import type { DatasetDetail, Product } from '@/types/domain'
+import type { DashboardDetail, DatasetDetail, Product } from '@/types/domain'
 import type { Resource, UserViewDetail } from '@/types/resource'
 import { seedProducts } from './products'
 import { mockProducts } from './mockProducts'
@@ -103,7 +103,74 @@ const unlistedTruckDataset: DatasetDetail = {
   ]
 }
 
+/** 未上架的区域物流看板 mock：panels + metrics 驱动内容配置与付费打码 */
+const unlistedRegionalLogisticsDashboard: DashboardDetail = {
+  timeRange: '近 6 个月，按日粒度',
+  updateCycle: '每日 08:00',
+  exportRule: '会员可导出近 3 个月数据，单品购买不支持导出',
+  metrics: [
+    {
+      name: '平均时效',
+      definition: '订单从揽收到签收的平均用时',
+      formula: 'AVG(签收时间 - 揽收时间)',
+      dimensions: ['线路', '车型', '省份'],
+      preview: 'visible',
+      previewValue: '2.4 天',
+      previewChange: '较上周 -0.2 天'
+    },
+    {
+      name: '准时率',
+      definition: '在承诺时效内完成配送的订单占比',
+      formula: '准时订单数 / 总订单数 × 100%',
+      dimensions: ['线路', '承运商'],
+      preview: 'visible',
+      previewValue: '94.2%',
+      previewChange: '近 7 天 +1.1pct'
+    },
+    {
+      name: '异常率',
+      definition: '发生延误、破损或温控异常的运单占比',
+      formula: '异常运单数 / 总运单数 × 100%',
+      dimensions: ['线路', '异常类型'],
+      preview: 'masked'
+    }
+  ],
+  panels: [
+    {
+      id: 'panel-timeliness',
+      title: '时效趋势',
+      chartType: 'line',
+      preview: 'visible',
+      summary: '近 30 天平均时效走势',
+      previewSeries: [2.9, 2.8, 2.7, 2.6, 2.5, 2.5, 2.4, 2.4, 2.3, 2.4]
+    },
+    {
+      id: 'panel-routes',
+      title: '线路排行',
+      chartType: 'bar',
+      preview: 'masked',
+      summary: 'TOP 10 线路时效对比'
+    },
+    {
+      id: 'panel-kpi',
+      title: '核心 KPI',
+      chartType: 'number',
+      preview: 'masked',
+      summary: '当日准时率与异常率概览'
+    }
+  ]
+}
+
 export const unlistedResources: Resource[] = [
+  {
+    id: 'res-content-regional-logistics-dashboard',
+    resourceName: '区域物流时效看板',
+    type: 'dashboard',
+    origin: 'app_content',
+    typeDetail: { dashboard: unlistedRegionalLogisticsDashboard },
+    createdAt: '2026-07-25',
+    updatedAt: '2026-07-25'
+  },
   {
     id: 'res-asset-truck-trajectory',
     resourceName: '货车轨迹明细数据集',

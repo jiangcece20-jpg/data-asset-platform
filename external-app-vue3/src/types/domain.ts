@@ -210,9 +210,16 @@ export interface ReportDetail {
   pageCount?: number
   blocks: ReportContentBlock[]
   license: string
+  /** 商品详情页报表预览截图：APP / PC 各最多 3 张 */
+  previewImages?: ReportPreviewImages
   // 数据源绑定：真实报告文件/在线阅读地址，及在资产/BI 平台的报表编号
   sourceUrl?: string
   boundAssetId?: string
+}
+
+export interface ReportPreviewImages {
+  app: string[]
+  pc: string[]
 }
 
 export interface DashboardPaywallField {
@@ -268,6 +275,8 @@ export interface DashboardDetail {
     previewSeries?: number[]
   }>
   exportRule: string
+  /** 商品详情页看板预览截图：APP / PC 各最多 3 张 */
+  previewImages?: ReportPreviewImages
   // 数据源绑定：BI 看板嵌入地址，及在资产/BI 平台的看板编号
   sourceUrl?: string
   boundAssetId?: string
@@ -513,6 +522,8 @@ export interface Product {
   listedAt?: string
   /** 平台记录更新时间（商品信息编辑触发，不对外展示） */
   updatedAt: string
+  /** 打包关联组 ID；同组价格/打码/售卖状态同步，购买任一获得整组权益。 */
+  productGroupId?: string
   typeDetail: ProductTypeDetail
   favorite?: boolean
   serviceStatus: ServiceStatus

@@ -6,6 +6,11 @@
 
 | 日期 | 模块 | 功能/需求名称 | 飞书主文档 | 本地评审快照 | 面向用户的一句话摘要 |
 |---|---|---|---|---|---|
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 资源 draft 价/打码与上架生成商品 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.1 / §7.2 / §7.3；完整模块 PRD F11-03 / F11-09h | 未上架资源在价格与权益 Tab 保存 draft；点「上架」才生成商品并应用 draft 价/打码。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 商品打包关联与整组权益 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.2 / §7.3；完整模块 PRD F11-09i | 已上架商品可多选打包关联；改价/停售/上下架整组同步；购买任一发放组内全部权益。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 报告/看板 APP+PC 预览图 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §5.7 / §5.8 / §7.2；完整模块 PRD F11-09c / F11-09j | 后台分别上传 APP/PC 预览图各最多 3 张；报告详情增「报表预览」Tab，看板预览改为运营上传图。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 资源管理商品/资源 Tab | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.1；完整模块 PRD F11-03 | 资源管理列表默认商品 Tab（已上架），资源 Tab 看未上架候选。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 付费墙字段按模块展示 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.3 收费内容区 | 收费内容区按模块卡片嵌套字段与按钮；catalog 从看板 panels+metrics 同步各模块字段。 |
 | 2026-08-26 | 对外 APP 找数、买数与用数 | 企业采购不做审批控制 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | `2026-08-03-对外APP找数买数用数-功能说明PRD.md` §1.1 / §3.1 / §5.9 / §6 / §12 | 第一阶段不做企业采购策略与单级审批；认证企业内管理员与普通成员购买页同路径直接企业付款；E02/E03 移入后续阶段。 |
 | 2026-08-27 | 对外 APP 找数、买数与用数 | 列表仅展示价格摘要 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §3.1 / §10.1.4 | 列表去掉交易按钮，展示 `¥X 起 · 会员免费/会员 ¥Y 起`；详情展示价格/会员价 +「立即购买」，结算页双路径。 |
 | 2026-08-27 | 对外 APP 找数、买数与用数 | 详情页单品购买入口收口 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §3.1 | 详情展示价格/会员价摘要 +「立即购买」；会员 vs 直接购买双路径在结算页展示。 |

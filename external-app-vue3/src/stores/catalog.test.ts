@@ -35,23 +35,55 @@ describe('catalog store — resource extensions', () => {
     expect(catalog.productForResource('res-nonexistent')).toBeUndefined()
   })
 
-  it('associateProduct binds an unbound product to a resource', () => {
+  it('packProductIntoGroup merges unpackaged products and syncs pricing', () => {
     const catalog = useCatalogStore()
-    const orphan = catalog.byId('prod-freight-index')!
-    orphan.resourceId = ''
-    const product = catalog.associateProduct('res-asset-truck-trajectory', 'prod-freight-index')
-    expect(product.resourceId).toBe('res-asset-truck-trajectory')
-    expect(catalog.productForResource('res-asset-truck-trajectory')?.id).toBe('prod-freight-index')
+    const source = catalog.byId('prod-freight-index')!
+    const target = catalog.byId('prod-cold-chain-dashboard')!
+    source.price = { ...source.price, itemPrice: 321 }
+    catalog.packProductIntoGroup(source.id, target.id)
+    expect(catalog.groupMembersOf(source.id).map((item) => item.id)).toEqual([source.id, target.id])
+    expect(catalog.byId(target.id)?.price.itemPrice).toBe(321)
   })
 
-  it('associateProduct rejects when the resource already has a product', () => {
+  it('packProductIntoGroup rejects packaged products from other groups', () => {
     const catalog = useCatalogStore()
-    expect(() => catalog.associateProduct('res-prod-freight-index', 'prod-cold-chain-dashboard')).toThrow('该资源已有上架商品')
+    catalog.packProductIntoGroup('prod-freight-index', 'prod-cold-chain-dashboard')
+    expect(() => catalog.packProductIntoGroup('prod-logistics-monthly', 'prod-cold-chain-dashboard')).toThrow('目标商品已在其它打包组')
   })
 
-  it('associateProduct rejects when the product is already bound to another resource', () => {
+  it('packProductsIntoGroup merges multiple unpackaged products at once', () => {
     const catalog = useCatalogStore()
-    expect(() => catalog.associateProduct('res-asset-truck-trajectory', 'prod-freight-index')).toThrow('商品已绑定其他资源')
+    const source = catalog.byId('prod-freight-index')!
+    const members = catalog.packProductsIntoGroup(source.id, [
+      'prod-cold-chain-dashboard',
+      'prod-port-dashboard-free'
+    ])
+    expect(members.map((item) => item.id)).toEqual([
+      'prod-freight-index',
+      'prod-cold-chain-dashboard',
+      'prod-port-dashboard-free'
+    ])
+  })
+
+  it('unpackProductFromGroup gives a product its own group', () => {
+    const catalog = useCatalogStore()
+    catalog.packProductsIntoGroup('prod-freight-index', ['prod-cold-chain-dashboard', 'prod-port-dashboard-free'])
+    catalog.unpackProductFromGroup('prod-cold-chain-dashboard')
+    expect(catalog.groupMembersOf('prod-freight-index').map((item) => item.id)).toEqual([
+      'prod-freight-index',
+      'prod-port-dashboard-free'
+    ])
+    expect(catalog.groupMembersOf('prod-cold-chain-dashboard').map((item) => item.id)).toEqual(['prod-cold-chain-dashboard'])
+  })
+
+  it('updateResourcePricingDraft stores draft on resource', () => {
+    const catalog = useCatalogStore()
+    catalog.updateResourcePricingDraft('res-asset-truck-trajectory', {
+      isFree: false,
+      salePeriodMonths: 6,
+      personalOffer: { enabled: true, originalPrice: 100, discountZhe: 10, price: 100, allowDownload: false }
+    })
+    expect(catalog.resourceById('res-asset-truck-trajectory')?.pricingDraft?.salePeriodMonths).toBe(6)
   })
 
   it('internalViews returns only user_view resources for current enterprise', () => {

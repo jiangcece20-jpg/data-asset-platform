@@ -261,6 +261,13 @@ export const useEntitlementStore = defineStore('entitlements', {
       if (ownerId === user.context.currentMemberId) user.revokePersonalMember()
     },
     grantItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
+      const catalog = useCatalogStore()
+      const targets = catalog.groupMembersOf(product.id)
+      for (const member of targets) {
+        this.grantSingleItem(member, ownerMemberId, options)
+      }
+    },
+    grantSingleItem(product: Product, ownerMemberId: string, options?: { offerId?: string; serviceMode?: 'one_time' | 'continuous'; termMonths?: number; orderId?: string }) {
       const isReport = product.type === 'report'
       const months = options?.termMonths || salePeriodMonthsOf(product)
       const termEnd = plusMonths(months)
