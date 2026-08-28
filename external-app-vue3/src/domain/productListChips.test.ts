@@ -40,6 +40,14 @@ describe('productListChips', () => {
     expect(chips.ops).toEqual({ kind: 'campaign', label: '热门' })
   })
 
+  it('shows 个人数据集 campaign badge for APP personal dataset listings', () => {
+    const chips = productListChips(product('prod-personal-waybill-dataset'))
+
+    expect(chips.typeLabel).toBe('数据集')
+    expect(chips.venue).toBeNull()
+    expect(chips.ops).toEqual({ kind: 'campaign', label: '个人数据集' })
+  })
+
   it('uses seller name as venue for marketplace listings', () => {
     const chips = productListChips(product('prod-seller-route-board'))
 
@@ -100,9 +108,10 @@ describe('search filters follow the same three slots', () => {
   })
 
   it('exposes campaign ops filters and matches the same ops chip', () => {
-    expect(productOpsFilters(published)).toEqual(['合规首选', '热门'])
+    expect(productOpsFilters(published)).toEqual(expect.arrayContaining(['合规首选', '热门', '个人数据集']))
     expect(matchesOpsFilter(product('prod-qualification-api'), '合规首选')).toBe(true)
     expect(matchesOpsFilter(product('prod-qualification-api'), '热门')).toBe(false)
     expect(matchesOpsFilter(product('prod-freight-index'), '热门')).toBe(true)
+    expect(matchesOpsFilter(product('prod-personal-waybill-dataset'), '个人数据集')).toBe(true)
   })
 })

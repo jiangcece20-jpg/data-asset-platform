@@ -22,6 +22,7 @@ const opsClass = computed(() => {
   if (!chips.value.ops) return ''
   if (chips.value.ops.kind === 'status') return 'bg-amber-50 text-amber-700'
   if (chips.value.ops.label === '合规首选') return 'bg-indigo-50 text-indigo-700'
+  if (chips.value.ops.label === '个人数据集') return 'bg-sky-50 text-sky-700'
   return 'bg-amber-50 text-amber-700'
 })
 </script>

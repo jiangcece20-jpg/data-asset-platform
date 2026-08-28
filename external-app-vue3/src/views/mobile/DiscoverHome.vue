@@ -5,6 +5,7 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useAiStore, guideQuestions } from '@/stores/ai'
+import { discoverShowcaseProducts } from '@/domain/discoverShowcase'
 import { typeMeta } from '@/utils/productMeta'
 import type { ProductType } from '@/types/domain'
 
@@ -19,7 +20,7 @@ const activeMode = ref<'ai' | 'keyword'>('keyword')
 // 热门问题与 AI 找数首屏统一为同一份场景化问题
 const hotQuestions = guideQuestions.map((g) => g.text)
 const recentQuestions = computed(() => ai.recentQuestions.slice(0, 3))
-const recommended = computed(() => catalog.recommendSlotProducts.slice(0, 4))
+const recommended = computed(() => discoverShowcaseProducts(catalog.products))
 
 const types: ProductType[] = ['dataset', 'api', 'report', 'dashboard']
 
@@ -124,11 +125,14 @@ function goSellerMarket() {
       </div>
     </div>
 
-    <!-- 推荐内容 -->
+    <!-- 数据来源样例：固定展示各来源对应的详情页形态 -->
     <div v-if="recommended.length" class="mt-4 px-4">
       <div class="mb-1.5 flex items-center justify-between">
-        <div class="text-xs font-medium text-slate-400">推荐内容</div>
-        <button class="text-[11px] text-brand-600" @click="router.push('/app/search')">全部商品 ›</button>
+        <div>
+          <div class="text-xs font-medium text-slate-400">数据来源样例</div>
+          <div class="mt-0.5 text-[11px] text-slate-400">本平台、可信空间与个人数据集等详情形态</div>
+        </div>
+        <button class="shrink-0 text-[11px] text-brand-600" @click="router.push('/app/search')">全部商品 ›</button>
       </div>
       <div class="space-y-2.5">
         <ProductCard v-for="p in recommended" :key="p.id" :product="p" />

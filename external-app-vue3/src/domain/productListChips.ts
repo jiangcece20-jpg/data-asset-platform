@@ -6,7 +6,7 @@ export type ProductListVenue = { kind: 'space' | 'seller'; name: string }
 
 export type ProductListOps =
   | { kind: 'status'; label: '可申请上架' | '准备中' | '暂停销售' | '已下架' }
-  | { kind: 'campaign'; label: '合规首选' | '热门' }
+  | { kind: 'campaign'; label: '合规首选' | '个人数据集' | '热门' }
 
 export interface ProductListChips {
   type: ProductType
@@ -30,7 +30,9 @@ const FACT_OR_CAMPAIGN_TAGS = new Set([
   '每日更新',
   '用数模块可用',
   '变更监控',
-  '合规首选'
+  '合规首选',
+  '个人数据集',
+  '个人可购'
 ])
 
 export function productListChips(product: Product): ProductListChips {
@@ -80,13 +82,13 @@ export function productVenueFilters(products: Product[]): ProductVenueFilter[] {
   ]
 }
 
-export function productOpsFilters(products: Product[]): Array<'合规首选' | '热门'> {
-  const found = new Set<'合规首选' | '热门'>()
+export function productOpsFilters(products: Product[]): Array<'合规首选' | '个人数据集' | '热门'> {
+  const found = new Set<'合规首选' | '个人数据集' | '热门'>()
   for (const product of products) {
     const ops = opsOf(product)
     if (ops?.kind === 'campaign') found.add(ops.label)
   }
-  return (['合规首选', '热门'] as const).filter((label) => found.has(label))
+  return (['合规首选', '个人数据集', '热门'] as const).filter((label) => found.has(label))
 }
 
 export function matchesVenueFilter(product: Product, key: string): boolean {
@@ -122,6 +124,7 @@ function opsOf(product: Product): ProductListOps | null {
   if (product.availability === 'paused') return { kind: 'status', label: '暂停销售' }
   if (product.availability === 'delisted') return { kind: 'status', label: '已下架' }
   if (product.tags.includes('合规首选')) return { kind: 'campaign', label: '合规首选' }
+  if (product.tags.includes('个人数据集')) return { kind: 'campaign', label: '个人数据集' }
   if (product.recommendSlot || product.tags.includes('热门') || product.tags.includes('热门数据集')) {
     return { kind: 'campaign', label: '热门' }
   }

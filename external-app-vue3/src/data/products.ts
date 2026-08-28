@@ -500,6 +500,151 @@ export const seedProducts: Product[] = [
   },
   // ── 数据集 ──────────────────────────────────────────────
   {
+    id: 'prod-personal-waybill-dataset',
+    resourceId: 'res-prod-personal-waybill-dataset',
+    name: '个人运单活跃数据集',
+    subtitle: '个人可购的运单活跃与线路热度样例数据集',
+    type: 'dataset',
+    origin: 'app_content',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['member', 'item_purchase'],
+    entitlementPolicy: { kind: 'term', months: 12 },
+    scenarios: ['个人研究', '线路热度分析', '运单趋势试用'],
+    provider: 'APP 自营内容',
+    coverage: '全国主要干线 · 按城市对聚合',
+    updateFrequency: '每月更新',
+    qualityPromise: '脱敏聚合样例，字段级质量校验',
+    complianceNote: '不含个人身份信息，仅展示脱敏后的运单活跃统计',
+    price: { model: 'member_free', itemPrice: 99, unit: '元/12个月' },
+    salePeriodMonths: 12,
+    datasetOffers: [
+      { id: 'offer-waybill-personal', name: '个人单品', subject: 'personal', price: 99, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: true, deliveryMode: 'snapshot', recommended: true },
+      { id: 'offer-waybill-enterprise', name: '企业单品', subject: 'enterprise', price: 990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' }
+    ],
+    status: 'published',
+    tags: ['热门', '个人数据集'],
+    description: '按城市对与车型汇总的运单量、活跃线路与准点率样例，适合个人研究者与小团队快速了解线路热度。',
+    valueProposition: '低门槛试用 APP 内数据集购买与用数交付流程。',
+    deliveryMethod: 'APP 内支付后可在详情查看样例，并交付至用数模块',
+    memberIncluded: true,
+    memberBenefits: [
+      { tier: 'standard', mode: 'free' },
+      { tier: 'premium', mode: 'discount', discount: 0.8 }
+    ],
+    listedAt: '2026-07-15',
+    updatedAt: '2026-07-28',
+    serviceStatus: 'normal',
+    recommendText: '个人研究者首选 · 99 元试用线路热度',
+    sortWeight: 88,
+    recommendSlot: true,
+    hasSampleData: true,
+    typeDetail: {
+      dataset: {
+        granularity: '城市对 × 月',
+        timeRange: '2025-01 至 2026-06',
+        rowCount: 86400,
+        classification: '运单活跃样例（L2）',
+        qualityUpdatedAt: '2026-07-01',
+        fields: [
+          { name: 'route_id', dataType: 'string', meaning: '线路编码', description: '出发城市-到达城市组合编码', primaryKey: true, nullable: false, profilingEnabled: true, sampleValue: 'SH-GZ-01' },
+          { name: 'stat_month', dataType: 'date', meaning: '统计月份', description: '运单活跃指标所属自然月', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '2026-06-01' },
+          { name: 'waybill_count', dataType: 'integer', meaning: '运单量', description: '该线路当月脱敏运单总数', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '12840' },
+          { name: 'on_time_rate', dataType: 'decimal', meaning: '准点率', description: '承诺时效内完成占比', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: '0.932' },
+          { name: 'heat_level', dataType: 'string', meaning: '热度等级', description: 'A/B/C 三级线路热度', primaryKey: false, nullable: false, profilingEnabled: true, sampleValue: 'A' }
+        ],
+        sampleColumns: ['route_id', 'stat_month', 'waybill_count', 'on_time_rate', 'heat_level'],
+        sampleRows: [
+          { route_id: 'SH-GZ-01', stat_month: '2026-06-01', waybill_count: 12840, on_time_rate: 0.932, heat_level: 'A' },
+          { route_id: 'BJ-SH-02', stat_month: '2026-06-01', waybill_count: 9650, on_time_rate: 0.918, heat_level: 'A' },
+          { route_id: 'CD-XA-03', stat_month: '2026-06-01', waybill_count: 5420, on_time_rate: 0.876, heat_level: 'B' },
+          { route_id: 'HZ-NJ-04', stat_month: '2026-05-01', waybill_count: 3890, on_time_rate: 0.901, heat_level: 'B' },
+          { route_id: 'WH-CS-05', stat_month: '2026-06-01', waybill_count: 2140, on_time_rate: 0.854, heat_level: 'C' }
+        ],
+        sampleGeneratedAt: '2026-07-01',
+        profiling: {
+          completeness: '98.4%',
+          uniqueness: '线路 + 月份联合主键唯一',
+          nullRate: '1.6%',
+          distribution: '热度 A 级线路占 18%',
+          anomalies: '节假日窗口运单量波动已标注',
+          conclusion: '样例质量良好，适合个人线路热度分析试用',
+          updatedAt: '2026-07-01'
+        },
+        fieldProfiling: [
+          {
+            fieldName: 'route_id',
+            kind: 'identifier',
+            nullRate: '0%',
+            distinctCount: 4800,
+            uniqueness: '城市对线路编码唯一',
+            samplePattern: '如 SH-GZ-01',
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'stat_month',
+            kind: 'datetime',
+            nullRate: '0%',
+            distinctCount: 18,
+            minDate: '2025-01-01',
+            maxDate: '2026-06-01',
+            span: '1 年 6 个月',
+            distribution: [
+              { label: '2025 H1', count: 28800, percent: 33 },
+              { label: '2025 H2', count: 28800, percent: 33 },
+              { label: '2026 H1', count: 28800, percent: 34 }
+            ],
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'waybill_count',
+            kind: 'numeric',
+            nullRate: '0%',
+            distinctCount: 4200,
+            min: '820',
+            max: '18600',
+            avg: '4820',
+            median: '3650',
+            histogram: [
+              { label: '5 千以下', count: 43200, percent: 50 },
+              { label: '5 千-1 万', count: 25920, percent: 30 },
+              { label: '1 万以上', count: 17280, percent: 20 }
+            ],
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'on_time_rate',
+            kind: 'numeric',
+            nullRate: '0%',
+            distinctCount: 820,
+            min: '0.72',
+            max: '0.98',
+            avg: '0.891',
+            median: '0.902',
+            histogram: [
+              { label: '90% 以上', count: 51840, percent: 60 },
+              { label: '85%-90%', count: 25920, percent: 30 },
+              { label: '85% 以下', count: 8640, percent: 10 }
+            ],
+            updatedAt: '2026-07-01'
+          },
+          {
+            fieldName: 'heat_level',
+            kind: 'categorical',
+            nullRate: '0%',
+            distinctCount: 3,
+            topValues: [
+              { label: 'B', count: 42336, percent: 49 },
+              { label: 'A', count: 15552, percent: 18 },
+              { label: 'C', count: 28512, percent: 33 }
+            ],
+            updatedAt: '2026-07-01'
+          }
+        ]
+      }
+    }
+  },
+  {
     id: 'prod-enterprise-activity',
     resourceId: 'res-prod-enterprise-activity',
     name: '企业物流活跃度数据集',
@@ -571,7 +716,7 @@ export const seedProducts: Product[] = [
     serviceStatus: 'normal',
     recommendText: '260 万家企业活跃度全景覆盖',
     sortWeight: 80,
-    recommendSlot: true,
+    recommendSlot: false,
     spaceName: '万联易达可信空间',
     spaceKind: 'owned',
     hasSampleData: true,
