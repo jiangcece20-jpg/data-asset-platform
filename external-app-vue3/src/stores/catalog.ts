@@ -54,6 +54,10 @@ export const useCatalogStore = defineStore('catalog', {
     productForResource(state) {
       return (resourceId: string) => state.products.find((p) => p.resourceId === resourceId)
     },
+    /** 尚未绑定到现存资源的商品，可供「关联商品」弹窗选择。 */
+    unboundProducts(state): Product[] {
+      return state.products.filter((p) => !p.resourceId || !state.resources.some((r) => r.id === p.resourceId))
+    },
     internalViews(state) {
       return (enterpriseId?: string) =>
         state.resources.filter(
@@ -72,6 +76,22 @@ export const useCatalogStore = defineStore('catalog', {
     }
   },
   actions: {
+    associateProduct(resourceId: string, productId: string) {
+      const resource = this.resources.find((r) => r.id === resourceId)
+      if (!resource) throw new Error('资源不存在')
+      if (resource.type === 'user_view') throw new Error('用数视图不可上架')
+      if (this.products.some((p) => p.resourceId === resourceId)) throw new Error('该资源已有上架商品')
+      const product = this.products.find((p) => p.id === productId)
+      if (!product) throw new Error('商品不存在')
+      const boundResource = product.resourceId ? this.resources.find((r) => r.id === product.resourceId) : undefined
+      if (boundResource) throw new Error('商品已绑定其他资源')
+      if (resource.origin === 'asset_platform' && (resource.assetStatus !== 'published' || !resource.commercializable)) {
+        throw new Error('仅已上架且允许商业化的资产可包装为商品')
+      }
+      product.resourceId = resourceId
+      product.updatedAt = now()
+      return product
+    },
     listResource(resourceId: string, form: ListResourceForm) {
       const resource = this.resources.find((r) => r.id === resourceId)
       if (!resource) throw new Error('资源不存在')

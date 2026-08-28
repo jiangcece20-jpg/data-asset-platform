@@ -8,6 +8,8 @@ import type { ResourceType } from '@/types/resource'
 const router = useRouter()
 const catalog = useCatalogStore()
 
+type ListTab = 'products' | 'resources'
+const listTab = ref<ListTab>('products')
 const activeType = ref<ResourceType | ''>('')
 const searchQuery = ref('')
 
@@ -58,7 +60,10 @@ interface ResourceRow {
 }
 
 const rows = computed<ResourceRow[]>(() => {
-  let filtered = catalog.resources
+  let filtered = catalog.resources.filter((r) => {
+    const hasProduct = Boolean(catalog.productForResource(r.id))
+    return listTab.value === 'products' ? hasProduct : !hasProduct
+  })
 
   if (activeType.value) {
     filtered = filtered.filter((r) => r.type === activeType.value)
@@ -100,6 +105,31 @@ function goEdit(resourceId: string) {
   <div>
     <div class="mb-6 flex items-center justify-between">
       <h1 class="text-xl font-semibold text-slate-800">资源管理</h1>
+    </div>
+
+    <div class="mb-4 flex gap-1 border-b border-slate-200" role="tablist" aria-label="资源与商品">
+      <button
+        type="button"
+        role="tab"
+        data-testid="resource-center-tab-products"
+        :aria-selected="listTab === 'products' ? 'true' : 'false'"
+        class="px-4 py-2 text-sm"
+        :class="listTab === 'products' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        @click="listTab = 'products'"
+      >
+        商品
+      </button>
+      <button
+        type="button"
+        role="tab"
+        data-testid="resource-center-tab-resources"
+        :aria-selected="listTab === 'resources' ? 'true' : 'false'"
+        class="px-4 py-2 text-sm"
+        :class="listTab === 'resources' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        @click="listTab = 'resources'"
+      >
+        资源
+      </button>
     </div>
 
     <!-- 类型筛选 + 搜索 -->
@@ -162,6 +192,11 @@ function goEdit(resourceId: string) {
                   编辑
                 </button>
               </div>
+            </td>
+          </tr>
+          <tr v-if="!rows.length">
+            <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-400">
+              {{ listTab === 'products' ? '暂无商品' : '暂无未关联资源' }}
             </td>
           </tr>
         </tbody>

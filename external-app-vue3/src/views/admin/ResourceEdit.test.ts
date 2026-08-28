@@ -326,6 +326,8 @@ describe('ResourceEdit product-detail mapping', () => {
     const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
     await wrapper.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
     await openTab(wrapper, 'pricing')
+    await wrapper.get('[data-testid="associate-product-btn"]').trigger('click')
+    await wrapper.get('[data-testid="associate-product-create"]').trigger('click')
     await wrapper.get('[data-testid="product-free"]').setValue(true)
     await wrapper.get('[data-testid="publish-product"]').trigger('click')
     const created = useCatalogStore().productForResource('res-asset-truck-trajectory')
@@ -343,9 +345,11 @@ describe('ResourceEdit product-detail mapping', () => {
     const unlisted = await mountResourceEdit('res-asset-truck-trajectory')
     await unlisted.get('[data-testid="product-name-input"]').setValue('货车轨迹明细数据集')
     await openTab(unlisted, 'pricing')
+    await unlisted.get('[data-testid="associate-product-btn"]').trigger('click')
+    await unlisted.get('[data-testid="associate-product-create"]').trigger('click')
     await unlisted.get('[data-testid="product-free"]').setValue(true)
     await unlisted.get('[data-testid="publish-product"]').trigger('click')
-    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeUndefined()
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')?.availability).toBe('preparing')
   })
 
   it('shows resume and delist for a paused asset-platform product even when listing is blocked', async () => {
@@ -387,6 +391,21 @@ describe('ResourceEdit product-detail mapping', () => {
     expect(wrapper.get('[data-testid="resource-edit-tab-product"]').attributes('aria-selected')).toBe('true')
     expect(wrapper.get('[data-testid="resource-edit-tab-error-product"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('请填写商品名称')
+  })
+
+  it('gates pricing config behind associate-product for unlisted resources', async () => {
+    const wrapper = await mountResourceEdit('res-asset-truck-trajectory')
+    await openTab(wrapper, 'pricing')
+    expect(wrapper.find('[data-testid="associate-product-btn"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(false)
+
+    await wrapper.get('[data-testid="associate-product-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="associate-product-modal"]').exists()).toBe(true)
+    await wrapper.get('[data-testid="associate-product-create"]').trigger('click')
+
+    expect(useCatalogStore().productForResource('res-asset-truck-trajectory')).toBeDefined()
+    expect(wrapper.find('[data-testid="pricing-plan-editor"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="associate-product-btn"]').exists()).toBe(false)
   })
 
   it('resets to the product tab when opening another resource', async () => {

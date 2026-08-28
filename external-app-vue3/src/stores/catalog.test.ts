@@ -35,6 +35,25 @@ describe('catalog store — resource extensions', () => {
     expect(catalog.productForResource('res-nonexistent')).toBeUndefined()
   })
 
+  it('associateProduct binds an unbound product to a resource', () => {
+    const catalog = useCatalogStore()
+    const orphan = catalog.byId('prod-freight-index')!
+    orphan.resourceId = ''
+    const product = catalog.associateProduct('res-asset-truck-trajectory', 'prod-freight-index')
+    expect(product.resourceId).toBe('res-asset-truck-trajectory')
+    expect(catalog.productForResource('res-asset-truck-trajectory')?.id).toBe('prod-freight-index')
+  })
+
+  it('associateProduct rejects when the resource already has a product', () => {
+    const catalog = useCatalogStore()
+    expect(() => catalog.associateProduct('res-prod-freight-index', 'prod-cold-chain-dashboard')).toThrow('该资源已有上架商品')
+  })
+
+  it('associateProduct rejects when the product is already bound to another resource', () => {
+    const catalog = useCatalogStore()
+    expect(() => catalog.associateProduct('res-asset-truck-trajectory', 'prod-freight-index')).toThrow('商品已绑定其他资源')
+  })
+
   it('internalViews returns only user_view resources for current enterprise', () => {
     const catalog = useCatalogStore()
     const views = catalog.internalViews('ent-wanlian-logistics')

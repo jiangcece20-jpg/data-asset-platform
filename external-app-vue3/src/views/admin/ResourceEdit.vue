@@ -18,6 +18,7 @@ import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue
 import SellerListingShots from '@/components/mine/SellerListingShots.vue'
 import SellerListingCustomShots from '@/components/mine/SellerListingCustomShots.vue'
 import DashboardPaywallEditor from '@/components/admin/DashboardPaywallEditor.vue'
+import ProductAssociateModal from '@/components/admin/ProductAssociateModal.vue'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
 import type { CustomSellingShot, SellingShot } from '@/domain/sellingShotTemplate'
 import {
@@ -147,6 +148,8 @@ const canConfigurePaywall = computed(() =>
 const paywallCatalog = computed(() =>
   product.value ? syncedPaywallCatalogOf(product.value) : []
 )
+const showAssociateModal = ref(false)
+const associateCandidates = computed(() => catalog.unboundProducts)
 /** 数据集关键指标：运营配置、非必填；空则前台不展示 */
 const datasetForm = reactive({
   granularity: '',
@@ -828,6 +831,49 @@ function saveProfilingFields() {
   profilingSaved.value = true
   setTimeout(() => { profilingSaved.value = false }, 3000)
 }
+
+function createAndAssociateProduct() {
+  const res = resource.value
+  if (!res || res.type === 'user_view' || product.value) return
+  const blocked = listingBlockReason(res)
+  if (blocked) {
+    publishErrors.value = [{ field: 'listing', message: blocked }]
+    showAssociateModal.value = false
+    return
+  }
+  const name = productForm.name.trim() || res.resourceName
+  if (!productForm.name.trim()) productForm.name = name
+  catalog.listResource(res.id, {
+    name,
+    subtitle: productForm.subtitle,
+    price: {
+      model: productForm.isFree ? 'free' : 'item_only',
+      itemPrice: itemOfferForm.personal.price || 100,
+      unit: '元/次'
+    },
+    acquisitions: buildAcquisitions(
+      productForm.isFree,
+      productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
+      itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+    ),
+    scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
+    tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
+  })
+  showAssociateModal.value = false
+}
+
+function confirmAssociateProduct(productId: string) {
+  const res = resource.value
+  if (!res || product.value) return
+  try {
+    const linked = catalog.associateProduct(res.id, productId)
+    if (!productForm.name.trim()) productForm.name = linked.name
+    showAssociateModal.value = false
+    publishErrors.value = []
+  } catch (err) {
+    publishErrors.value = [{ field: 'listing', message: err instanceof Error ? err.message : '关联失败' }]
+  }
+}
 </script>
 
 <template>
@@ -1207,10 +1253,29 @@ function saveProfilingFields() {
       <div v-if="activeTab === 'pricing'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-4 text-sm font-semibold text-slate-700">价格与权益</h2>
 
+        <div
+          v-if="salesState === 'unlisted'"
+          data-testid="associate-product-gate"
+          class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center"
+        >
+          <p class="mb-3 text-xs text-slate-500">需先关联商品后才能配置价格与权益。</p>
+          <button
+            type="button"
+            data-testid="associate-product-btn"
+            class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white hover:bg-brand-700"
+            @click="showAssociateModal = true"
+          >
+            关联商品
+          </button>
+        </div>
+
         <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
-        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
+        <div v-else-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
           <div class="mb-1 flex items-center justify-between gap-3">
-            <div class="text-xs font-medium text-slate-600">价格方案</div>
+            <div class="text-xs font-medium text-slate-600">
+              价格方案
+              <span v-if="product" class="ml-2 font-normal text-slate-400">· {{ product.name }}</span>
+            </div>
             <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
           </div>
           <p class="mb-3 text-[11px] leading-relaxed text-slate-400">免费商品与付费单品、会员权益互斥；非免费商品可同时配置个人单品、企业单品及普通 / 高级会员权益。</p>
@@ -1402,7 +1467,7 @@ function saveProfilingFields() {
         </div>
 
         <p
-          v-if="canConfigurePaywall"
+          v-if="salesState !== 'unlisted' && canConfigurePaywall"
           class="mb-2 text-[11px] text-slate-400"
           data-testid="paywall-scroll-hint"
         >
@@ -1410,13 +1475,13 @@ function saveProfilingFields() {
         </p>
 
         <DashboardPaywallEditor
-          v-if="canConfigurePaywall"
+          v-if="salesState !== 'unlisted' && canConfigurePaywall"
           class="mb-4 border-t border-slate-100 pt-4"
           :catalog="paywallCatalog"
           v-model="paywallSelection"
         />
 
-        <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
+        <div v-if="salesState !== 'unlisted' && product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
           <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>
           <p class="mb-2 text-[11px] text-slate-400">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
           <div v-if="product.datasetOffers?.length" class="space-y-2">
@@ -1433,4 +1498,13 @@ function saveProfilingFields() {
   <div v-else class="py-20 text-center text-slate-500">
     资源不存在
   </div>
+
+  <ProductAssociateModal
+    :open="showAssociateModal"
+    :candidates="associateCandidates"
+    :resource-name="resource?.resourceName || ''"
+    @close="showAssociateModal = false"
+    @create="createAndAssociateProduct"
+    @confirm="confirmAssociateProduct"
+  />
 </template>
