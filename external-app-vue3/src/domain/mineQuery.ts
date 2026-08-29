@@ -1,6 +1,6 @@
 import type { LocationQuery, LocationQueryValue } from 'vue-router'
 
-export type MineMenu = 'orders' | 'data' | 'vip' | 'messages' | 'favorites' | 'profile' | 'seller'
+export type MineMenu = 'orders' | 'data' | 'demands' | 'vip' | 'messages' | 'favorites' | 'profile' | 'seller'
 export type OrderTab = 'vip' | 'buy' | 'intent'
 export type DataTab = 'purchased' | 'produced'
 export type SellerTab = 'apply' | 'listing' | 'orders' | 'listings'
@@ -14,7 +14,7 @@ export interface MineQueryState {
   subject?: MineSubject
 }
 
-const MENUS: MineMenu[] = ['orders', 'data', 'vip', 'messages', 'favorites', 'profile', 'seller']
+const MENUS: MineMenu[] = ['orders', 'data', 'demands', 'vip', 'messages', 'favorites', 'profile', 'seller']
 const ORDER_TABS: OrderTab[] = ['vip', 'buy', 'intent']
 const DATA_TABS: DataTab[] = ['purchased', 'produced']
 const SELLER_TABS: SellerTab[] = ['apply', 'listing', 'orders', 'listings']

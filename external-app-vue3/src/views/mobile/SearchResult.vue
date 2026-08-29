@@ -6,6 +6,12 @@ import ProductCard from '@/components/mobile/ProductCard.vue'
 import EmptyState from '@/components/mobile/EmptyState.vue'
 import ProductSearchFilters from '@/components/shared/ProductSearchFilters.vue'
 import { useCatalogStore } from '@/stores/catalog'
+import {
+  ROUTE_META,
+  buildRetrievalHits,
+  explainProductMatch,
+  formatMatchExplain
+} from '@/domain/discoverRouting'
 import { typeMeta } from '@/utils/productMeta'
 import type { ProductOrigin, ProductType } from '@/types/domain'
 import type { Resource } from '@/types/resource'
@@ -52,6 +58,16 @@ const results = computed(() =>
   })
 )
 
+const rankedHits = computed(() => buildRetrievalHits(results.value, query.value))
+
+function matchExplainFor(productId: string) {
+  const product = catalog.byId(productId)
+  if (!product) return ''
+  const hit = rankedHits.value.find((item) => item.id === productId)
+  if (hit) return formatMatchExplain(hit)
+  return formatMatchExplain(explainProductMatch(product, query.value))
+}
+
 const internalViews = computed(() => catalog.searchInternalViews(query.value))
 
 const hasInternalViews = computed(() => internalViews.value.length > 0)
@@ -73,6 +89,12 @@ function matchReason(): string {
   else if (activeOrigin.value === 'seller_market') parts.push('入驻商家')
   return parts.length ? parts.join(' · ') : '综合排序'
 }
+
+function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
+  const q = query.value.trim()
+  if (!q) return
+  router.push({ path: '/app/answer', query: { q, entry: 'ai', from } })
+}
 </script>
 
 <template>
@@ -84,16 +106,35 @@ function matchReason(): string {
         <span class="text-slate-400">🔍</span>
         <input v-model="query" placeholder="搜索商品名称、场景或关键词" class="flex-1 text-[13px] focus:outline-none" />
       </div>
+      <div
+        class="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500"
+        data-testid="route-badge"
+      >
+        <span>{{ ROUTE_META.known_lookup.shortLabel }}</span>
+        <span>{{ ROUTE_META.known_lookup.label }}</span>
+      </div>
     </div>
 
     <div class="mt-3 px-4">
       <ProductSearchFilters v-model:type="activeType" v-model:venue="activeVenue" />
     </div>
 
-    <div class="mt-3 px-4 text-[11px] text-slate-400">共 {{ results.length }} 个结果 · 匹配原因：{{ matchReason() }}</div>
+    <div class="mt-3 px-4 text-[11px] text-slate-400">
+      共 {{ results.length }} 个结果 · 匹配原因：{{ matchReason() }}
+      <span v-if="results.length > 0 && results.length < 10"> · 已展示全部</span>
+    </div>
 
     <div v-if="results.length" class="mt-2 space-y-2.5 px-4">
-      <ProductCard v-for="p in results" :key="p.id" :product="p" :match-reason="matchReason()" />
+      <div v-for="p in results" :key="p.id">
+        <ProductCard :product="p" />
+        <div
+          v-if="query.trim()"
+          class="-mt-1.5 mb-1 pl-1 text-[10px] text-slate-400"
+          data-testid="match-explain"
+        >
+          {{ matchExplainFor(p.id) }}
+        </div>
+      </div>
     </div>
 
     <div v-if="hasInternalViews" class="mt-4 px-4">
@@ -132,9 +173,16 @@ function matchReason(): string {
       </div>
     </div>
 
-    <EmptyState v-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或直接提交需求，运营会为你跟进推荐或定制">
+    <EmptyState v-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或用 AI 问答做汇总与对比">
       <button
         class="w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white"
+        data-testid="upgrade-ai-cta"
+        @click="goAiAnswer('keyword_empty')"
+      >
+        没有命中？试试 AI 问答
+      </button>
+      <button
+        class="mt-2 w-full rounded-full border border-slate-200 bg-white py-2.5 text-[13px] font-medium text-slate-600"
         @click="router.push({ path: '/app/demand', query: { q: query, type: activeType } })"
       >
         提交需求
@@ -142,4 +190,3 @@ function matchReason(): string {
     </EmptyState>
   </div>
 </template>
-

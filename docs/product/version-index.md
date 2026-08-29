@@ -7,7 +7,8 @@
 | 日期 | 模块 | 功能/需求名称 | 飞书主文档 | 本地评审快照 | 面向用户的一句话摘要 |
 |---|---|---|---|---|---|
 | 2026-08-28 | 对外 APP 找数、买数与用数 | 找数页数据来源样例 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §5.1 U01；完整模块 PRD F1-09 | 找数页固定展示自营看板、空间 API、报告、个人数据集、空间数据集五条样例，演示不同来源详情页；~~推荐位动态前 4 条~~ 下线。 |
-| 2026-08-28 | 对外 APP 找数、买数与用数 | 个人数据集运营标签 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §5.1 / §10.1.4；完整模块 PRD F1-05 / F11-09k | APP 个人可购数据集列表运营标签新增「个人数据集」；优先级在「热门」之前。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 列表标签规则整理（三槽） | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §10.1.5；README 商品芯片规则 | 类型 + 成交位置 + 至多一颗运营标签；话题标签、筛选与详情差异一次性成文。 |
+| 2026-08-28 | 对外 APP 找数、买数与用数 | 个人数据集运营标签 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §5.1 / §10.1.5；完整模块 PRD F1-05 / F11-09k | APP 个人可购数据集列表运营标签新增「个人数据集」；优先级在「热门」之前。 |
 | 2026-08-28 | 对外 APP 找数、买数与用数 | 资源 draft 价/打码与上架生成商品 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.1 / §7.2 / §7.3；完整模块 PRD F11-03 / F11-09h | 未上架资源在价格与权益 Tab 保存 draft；点「上架」才生成商品并应用 draft 价/打码。 |
 | 2026-08-28 | 对外 APP 找数、买数与用数 | 商品打包关联与整组权益 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §7.2 / §7.3；完整模块 PRD F11-09i | 已上架商品可多选打包关联；改价/停售/上下架整组同步；购买任一发放组内全部权益。 |
 | 2026-08-28 | 对外 APP 找数、买数与用数 | 报告/看板 APP+PC 预览图 | [飞书文档](https://my.feishu.cn/wiki/RoBFwJKJ4is0ypkHW8YcjneGncd)（待同步） | 功能说明 PRD §5.7 / §5.8 / §7.2；完整模块 PRD F11-09c / F11-09j | 后台分别上传 APP/PC 预览图各最多 3 张；报告详情增「报表预览」Tab，看板预览改为运营上传图。 |

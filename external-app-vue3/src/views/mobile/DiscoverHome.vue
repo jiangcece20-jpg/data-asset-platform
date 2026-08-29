@@ -28,9 +28,9 @@ function submit(q?: string) {
   const question = (q ?? query.value).trim()
   if (!question) return
   if (activeMode.value === 'keyword') {
-    router.push({ path: '/app/search', query: { q: question } })
+    router.push({ path: '/app/search', query: { q: question, entry: 'keyword' } })
   } else {
-    router.push({ path: '/app/answer', query: { q: question } })
+    router.push({ path: '/app/answer', query: { q: question, entry: 'ai' } })
   }
 }
 

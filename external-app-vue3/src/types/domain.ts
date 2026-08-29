@@ -740,6 +740,9 @@ export interface DemandLead {
   updateFreq: string
   scenario: string
   expectedDelivery: string
+  priceRange?: string
+  contact?: string
+  enterpriseName?: string
   status: DemandStatus
   recommendedProductIds: string[]
   feedbackMessage: string

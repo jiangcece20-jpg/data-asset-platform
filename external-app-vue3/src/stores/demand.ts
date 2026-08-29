@@ -14,8 +14,14 @@ export interface DemandSubmitPayload {
   updateFreq: string
   scenario: string
   expectedDelivery: string
+  priceRange?: string
+  contact?: string
   ownerId?: string
   source?: DemandSource
+}
+
+function submitEnterpriseName(user: ReturnType<typeof useUserStore>): string {
+  return user.isEnterpriseAuthenticated ? user.enterprise.name : '个人'
 }
 
 export interface BridgeListingPayload {
@@ -63,6 +69,7 @@ export const useDemandStore = defineStore('demand', {
       const lead: DemandLead = {
         id: genId('demand'),
         ...rest,
+        enterpriseName: submitEnterpriseName(user),
         status: 'new',
         recommendedProductIds: [],
         feedbackMessage: '',
@@ -132,6 +139,7 @@ export const useDemandStore = defineStore('demand', {
           d.status !== 'withdrawn'
       )
       if (existing) return existing
+      const user = useUserStore()
       const lead: DemandLead = {
         id: genId('demand'),
         question: `求上架：${payload.productName}`,
@@ -143,6 +151,7 @@ export const useDemandStore = defineStore('demand', {
         updateFreq: payload.updateFreq,
         scenario: payload.scenario,
         expectedDelivery: payload.expectedDelivery,
+        enterpriseName: submitEnterpriseName(user),
         status: 'new',
         recommendedProductIds: [],
         feedbackMessage: '',

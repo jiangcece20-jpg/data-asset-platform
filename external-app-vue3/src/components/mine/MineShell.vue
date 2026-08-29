@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import OrdersPanel from './OrdersPanel.vue'
 import DataPanel from './DataPanel.vue'
 import SellerPanel from './SellerPanel.vue'
+import DemandsPanel from './DemandsPanel.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import { useUserStore } from '@/stores/user'
 import {
@@ -29,6 +30,7 @@ const state = computed(() => parseMineQuery(route.query))
 const menus: Array<{ value: MineMenu; label: string; icon: string }> = [
   { value: 'vip', label: '成为VIP', icon: '👑' },
   { value: 'orders', label: '我的订单', icon: '🧾' },
+  { value: 'demands', label: '我的提报', icon: '📝' },
   { value: 'messages', label: '消息中心', icon: '💬' },
   { value: 'favorites', label: '我的收藏', icon: '⭐' },
   { value: 'profile', label: '个人信息', icon: '🙍' },
@@ -152,6 +154,11 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         variant="mobile"
         @update:data-tab="selectDataTab"
       />
+      <DemandsPanel
+        v-else-if="state.menu === 'demands'"
+        class="px-4"
+        variant="mobile"
+      />
       <SellerPanel
         v-else-if="state.menu === 'seller'"
         class="px-4"
@@ -216,6 +223,10 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :data-tab="state.dataTab"
         variant="portal"
         @update:data-tab="selectDataTab"
+      />
+      <DemandsPanel
+        v-else-if="state.menu === 'demands'"
+        variant="portal"
       />
       <SellerPanel
         v-else-if="state.menu === 'seller'"

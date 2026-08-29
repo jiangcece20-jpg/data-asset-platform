@@ -107,6 +107,12 @@ describe('MineShell defaults & placeholders', () => {
     expect(portal.wrapper.find('[data-testid="seller-tab-apply"]').classes().join(' ')).toContain('text-brand-600')
   })
 
+  it('shows demands panel from mine menu', async () => {
+    const { wrapper } = await mountMineShell('mobile', '/app/mine?menu=demands')
+    expect(wrapper.find('[data-testid="mine-menu-demands"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="demands-tab-list"]').exists()).toBe(true)
+  })
+
   it('shows personal report list action that deep-links to seller listing', async () => {
     const { wrapper, router } = await mountMineShell('mobile', '/app/mine?menu=data')
     const listBtn = wrapper.find('[data-testid="list-personal-report"]')

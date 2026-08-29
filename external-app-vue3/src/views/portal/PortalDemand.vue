@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDemandStore } from '@/stores/demand'
 import { useUserStore } from '@/stores/user'
-import type { DemandLead } from '@/types/domain'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const router = useRouter()
@@ -17,7 +16,6 @@ const submitted = ref(false)
 
 const form = ref({
   title: '',
-  type: 'dataset' as 'dataset' | 'api' | 'report' | 'dashboard',
   description: '',
   priceRange: '',
   contact: ''
@@ -44,14 +42,16 @@ function submitDemand() {
   if (!form.value.title.trim()) return
   demand.submit({
     question: form.value.title,
-    filters: [form.value.type],
+    filters: [],
     browsedProductIds: [],
     objectDesc: form.value.title,
     region: '',
     timeRange: '',
     updateFreq: '',
     scenario: form.value.description,
-    expectedDelivery: form.value.type
+    expectedDelivery: '',
+    priceRange: form.value.priceRange,
+    contact: form.value.contact
   })
   submitted.value = true
   activeTab.value = 'list'
@@ -60,7 +60,6 @@ function submitDemand() {
 function resetForm() {
   form.value = {
     title: '',
-    type: 'dataset',
     description: '',
     priceRange: '',
     contact: ''
@@ -117,11 +116,11 @@ function formatDate(dateStr: string) {
               <span class="text-sm font-medium text-slate-900">{{ item.question }}</span>
               <StatusBadge dict="demandStatus" :value="item.status" />
             </div>
-            <div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-              <span v-if="item.filters?.length">{{ item.filters.join('、') }}</span>
-              <span v-if="item.region">{{ item.region }}</span>
-              <span v-if="item.timeRange">{{ item.timeRange }}</span>
-              <span>{{ formatDate(item.createdAt) }}</span>
+            <div class="mt-1.5 space-y-1 text-xs text-slate-400">
+              <div v-if="item.scenario">需求描述：{{ item.scenario }}</div>
+              <div v-if="item.priceRange">期望价格区间：{{ item.priceRange }}</div>
+              <div v-if="item.contact">联系方式：{{ item.contact }}</div>
+              <div>{{ formatDate(item.createdAt) }}</div>
             </div>
             <div v-if="item.feedbackMessage" class="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-600">
               💬 {{ item.feedbackMessage }}
@@ -155,24 +154,6 @@ function formatDate(dateStr: string) {
             class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
             placeholder="一句话概括您的需求"
           />
-        </div>
-
-        <div>
-          <label class="mb-1 block text-sm font-medium text-slate-700">需求类型</label>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="t in [
-                { value: 'dataset', label: '数据集' },
-                { value: 'api', label: 'API' },
-                { value: 'report', label: '报告' },
-                { value: 'dashboard', label: '看板' }
-              ]"
-              :key="t.value"
-              class="rounded-lg border px-4 py-2 text-sm"
-              :class="form.type === t.value ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-slate-200 text-slate-600'"
-              @click="form.type = t.value as any"
-            >{{ t.label }}</button>
-          </div>
         </div>
 
         <div>

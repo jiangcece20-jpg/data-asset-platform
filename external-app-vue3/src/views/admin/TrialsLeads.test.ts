@@ -11,6 +11,11 @@ describe('TrialsLeads', () => {
     const wrapper = mount(TrialsLeads)
 
     expect(wrapper.text()).toContain('需求线索')
+    expect(wrapper.text()).toContain('企业名称')
+    expect(wrapper.text()).toContain('万联供应链管理有限公司')
+    expect(wrapper.text()).toContain('需求描述')
+    expect(wrapper.text()).toContain('期望价格区间')
+    expect(wrapper.text()).toContain('联系方式')
     expect(wrapper.text()).not.toContain('试用审批')
     expect(wrapper.text()).not.toContain('求上架')
   })

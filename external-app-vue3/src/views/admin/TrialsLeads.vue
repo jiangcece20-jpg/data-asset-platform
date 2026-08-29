@@ -4,10 +4,12 @@ import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useDemandStore } from '@/stores/demand'
 import { useCatalogStore } from '@/stores/catalog'
+import { useUserStore } from '@/stores/user'
 import type { DemandStatus } from '@/types/domain'
 
 const demand = useDemandStore()
 const catalog = useCatalogStore()
+const user = useUserStore()
 const visibleDemand = computed(() => demand.list.filter((item) => item.source !== 'listing_request'))
 
 const feedbackDraft = reactive<Record<string, string>>({})
@@ -66,6 +68,13 @@ function defaultFeedback(status: DemandStatus) {
   return map[status]
 }
 
+function leadEnterpriseName(lead: { enterpriseName?: string; ownerId: string }) {
+  if (lead.enterpriseName) return lead.enterpriseName
+  return user.enterprise.members.some((member) => member.id === lead.ownerId)
+    ? user.enterprise.name
+    : '个人'
+}
+
 </script>
 
 <template>
@@ -79,8 +88,11 @@ function defaultFeedback(status: DemandStatus) {
           <div class="text-[13px] font-medium text-slate-800">{{ d.question || d.objectDesc || '需求单' }}</div>
           <StatusBadge dict="demand" :value="d.status" />
         </div>
-        <div class="mt-1 text-[12px] text-slate-400">
-          对象：{{ d.objectDesc || '—' }} · 地域：{{ d.region || '—' }} · 场景：{{ d.scenario || '—' }} · 期望交付：{{ d.expectedDelivery || '—' }}
+        <div class="mt-1 space-y-0.5 text-[12px] text-slate-500">
+          <div>企业名称：{{ leadEnterpriseName(d) }}</div>
+          <div>需求描述：{{ d.scenario || '—' }}</div>
+          <div>期望价格区间：{{ d.priceRange || '—' }}</div>
+          <div>联系方式：{{ d.contact || '—' }}</div>
         </div>
         <div v-if="d.browsedProductIds.length" class="mt-1 text-[12px] text-slate-400">
           浏览过：{{ d.browsedProductIds.map((id) => catalog.byId(id)?.name).filter(Boolean).join('、') }}

@@ -5,6 +5,14 @@ import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import { useAiStore } from '@/stores/ai'
 import { useCatalogStore } from '@/stores/catalog'
+import {
+  ROUTE_META,
+  buildRetrievalHits,
+  computeCompleteness,
+  decideRoute,
+  mockExternalAnswer,
+  type DiscoverEntry
+} from '@/domain/discoverRouting'
 import type { Resource } from '@/types/resource'
 
 const route = useRoute()
@@ -13,18 +21,40 @@ const ai = useAiStore()
 const catalog = useCatalogStore()
 
 const question = computed(() => String(route.query.q || ''))
+const entry = computed(() => (String(route.query.entry || 'ai') as DiscoverEntry))
+const fromKeywordEmpty = computed(() => route.query.from === 'keyword_empty')
 const mode = computed(() => (String(route.query.mode || 'auto') as 'auto' | 'answer' | 'search'))
 const sessionId = ref('')
 
-// 顶部搜索框：预填当前问题，可继续改词/追问/换问题
 const queryInput = ref('')
 
+const retrievalHits = computed(() => {
+  if (!question.value.trim()) return []
+  const products = catalog.search(question.value)
+  return buildRetrievalHits(products, question.value)
+})
+
+const routeDecision = computed(() =>
+  decideRoute({
+    entry: entry.value,
+    query: question.value,
+    retrievalHits: retrievalHits.value,
+    dataCompleteness: computeCompleteness(retrievalHits.value)
+  })
+)
+
+const routeMeta = computed(() => ROUTE_META[routeDecision.value.route])
+const isExternalRoute = computed(() => routeDecision.value.route === 'external_exploration')
+const externalAnswer = computed(() =>
+  isExternalRoute.value && question.value.trim() ? mockExternalAnswer(question.value) : null
+)
+
 function runAsk() {
+  if (isExternalRoute.value) return
   const session = ai.ask(question.value, mode.value)
   sessionId.value = session.id
 }
 
-// 问题变化即重跑（首次进入 + 顶部再次搜索都走这里）
 watch(question, (q) => {
   queryInput.value = q
   runAsk()
@@ -33,21 +63,25 @@ watch(question, (q) => {
 function submitSearch() {
   const q = queryInput.value.trim()
   if (!q || q === question.value) return
-  router.push({ path: '/app/answer', query: { q } })
+  router.push({ path: '/app/answer', query: { q, entry: 'ai' } })
+}
+
+function downgradeToKeyword() {
+  const q = question.value.trim()
+  if (!q) return
+  router.push({ path: '/app/search', query: { q, entry: 'keyword' } })
 }
 
 const session = computed(() => ai.byId(sessionId.value))
-const hasAnswer = computed(() => !!session.value?.answerText)
+const hasAnswer = computed(() => !isExternalRoute.value && !!session.value?.answerText)
 
 const primarySourceProduct = computed(() => {
   const pid = session.value?.unlockedProductId || session.value?.sources[0]?.productId
   return pid ? catalog.byId(pid) : undefined
 })
 
-// 全文搜索结果（百度式：AI 摘要之下接全文结果列表）
 const fullResults = computed(() => (question.value ? catalog.search(question.value) : []))
 
-// 内部视图结果（与市场商品结果并列展示）
 const internalViews = computed(() => (question.value ? catalog.searchInternalViews(question.value) : []))
 const hasInternalViews = computed(() => internalViews.value.length > 0)
 
@@ -86,25 +120,73 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
   <div class="min-h-full bg-slate-50 pb-8">
     <MobileHeader title="找数结果" />
 
-    <!-- 顶部搜索框：结果页保留，可继续查找/追问 -->
     <div class="sticky top-12 z-10 bg-slate-50 px-4 pt-3 pb-2">
       <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-card">
-        <span class="text-slate-400">🔍</span>
+        <span class="text-slate-400">🤖</span>
         <input
           v-model="queryInput"
-          placeholder="继续提问或修改关键词"
+          placeholder="继续提问或修改问题"
           class="flex-1 bg-transparent text-[14px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
           @keydown.enter.prevent="submitSearch"
         />
-        <button class="rounded-full bg-brand-500 px-4 py-1.5 text-[13px] font-medium text-white" @click="submitSearch">搜索</button>
+        <button class="rounded-full bg-brand-500 px-4 py-1.5 text-[13px] font-medium text-white" @click="submitSearch">提问</button>
       </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <div
+          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]"
+          :class="isExternalRoute ? 'bg-amber-50 text-amber-700' : 'bg-brand-50 text-brand-700'"
+          data-testid="route-badge"
+        >
+          <span>{{ routeMeta.shortLabel }}</span>
+          <span>{{ routeMeta.label }}</span>
+          <span v-if="!isExternalRoute" class="text-brand-500/80">· 置信度 {{ routeDecision.confidence.toFixed(2) }}</span>
+        </div>
+        <button
+          class="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600"
+          data-testid="downgrade-keyword"
+          @click="downgradeToKeyword"
+        >
+          只看平台内数据
+        </button>
+      </div>
+    </div>
+
+    <div v-if="fromKeywordEmpty" class="mx-4 mt-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
+      关键词未命中，已为你切换到 AI 问答继续查找
     </div>
 
     <div v-if="justUnlocked" class="mx-4 mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
       ✅ 已解锁，为你重新生成完整回答
     </div>
 
-    <!-- ① AI 摘要 -->
+    <!-- 路由 3：外网分区（与平台内数据隔离） -->
+    <template v-if="isExternalRoute && externalAnswer">
+      <div class="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800" data-testid="external-banner">
+        ⚠️ 数据出域 · 以下内容来自外网，不与平台内采购数据混合呈现
+      </div>
+      <div class="mx-4 mt-3 rounded-2xl border border-amber-100 bg-white p-3.5 shadow-card">
+        <div class="mb-2 text-[11px] font-medium text-amber-700">🌐 外网整合答案</div>
+        <p class="text-[14px] leading-relaxed text-slate-700">{{ externalAnswer.summary }}</p>
+        <div class="mt-3 border-t border-slate-50 pt-2.5">
+          <div class="mb-1.5 text-[11px] text-slate-400">外网来源</div>
+          <div class="space-y-1">
+            <a
+              v-for="s in externalAnswer.sources"
+              :key="s.url"
+              :href="s.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-between rounded-lg bg-amber-50/60 px-2.5 py-1.5 text-[12px] text-amber-900"
+            >
+              <span>🔗 {{ s.title }}</span>
+              <span class="text-amber-400">↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 路由 2：AI 摘要 -->
     <template v-if="hasAnswer">
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
         <div class="mb-2 flex items-center gap-1.5 text-[11px] text-slate-400">
@@ -122,7 +204,7 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
           <div class="text-[12px] font-medium text-slate-500">🔒 需解锁 · 付费数据的精确口径</div>
           <div class="mt-0.5 text-[11px] text-slate-400">精确数值、完整图表、区域 / 车型细分，以及以下追问</div>
           <div v-if="session?.lockedFollowUps?.length" class="mt-2 space-y-1">
-            <div v-for="f in session.lockedFollowUps" :key="f" class="flex items-center gap-1.5 text-[12px] text-slate-400">
+            <div v-for="f in session?.lockedFollowUps" :key="f" class="flex items-center gap-1.5 text-[12px] text-slate-400">
               <span>🔒</span>
               <span>{{ f }}</span>
             </div>
@@ -136,7 +218,7 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
         </div>
 
         <div class="mt-3 border-t border-slate-50 pt-2.5">
-          <div class="mb-1.5 text-[11px] text-slate-400">来源</div>
+          <div class="mb-1.5 text-[11px] text-slate-400">平台内来源</div>
           <div class="space-y-1">
             <button
               v-for="s in session?.sources"
@@ -152,11 +234,23 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       </div>
     </template>
 
-    <!-- ② 全文搜索结果列表（AI 无结论时不显示提示块，直接给结果） -->
+    <!-- 平台内相关商品（路由 2/3 均展示，路由 3 单独标注） -->
     <div class="mx-4 mt-4">
       <div class="mb-1.5 flex items-center justify-between">
-        <div class="text-[11px] font-medium text-slate-400">🔍 全文搜索结果 · 共 {{ fullResults.length }} 个</div>
-        <button class="text-[11px] text-brand-600" @click="router.push({ path: '/app/search', query: { q: question } })">高级筛选 ›</button>
+        <div class="text-[11px] font-medium text-slate-400">
+          <span v-if="isExternalRoute">📦 平台内相关数据</span>
+          <span v-else>🔍 平台内检索结果 · 共 {{ fullResults.length }} 个</span>
+        </div>
+        <button
+          class="text-[11px] text-brand-600"
+          data-testid="open-keyword-filter"
+          @click="downgradeToKeyword"
+        >
+          高级筛选 ›
+        </button>
+      </div>
+      <div v-if="isExternalRoute" class="mb-2 text-[10px] text-slate-400">
+        以下仅为平台内可采购数据，与外网答案分区独立
       </div>
 
       <div v-if="fullResults.length" class="space-y-2.5">
@@ -164,8 +258,8 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       </div>
 
       <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center">
-        <div class="text-[13px] font-medium text-slate-600">没有匹配的商品</div>
-        <div class="mt-1 text-[12px] text-slate-400">换个关键词试试，或提交需求由运营跟进</div>
+        <div class="text-[13px] font-medium text-slate-600">平台内暂无匹配商品</div>
+        <div class="mt-1 text-[12px] text-slate-400">可改用关键词精确搜索，或提交需求由运营跟进</div>
         <button
           class="mt-3 w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white"
           @click="router.push({ path: '/app/demand', query: { q: question } })"
@@ -175,7 +269,6 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       </div>
     </div>
 
-    <!-- ③ 内部视图结果 -->
     <div v-if="hasInternalViews" class="mt-4 px-4">
       <div class="mb-2 flex items-center gap-2">
         <span class="text-xs font-medium text-slate-500">🏠 内部视图</span>
