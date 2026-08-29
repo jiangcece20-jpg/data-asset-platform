@@ -52,7 +52,7 @@ function toggleFav(e: MouseEvent) {
     </div>
     <div class="text-[15px] font-semibold leading-snug text-slate-900">{{ title }}</div>
     <div class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-500">{{ subtitle }}</div>
-    <div v-if="matchReason" class="mt-1.5 rounded-lg bg-brand-50 px-2 py-1 text-[12px] text-brand-700">匹配原因：{{ matchReason }}</div>
+    <div v-if="matchReason" class="mt-1.5 text-[12px] text-slate-400">{{ matchReason }}</div>
     <div class="mt-2.5 flex items-center justify-between">
       <div class="flex items-center gap-2 text-[11px] text-slate-400">
         <span>{{ product.provider }}</span>

@@ -12,11 +12,13 @@ import PortalSpaceGateDialog from './components/PortalSpaceGateDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/orders'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
 import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
-import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import { resolveProductActions, resolvePurchaseInProgress, type ProductActionKey } from '@/domain/productAccess'
 import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
 import { membershipActionFields } from '@/domain/membership'
 import { productTopicTags } from '@/domain/productListChips'
@@ -28,6 +30,8 @@ const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
+const orders = useOrderStore()
+const spaceIntents = useSpaceIntentStore()
 const listingRequests = useListingRequestStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 const trustedPurchase = useTrustedSpacePurchaseStore()
@@ -40,6 +44,13 @@ const topicTags = computed(() => (product.value ? productTopicTags(product.value
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
+const purchaseInProgress = computed(() => resolvePurchaseInProgress({
+  productId: id.value,
+  orders: orders.list,
+  intents: spaceIntents.list,
+  ownerMemberId: user.context.currentMemberId,
+  enterpriseId: user.context.currentEnterpriseId
+}))
 const contentUnlocked = computed(() => {
   if (!product.value) return false
   if (product.value.acquisitions.includes('free')) return true
@@ -71,6 +82,7 @@ const actions = computed(() => product.value ? resolveProductActions({
   enterpriseAuthenticated: user.isEnterpriseAuthenticated,
   serviceStatus: product.value.serviceStatus,
   trustedPurchaseCheck: trustedPurchaseCheck.value,
+  purchaseInProgress: purchaseInProgress.value,
   ...membershipActionFields(product.value, {
     identitySubject: currentPurchaseSubject(user),
     hasEffectiveMembership: entitlements.hasEffectiveMembership,
@@ -239,6 +251,15 @@ function handleUnlock() {
   goItem()
 }
 
+function goInProgressOrder(orderId: string) {
+  const order = orders.list.find((item) => item.id === orderId)
+  if (order?.status === 'pending_payment' && !order.spaceIntentId && !order.sellerId && order.productType === 'dataset') {
+    void router.push(`/portal/payment/dataset/${orderId}`)
+    return
+  }
+  void router.push(`/portal/mine/orders/app/${orderId}`)
+}
+
 function handleAction(key: ProductActionKey) {
   switch (key) {
     case 'view':
@@ -257,6 +278,21 @@ function handleAction(key: ProductActionKey) {
     case 'dataset_purchase': goDatasetPayment(); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
+    case 'continue_payment':
+    case 'delivery_progress': {
+      const phase = purchaseInProgress.value
+      if (phase && (phase.phase === 'pending_payment' || phase.phase === 'fulfilling')) {
+        goInProgressOrder(phase.orderId)
+      }
+      break
+    }
+    case 'intent_progress': {
+      const phase = purchaseInProgress.value
+      if (phase?.phase === 'space_intent') {
+        void router.push(`/portal/mine/orders/intent/${phase.intentId}`)
+      }
+      break
+    }
   }
 }
 </script>

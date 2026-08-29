@@ -11,8 +11,15 @@ const router = createRouter({
     // ---------------- 移动端：综合 APP 找数模块 ----------------
     { path: '/app/home', name: 'app-home', component: () => import('@/views/mobile/AppHome.vue'), meta: { title: '综合APP首页' } },
     { path: '/app/discover', name: 'discover-home', component: () => import('@/views/mobile/DiscoverHome.vue'), meta: { title: '找数' } },
-    { path: '/app/ai-find', name: 'ai-find', component: () => import('@/views/mobile/AIFindData.vue'), meta: { title: 'AI找数' } },
-    { path: '/app/answer', name: 'answer-result', component: () => import('@/views/mobile/AnswerResult.vue'), meta: { title: '问答案' } },
+    { path: '/app/ai-find', name: 'ai-find', component: () => import('@/views/mobile/AIFindData.vue'), meta: { title: 'AI问答' } },
+    {
+      path: '/app/answer',
+      name: 'answer-result',
+      redirect: (to) => ({
+        path: '/app/ai-find',
+        query: { ...to.query, entry: to.query.entry || 'ai' }
+      })
+    },
     { path: '/app/search', name: 'search-result', component: () => import('@/views/mobile/SearchResult.vue'), meta: { title: '找数据' } },
     { path: '/app/product/:id', name: 'product-detail', component: () => import('@/views/mobile/ProductDetail.vue'), meta: { title: '商品详情' } },
     { path: '/app/enterprise-auth', name: 'enterprise-auth', component: () => import('@/views/mobile/EnterpriseAuth.vue'), meta: { title: '企业认证' } },
@@ -61,7 +68,8 @@ const router = createRouter({
     // ---------------- PC 门户 ----------------
     { path: '/portal', redirect: '/portal/home' },
     { path: '/portal/home', name: 'portal-home', component: () => import('@/views/portal/PortalHome.vue'), meta: { title: '门户首页' } },
-    { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '搜索发现' } },
+    { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '关键词搜索' } },
+    { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/portal/PortalAiChat.vue'), meta: { title: 'AI问答' } },
     { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },
     { path: '/portal/space-intent/:id', name: 'portal-space-intent', component: () => import('@/views/mobile/SpaceIntentForm.vue'), meta: { title: '提交试用申请' } },
     { path: '/portal/checkout/:id', name: 'portal-checkout', component: () => import('@/views/portal/PortalCheckout.vue'), meta: { title: '购买结算' } },

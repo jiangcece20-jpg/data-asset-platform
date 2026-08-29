@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { resolveProductActions, resolveProductListActionHint, type ProductActionContext } from './productAccess'
+import {
+  resolveProductActions,
+  resolveProductListActionHint,
+  resolvePurchaseInProgress,
+  type ProductActionContext
+} from './productAccess'
 import { formatYuan } from './membership'
+import type { Order } from '@/types/domain'
+import type { SpaceIntentOrder } from '@/types/spaceIntent'
 
 const base: ProductActionContext = {
   type: 'dataset',
@@ -15,6 +22,19 @@ const base: ProductActionContext = {
 const ownedProduct: ProductActionContext = {
   ...base,
   hasAccess: true,
+}
+
+function order(partial: Partial<Order> & Pick<Order, 'id' | 'status'>): Order {
+  return {
+    channel: 'app',
+    ownerType: 'personal',
+    ownerId: 'mem-1',
+    productId: 'prod-x',
+    productName: 'X',
+    amount: 99,
+    createdAt: '2026-08-01T10:00:00',
+    ...partial
+  }
 }
 
 describe('resolveProductActions', () => {
@@ -203,5 +223,89 @@ describe('resolveProductActions', () => {
       availability: 'delisted',
       serviceStatus: 'terminated',
     }).primary.key).toBe('unavailable')
+  })
+
+  it('shows 继续付款 for pending_payment purchase-in-progress', () => {
+    expect(resolveProductActions({
+      ...base,
+      acquisitions: ['item_purchase'],
+      purchaseInProgress: { phase: 'pending_payment', orderId: 'ord-1', canPay: true }
+    }).primary).toEqual({ key: 'continue_payment', label: '继续付款' })
+  })
+
+  it('shows fulfilling labels by order status', () => {
+    expect(resolveProductActions({
+      ...base,
+      acquisitions: ['item_purchase'],
+      purchaseInProgress: { phase: 'fulfilling', orderId: 'ord-1', status: 'paid' }
+    }).primary).toEqual({ key: 'delivery_progress', label: '查看交付进度' })
+    expect(resolveProductActions({
+      ...base,
+      acquisitions: ['item_purchase'],
+      purchaseInProgress: { phase: 'fulfilling', orderId: 'ord-1', status: 'pending_activation' }
+    }).primary.label).toBe('待开通')
+  })
+
+  it('shows intent progress instead of submit-intent while space intent is open', () => {
+    expect(resolveProductActions({
+      ...base,
+      purchaseInProgress: { phase: 'space_intent', intentId: 'intent-1', userStatus: 'submitted' }
+    }).primary).toEqual({ key: 'intent_progress', label: '查看订单' })
+    expect(resolveProductActions({
+      ...base,
+      purchaseInProgress: { phase: 'space_intent', intentId: 'intent-1', userStatus: 'processing' }
+    }).primary.label).toBe('意向处理中')
+  })
+})
+
+describe('resolvePurchaseInProgress', () => {
+  it('prefers open APP order over space intent', () => {
+    const phase = resolvePurchaseInProgress({
+      productId: 'prod-x',
+      ownerMemberId: 'mem-1',
+      orders: [order({ id: 'ord-1', status: 'paid', createdAt: '2026-08-02T10:00:00' })],
+      intents: [{
+        id: 'intent-1',
+        productId: 'prod-x',
+        productType: 'api',
+        ownerMemberId: 'mem-1',
+        contactName: '陈静',
+        contactPhone: '138',
+        scenario: '试用',
+        opsStatus: 'unclaimed',
+        createdAt: '2026-08-03T10:00:00',
+        updatedAt: '2026-08-03T10:00:00'
+      } satisfies SpaceIntentOrder]
+    })
+    expect(phase).toEqual({ phase: 'fulfilling', orderId: 'ord-1', status: 'paid' })
+  })
+
+  it('maps open space intent to user-facing intent status', () => {
+    expect(resolvePurchaseInProgress({
+      productId: 'prod-x',
+      ownerMemberId: 'mem-1',
+      orders: [],
+      intents: [{
+        id: 'intent-1',
+        productId: 'prod-x',
+        productType: 'dataset',
+        ownerMemberId: 'mem-1',
+        contactName: '陈静',
+        contactPhone: '138',
+        scenario: '试用',
+        opsStatus: 'processing',
+        createdAt: '2026-08-03T10:00:00',
+        updatedAt: '2026-08-03T10:00:00'
+      }]
+    })).toEqual({ phase: 'space_intent', intentId: 'intent-1', userStatus: 'processing' })
+  })
+
+  it('marks seller or space-converted pending_payment as not canPay', () => {
+    expect(resolvePurchaseInProgress({
+      productId: 'prod-x',
+      ownerMemberId: 'mem-1',
+      orders: [order({ id: 'ord-s', status: 'pending_payment', sellerId: 'seller-1' })],
+      intents: []
+    })).toEqual({ phase: 'pending_payment', orderId: 'ord-s', canPay: false })
   })
 })

@@ -1,7 +1,9 @@
 import type { AppOrderStatus, Order, PaymentMethod, ProductType } from '@/types/domain'
+import type { SpaceIntentOrder } from '@/types/spaceIntent'
 import type { SpaceOrderDisplayStatus, SpaceOrderMirror } from '@/types/trustedSpace'
+import { USER_STATUS_LABELS, userStatusOf } from '@/domain/spaceIntent'
 
-export type MyOrderFilter = 'all' | 'pending_payment' | 'processing' | 'completed' | 'closed'
+export type MyOrderFilter = 'all' | 'intent' | 'pending_payment' | 'processing' | 'completed' | 'closed'
 
 export interface RenewalInfo {
   /** 续订入口路径 */
@@ -15,7 +17,7 @@ export interface RenewalInfo {
 }
 
 export interface MyOrderCard {
-  source: 'app' | 'space'
+  source: 'app' | 'space' | 'intent'
   id: string
   productId: string
   productName: string
@@ -71,11 +73,44 @@ export function formatOrderTime(value?: string): string {
 export function orderFilterLabel(filter: MyOrderFilter): string {
   return ({
     all: '全部',
+    intent: '意向单',
     pending_payment: '待付款',
     processing: '处理中',
     completed: '已完成',
     closed: '已关闭'
   } as const)[filter]
+}
+
+/** 未转买数的空间试用意向 → 统一订单卡片，状态固定为「意向单」 */
+export function spaceIntentCard(
+  intent: SpaceIntentOrder,
+  productName: string,
+  enterpriseName: string
+): MyOrderCard {
+  const userStatus = userStatusOf(intent.opsStatus)
+  const isEnterprise = Boolean(intent.enterpriseId)
+  return {
+    source: 'intent',
+    id: intent.id,
+    productId: intent.productId,
+    productName,
+    productType: intent.productType,
+    ownerType: isEnterprise ? 'enterprise' : 'personal',
+    ownerLabel: isEnterprise ? enterpriseName : '个人',
+    operatorMemberId: intent.ownerMemberId,
+    channelLabel: '空间试用 · 意向单',
+    status: 'intent',
+    statusDict: 'appOrder',
+    filter: userStatus === 'closed' ? 'closed' : 'intent',
+    planSummary: intent.scenario || '提交试用申请',
+    amountText: '—',
+    createdAt: intent.createdAt,
+    paymentLabel: '提交后不付款',
+    progressSummary: USER_STATUS_LABELS[userStatus],
+    canPay: false,
+    spaceIntentId: intent.id,
+    note: intent.contactName ? `联系人 ${intent.contactName}` : undefined
+  }
 }
 
 export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard {
@@ -148,6 +183,7 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
 }
 
 function appOrderFilter(status: AppOrderStatus): MyOrderFilter {
+  if (status === 'intent') return 'intent'
   if (status === 'pending_payment') return 'pending_payment'
   if (['pending_approval', 'paid', 'pending_activation', 'payment_pending_confirmation'].includes(status)) return 'processing'
   if (status === 'entitlement_active') return 'completed'
@@ -178,11 +214,12 @@ function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerOrder =
     return '运营已开通 · 数据集权益已生效 · 按合同与卖家结算'
   }
   const labels: Record<AppOrderStatus, string> = {
+    intent: '试用意向已提交，运营跟进中，提交后不付款',
     pending_approval: '采购审批待处理，尚未进入付款',
     approval_rejected: '采购审批未通过，订单已关闭',
-   pending_payment: '订单待付款，付款后开始权益与交付处理',
+    pending_payment: '订单待付款，付款后开始权益与交付处理',
     payment_pending_confirmation: '企业线下付款待运营确认到账',
-   payment_cancelled: '付款已取消，未形成权益',
+    payment_cancelled: '付款已取消，未形成权益',
     payment_failed: '付款失败，未形成权益',
     paid: isDataset ? '付款成功，数据权益与用数交付处理中' : '付款成功，权益开通处理中',
     pending_activation: '平台已收款，待运营开通',

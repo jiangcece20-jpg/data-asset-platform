@@ -50,32 +50,29 @@ describe('OrdersPanel', () => {
     expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['vip'])
   })
 
-  it('renders secondary tabs and emits update:orderTab on click', async () => {
+  it('renders VIP and buy tabs only — no separate intent tab', async () => {
     const { wrapper } = mountOrdersPanel()
     expect(wrapper.find('[data-testid="order-tab-vip"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-tab-intent"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="order-tab-intent"]').exists()).toBe(true)
-
-    await wrapper.get('[data-testid="order-tab-intent"]').trigger('click')
-    expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['intent'])
   })
 
-  it('lists space intents with user-facing status only', async () => {
+  it('lists space intents inside buy orders with status 意向单', async () => {
     useSpaceIntentStore().submit({
       productId: 'prod-qualification-api',
       contactName: '陈静',
       contactPhone: '13800000000',
       scenario: '核验'
     })
-    const { wrapper } = mountOrdersPanel({ orderTab: 'intent' })
-    expect(wrapper.get('[data-testid="order-tab-intent"]').text()).toBe('意向单')
-    expect(wrapper.text()).toContain('已提交')
-    expect(wrapper.text()).not.toContain('待领取')
-    expect(wrapper.text()).not.toContain('前往可信空间购买')
+    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('意向单')
+    expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
+    expect(wrapper.find('[data-testid="my-space-intents"]').exists()).toBe(false)
   })
 
-  it('hides converted intents from the intent tab after payment confirmation', async () => {
+  it('hides converted intents from buy list after payment confirmation', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
     const store = useSpaceIntentStore()
@@ -87,21 +84,19 @@ describe('OrdersPanel', () => {
     })
     store.claim(intent.id, user.enterprise.id)
     store.confirmOfflinePayment(intent.id, user.enterprise.id)
-    const { wrapper } = mountOrdersPanel({ orderTab: 'intent' })
-    expect(wrapper.text()).toContain('暂无意向单')
-    expect(wrapper.text()).not.toContain('道路运输从业人员资格核验 API')
+    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    // 转单后意向卡片消失；买数列表可能仍有其它种子订单，但不含该意向 id
+    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(false)
   })
 
   it('gives the active tab a distinguishing selected class', () => {
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
     const selected = wrapper.get('[data-testid="order-tab-buy"]')
     const unselectedVip = wrapper.get('[data-testid="order-tab-vip"]')
-    const unselectedIntent = wrapper.get('[data-testid="order-tab-intent"]')
 
     expect(selected.classes()).toContain('border-brand-500')
     expect(selected.classes()).toContain('text-brand-600')
     expect(unselectedVip.classes()).not.toContain('border-brand-500')
-    expect(unselectedIntent.classes()).not.toContain('border-brand-500')
   })
 
   it('shows VIP placeholder when orderTab is vip', () => {

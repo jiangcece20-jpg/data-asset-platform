@@ -134,25 +134,23 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <div
           class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]"
-          :class="isExternalRoute ? 'bg-amber-50 text-amber-700' : 'bg-brand-50 text-brand-700'"
+          :class="isExternalRoute ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'"
           data-testid="route-badge"
         >
-          <span>{{ routeMeta.shortLabel }}</span>
-          <span>{{ routeMeta.label }}</span>
-          <span v-if="!isExternalRoute" class="text-brand-500/80">· 置信度 {{ routeDecision.confidence.toFixed(2) }}</span>
+          {{ routeMeta.label }}
         </div>
         <button
           class="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600"
           data-testid="downgrade-keyword"
           @click="downgradeToKeyword"
         >
-          只看平台内数据
+          关键词搜索
         </button>
       </div>
     </div>
 
     <div v-if="fromKeywordEmpty" class="mx-4 mt-1 rounded-lg bg-blue-50 px-3 py-2 text-[11px] text-blue-700">
-      关键词未命中，已为你切换到 AI 问答继续查找
+      关键词未命中，已切换到 AI 问答
     </div>
 
     <div v-if="justUnlocked" class="mx-4 mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
@@ -162,13 +160,13 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
     <!-- 路由 3：外网分区（与平台内数据隔离） -->
     <template v-if="isExternalRoute && externalAnswer">
       <div class="mx-4 mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800" data-testid="external-banner">
-        ⚠️ 数据出域 · 以下内容来自外网，不与平台内采购数据混合呈现
+        以下来自外网，仅供参考
       </div>
       <div class="mx-4 mt-3 rounded-2xl border border-amber-100 bg-white p-3.5 shadow-card">
-        <div class="mb-2 text-[11px] font-medium text-amber-700">🌐 外网整合答案</div>
+        <div class="mb-2 text-[11px] font-medium text-amber-700">来自外网</div>
         <p class="text-[14px] leading-relaxed text-slate-700">{{ externalAnswer.summary }}</p>
         <div class="mt-3 border-t border-slate-50 pt-2.5">
-          <div class="mb-1.5 text-[11px] text-slate-400">外网来源</div>
+          <div class="mb-1.5 text-[11px] text-slate-400">来源</div>
           <div class="space-y-1">
             <a
               v-for="s in externalAnswer.sources"
@@ -190,35 +188,29 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
     <template v-if="hasAnswer">
       <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-card">
         <div class="mb-2 flex items-center gap-1.5 text-[11px] text-slate-400">
-          <span>🤖 AI 摘要</span>
-          <span v-if="session?.paywalled" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">部分内容需购买解锁</span>
-          <span v-else class="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-600">已解锁完整回答</span>
+          <span>回答</span>
+          <span v-if="session?.paywalled" class="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">部分需购买</span>
+          <span v-else class="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-600">完整回答</span>
         </div>
         <p class="text-[14px] leading-relaxed text-slate-700">{{ session?.answerText }}</p>
 
-        <div v-if="session?.paywalled" class="mt-2 flex items-center gap-1.5 text-[12px] text-emerald-600">
-          <span>✓</span><span>免费已含：趋势方向与公开摘要</span>
-        </div>
-
         <div v-if="session?.paywalled" class="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3">
-          <div class="text-[12px] font-medium text-slate-500">🔒 需解锁 · 付费数据的精确口径</div>
-          <div class="mt-0.5 text-[11px] text-slate-400">精确数值、完整图表、区域 / 车型细分，以及以下追问</div>
+          <div class="text-[12px] font-medium text-slate-500">购买后可查看精确数值与细分数据</div>
           <div v-if="session?.lockedFollowUps?.length" class="mt-2 space-y-1">
-            <div v-for="f in session?.lockedFollowUps" :key="f" class="flex items-center gap-1.5 text-[12px] text-slate-400">
-              <span>🔒</span>
-              <span>{{ f }}</span>
+            <div v-for="f in session?.lockedFollowUps" :key="f" class="text-[12px] text-slate-400">
+              {{ f }}
             </div>
           </div>
           <button v-if="canUnlock" class="mt-3 w-full rounded-full bg-brand-500 py-2 text-[13px] font-medium text-white" @click="goCheckout">
-            {{ primarySourceProduct?.memberIncluded ? '开通会员解锁完整回答' : '购买解锁完整回答' }}
+            {{ primarySourceProduct?.memberIncluded ? '开通会员解锁' : '购买解锁' }}
           </button>
           <button v-else-if="primarySourceProduct" class="mt-3 w-full rounded-full bg-brand-500 py-2 text-[13px] font-medium text-white" @click="goCheckout">
-            查看商品详情 ›
+            查看商品
           </button>
         </div>
 
         <div class="mt-3 border-t border-slate-50 pt-2.5">
-          <div class="mb-1.5 text-[11px] text-slate-400">平台内来源</div>
+          <div class="mb-1.5 text-[11px] text-slate-400">相关商品</div>
           <div class="space-y-1">
             <button
               v-for="s in session?.sources"
@@ -226,7 +218,7 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
               class="flex w-full items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 text-left text-[12px] text-slate-600"
               @click="s.productId && router.push(`/app/product/${s.productId}`)"
             >
-              <span>{{ s.locked ? '🔒' : '📄' }} {{ s.title }}</span>
+              <span>{{ s.title }}</span>
               <span class="text-slate-300">›</span>
             </button>
           </div>
@@ -234,12 +226,11 @@ const justUnlocked = computed(() => route.query.unlocked === '1')
       </div>
     </template>
 
-    <!-- 平台内相关商品（路由 2/3 均展示，路由 3 单独标注） -->
     <div class="mx-4 mt-4">
       <div class="mb-1.5 flex items-center justify-between">
         <div class="text-[11px] font-medium text-slate-400">
-          <span v-if="isExternalRoute">📦 平台内相关数据</span>
-          <span v-else>🔍 平台内检索结果 · 共 {{ fullResults.length }} 个</span>
+          <span v-if="isExternalRoute">平台内相关</span>
+          <span v-else>相关商品 · {{ fullResults.length }}</span>
         </div>
         <button
           class="text-[11px] text-brand-600"

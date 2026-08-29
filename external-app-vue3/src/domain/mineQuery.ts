@@ -29,6 +29,8 @@ function asMenu(value: string): MineMenu | undefined {
 }
 
 function asOrderTab(value: string): OrderTab | undefined {
+  // 意向单已并入买数列表；旧链接 orderTab=intent 落到买数
+  if (value === 'intent') return 'buy'
   return ORDER_TABS.includes(value as OrderTab) ? (value as OrderTab) : undefined
 }
 

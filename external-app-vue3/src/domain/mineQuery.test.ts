@@ -30,8 +30,8 @@ describe('mineQuery', () => {
     expect(parseMineQuery({ tab: 'orders' }).menu).toBe('orders')
   })
 
-  it('parses the intent order tab', () => {
-    expect(parseMineQuery({ menu: 'orders', orderTab: 'intent' }).orderTab).toBe('intent')
+  it('maps legacy orderTab=intent to buy (intents merged into buy list)', () => {
+    expect(parseMineQuery({ menu: 'orders', orderTab: 'intent' }).orderTab).toBe('buy')
   })
 
   it('prefers explicit menu/orderTab/dataTab over legacy tab', () => {

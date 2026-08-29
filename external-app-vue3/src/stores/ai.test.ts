@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAiStore, guideQuestions, roleOptions } from './ai'
+import { useAiStore, guideQuestions } from './ai'
 import { useCatalogStore } from './catalog'
 import { useEntitlementStore } from './entitlements'
 import { seedProducts } from '@/data/products'
@@ -96,15 +96,6 @@ describe('AI Store — chat functionality', () => {
     })
   })
 
-  describe('setRole', () => {
-    it('changes current role', () => {
-      const ai = useAiStore()
-      expect(ai.currentRole).toBe('业务运营')
-      ai.setRole('数据分析师')
-      expect(ai.currentRole).toBe('数据分析师')
-    })
-  })
-
   describe('intent recognition (via sendQuestion + flushResponse)', () => {
     it('recognizes metric_query intent for numeric questions', () => {
       const ai = useAiStore()
@@ -128,8 +119,8 @@ describe('AI Store — chat functionality', () => {
     })
   })
 
-  describe('mixed content generation (答案与商品混排)', () => {
-    it('produces text + product-card + source blocks for qaBank match', () => {
+  describe('mixed content generation', () => {
+    it('produces text + product-card + route-badge for qaBank match', () => {
       const ai = useAiStore()
       ai.sendQuestion('货运价格趋势如何')
       ai.flushResponse()
@@ -137,7 +128,19 @@ describe('AI Store — chat functionality', () => {
       const blockTypes = aiMsg.blocks.map((b) => b.type)
       expect(blockTypes).toContain('text')
       expect(blockTypes).toContain('product-card')
-      expect(blockTypes).toContain('source')
+      expect(blockTypes).toContain('route-badge')
+      expect(blockTypes).not.toContain('step')
+      expect(blockTypes).not.toContain('source')
+    })
+
+    it('uses short route labels without role wording', () => {
+      const ai = useAiStore()
+      ai.sendQuestion('货运价格趋势如何')
+      ai.flushResponse()
+      const badge = ai.chatMessages[1].blocks.find((b) => b.type === 'route-badge')
+      expect(badge && badge.type === 'route-badge' && badge.label).toBe('平台内')
+      const textBlocks = ai.chatMessages[1].blocks.filter((b) => b.type === 'text')
+      expect(textBlocks.every((b) => b.type === 'text' && !/业务运营|数据分析师|产品经理|管理层|数仓开发/.test(b.content))).toBe(true)
     })
 
     it('produces metric blocks for metric_query intent with qaBank match', () => {
@@ -148,14 +151,6 @@ describe('AI Store — chat functionality', () => {
       expect(aiMsg.blocks.filter((b) => b.type === 'metric').length).toBeGreaterThan(0)
     })
 
-    it('produces step blocks for process indication', () => {
-      const ai = useAiStore()
-      ai.sendQuestion('货运价格趋势如何')
-      ai.flushResponse()
-      const aiMsg = ai.chatMessages[1]
-      expect(aiMsg.blocks.filter((b) => b.type === 'step').length).toBeGreaterThan(0)
-    })
-
     it('falls back to product recommendations when qaBank misses', () => {
       const ai = useAiStore()
       ai.sendQuestion('活跃度')
@@ -163,7 +158,6 @@ describe('AI Store — chat functionality', () => {
       const aiMsg = ai.chatMessages[1]
       const blockTypes = aiMsg.blocks.map((b) => b.type)
       expect(blockTypes).toContain('text')
-      // Should have at least one product-card from catalog search
       const productCards = aiMsg.blocks.filter((b) => b.type === 'product-card')
       expect(productCards.length).toBeGreaterThan(0)
     })
@@ -172,16 +166,18 @@ describe('AI Store — chat functionality', () => {
       const ai = useAiStore()
       ai.sendQuestion('活跃度')
       ai.flushResponse()
-      expect(ai.chatFollowUps).toContain('查看全部商品')
+      expect(ai.chatFollowUps).toContain('换个问法')
+      expect(ai.chatFollowUps).toContain('提交需求')
     })
 
-    it('includes role context in AI response text', () => {
+    it('shows external zone for external_exploration', () => {
       const ai = useAiStore()
-      ai.setRole('数据分析师')
-      ai.sendQuestion('货运价格趋势如何')
+      ai.sendQuestion('PVC 行业最新限产政策')
       ai.flushResponse()
-      const textBlocks = ai.chatMessages[1].blocks.filter((b) => b.type === 'text')
-      expect(textBlocks.some((b) => b.content.includes('数据分析师'))).toBe(true)
+      const types = ai.chatMessages[1].blocks.map((b) => b.type)
+      expect(types).toContain('external-zone')
+      const badge = ai.chatMessages[1].blocks.find((b) => b.type === 'route-badge')
+      expect(badge && badge.type === 'route-badge' && badge.label).toBe('含外网')
     })
   })
 
@@ -208,12 +204,6 @@ describe('AI Store — chat functionality', () => {
     it('guideQuestions covers the eight data-finding scenarios', () => {
       expect(guideQuestions).toHaveLength(8)
       expect(guideQuestions[0]).toMatchObject({ icon: '📈', text: '货运价格趋势如何', intent: 'answer' })
-    })
-
-    it('roleOptions has 5 roles', () => {
-      expect(roleOptions).toHaveLength(5)
-      expect(roleOptions.map((r) => r.value)).toContain('业务运营')
-      expect(roleOptions.map((r) => r.value)).toContain('数仓开发')
     })
   })
 })

@@ -14,11 +14,13 @@ import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/orders'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
 import { formatYuan, membershipActionFields } from '@/domain/membership'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
-import { resolveProductActions, type ProductActionKey } from '@/domain/productAccess'
+import { resolveProductActions, resolvePurchaseInProgress, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes } from '@/domain/productDetailFields'
@@ -33,6 +35,8 @@ const router = useRouter()
 const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
+const orders = useOrderStore()
+const spaceIntents = useSpaceIntentStore()
 const listingRequests = useListingRequestStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
 
@@ -47,8 +51,15 @@ const purchaseSubject = computed(() => currentPurchaseSubject(user))
 
 const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
 const owned = computed(() => access.value !== 'none')
+const purchaseInProgress = computed(() => resolvePurchaseInProgress({
+  productId: id.value,
+  orders: orders.list,
+  intents: spaceIntents.list,
+  ownerMemberId: user.context.currentMemberId,
+  enterpriseId: user.context.currentEnterpriseId
+}))
 const detailPrice = computed(() => {
-  if (!product.value || owned.value) return null
+  if (!product.value || owned.value || purchaseInProgress.value) return null
   return productDetailPriceSummary(product.value, purchaseSubject.value)
 })
 const currentCommerceOffers = computed(() =>
@@ -79,6 +90,7 @@ const actions = computed(() => {
     hasOpenListingRequest: hasOpenListingRequest.value,
     enterpriseAuthenticated: user.isEnterpriseAuthenticated,
     serviceStatus: current.serviceStatus,
+    purchaseInProgress: purchaseInProgress.value,
     ...membershipActionFields(current, {
       identitySubject: currentPurchaseSubject(user),
       hasEffectiveMembership: entitlements.hasEffectiveMembership,
@@ -93,7 +105,7 @@ const actions = computed(() => {
 
 const dualPath = computed(() => {
   const current = product.value
-  if (!current || owned.value) return { showDualPath: false as const }
+  if (!current || owned.value || purchaseInProgress.value) return { showDualPath: false as const }
   const itemPrice = detailPrice.value?.listPrice
     ?? currentCommerceOffers.value[0]?.price
     ?? 0
@@ -206,6 +218,15 @@ function handleUnlock() {
   goItem()
 }
 
+function goInProgressOrder(orderId: string) {
+  const order = orders.list.find((item) => item.id === orderId)
+  if (order?.status === 'pending_payment' && !order.spaceIntentId && !order.sellerId && order.productType === 'dataset') {
+    void router.push(`/app/payment/dataset/${orderId}`)
+    return
+  }
+  void router.push(`/app/mine/orders/app/${orderId}`)
+}
+
 function handleAction(key: ProductActionKey) {
   switch (key) {
     case 'view':
@@ -223,6 +244,21 @@ function handleAction(key: ProductActionKey) {
     case 'dataset_purchase': goDatasetPayment(); break
     case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
     case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
+    case 'continue_payment':
+    case 'delivery_progress': {
+      const phase = purchaseInProgress.value
+      if (phase && (phase.phase === 'pending_payment' || phase.phase === 'fulfilling')) {
+        goInProgressOrder(phase.orderId)
+      }
+      break
+    }
+    case 'intent_progress': {
+      const phase = purchaseInProgress.value
+      if (phase?.phase === 'space_intent') {
+        void router.push(`/app/mine/orders/intent/${phase.intentId}`)
+      }
+      break
+    }
   }
 }
 </script>

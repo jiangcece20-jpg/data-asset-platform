@@ -25,7 +25,7 @@ const router = useRouter()
 const user = useUserStore()
 const { filterBuyDataOrders } = useMineOrders()
 
-const orderFilters: MyOrderFilter[] = ['all', 'pending_payment', 'processing', 'completed', 'closed']
+const orderFilters: MyOrderFilter[] = ['all', 'intent', 'pending_payment', 'processing', 'completed', 'closed']
 const orderFilter = ref<MyOrderFilter>('all')
 const channelFilter = ref<MineOrderChannelFilter>('all')
 const operatorFilter = ref('all')
@@ -128,7 +128,7 @@ const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-wh
         <button :class="actionPrimary" @click.stop="pay(order)">继续付款</button>
       </template>
     </MineEntityCard>
-    <EmptyState v-if="!filteredOrders.length" icon="🧾" title="暂无符合条件的订单" desc="订单会统一展示个人、企业、APP 与可信空间来源" />
+    <EmptyState v-if="!filteredOrders.length" icon="🧾" title="暂无符合条件的订单" desc="含买数订单与空间试用意向（状态为意向单）" />
   </section>
 
   <section v-else class="space-y-3" data-testid="portal-my-orders">

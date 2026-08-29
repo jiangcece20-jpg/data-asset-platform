@@ -4,16 +4,11 @@ import { setActivePinia, createPinia } from 'pinia'
 import ChatInterface from './ChatInterface.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { seedProducts } from '@/data/products'
-import type { ChatMessage, GuideQuestion, RoleOption } from '@/types/aiChat'
+import type { ChatMessage, GuideQuestion } from '@/types/aiChat'
 
 const guides: GuideQuestion[] = [
   { icon: '📈', text: '货运价格趋势如何', intent: 'answer' },
   { icon: '🔍', text: '有没有资格核验类的数据产品', intent: 'search' },
-]
-
-const roleOptions: RoleOption[] = [
-  { value: '业务运营', label: '业务运营', icon: '📊' },
-  { value: '数据分析师', label: '数据分析师', icon: '🔬' },
 ]
 
 function makeMessage(role: 'user' | 'ai', blocks: ChatMessage['blocks']): ChatMessage {
@@ -27,8 +22,6 @@ function mountChat(props: Partial<InstanceType<typeof ChatInterface>['$props']> 
       guides,
       followUps: [],
       typing: false,
-      role: '业务运营',
-      roleOptions,
       ...props,
     },
   })
@@ -44,7 +37,7 @@ describe('ChatInterface', () => {
   describe('empty state', () => {
     it('renders guide questions when no messages', () => {
       const wrapper = mountChat()
-      expect(wrapper.text()).toContain('用自然语言找数据')
+      expect(wrapper.text()).toContain('用自然语言找数')
       expect(wrapper.text()).toContain('货运价格趋势如何')
       expect(wrapper.text()).toContain('有没有资格核验类的数据产品')
     })
@@ -59,22 +52,6 @@ describe('ChatInterface', () => {
     })
   })
 
-  describe('role selector', () => {
-    it('renders role options', () => {
-      const wrapper = mountChat()
-      expect(wrapper.text()).toContain('📊 业务运营')
-      expect(wrapper.text()).toContain('🔬 数据分析师')
-    })
-
-    it('emits changeRole when role is clicked', async () => {
-      const wrapper = mountChat()
-      const roleBtn = wrapper.findAll('button').find((b) => b.text().includes('数据分析师'))
-      await roleBtn?.trigger('click')
-      expect(wrapper.emitted('changeRole')).toBeTruthy()
-      expect(wrapper.emitted('changeRole')![0]).toEqual(['数据分析师'])
-    })
-  })
-
   describe('messages rendering', () => {
     it('renders user message', () => {
       const msg = makeMessage('user', [{ type: 'text', content: '你好' }])
@@ -86,16 +63,6 @@ describe('ChatInterface', () => {
       const msg = makeMessage('ai', [{ type: 'text', content: '这是AI回答' }])
       const wrapper = mountChat({ messages: [msg] })
       expect(wrapper.text()).toContain('这是AI回答')
-    })
-
-    it('renders step blocks', () => {
-      const msg = makeMessage('ai', [
-        { type: 'step', label: '解析问题', status: 'done' },
-        { type: 'step', label: '检索元数据', status: 'done' },
-      ])
-      const wrapper = mountChat({ messages: [msg] })
-      expect(wrapper.text()).toContain('解析问题')
-      expect(wrapper.text()).toContain('检索元数据')
     })
 
     it('renders metric blocks', () => {
@@ -115,62 +82,60 @@ describe('ChatInterface', () => {
       const wrapper = mountChat({ messages: [msg] })
       const product = seedProducts.find((p) => p.id === 'prod-freight-index')!
       expect(wrapper.text()).toContain(product.name)
-      expect(wrapper.text()).toContain('匹配"货运"关键词')
-      // Click the product card
       const card = wrapper.find('[class*="cursor-pointer"]')
       await card.trigger('click')
       expect(wrapper.emitted('navigateProduct')).toBeTruthy()
       expect(wrapper.emitted('navigateProduct')![0]).toEqual(['prod-freight-index'])
     })
 
-    it('renders source block', () => {
+    it('renders mixed content in a single AI message', () => {
       const msg = makeMessage('ai', [
-        { type: 'source', title: '全国货运价格指数', productId: 'prod-freight-index', locked: false },
-      ])
-      const wrapper = mountChat({ messages: [msg] })
-      expect(wrapper.text()).toContain('全国货运价格指数')
-      expect(wrapper.text()).toContain('📄')
-    })
-
-    it('renders locked source with lock icon', () => {
-      const msg = makeMessage('ai', [
-        { type: 'source', title: '锁定来源', locked: true },
-      ])
-      const wrapper = mountChat({ messages: [msg] })
-      expect(wrapper.text()).toContain('🔒')
-      expect(wrapper.text()).toContain('锁定来源')
-    })
-
-    it('renders mixed content in a single AI message (答案与商品混排)', () => {
-      const msg = makeMessage('ai', [
-        { type: 'step', label: '解析问题', status: 'done' },
-        { type: 'text', content: '根据你的角色，为你找到了以下分析结果：' },
+        { type: 'route-badge', route: 'processing_query', label: '平台内' },
         { type: 'text', content: '货运价格指数呈上涨趋势。' },
         { type: 'metric', label: '货运价格指数', value: '108.6', change: '+0.4%', dir: 'up', period: '环比' },
-        { type: 'product-card', productId: 'prod-freight-index', reason: '匹配"货运"关键词' },
-        { type: 'source', title: '全国货运价格指数', productId: 'prod-freight-index', locked: false },
+        { type: 'product-card', productId: 'prod-freight-index' },
       ])
       const wrapper = mountChat({ messages: [msg] })
       const text = wrapper.text()
-      expect(text).toContain('解析问题')
-      expect(text).toContain('根据你的角色')
+      expect(text).toContain('平台内')
       expect(text).toContain('货运价格指数呈上涨趋势')
       expect(text).toContain('108.6')
-      expect(text).toContain('全国货运价格指数')
+    })
+
+    it('renders route badge and external zone blocks', () => {
+      const msg = makeMessage('ai', [
+        { type: 'route-badge', route: 'external_exploration', label: '含外网' },
+        {
+          type: 'external-zone',
+          summary: '外网摘要',
+          sources: [{ title: '来源A', url: 'https://example.com' }]
+        }
+      ])
+      const wrapper = mountChat({ messages: [msg] })
+      expect(wrapper.get('[data-testid="route-badge"]').text()).toContain('含外网')
+      expect(wrapper.get('[data-testid="external-zone"]').text()).toContain('来自外网')
+      expect(wrapper.text()).toContain('外网摘要')
+    })
+
+    it('emits downgradeKeyword from toolbar and special follow-up', async () => {
+      const wrapper = mountChat({ followUps: ['只看平台内数据'] })
+      await wrapper.get('[data-testid="downgrade-keyword"]').trigger('click')
+      expect(wrapper.emitted('downgradeKeyword')).toBeTruthy()
+      const fuBtn = wrapper.findAll('button').find((b) => b.text() === '只看平台内数据')
+      await fuBtn?.trigger('click')
+      expect(wrapper.emitted('downgradeKeyword')!.length).toBe(2)
     })
   })
 
   describe('typing animation', () => {
     it('shows typing dots when typing is true', () => {
       const wrapper = mountChat({ typing: true })
-      const typingEl = wrapper.find('.animate-bounce')
-      expect(typingEl.exists()).toBe(true)
+      expect(wrapper.find('.animate-bounce').exists()).toBe(true)
     })
 
     it('does not show typing dots when typing is false', () => {
       const wrapper = mountChat({ typing: false })
-      const typingEl = wrapper.find('.animate-bounce')
-      expect(typingEl.exists()).toBe(false)
+      expect(wrapper.find('.animate-bounce').exists()).toBe(false)
     })
   })
 

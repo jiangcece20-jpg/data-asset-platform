@@ -61,7 +61,7 @@ function cardSummary(product: Product) {
       </div>
       <div class="mt-3 flex justify-center gap-3 text-xs">
         <button class="rounded-full bg-white/20 px-3 py-1 text-white hover:bg-white/30" @click="goSearch">🔍 关键词搜索</button>
-        <button class="rounded-full bg-white/20 px-3 py-1 text-white hover:bg-white/30" @click="router.push({ path: '/portal/search', query: { mode: 'ai' } })">🤖 AI问答</button>
+        <button class="rounded-full bg-white/20 px-3 py-1 text-white hover:bg-white/30" @click="router.push('/portal/ai-chat')">🤖 AI问答</button>
         <button class="rounded-full bg-white/20 px-3 py-1 text-white hover:bg-white/30" @click="router.push('/portal/demand')">📝 需求提报</button>
       </div>
     </div>

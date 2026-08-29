@@ -5,7 +5,8 @@ const route = useRoute()
 
 const nav = [
   { path: '/portal/home', label: '门户首页', icon: '📊' },
-  { path: '/portal/search', label: '搜索发现', icon: '🔍' },
+  { path: '/portal/search', label: '关键词搜索', icon: '🔍' },
+  { path: '/portal/ai-chat', label: 'AI 问答', icon: '🤖' },
   { path: '/portal/mine', label: '我的', icon: '👤' },
   { path: '/portal/demand', label: '需求提报', icon: '📝' }
 ]

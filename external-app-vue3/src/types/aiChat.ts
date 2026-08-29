@@ -6,16 +6,20 @@
 /** 意图类型 — 决定 AI 回复的内容结构 */
 export type ChatIntent = 'answer' | 'search' | 'metric_query' | 'unknown'
 
-/** 用户角色 — 场景化推荐的基础 */
-export type ChatRole = '业务运营' | '产品经理' | '管理层' | '数据分析师' | '数仓开发'
+/** 找数三路由（与 domain/discoverRouting 对齐） */
+export type ChatDiscoverRoute = 'known_lookup' | 'processing_query' | 'external_exploration'
 
-/** 消息内容块 — 支持"答案与商品混排"的结构化渲染 */
+/** 消息内容块 — 答案与商品混排 */
 export type MessageBlock =
   | { type: 'text'; content: string }
-  | { type: 'product-card'; productId: string; reason: string }
+  | { type: 'product-card'; productId: string; reason?: string }
   | { type: 'metric'; label: string; value: string; change?: string; dir?: 'up' | 'down'; period?: string }
-  | { type: 'source'; title: string; productId?: string; locked: boolean }
-  | { type: 'step'; label: string; status: 'pending' | 'running' | 'done' | 'failed' }
+  | { type: 'route-badge'; route: ChatDiscoverRoute; label: string; confidence?: number }
+  | {
+      type: 'external-zone'
+      summary: string
+      sources: { title: string; url: string }[]
+    }
 
 /** 聊天消息 */
 export interface ChatMessage {
@@ -23,6 +27,7 @@ export interface ChatMessage {
   role: 'user' | 'ai'
   blocks: MessageBlock[]
   intent?: ChatIntent
+  route?: ChatDiscoverRoute
   createdAt: string
 }
 
@@ -31,11 +36,4 @@ export interface GuideQuestion {
   icon: string
   text: string
   intent: ChatIntent
-}
-
-/** 角色选项 */
-export interface RoleOption {
-  value: ChatRole
-  label: string
-  icon: string
 }

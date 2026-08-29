@@ -640,6 +640,7 @@ export type PaymentMethod =
   | 'enterprise_contract'
   | 'enterprise_bank_transfer'
 export type AppOrderStatus =
+  | 'intent'
   | 'pending_approval'
   | 'approval_rejected'
   | 'pending_payment'

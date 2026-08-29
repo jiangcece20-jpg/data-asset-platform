@@ -1,9 +1,10 @@
-import type { AcquisitionOption, AvailabilityStatus, ProductOrigin, StandardProductType } from '@/types/domain'
+import type { AcquisitionOption, AppOrderStatus, AvailabilityStatus, Order, ProductOrigin, StandardProductType } from '@/types/domain'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedPurchaseCheck } from '@/types/trustedSpace'
+import type { SpaceIntentOrder, SpaceIntentUserStatus } from '@/types/spaceIntent'
 import type { PurchaseIdentitySubject } from '@/domain/purchaseIdentity'
 import { formatYuan, type ProductMemberBenefit } from '@/domain/membership'
-import { SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
+import { SPACE_TRIAL_APPLY_LABEL, userStatusOf } from '@/domain/spaceIntent'
 
 export type ProductActionKey =
   | 'view'
@@ -16,6 +17,9 @@ export type ProductActionKey =
   | 'member_purchase'
   | 'item_purchase'
   | 'dataset_purchase'
+  | 'continue_payment'
+  | 'delivery_progress'
+  | 'intent_progress'
   | 'unavailable'
 
 export interface ProductAction {
@@ -23,6 +27,12 @@ export interface ProductAction {
   label: string
   disabled?: boolean
 }
+
+/** 购买中：已下单未发权，或空间意向未转买数。 */
+export type PurchaseInProgress =
+  | { phase: 'pending_payment'; orderId: string; canPay: boolean }
+  | { phase: 'fulfilling'; orderId: string; status: AppOrderStatus }
+  | { phase: 'space_intent'; intentId: string; userStatus: Extract<SpaceIntentUserStatus, 'submitted' | 'processing'> }
 
 export interface ProductActionContext {
   type: StandardProductType
@@ -41,6 +51,60 @@ export interface ProductActionContext {
   memberItemPrice?: number
   discountZhe?: number
   origin?: ProductOrigin
+  /** 当前主体对该商品的进行中订单/意向；有则详情底栏进「购买中」文案 */
+  purchaseInProgress?: PurchaseInProgress | null
+}
+
+const FULFILLING_ORDER_STATUSES: AppOrderStatus[] = [
+  'pending_approval',
+  'payment_pending_confirmation',
+  'paid',
+  'pending_activation'
+]
+
+/**
+ * 从订单与意向单推导「购买中」相位。优先最近一笔未完成 APP 订单，再看未转单的空间意向。
+ */
+export function resolvePurchaseInProgress(input: {
+  productId: string
+  orders: Order[]
+  intents: SpaceIntentOrder[]
+  ownerMemberId: string
+  enterpriseId?: string
+}): PurchaseInProgress | null {
+  const { productId, orders, intents, ownerMemberId, enterpriseId } = input
+  const openOrders = orders
+    .filter((order) => {
+      if (order.productId !== productId) return false
+      if (order.ownerType === 'personal') return order.ownerId === ownerMemberId
+      return Boolean(enterpriseId) && order.ownerId === enterpriseId
+    })
+    .filter((order) =>
+      order.status === 'pending_payment' || FULFILLING_ORDER_STATUSES.includes(order.status)
+    )
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+  const order = openOrders[0]
+  if (order) {
+    if (order.status === 'pending_payment') {
+      const canPay = !order.spaceIntentId && !order.sellerId
+      return { phase: 'pending_payment', orderId: order.id, canPay }
+    }
+    return { phase: 'fulfilling', orderId: order.id, status: order.status }
+  }
+
+  const intent = intents
+    .filter((item) =>
+      item.productId === productId
+      && item.ownerMemberId === ownerMemberId
+      && (item.opsStatus === 'unclaimed' || item.opsStatus === 'processing')
+    )
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
+
+  if (!intent) return null
+  const userStatus = userStatusOf(intent.opsStatus)
+  if (userStatus !== 'submitted' && userStatus !== 'processing') return null
+  return { phase: 'space_intent', intentId: intent.id, userStatus }
 }
 
 export function resolveProductActions(context: ProductActionContext): {
@@ -58,6 +122,10 @@ export function resolveProductActions(context: ProductActionContext): {
   }
 
   if (context.hasAccess) return { primary: { key: 'view', label: '立即查看' } }
+
+  const inProgress = resolveInProgressAction(context.purchaseInProgress)
+  if (inProgress) return inProgress
+
   if (context.availability === 'candidate') {
     return {
       primary: context.hasOpenListingRequest
@@ -86,6 +154,29 @@ export function resolveProductActions(context: ProductActionContext): {
     return resolveMemberAwareActions(context)
   }
   return { primary: { key: 'item_purchase', label: itemPurchaseLabel(context, '单品购买') } }
+}
+
+function resolveInProgressAction(phase: PurchaseInProgress | null | undefined): {
+  primary: ProductAction
+  secondary?: ProductAction
+} | null {
+  if (!phase) return null
+  if (phase.phase === 'pending_payment') {
+    return { primary: { key: 'continue_payment', label: '继续付款' } }
+  }
+  if (phase.phase === 'fulfilling') {
+    const label =
+      phase.status === 'pending_activation' ? '待开通'
+        : phase.status === 'payment_pending_confirmation' ? '付款确认中'
+          : '查看交付进度'
+    return { primary: { key: 'delivery_progress', label } }
+  }
+  return {
+    primary: {
+      key: 'intent_progress',
+      label: phase.userStatus === 'submitted' ? '查看订单' : '意向处理中'
+    }
+  }
 }
 
 function itemPriceText(amount?: number): string {
@@ -146,6 +237,9 @@ const listActionLabelByKey: Record<ProductActionKey, string> = {
   member_purchase: '开通会员',
   item_purchase: '购买',
   dataset_purchase: '购买数据集',
+  continue_payment: '继续付款',
+  delivery_progress: '查看交付进度',
+  intent_progress: '查看订单',
   unavailable: '暂不可购'
 }
 
@@ -158,5 +252,7 @@ export function resolveProductListActionHint(context: ProductActionContext): str
     if (context.type === 'dataset') return '购买数据集'
     return '购买'
   }
+  if (primary.key === 'delivery_progress') return primary.label
+  if (primary.key === 'intent_progress') return primary.label
   return listActionLabelByKey[primary.key] ?? primary.label
 }

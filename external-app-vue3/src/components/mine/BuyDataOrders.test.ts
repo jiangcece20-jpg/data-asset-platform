@@ -6,6 +6,7 @@ import BuyDataOrders from './BuyDataOrders.vue'
 import { useOrderStore } from '@/stores/orders'
 import { useUserStore } from '@/stores/user'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
 
 const Dummy = { template: '<div />' }
 
@@ -74,6 +75,27 @@ describe('BuyDataOrders', () => {
 
     expect(wrapper.text()).toContain('全国货车轨迹热力数据集')
     expect(wrapper.text()).not.toContain('标准VIP')
+  })
+
+  it('shows intent filter and merges space intents as status 意向单', async () => {
+    useUserStore().completeEnterpriseAuth()
+    useSpaceIntentStore().list = []
+    const intent = useSpaceIntentStore().submit({
+      productId: 'prod-enterprise-activity',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '试用'
+    })
+    const { wrapper } = await mountBuyDataOrders()
+
+    expect(wrapper.findAll('button').some((btn) => btn.text() === '意向单')).toBe(true)
+    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
+    expect(wrapper.text()).toContain('意向单')
+
+    const intentChip = wrapper.findAll('button').find((btn) => btn.text() === '意向单')
+    await intentChip!.trigger('click')
+    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(false)
   })
 
   it('keeps list cards compact: type, name, status, amount, time; no dense meta or extra actions', async () => {

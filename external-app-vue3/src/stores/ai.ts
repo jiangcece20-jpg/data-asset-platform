@@ -1,9 +1,21 @@
 import { defineStore } from 'pinia'
 import type { AnswerSession } from '@/types/domain'
-import type { ChatMessage, ChatIntent, ChatRole, GuideQuestion, MessageBlock, RoleOption } from '@/types/aiChat'
+import type {
+  ChatMessage,
+  ChatIntent,
+  ChatDiscoverRoute,
+  GuideQuestion,
+  MessageBlock
+} from '@/types/aiChat'
 import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
+import {
+  buildRetrievalHits,
+  computeCompleteness,
+  decideRoute,
+  mockExternalAnswer
+} from '@/domain/discoverRouting'
 
 interface QaEntry {
   keywords: string[]
@@ -35,14 +47,13 @@ export const guideQuestions: GuideQuestion[] = [
   { icon: '📰', text: '有没有物流政策速递', intent: 'search' },
 ]
 
-// ── 角色选项 ──────────────────────────────────────────
-export const roleOptions: RoleOption[] = [
-  { value: '业务运营', label: '业务运营', icon: '📊' },
-  { value: '产品经理', label: '产品经理', icon: '🎯' },
-  { value: '管理层', label: '管理层', icon: '👤' },
-  { value: '数据分析师', label: '数据分析师', icon: '🔬' },
-  { value: '数仓开发', label: '数仓开发', icon: '⚙️' },
-]
+// ── 通用追问（精简） ──────────────────────────────────
+const genericFollowUps: Record<ChatIntent, string[]> = {
+  answer: ['换个问法', '提交需求'],
+  search: ['换个问法', '提交需求'],
+  metric_query: ['近 30 天趋势', '换个问法'],
+  unknown: ['换个问法', '提交需求'],
+}
 
 // ── 意图识别（统一输入 → 意图分类） ────────────────────
 function recognizeIntent(text: string): ChatIntent {
@@ -51,14 +62,6 @@ function recognizeIntent(text: string): ChatIntent {
   if (/(趋势|表现|如何|怎么|是什么|为什么|分析|走势|情况|月报)/.test(q)) return 'answer'
   if (/(找|搜索|哪些|有没有|推荐|需要|想要|可以提供|看板|数据集|接口|api)/.test(q)) return 'search'
   return 'unknown'
-}
-
-// ── 通用追问 ──────────────────────────────────────────
-const genericFollowUps: Record<ChatIntent, string[]> = {
-  answer: ['切换到找数据看更多商品', '提交需求'],
-  search: ['换一组关键词试试', '查看全部商品', '提交需求'],
-  metric_query: ['查看完整指标看板', '近 30 天趋势', '按城市分布'],
-  unknown: ['换个关键词试试', '查看全部商品', '提交需求'],
 }
 
 // 固定演示问答库：覆盖“问货运价格趋势”等核心链路
@@ -103,12 +106,12 @@ export const useAiStore = defineStore('ai', {
     // ── 新版聊天状态 ──
     chatMessages: [] as ChatMessage[],
     chatTyping: false,
-    currentRole: '业务运营' as ChatRole,
     chatFollowUps: [] as string[],
     // 最近提问（合并入口后用于「找数」首页的最近记录）
     recentQuestions: [] as string[],
     _pendingBlocks: null as MessageBlock[] | null,
     _pendingIntent: 'unknown' as ChatIntent,
+    _pendingRoute: 'processing_query' as ChatDiscoverRoute,
     _pendingFollowUps: [] as string[],
   }),
   getters: {
@@ -136,14 +139,15 @@ export const useAiStore = defineStore('ai', {
         createdAt: now(),
       })
 
-      // 2. 意图识别
+      // 2. 意图识别 + 三路由决策
       const intent = recognizeIntent(question)
       this._pendingIntent = intent
 
-      // 3. 生成混排内容块
-      const { blocks, followUps } = this._generateResponse(question, intent)
+      // 3. 生成混排内容块（含路由徽章 / 外网分区）
+      const { blocks, followUps, route } = this._generateResponse(question, intent)
       this._pendingBlocks = blocks
       this._pendingFollowUps = followUps
+      this._pendingRoute = route
 
       // 4. 进入 typing 状态
       this.chatTyping = true
@@ -158,6 +162,7 @@ export const useAiStore = defineStore('ai', {
         role: 'ai',
         blocks: this._pendingBlocks,
         intent: this._pendingIntent,
+        route: this._pendingRoute,
         createdAt: now(),
       })
       this._pendingBlocks = null
@@ -172,100 +177,108 @@ export const useAiStore = defineStore('ai', {
       this.chatFollowUps = []
       this._pendingBlocks = null
       this._pendingFollowUps = []
+      this._pendingRoute = 'processing_query'
     },
 
-    // ── 聊天：切换角色 ──────────────────────────────────
-    setRole(role: ChatRole) {
-      this.currentRole = role
-    },
-
-    // ── 内部：生成混排响应 ──────────────────────────────
-    _generateResponse(question: string, intent: ChatIntent): { blocks: MessageBlock[]; followUps: string[] } {
+    // ── 内部：生成混排响应（精简呈现） ──────────────────
+    _generateResponse(
+      question: string,
+      intent: ChatIntent
+    ): { blocks: MessageBlock[]; followUps: string[]; route: ChatDiscoverRoute } {
       const entitlements = useEntitlementStore()
       const catalog = useCatalogStore()
       const q = question.toLowerCase()
-      const matched = qaBank.find((e) => e.keywords.some((k) => q.includes(k.toLowerCase())))
-      const role = this.currentRole
+      const products = catalog.search(question)
+      const hits = buildRetrievalHits(products, question)
+      const decision = decideRoute({
+        entry: 'ai',
+        query: question,
+        retrievalHits: hits,
+        dataCompleteness: computeCompleteness(hits)
+      })
+      const routeBadge: MessageBlock = {
+        type: 'route-badge',
+        route: decision.route,
+        label: decision.route === 'external_exploration' ? '含外网' : '平台内'
+      }
 
-      // 命中问答库
+      // 路由 3：外网分区 + 平台内相关商品
+      if (decision.route === 'external_exploration') {
+        const external = mockExternalAnswer(question)
+        const blocks: MessageBlock[] = [
+          routeBadge,
+          { type: 'external-zone', summary: external.summary, sources: external.sources }
+        ]
+        for (const p of products.slice(0, 2)) {
+          blocks.push({
+            type: 'product-card',
+            productId: p.id,
+            reason: '平台相关'
+          })
+        }
+        return {
+          blocks,
+          followUps: products.length ? ['只看平台内数据', '换个问法'] : ['只看平台内数据', '提交需求'],
+          route: decision.route
+        }
+      }
+
+      const matched = qaBank.find((e) => e.keywords.some((k) => q.includes(k.toLowerCase())))
+
+      // 命中问答库（路由 2）
       if (matched) {
         const product = catalog.byId(matched.productId)
         const access = product ? entitlements.accessLevel(product) : 'none'
         const unlocked = access !== 'none'
-        const blocks: MessageBlock[] = []
-
-        // 步骤指示
-        blocks.push({ type: 'step', label: '解析问题', status: 'done' })
-        blocks.push({ type: 'step', label: '检索元数据', status: 'done' })
-
-        // 文本答案
-        blocks.push({ type: 'text', content: `根据你的角色（${role}），为你找到了以下分析结果：` })
-        blocks.push({ type: 'text', content: unlocked ? matched.teaser : matched.teaser })
+        const blocks: MessageBlock[] = [routeBadge, { type: 'text', content: matched.teaser }]
 
         if (unlocked && matched.fullFacts.length) {
           for (const fact of matched.fullFacts) {
             blocks.push({ type: 'text', content: fact })
           }
         } else if (!unlocked) {
-          blocks.push({ type: 'text', content: '🔒 精确数值与完整分析已锁定，购买后可解锁。' })
+          blocks.push({ type: 'text', content: '精确数值需购买后解锁。' })
         }
 
-        // 指标块（metric_query 意图或问答库有 metrics）
         if (intent === 'metric_query' && matched.metrics) {
           for (const m of matched.metrics) {
             blocks.push({ type: 'metric', ...m })
           }
         }
 
-        // 商品卡片（混排核心：答案 + 商品在同一消息）
         if (product) {
           blocks.push({
             type: 'product-card',
             productId: product.id,
-            reason: matched.keywords.some((k) => q.includes(k.toLowerCase()))
-              ? `匹配"${matched.keywords[0]}"关键词`
-              : '关联数据来源',
+            reason: '数据来源'
           })
         }
 
-        // 来源
-        blocks.push({
-          type: 'source',
-          title: product?.name || matched.productId,
-          productId: matched.productId,
-          locked: !unlocked,
-        })
-
-        return { blocks, followUps: matched.followUps }
+        return { blocks, followUps: matched.followUps, route: decision.route }
       }
 
-      // 未命中问答库 — 转为商品推荐
-      const candidates = catalog.search(question)
-      const blocks: MessageBlock[] = []
-
-      blocks.push({ type: 'step', label: '解析问题', status: 'done' })
-      blocks.push({ type: 'step', label: '检索商品库', status: 'done' })
-
-      if (candidates.length > 0) {
+      // 未命中问答库 — 推荐商品
+      const blocks: MessageBlock[] = [routeBadge]
+      if (products.length > 0) {
         blocks.push({
           type: 'text',
-          content: `没有找到直接答案，但为你推荐了 ${candidates.length} 个相关商品：`,
+          content: `为你找到 ${Math.min(products.length, 3)} 个相关商品：`
         })
-        for (const p of candidates.slice(0, 3)) {
+        for (const p of products.slice(0, 3)) {
           blocks.push({
             type: 'product-card',
             productId: p.id,
-            reason: `匹配关键词"${question}"`,
+            reason: '相关推荐'
           })
         }
       } else {
         blocks.push({
           type: 'text',
-          content: '暂未找到匹配的商品，你可以换个关键词试试，或提交需求由运营跟进。',
+          content: '暂未找到匹配内容，可换个问法或提交需求。'
         })
       }
 
-      return { blocks, followUps: genericFollowUps[intent] }
+      return { blocks, followUps: genericFollowUps[intent], route: decision.route }
     },
     ask(question: string, mode: 'auto' | 'answer' | 'search'): AnswerSession {
       const entitlements = useEntitlementStore()

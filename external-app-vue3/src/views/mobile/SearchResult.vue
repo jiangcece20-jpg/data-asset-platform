@@ -93,7 +93,7 @@ function matchReason(): string {
 function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
   const q = query.value.trim()
   if (!q) return
-  router.push({ path: '/app/answer', query: { q, entry: 'ai', from } })
+  router.push({ path: '/app/ai-find', query: { q, entry: 'ai', from } })
 }
 </script>
 
@@ -107,11 +107,10 @@ function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
         <input v-model="query" placeholder="搜索商品名称、场景或关键词" class="flex-1 text-[13px] focus:outline-none" />
       </div>
       <div
-        class="mt-2 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500"
+        class="mt-2 inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500"
         data-testid="route-badge"
       >
-        <span>{{ ROUTE_META.known_lookup.shortLabel }}</span>
-        <span>{{ ROUTE_META.known_lookup.label }}</span>
+        {{ ROUTE_META.known_lookup.label }}
       </div>
     </div>
 
@@ -120,8 +119,8 @@ function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
     </div>
 
     <div class="mt-3 px-4 text-[11px] text-slate-400">
-      共 {{ results.length }} 个结果 · 匹配原因：{{ matchReason() }}
-      <span v-if="results.length > 0 && results.length < 10"> · 已展示全部</span>
+      共 {{ results.length }} 个结果
+      <span v-if="query.trim()"> · {{ matchReason() }}</span>
     </div>
 
     <div v-if="results.length" class="mt-2 space-y-2.5 px-4">

@@ -50,19 +50,19 @@ export const ROUTE_META: Record<
   { label: string; shortLabel: string; description: string }
 > = {
   known_lookup: {
-    label: '已知型查找',
-    shortLabel: '路由 1',
-    description: '关键词匹配，直接返回结构化结果'
+    label: '关键词',
+    shortLabel: '关键词',
+    description: '关键词匹配商品列表'
   },
   processing_query: {
-    label: '加工型询问',
-    shortLabel: '路由 2',
-    description: '平台内检索 + AI 组织答案'
+    label: '平台内',
+    shortLabel: '平台内',
+    description: '平台内检索并组织答案'
   },
   external_exploration: {
-    label: '外延型探索',
-    shortLabel: '路由 3',
-    description: '平台数据不足，补充外网信息（出域）'
+    label: '含外网',
+    shortLabel: '含外网',
+    description: '补充外网公开信息'
   }
 }
 
@@ -227,17 +227,16 @@ export function buildRetrievalHits(products: Product[], query: string): Retrieva
 }
 
 export function formatMatchExplain(hit: Pick<RetrievalHit, 'score' | 'matchedFields'>): string {
-  const fields = hit.matchedFields.join('、')
-  return `命中 ${fields} · 相关度 ${(hit.score * 100).toFixed(0)}%`
+  return hit.matchedFields.join(' · ')
 }
 
 /** 路由 3 原型：外网整合答案 mock（Phase 1 占位，Phase 3 接真实 adapter） */
 export function mockExternalAnswer(query: string): { summary: string; sources: { title: string; url: string }[] } {
   return {
-    summary: `基于公开外网信息对「${query}」的整理：相关政策与市场动态仍在变化，以下结论仅供辅助参考，采购决策请以平台内可验证数据为准。`,
+    summary: `关于「${query}」的公开信息整理如下，仅供参考；采购请以平台内可验证数据为准。`,
     sources: [
-      { title: '行业政策速递（外网）', url: 'https://example.com/policy' },
-      { title: '市场资讯摘要（外网）', url: 'https://example.com/market' }
+      { title: '行业政策速递', url: 'https://example.com/policy' },
+      { title: '市场资讯摘要', url: 'https://example.com/market' }
     ]
   }
 }

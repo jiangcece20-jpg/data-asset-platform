@@ -2,10 +2,17 @@ import { computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
 import { useSpaceOrderStore } from '@/stores/spaceOrders'
+import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useEntitlementStore } from '@/stores/entitlements'
-import { appOrderCard, spaceOrderCard, type MyOrderCard, type MyOrderFilter } from '@/domain/myCenter'
+import {
+  appOrderCard,
+  spaceIntentCard,
+  spaceOrderCard,
+  type MyOrderCard,
+  type MyOrderFilter
+} from '@/domain/myCenter'
 import { orderExpiryText } from '@/domain/orderExpiry'
 import type { Entitlement } from '@/types/domain'
 
@@ -24,11 +31,7 @@ export interface FilterBuyDataOrdersOptions {
 
 /**
  * 迁出自 Mine.vue / PortalMine.vue 的订单聚合与过滤逻辑。
- * 买数订单列表（会员/VIP 之外）由 allOrders 提供；
- * filterBuyDataOrders 展示数据集，以及由空间意向单转入的 API 订单。
- */
-/**
- * 注入续订信息（持续更新数据集 + 有有效期 → 显示续订提示）
+ * 买数订单列表：数据集订单、空间试用意向（状态=意向单）、空间意向转入订单、空间镜像。
  */
 function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefined): MyOrderCard {
   if (!card.productType || card.productType !== 'dataset') return card
@@ -47,10 +50,21 @@ function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefin
   return card
 }
 
+function isBuyDataCard(order: MyOrderCard): boolean {
+  return (
+    order.source === 'intent'
+    || order.status === 'intent'
+    || order.productType === 'dataset'
+    || Boolean(order.spaceIntentId)
+    || order.source === 'space'
+  )
+}
+
 export function useMineOrders() {
   const user = useUserStore()
   const orders = useOrderStore()
   const spaceOrders = useSpaceOrderStore()
+  const spaceIntents = useSpaceIntentStore()
   const catalog = useCatalogStore()
   const datasetCommerce = useDatasetCommerceStore()
   const entitlements = useEntitlementStore()
@@ -99,17 +113,28 @@ export function useMineOrders() {
       ? spaceOrders.visibleFor(enterpriseContext).map((order) => spaceOrderCard(order, catalog.byId(order.appProductId)?.type, user.enterprise.name))
       : []
 
-    return [...appCards, ...spaceCards].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    const intentCards = spaceIntents
+      .userVisibleByOwner(user.context.currentMemberId)
+      .map((intent) =>
+        spaceIntentCard(
+          intent,
+          catalog.byId(intent.productId)?.name ?? intent.productId,
+          user.enterprise.name
+        )
+      )
+
+    return [...appCards, ...spaceCards, ...intentCards].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   })
 
   function filterBuyDataOrders(opts: FilterBuyDataOrdersOptions): MyOrderCard[] {
     const { orderFilter, subjectFilter, channelFilter, operatorFilter, createdAfter } = opts
     return allOrders.value.filter((order) => (
-      order.productType === 'dataset'
-      || Boolean(order.spaceIntentId)
+      isBuyDataCard(order)
       && (orderFilter === 'all' || order.filter === orderFilter)
       && (subjectFilter === 'all' || order.ownerType === subjectFilter)
-      && (channelFilter === 'all' || order.source === channelFilter)
+      && (channelFilter === 'all'
+        || (channelFilter === 'app' && (order.source === 'app' || order.source === 'intent'))
+        || (channelFilter === 'space' && order.source === 'space'))
       && (!operatorFilter || operatorFilter === 'all' || order.operatorMemberId === operatorFilter)
       && (!createdAfter || new Date(order.createdAt).getTime() >= createdAfter)
     ))

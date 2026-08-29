@@ -1,29 +1,49 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import { useAiStore } from '@/stores/ai'
 import { typeMeta, priceDisplay } from '@/utils/productMeta'
 import type { Product, ProductType } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 import { productCardSummary } from '@/domain/productCardSummary'
 import ProductChips from '@/components/shared/ProductChips.vue'
 import ProductSearchFilters from '@/components/shared/ProductSearchFilters.vue'
+import {
+  ROUTE_META,
+  buildRetrievalHits,
+  explainProductMatch,
+  formatMatchExplain
+} from '@/domain/discoverRouting'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
-const ai = useAiStore()
 
-type SearchMode = 'keyword' | 'ai'
-const mode = ref<SearchMode>(route.query.mode === 'ai' ? 'ai' : 'keyword')
-const query = ref('')
-const aiAnswer = ref('')
+const query = ref(String(route.query.q || ''))
 const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
-const activeType = ref<ProductType | ''>('')
-const activeVenue = ref('')
+const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
+const activeVenue = ref(String(route.query.venue || ''))
 
-// 关键词模式结果
+watch(
+  () => route.query.q,
+  (q) => {
+    query.value = String(q || '')
+  }
+)
+
+watch(
+  () => route.query.mode,
+  (mode) => {
+    if (mode === 'ai') {
+      router.replace({
+        path: '/portal/ai-chat',
+        query: { q: query.value || undefined, entry: 'ai' }
+      })
+    }
+  },
+  { immediate: true }
+)
+
 const marketResults = computed(() => {
   const results = catalog.search(query.value, {
     type: activeType.value || undefined,
@@ -38,9 +58,18 @@ const marketResults = computed(() => {
   return results
 })
 
+const rankedHits = computed(() => buildRetrievalHits(marketResults.value, query.value))
+
+function matchExplainFor(productId: string) {
+  const product = catalog.byId(productId)
+  if (!product) return ''
+  const hit = rankedHits.value.find((item) => item.id === productId)
+  if (hit) return formatMatchExplain(hit)
+  return formatMatchExplain(explainProductMatch(product, query.value))
+}
+
 const internalResults = computed(() => catalog.searchInternalViews(query.value))
 
-// 混排结果
 interface MixedResult {
   type: 'product' | 'view'
   data: Product | Resource
@@ -72,21 +101,15 @@ function cardSummary(product: Product) {
 }
 
 function handleSearch() {
-  if (mode.value === 'ai' && query.value.trim()) {
-    ai.sendQuestion(query.value)
-    setTimeout(() => {
-      ai.flushResponse()
-      // ChatMessage.role 为 'user' | 'ai'，文本内容在 blocks 中（无 text 字段）
-      const lastAi = ai.chatMessages.filter((m) => m.role === 'ai').pop()
-      const parts: string[] = []
-      if (lastAi) {
-        for (const b of lastAi.blocks) {
-          if (b.type === 'text') parts.push(b.content)
-        }
-      }
-      aiAnswer.value = parts.join('\n')
-    }, 600)
-  }
+  router.replace({
+    path: '/portal/search',
+    query: {
+      q: query.value.trim() || undefined,
+      entry: 'keyword',
+      type: activeType.value || undefined,
+      venue: activeVenue.value || undefined
+    }
+  })
 }
 
 function handleItemClick(item: MixedResult) {
@@ -98,42 +121,59 @@ function handleItemClick(item: MixedResult) {
   }
 }
 
-function switchMode(m: SearchMode) {
-  mode.value = m
-  aiAnswer.value = ''
+function goAi(from?: string) {
+  router.push({
+    path: '/portal/ai-chat',
+    query: {
+      q: query.value.trim() || undefined,
+      entry: 'ai',
+      from
+    }
+  })
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl">
-    <!-- 搜索栏 -->
-    <div class="rounded-2xl bg-white p-6 shadow-sm">
-      <div class="flex justify-center gap-2">
-        <div class="flex rounded-lg bg-slate-100 p-1">
-          <button
-            class="rounded-md px-4 py-1.5 text-sm transition"
-            :class="mode === 'keyword' ? 'bg-white text-brand-600 font-medium shadow-sm' : 'text-slate-500'"
-            @click="switchMode('keyword')"
-          >🔍 关键词</button>
-          <button
-            class="rounded-md px-4 py-1.5 text-sm transition"
-            :class="mode === 'ai' ? 'bg-white text-brand-600 font-medium shadow-sm' : 'text-slate-500'"
-            @click="switchMode('ai')"
-          >🤖 AI问答</button>
+  <div class="mx-auto max-w-5xl" data-testid="portal-keyword-search">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-semibold text-slate-900">关键词搜索</h1>
+          <p class="mt-0.5 text-xs text-slate-400">按名称、关键词匹配商品</p>
+        </div>
+        <div
+          class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500"
+          data-testid="route-badge"
+        >
+          {{ ROUTE_META.known_lookup.label }}
         </div>
       </div>
-      <div class="mt-4 flex justify-center gap-2">
+
+      <div class="mt-4 flex gap-2">
         <input
           v-model="query"
-          class="w-96 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-          :placeholder="mode === 'keyword' ? '搜索数据资产名称、关键词...' : '描述你想了解的问题或需要的数据...'"
+          data-testid="portal-search-input"
+          class="min-w-0 flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+          placeholder="搜索数据资产名称、关键词..."
           @keyup.enter="handleSearch"
         />
-        <button class="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600" @click="handleSearch">
-          {{ mode === 'keyword' ? '搜索' : '提问' }}
+        <button
+          class="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
+          data-testid="portal-search-submit"
+          @click="handleSearch"
+        >
+          搜索
+        </button>
+        <button
+          class="rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-100"
+          data-testid="portal-go-ai"
+          @click="goAi()"
+        >
+          AI 问答
         </button>
       </div>
-      <div v-if="mode === 'keyword'" class="mt-4">
+
+      <div class="mt-4">
         <ProductSearchFilters
           v-model:type="activeType"
           v-model:venue="activeVenue"
@@ -142,43 +182,37 @@ function switchMode(m: SearchMode) {
       </div>
     </div>
 
-    <!-- AI 回答 -->
-    <div v-if="mode === 'ai' && aiAnswer" class="mt-4 rounded-xl border border-brand-200 bg-brand-50/50 p-4">
-      <div class="text-sm font-medium text-brand-700">🤖 AI回答</div>
-      <div class="mt-2 text-sm leading-relaxed text-slate-700">{{ aiAnswer }}</div>
-    </div>
-
-    <!-- 排序 + 结果计数 -->
     <div v-if="mixedResults.length" class="mt-4 flex items-center justify-between">
-      <div class="text-sm text-slate-400">共 {{ mixedResults.length }} 条结果</div>
+      <div class="text-sm text-slate-400">
+        共 {{ mixedResults.length }} 条结果
+        <span v-if="mixedResults.length > 0 && mixedResults.length < 10"> · 已展示全部</span>
+      </div>
       <div class="flex gap-2 text-sm">
         <button
           class="rounded-md px-3 py-1"
-          :class="sortType === 'default' ? 'bg-brand-50 text-brand-600 font-medium' : 'text-slate-500'"
+          :class="sortType === 'default' ? 'bg-brand-50 font-medium text-brand-600' : 'text-slate-500'"
           @click="sortType = 'default'"
         >默认</button>
         <button
           class="rounded-md px-3 py-1"
-          :class="sortType === 'price_asc' ? 'bg-brand-50 text-brand-600 font-medium' : 'text-slate-500'"
+          :class="sortType === 'price_asc' ? 'bg-brand-50 font-medium text-brand-600' : 'text-slate-500'"
           @click="sortType = 'price_asc'"
         >价格↑</button>
         <button
           class="rounded-md px-3 py-1"
-          :class="sortType === 'latest' ? 'bg-brand-50 text-brand-600 font-medium' : 'text-slate-500'"
+          :class="sortType === 'latest' ? 'bg-brand-50 font-medium text-brand-600' : 'text-slate-500'"
           @click="sortType = 'latest'"
         >最新</button>
       </div>
     </div>
 
-    <!-- 混排结果列表 -->
     <div v-if="mixedResults.length" class="mt-3 space-y-2">
       <div
         v-for="item in mixedResults"
-        :key="(item.data as any).id"
+        :key="(item.data as Product | Resource).id"
         class="flex cursor-pointer items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:shadow-md"
         @click="handleItemClick(item)"
       >
-        <!-- 类型 / 成交位置 / 运营标签 -->
         <div class="flex min-w-0 shrink-0 flex-col items-start gap-1.5">
           <span
             class="rounded px-2 py-1 text-xs font-medium"
@@ -187,32 +221,58 @@ function switchMode(m: SearchMode) {
           <ProductChips v-if="item.type === 'product'" :product="item.data as Product" />
           <span v-else class="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">{{ item.label }}</span>
         </div>
-        <!-- 名称 + 描述 -->
         <div class="min-w-0 flex-1">
-          <div class="text-sm font-semibold text-slate-800">{{ (item.data as any).name || (item.data as any).resourceName }}</div>
-          <div v-if="item.type === 'product'" class="mt-0.5 line-clamp-2 text-xs text-slate-400">{{ cardSummary(item.data as Product) }}</div>
-          <div v-else class="mt-0.5 text-xs text-slate-400">{{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}</div>
+          <div class="text-sm font-semibold text-slate-800">
+            {{ item.type === 'product' ? (item.data as Product).name : (item.data as Resource).resourceName }}
+          </div>
+          <div v-if="item.type === 'product'" class="mt-0.5 line-clamp-2 text-xs text-slate-400">
+            {{ cardSummary(item.data as Product) }}
+          </div>
+          <div v-else class="mt-0.5 text-xs text-slate-400">
+            {{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}
+          </div>
+          <div
+            v-if="item.type === 'product' && query.trim()"
+            class="mt-1 text-[11px] text-slate-400"
+            data-testid="match-explain"
+          >
+            {{ matchExplainFor((item.data as Product).id) }}
+          </div>
         </div>
-        <!-- 价格/操作 -->
         <div class="shrink-0 text-right">
-          <div v-if="item.type === 'product'" class="text-sm font-medium" :class="priceDisplay(item.data as Product).tone">{{ priceDisplay(item.data as Product).label }}</div>
+          <div v-if="item.type === 'product'" class="text-sm font-medium" :class="priceDisplay(item.data as Product).tone">
+            {{ priceDisplay(item.data as Product).label }}
+          </div>
           <div v-else class="text-sm font-medium text-emerald-600">跳转</div>
           <div class="mt-1 text-xs text-slate-400">{{ item.type === 'product' ? '详情' : '打开' }} →</div>
         </div>
       </div>
     </div>
 
-    <!-- 空态 -->
-    <div v-else-if="query && !mixedResults.length" class="mt-8 rounded-xl bg-white p-8 text-center">
+    <div
+      v-else-if="query.trim() && !mixedResults.length"
+      class="mt-6 rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center"
+    >
       <div class="text-4xl">🔍</div>
-      <div class="mt-2 text-sm text-slate-500">未找到匹配的结果</div>
-      <button class="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm text-white" @click="router.push('/portal/demand')">提交需求 →</button>
+      <div class="mt-2 text-sm font-medium text-slate-600">未找到匹配的结果</div>
+      <div class="mt-1 text-xs text-slate-400">可改用 AI 问答做汇总与对比，或提交需求</div>
+      <div class="mt-4 flex justify-center gap-3">
+        <button
+          class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white"
+          data-testid="upgrade-ai-cta"
+          @click="goAi('keyword_empty')"
+        >
+          没有命中？试试 AI 问答
+        </button>
+        <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600" @click="router.push('/portal/demand')">
+          提交需求
+        </button>
+      </div>
     </div>
 
-    <!-- 默认（无搜索词）提示 -->
-    <div v-else class="mt-8 rounded-xl bg-white p-8 text-center">
-      <div class="text-4xl">👆</div>
-      <div class="mt-2 text-sm text-slate-500">输入关键词开始搜索，或切换到 AI问答模式</div>
+    <div v-else-if="!mixedResults.length" class="mt-6 rounded-xl bg-white p-8 text-center">
+      <div class="text-4xl">📭</div>
+      <div class="mt-2 text-sm text-slate-500">暂无上架商品</div>
     </div>
   </div>
 </template>
