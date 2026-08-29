@@ -4,13 +4,14 @@ import type {
   DatasetDetail,
   FieldProfiling,
   NumericFieldProfiling,
-  CategoricalFieldProfiling,
-  IdentifierFieldProfiling,
+  StringFieldProfiling,
   DateTimeFieldProfiling,
   BooleanFieldProfiling,
   DistributionBucket
 } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+
+type TimeGrain = 'year' | 'quarter' | 'month'
 
 const props = defineProps<{ detail: DatasetDetail }>()
 
@@ -26,6 +27,7 @@ const dimensions = computed(() => {
 })
 
 const active = ref('')
+const timeGrain = ref<TimeGrain>('month')
 
 // 切换商品后回到第一个维度
 watch(
@@ -38,14 +40,13 @@ const currentStat = computed(() =>
   (props.detail.fieldProfiling ?? []).find((s) => s.fieldName === active.value)
 )
 
-// ---- 类型守卫（strict:false 下判别联合需手动收窄） ----
+watch(currentStat, () => { timeGrain.value = 'month' })
+
 function isNumeric(s: FieldProfiling): s is NumericFieldProfiling { return s.kind === 'numeric' }
-function isCategorical(s: FieldProfiling): s is CategoricalFieldProfiling { return s.kind === 'categorical' }
-function isIdentifier(s: FieldProfiling): s is IdentifierFieldProfiling { return s.kind === 'identifier' }
+function isString(s: FieldProfiling): s is StringFieldProfiling { return s.kind === 'string' }
 function isDateTime(s: FieldProfiling): s is DateTimeFieldProfiling { return s.kind === 'datetime' }
 function isBoolean(s: FieldProfiling): s is BooleanFieldProfiling { return s.kind === 'boolean' }
 
-// ---- 按类型构建指标卡 ----
 const statItems = computed<InfoItem[]>(() => {
   const s = currentStat.value
   if (!s) return []
@@ -65,10 +66,9 @@ const statItems = computed<InfoItem[]>(() => {
       ...tail
     ]
   }
-  if (isIdentifier(s)) {
+  if (isString(s)) {
     return [
       { label: '唯一性', value: s.uniqueness },
-      ...(s.samplePattern ? [{ label: '样例格式', value: s.samplePattern, full: true }] : []),
       ...tail
     ]
   }
@@ -87,17 +87,19 @@ const statItems = computed<InfoItem[]>(() => {
       ...tail
     ]
   }
-  // categorical
   return tail
 })
 
-// ---- 分布数据（数值型直方图 / 分类型 TOP / 时间型分布） ----
 const distributionData = computed<DistributionBucket[]>(() => {
   const s = currentStat.value
   if (!s) return []
   if (isNumeric(s)) return s.histogram
-  if (isCategorical(s)) return s.topValues
-  if (isDateTime(s)) return s.distribution
+  if (isString(s)) return s.topValues
+  if (isDateTime(s)) {
+    if (timeGrain.value === 'year') return s.distributionYear
+    if (timeGrain.value === 'quarter') return s.distributionQuarter
+    return s.distributionMonth
+  }
   return []
 })
 
@@ -105,9 +107,14 @@ const distributionTitle = computed(() => {
   const s = currentStat.value
   if (!s) return ''
   if (isNumeric(s)) return '区间分布直方图'
-  if (isCategorical(s)) return 'TOP 值分布'
+  if (isString(s)) return 'TOP 值分布'
   if (isDateTime(s)) return '时间分布'
   return ''
+})
+
+const showTimeGrain = computed(() => {
+  const s = currentStat.value
+  return Boolean(s && isDateTime(s))
 })
 
 const showDistribution = computed(() => distributionData.value.length > 0)
@@ -123,11 +130,16 @@ const booleanBar = computed(() => {
 
 const kindLabel: Record<string, string> = {
   numeric: '数值型',
-  categorical: '分类型',
-  identifier: '标识型',
+  string: '字符串',
   datetime: '时间型',
   boolean: '布尔型'
 }
+
+const grainOptions: { key: TimeGrain; label: string }[] = [
+  { key: 'year', label: '年' },
+  { key: 'quarter', label: '年季' },
+  { key: 'month', label: '年月' }
+]
 </script>
 
 <template>
@@ -172,9 +184,33 @@ const kindLabel: Record<string, string> = {
         </div>
       </div>
 
-      <!-- 分布图（数值型直方图 / 分类型 TOP / 时间型分布） -->
+      <!-- 分布图（数值型直方图 / 字符串 TOP / 时间型分布） -->
       <div v-if="showDistribution" class="pt-1">
-        <div class="mb-2 text-[12px] font-medium text-slate-500">{{ distributionTitle }}</div>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <div class="text-[12px] font-medium text-slate-500">{{ distributionTitle }}</div>
+          <div
+            v-if="showTimeGrain"
+            class="flex gap-1"
+            role="tablist"
+            aria-label="时间粒度"
+          >
+            <button
+              v-for="g in grainOptions"
+              :key="g.key"
+              type="button"
+              role="tab"
+              :aria-selected="timeGrain === g.key"
+              :data-grain="g.key"
+              class="rounded border px-2 py-0.5 text-[11px] transition"
+              :class="timeGrain === g.key
+                ? 'border-brand-500 bg-brand-500 text-white'
+                : 'border-slate-200 bg-white text-slate-500'"
+              @click="timeGrain = g.key"
+            >
+              {{ g.label }}
+            </button>
+          </div>
+        </div>
         <div class="space-y-2">
           <div v-for="bucket in distributionData" :key="bucket.label">
             <div class="mb-1 flex items-baseline justify-between gap-3 text-[12px]">
@@ -205,7 +241,7 @@ const kindLabel: Record<string, string> = {
     </div>
 
     <div class="pt-1 text-[11px] text-slate-400">
-      探查结果基于脱敏样本统计，数值经区间化处理，仅供评估参考。
+      探查结果基于脱敏样本统计，空值率/唯一值率可抽样（默认上限 100 万），仅供评估参考。
     </div>
   </div>
 </template>

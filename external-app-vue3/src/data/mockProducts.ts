@@ -55,7 +55,33 @@ const datasetDetail = (): DatasetDetail => ({
       minDate: '2024-01-01',
       maxDate: '2026-06-30',
       span: '2 年 6 个月',
-      distribution: [
+      distributionYear: [
+        { label: '2024 Q1', count: 10800, percent: 9 },
+        { label: '2024 Q2', count: 10800, percent: 9 },
+        { label: '2024 Q3', count: 10800, percent: 9 },
+        { label: '2024 Q4', count: 10800, percent: 9 },
+        { label: '2025 Q1', count: 10800, percent: 9 },
+        { label: '2025 Q2', count: 10800, percent: 9 },
+        { label: '2025 Q3', count: 10800, percent: 9 },
+        { label: '2025 Q4', count: 10800, percent: 9 },
+        { label: '2026 Q1', count: 10800, percent: 9 },
+        { label: '2026 Q2', count: 10800, percent: 9 },
+        { label: '其他', count: 12000, percent: 10 }
+      ],
+            distributionQuarter: [
+        { label: '2024 Q1', count: 10800, percent: 9 },
+        { label: '2024 Q2', count: 10800, percent: 9 },
+        { label: '2024 Q3', count: 10800, percent: 9 },
+        { label: '2024 Q4', count: 10800, percent: 9 },
+        { label: '2025 Q1', count: 10800, percent: 9 },
+        { label: '2025 Q2', count: 10800, percent: 9 },
+        { label: '2025 Q3', count: 10800, percent: 9 },
+        { label: '2025 Q4', count: 10800, percent: 9 },
+        { label: '2026 Q1', count: 10800, percent: 9 },
+        { label: '2026 Q2', count: 10800, percent: 9 },
+        { label: '其他', count: 12000, percent: 10 }
+      ],
+            distributionMonth: [
         { label: '2024 Q1', count: 10800, percent: 9 },
         { label: '2024 Q2', count: 10800, percent: 9 },
         { label: '2024 Q3', count: 10800, percent: 9 },
@@ -72,20 +98,26 @@ const datasetDetail = (): DatasetDetail => ({
     },
     {
       fieldName: 'route_code',
-      kind: 'identifier',
+      kind: 'string',
       nullRate: '0%',
       distinctCount: 1850,
-      uniqueness: '98.5%',
-      samplePattern: 'XX-XX（起讫城市对编码，如 SH-GZ）',
+      uniqueness: '98.5%（采样）',
+      topValues: [
+        { label: 'SH-GZ', count: 2400, percent: 2 },
+        { label: 'BJ-SH', count: 2100, percent: 1.8 },
+        { label: 'SZ-CD', count: 1800, percent: 1.5 },
+        { label: '其他', count: 113700, percent: 94.7 }
+      ],
       anomalies: '1.5% 记录存在重复线路编码（不同承运商共用编码）',
       updatedAt: '2026-07-01'
     },
     {
       fieldName: 'vehicle_type',
-      kind: 'categorical',
+      kind: 'string',
       nullRate: '0%',
       distinctCount: 6,
-      topValues: [
+      uniqueness: '低基数',
+            topValues: [
         { label: '整车', count: 54000, percent: 45 },
         { label: '零担', count: 33600, percent: 28 },
         { label: '冷链', count: 19200, percent: 16 },

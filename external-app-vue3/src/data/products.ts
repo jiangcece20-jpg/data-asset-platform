@@ -573,14 +573,14 @@ export const seedProducts: Product[] = [
         },
         fieldProfiling: [
           {
-            fieldName: 'route_id',
-            kind: 'identifier',
-            nullRate: '0%',
-            distinctCount: 4800,
-            uniqueness: '城市对线路编码唯一',
-            samplePattern: '如 SH-GZ-01',
-            updatedAt: '2026-07-01'
-          },
+      fieldName: 'route_id',
+      kind: 'string',
+      nullRate: '0%',
+      distinctCount: 4800,
+      uniqueness: '城市对线路编码唯一',
+      topValues: [{ label: 'A', count: 40, percent: 40 }, { label: 'B', count: 35, percent: 35 }, { label: 'C', count: 25, percent: 25 }],
+      updatedAt: '2026-07-01'
+    },
           {
             fieldName: 'stat_month',
             kind: 'datetime',
@@ -589,10 +589,25 @@ export const seedProducts: Product[] = [
             minDate: '2025-01-01',
             maxDate: '2026-06-01',
             span: '1 年 6 个月',
-            distribution: [
-              { label: '2025 H1', count: 28800, percent: 33 },
-              { label: '2025 H2', count: 28800, percent: 33 },
-              { label: '2026 H1', count: 28800, percent: 34 }
+            distributionYear: [
+              { label: '2025', count: 57600, percent: 66 },
+              { label: '2026', count: 28800, percent: 34 }
+            ],
+            distributionQuarter: [
+              { label: '2025 Q1', count: 14400, percent: 17 },
+              { label: '2025 Q2', count: 14400, percent: 17 },
+              { label: '2025 Q3', count: 14400, percent: 17 },
+              { label: '2025 Q4', count: 14400, percent: 17 },
+              { label: '2026 Q1', count: 14400, percent: 16 },
+              { label: '2026 Q2', count: 14400, percent: 16 }
+            ],
+            distributionMonth: [
+              { label: '2025-01', count: 4800, percent: 6 },
+              { label: '2025-06', count: 4800, percent: 6 },
+              { label: '2025-12', count: 4800, percent: 6 },
+              { label: '2026-01', count: 4800, percent: 6 },
+              { label: '2026-06', count: 4800, percent: 6 },
+              { label: '其他月份', count: 57600, percent: 70 }
             ],
             updatedAt: '2026-07-01'
           },
@@ -606,9 +621,16 @@ export const seedProducts: Product[] = [
             avg: '4820',
             median: '3650',
             histogram: [
-              { label: '5 千以下', count: 43200, percent: 50 },
-              { label: '5 千-1 万', count: 25920, percent: 30 },
-              { label: '1 万以上', count: 17280, percent: 20 }
+              { label: '820-2598', count: 8640, percent: 10 },
+              { label: '2598-4376', count: 10368, percent: 12 },
+              { label: '4376-6154', count: 12960, percent: 15 },
+              { label: '6154-7932', count: 11232, percent: 13 },
+              { label: '7932-9710', count: 8640, percent: 10 },
+              { label: '9710-11488', count: 7776, percent: 9 },
+              { label: '11488-13266', count: 6912, percent: 8 },
+              { label: '13266-15044', count: 6048, percent: 7 },
+              { label: '15044-16822', count: 5184, percent: 6 },
+              { label: '16822-18600', count: 8640, percent: 10 }
             ],
             updatedAt: '2026-07-01'
           },
@@ -630,9 +652,10 @@ export const seedProducts: Product[] = [
           },
           {
             fieldName: 'heat_level',
-            kind: 'categorical',
+            kind: 'string',
             nullRate: '0%',
             distinctCount: 3,
+            uniqueness: '低基数',
             topValues: [
               { label: 'B', count: 42336, percent: 49 },
               { label: 'A', count: 15552, percent: 18 },
@@ -762,12 +785,24 @@ export const seedProducts: Product[] = [
             minDate: '2024-01-01',
             maxDate: '2026-06-01',
             span: '2 年 6 个月',
-            distribution: [
+            distributionYear: [
+              { label: '2024', count: 1066000, percent: 41 },
+              { label: '2025', count: 1118000, percent: 43 },
+              { label: '2026', count: 416000, percent: 16 }
+            ],
+            distributionQuarter: [
               { label: '2024 H1', count: 520000, percent: 20 },
               { label: '2024 H2', count: 546000, percent: 21 },
               { label: '2025 H1', count: 572000, percent: 22 },
               { label: '2025 H2', count: 546000, percent: 21 },
               { label: '2026 H1', count: 416000, percent: 16 }
+            ],
+            distributionMonth: [
+              { label: '2024-01', count: 86000, percent: 3 },
+              { label: '2025-06', count: 96000, percent: 4 },
+              { label: '2026-01', count: 70000, percent: 3 },
+              { label: '2026-02', count: 52000, percent: 2 },
+              { label: '其他月份', count: 2336000, percent: 88 }
             ],
             anomalies: '2026-02 春节窗口企业活跃记录偏少，已按业务日历标注',
             updatedAt: '2026-07-01'
@@ -813,9 +848,10 @@ export const seedProducts: Product[] = [
           },
           {
             fieldName: 'coverage_region',
-            kind: 'categorical',
-            nullRate: '2.8%',
+            kind: 'string',
+            nullRate: '2.8%（采样）',
             distinctCount: 31,
+            uniqueness: '约 31 个取值',
             topValues: [
               { label: '广东', count: 468000, percent: 18 },
               { label: '江苏', count: 390000, percent: 15 },
@@ -828,9 +864,10 @@ export const seedProducts: Product[] = [
           },
           {
             fieldName: 'activity_level',
-            kind: 'categorical',
+            kind: 'string',
             nullRate: '0%',
             distinctCount: 4,
+            uniqueness: '低基数',
             topValues: [
               { label: 'C', count: 988000, percent: 38 },
               { label: 'B', count: 728000, percent: 28 },
@@ -950,7 +987,17 @@ export const seedProducts: Product[] = [
             minDate: '2024-01-01',
             maxDate: '2026-06-01',
             span: '1 年 6 个月',
-            distribution: [
+            distributionYear: [
+              { label: '2024 H1', count: 400, percent: 33 },
+              { label: '2024 H2', count: 400, percent: 33 },
+              { label: '2025 H1', count: 400, percent: 34 }
+            ],
+            distributionQuarter: [
+              { label: '2024 H1', count: 400, percent: 33 },
+              { label: '2024 H2', count: 400, percent: 33 },
+              { label: '2025 H1', count: 400, percent: 34 }
+            ],
+            distributionMonth: [
               { label: '2024 H1', count: 400, percent: 33 },
               { label: '2024 H2', count: 400, percent: 33 },
               { label: '2025 H1', count: 400, percent: 34 }
@@ -1034,14 +1081,14 @@ export const seedProducts: Product[] = [
         profiling: { completeness: '98.6%', uniqueness: '联合主键唯一性 100%', nullRate: '1.4%', distribution: '东部干线占 48%', anomalies: '节假日波动已标注', conclusion: '适合区域热力和趋势分析', updatedAt: '2026-07-30' },
         fieldProfiling: [
           {
-            fieldName: 'district_code',
-            kind: 'identifier',
-            nullRate: '0%',
-            distinctCount: 2846,
-            uniqueness: '100%',
-            samplePattern: '6 位国家统计区划编码，如 310115',
-            updatedAt: '2026-07-30'
-          },
+      fieldName: 'district_code',
+      kind: 'string',
+      nullRate: '0%',
+      distinctCount: 2846,
+      uniqueness: '100%（采样）',
+      topValues: [{ label: '310115', count: 1200, percent: 12 }, { label: '440106', count: 980, percent: 10 }, { label: '其他', count: 7820, percent: 78 }],
+      updatedAt: '2026-07-30'
+    },
           {
             fieldName: 'time_bucket',
             kind: 'datetime',
@@ -1050,7 +1097,19 @@ export const seedProducts: Product[] = [
             minDate: '2025-07-31',
             maxDate: '2026-07-30',
             span: '12 个月',
-            distribution: [
+            distributionYear: [
+              { label: '工作日白天', count: 7440000, percent: 40 },
+              { label: '工作日夜间', count: 3720000, percent: 20 },
+              { label: '周末白天', count: 3720000, percent: 20 },
+              { label: '周末夜间', count: 3720000, percent: 20 }
+            ],
+            distributionQuarter: [
+              { label: '工作日白天', count: 7440000, percent: 40 },
+              { label: '工作日夜间', count: 3720000, percent: 20 },
+              { label: '周末白天', count: 3720000, percent: 20 },
+              { label: '周末夜间', count: 3720000, percent: 20 }
+            ],
+            distributionMonth: [
               { label: '工作日白天', count: 7440000, percent: 40 },
               { label: '工作日夜间', count: 3720000, percent: 20 },
               { label: '周末白天', count: 3720000, percent: 20 },

@@ -47,9 +47,10 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
       },
       {
         fieldName: 'activity_level',
-        kind: 'categorical' as const,
+        kind: 'string' as const,
         nullRate: '0%',
         distinctCount: 4,
+        uniqueness: '低基数',
         topValues: [
           { label: 'C', count: 988000, percent: 38 },
           { label: 'B', count: 728000, percent: 28 }
@@ -64,9 +65,21 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
         minDate: '2024-01-01',
         maxDate: '2026-06-30',
         span: '2 年 6 个月',
-        distribution: [
-          { label: '2024 H1', count: 5000, percent: 42 },
-          { label: '2024 H2', count: 3000, percent: 25 }
+        distributionYear: [
+          { label: '2024', count: 8000, percent: 67 },
+          { label: '2025', count: 3000, percent: 25 },
+          { label: '2026', count: 1000, percent: 8 }
+        ],
+        distributionQuarter: [
+          { label: '2024 Q1', count: 4000, percent: 33 },
+          { label: '2024 Q2', count: 4000, percent: 33 },
+          { label: '2025 Q1', count: 4000, percent: 34 }
+        ],
+        distributionMonth: [
+          { label: '2024-01', count: 2000, percent: 17 },
+          { label: '2024-06', count: 2000, percent: 17 },
+          { label: '2025-01', count: 2000, percent: 16 },
+          { label: '其他月份', count: 6000, percent: 50 }
         ],
         updatedAt: '2026-07-01'
       },
@@ -89,14 +102,13 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
 describe('FieldProfilingPanel', () => {
   it('only offers field dimensions (no table overview)', () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
-    const labels = wrapper.findAll('[role="tab"]').map((n) => n.text())
-    // 不含整表概览；企业标识未开启，不出现在维度中
+    const labels = wrapper.findAll('[data-dim]').map((n) => n.text())
     expect(labels).toEqual(['发单频次', '活跃等级', '注册日期', '是否认证'])
   })
 
   it('defaults to the first field dimension', () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
-    expect(wrapper.find('[aria-selected="true"]').text()).toBe('发单频次')
+    expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('发单频次')
     expect(wrapper.text()).toContain('数值型')
     expect(wrapper.text()).toContain('2,180')
   })
@@ -107,29 +119,41 @@ describe('FieldProfilingPanel', () => {
     expect(wrapper.text()).toContain('1-20 次')
   })
 
-  it('switches to a categorical field and shows top values', async () => {
+  it('switches to a string field and shows uniqueness plus top values', async () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     await wrapper.get('[data-dim="activity_level"]').trigger('click')
-    expect(wrapper.find('[aria-selected="true"]').text()).toBe('活跃等级')
-    expect(wrapper.text()).toContain('分类型')
+    expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('活跃等级')
+    expect(wrapper.text()).toContain('字符串')
+    expect(wrapper.text()).toContain('唯一性')
     expect(wrapper.text()).toContain('TOP 值分布')
     expect(wrapper.text()).toContain('988,000')
   })
 
-  it('renders datetime distribution for date fields', async () => {
+  it('renders datetime distribution with month grain by default', async () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     await wrapper.get('[data-dim="register_date"]').trigger('click')
-    expect(wrapper.find('[aria-selected="true"]').text()).toBe('注册日期')
+    expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('注册日期')
     expect(wrapper.text()).toContain('时间型')
     expect(wrapper.text()).toContain('最早日期')
     expect(wrapper.text()).toContain('2024-01-01')
     expect(wrapper.text()).toContain('时间分布')
+    expect(wrapper.get('[data-grain="month"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.text()).toContain('2024-01')
+  })
+
+  it('switches datetime grain to year', async () => {
+    const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
+    await wrapper.get('[data-dim="register_date"]').trigger('click')
+    await wrapper.get('[data-grain="year"]').trigger('click')
+    expect(wrapper.get('[data-grain="year"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.text()).toContain('8,000')
+    expect(wrapper.text()).not.toContain('其他月份')
   })
 
   it('renders boolean TRUE/FALSE ratio bar', async () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     await wrapper.get('[data-dim="is_verified"]').trigger('click')
-    expect(wrapper.find('[aria-selected="true"]').text()).toBe('是否认证')
+    expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('是否认证')
     expect(wrapper.text()).toContain('布尔型')
     expect(wrapper.text()).toContain('TRUE / FALSE 占比')
     expect(wrapper.text()).toContain('700')
@@ -142,7 +166,7 @@ describe('FieldProfilingPanel', () => {
       ]
     })
     const wrapper = mount(FieldProfilingPanel, { props: { detail } })
-    expect(wrapper.findAll('[role="tab"]')).toHaveLength(0)
+    expect(wrapper.findAll('[data-dim]')).toHaveLength(0)
     expect(wrapper.text()).toContain('暂无可探查字段')
   })
 })

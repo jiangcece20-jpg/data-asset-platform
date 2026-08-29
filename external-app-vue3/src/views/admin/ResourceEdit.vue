@@ -1290,7 +1290,7 @@ function removePackedAssociate(targetProductId: string) {
       <!-- 数据探查配置（仅数据集类型） -->
       <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
         <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
-        <p class="mb-3 text-xs text-slate-400">勾选的字段将作为 App「探查报告」的可切换维度。敏感字段（主键、L2/L3）默认不开放。</p>
+        <p class="mb-3 text-xs text-slate-400">勾选字段开放探查。数值/时间/布尔按字段类型探查；字符串同时计算唯一性与 Top10，不区分标识/分类。敏感字段（主键、L2/L3）默认不开放。</p>
 
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-50 text-slate-400">

@@ -32,8 +32,8 @@ export interface DatasetField {
   sampleValue?: string
 }
 
-/** 字段探查分类 */
-export type FieldProfilingKind = 'numeric' | 'categorical' | 'identifier' | 'datetime' | 'boolean'
+/** 字段探查分类（第一期：字符串合并，不做独立标识型） */
+export type FieldProfilingKind = 'numeric' | 'string' | 'datetime' | 'boolean'
 
 /** 直方图/分布条目 */
 export interface DistributionBucket {
@@ -46,7 +46,7 @@ export interface DistributionBucket {
 interface FieldProfilingBase {
   fieldName: string
   kind: FieldProfilingKind
-  /** 空值率，如 "0.8%" */
+  /** 空值率；大表抽样时文案含「采样」，如 "0.8%（采样）" */
   nullRate: string
   /** 唯一值数量 */
   distinctCount: number
@@ -64,24 +64,17 @@ export interface NumericFieldProfiling extends FieldProfilingBase {
   median?: string
   p25?: string
   p75?: string
-  /** 区间分布直方图 */
+  /** 等宽 10 桶（min=max 时可 1 桶） */
   histogram: DistributionBucket[]
 }
 
-/** 分类型探查（string 低基数） */
-export interface CategoricalFieldProfiling extends FieldProfilingBase {
-  kind: 'categorical'
-  /** TOP 值分布 */
-  topValues: DistributionBucket[]
-}
-
-/** 标识型探查（string 高基数 / 主键） */
-export interface IdentifierFieldProfiling extends FieldProfilingBase {
-  kind: 'identifier'
-  /** 唯一性百分比，如 "100%" */
+/** 字符串探查：不区分标识/分类，同时给唯一性 + Top10 */
+export interface StringFieldProfiling extends FieldProfilingBase {
+  kind: 'string'
+  /** 唯一值率；抽样时文案含「采样」，如 "98.5%（采样）" */
   uniqueness: string
-  /** 脱敏样例格式，如 "ENT-XXXX（脱敏哈希）" */
-  samplePattern?: string
+  /** 固定 Top10 */
+  topValues: DistributionBucket[]
 }
 
 /** 时间型探查（date / timestamp） */
@@ -91,8 +84,10 @@ export interface DateTimeFieldProfiling extends FieldProfilingBase {
   maxDate: string
   /** 时间跨度描述，如 "2 年 6 个月" */
   span: string
-  /** 按月/季分布 */
-  distribution: DistributionBucket[]
+  distributionYear: DistributionBucket[]
+  distributionQuarter: DistributionBucket[]
+  /** 默认展示粒度 */
+  distributionMonth: DistributionBucket[]
 }
 
 /** 布尔型探查（boolean） */
@@ -107,8 +102,7 @@ export interface BooleanFieldProfiling extends FieldProfilingBase {
 /** 单字段数据探查结果（对外版，数值已做区间化/脱敏处理） */
 export type FieldProfiling =
   | NumericFieldProfiling
-  | CategoricalFieldProfiling
-  | IdentifierFieldProfiling
+  | StringFieldProfiling
   | DateTimeFieldProfiling
   | BooleanFieldProfiling
 

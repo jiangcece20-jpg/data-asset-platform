@@ -54,11 +54,11 @@ export const sellerRouteDatasetDetail: DatasetDetail = {
   fieldProfiling: [
     {
       fieldName: 'route_id',
-      kind: 'identifier',
+      kind: 'string',
       nullRate: '0%',
       distinctCount: 86,
       uniqueness: '100%',
-      samplePattern: '城市对编码，如 SH-NJ-01',
+      topValues: [{ label: 'A', count: 40, percent: 40 }, { label: 'B', count: 35, percent: 35 }, { label: 'C', count: 25, percent: 25 }],
       updatedAt: '2026-08-08'
     },
     {
@@ -111,11 +111,11 @@ export const sellerWarehouseDatasetDetail: DatasetDetail = {
   fieldProfiling: [
     {
       fieldName: 'warehouse_id',
-      kind: 'identifier',
+      kind: 'string',
       nullRate: '0%',
       distinctCount: 12,
       uniqueness: '100%',
-      samplePattern: '仓网编码，如 WH-SH-03',
+      topValues: [{ label: 'TOP1', count: 50, percent: 5 }, { label: 'TOP2', count: 40, percent: 4 }, { label: '其他', count: 910, percent: 91 }],
       updatedAt: '2026-08-08'
     },
     {

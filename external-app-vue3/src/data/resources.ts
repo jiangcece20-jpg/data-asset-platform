@@ -66,7 +66,19 @@ const unlistedTruckDataset: DatasetDetail = {
       minDate: '2026-06-30',
       maxDate: '2026-07-30',
       span: '30 天',
-      distribution: [
+      distributionYear: [
+        { label: '工作日白天', count: 19300000, percent: 40 },
+        { label: '工作日夜间', count: 9650000, percent: 20 },
+        { label: '周末白天', count: 9650000, percent: 20 },
+        { label: '周末夜间', count: 9650000, percent: 20 }
+      ],
+            distributionQuarter: [
+        { label: '工作日白天', count: 19300000, percent: 40 },
+        { label: '工作日夜间', count: 9650000, percent: 20 },
+        { label: '周末白天', count: 9650000, percent: 20 },
+        { label: '周末夜间', count: 9650000, percent: 20 }
+      ],
+            distributionMonth: [
         { label: '工作日白天', count: 19300000, percent: 40 },
         { label: '工作日夜间', count: 9650000, percent: 20 },
         { label: '周末白天', count: 9650000, percent: 20 },
@@ -93,11 +105,11 @@ const unlistedTruckDataset: DatasetDetail = {
     },
     {
       fieldName: 'district_code',
-      kind: 'identifier',
+      kind: 'string',
       nullRate: '0%',
       distinctCount: 2846,
       uniqueness: '区县编码覆盖全国主要干线',
-      samplePattern: '6 位国家统计区划编码，如 310115',
+      topValues: [{ label: '310115', count: 1200, percent: 12 }, { label: '440106', count: 980, percent: 10 }, { label: '其他', count: 7820, percent: 78 }],
       updatedAt: '2026-07-30'
     }
   ]
