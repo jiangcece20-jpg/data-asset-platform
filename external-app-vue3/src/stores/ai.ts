@@ -225,51 +225,31 @@ export const useAiStore = defineStore('ai', {
 
       const matched = qaBank.find((e) => e.keywords.some((k) => q.includes(k.toLowerCase())))
 
-      // 命中问答库（路由 2）
+      // 命中问答库（路由 2）：一期仅展示平台内商品卡片，不做长段总结
+      if (matched && decision.route === 'processing_query') {
+        const product = catalog.byId(matched.productId)
+        const blocks: MessageBlock[] = [routeBadge]
+        if (product) {
+          blocks.push({ type: 'product-card', productId: product.id })
+        }
+        return { blocks, followUps: matched.followUps, route: decision.route }
+      }
+
+      // 命中问答库但走外网路由时，仍保留简要说明 + 卡片
       if (matched) {
         const product = catalog.byId(matched.productId)
-        const access = product ? entitlements.accessLevel(product) : 'none'
-        const unlocked = access !== 'none'
         const blocks: MessageBlock[] = [routeBadge, { type: 'text', content: matched.teaser }]
-
-        if (unlocked && matched.fullFacts.length) {
-          for (const fact of matched.fullFacts) {
-            blocks.push({ type: 'text', content: fact })
-          }
-        } else if (!unlocked) {
-          blocks.push({ type: 'text', content: '精确数值需购买后解锁。' })
-        }
-
-        if (intent === 'metric_query' && matched.metrics) {
-          for (const m of matched.metrics) {
-            blocks.push({ type: 'metric', ...m })
-          }
-        }
-
         if (product) {
-          blocks.push({
-            type: 'product-card',
-            productId: product.id,
-            reason: '数据来源'
-          })
+          blocks.push({ type: 'product-card', productId: product.id, reason: '数据来源' })
         }
-
         return { blocks, followUps: matched.followUps, route: decision.route }
       }
 
       // 未命中问答库 — 推荐商品
       const blocks: MessageBlock[] = [routeBadge]
       if (products.length > 0) {
-        blocks.push({
-          type: 'text',
-          content: `为你找到 ${Math.min(products.length, 3)} 个相关商品：`
-        })
         for (const p of products.slice(0, 3)) {
-          blocks.push({
-            type: 'product-card',
-            productId: p.id,
-            reason: '相关推荐'
-          })
+          blocks.push({ type: 'product-card', productId: p.id })
         }
       } else {
         blocks.push({

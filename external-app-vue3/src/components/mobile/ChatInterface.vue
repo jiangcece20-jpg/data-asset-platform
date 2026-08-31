@@ -12,13 +12,16 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   showDowngrade?: boolean
   fromKeywordEmpty?: boolean
+  /** 嵌入找数页等容器时隐藏顶部工具条，避免与外层 Tab 重复 */
+  embedded?: boolean
 }>(), {
   guides: () => [],
   followUps: () => [],
   typing: false,
   placeholder: '说说你想了解的问题，或描述你需要的数据',
   showDowngrade: true,
-  fromKeywordEmpty: false
+  fromKeywordEmpty: false,
+  embedded: false
 })
 
 const emit = defineEmits<{
@@ -71,7 +74,7 @@ function getProduct(productId: string) {
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-3 py-2">
+    <div v-if="!embedded" class="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-3 py-2">
       <div class="min-w-0 flex-1 text-[12px] font-medium text-slate-700">AI 问答</div>
       <button
         v-if="showDowngrade"
@@ -205,6 +208,7 @@ function getProduct(productId: string) {
           @keydown="handleKeyDown"
         />
         <button
+          data-testid="chat-send"
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white disabled:opacity-40"
           :disabled="!input.trim()"
           @click="handleSend"

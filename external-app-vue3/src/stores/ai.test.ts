@@ -120,15 +120,16 @@ describe('AI Store — chat functionality', () => {
   })
 
   describe('mixed content generation', () => {
-    it('produces text + product-card + route-badge for qaBank match', () => {
+    it('produces product-card + route-badge for qaBank match (no summary text)', () => {
       const ai = useAiStore()
       ai.sendQuestion('货运价格趋势如何')
       ai.flushResponse()
       const aiMsg = ai.chatMessages[1]
       const blockTypes = aiMsg.blocks.map((b) => b.type)
-      expect(blockTypes).toContain('text')
       expect(blockTypes).toContain('product-card')
       expect(blockTypes).toContain('route-badge')
+      expect(blockTypes).not.toContain('text')
+      expect(blockTypes).not.toContain('metric')
       expect(blockTypes).not.toContain('step')
       expect(blockTypes).not.toContain('source')
     })
@@ -139,16 +140,15 @@ describe('AI Store — chat functionality', () => {
       ai.flushResponse()
       const badge = ai.chatMessages[1].blocks.find((b) => b.type === 'route-badge')
       expect(badge && badge.type === 'route-badge' && badge.label).toBe('平台内')
-      const textBlocks = ai.chatMessages[1].blocks.filter((b) => b.type === 'text')
-      expect(textBlocks.every((b) => b.type === 'text' && !/业务运营|数据分析师|产品经理|管理层|数仓开发/.test(b.content))).toBe(true)
     })
 
-    it('produces metric blocks for metric_query intent with qaBank match', () => {
+    it('shows only product cards for metric_query on platform route', () => {
       const ai = useAiStore()
       ai.sendQuestion('货运价格指数是多少')
       ai.flushResponse()
       const aiMsg = ai.chatMessages[1]
-      expect(aiMsg.blocks.filter((b) => b.type === 'metric').length).toBeGreaterThan(0)
+      expect(aiMsg.blocks.filter((b) => b.type === 'metric').length).toBe(0)
+      expect(aiMsg.blocks.some((b) => b.type === 'product-card')).toBe(true)
     })
 
     it('falls back to product recommendations when qaBank misses', () => {
@@ -157,7 +157,7 @@ describe('AI Store — chat functionality', () => {
       ai.flushResponse()
       const aiMsg = ai.chatMessages[1]
       const blockTypes = aiMsg.blocks.map((b) => b.type)
-      expect(blockTypes).toContain('text')
+      expect(blockTypes).not.toContain('text')
       const productCards = aiMsg.blocks.filter((b) => b.type === 'product-card')
       expect(productCards.length).toBeGreaterThan(0)
     })

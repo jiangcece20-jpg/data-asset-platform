@@ -11,6 +11,7 @@ const tabs = [
 ]
 
 const showTabBar = computed(() => tabs.some((t) => t.path === route.path))
+const fillHeight = computed(() => route.path === '/app/discover' || route.path === '/app/ai-find')
 </script>
 
 <template>
@@ -24,7 +25,7 @@ const showTabBar = computed(() => tabs.some((t) => t.path === route.path))
       </div>
 
       <!-- 内容区 -->
-      <div class="phone-scroll flex-1 overflow-y-auto bg-slate-50">
+      <div class="flex-1 bg-slate-50" :class="fillHeight ? 'flex min-h-0 flex-col overflow-hidden' : 'phone-scroll overflow-y-auto'">
         <router-view v-slot="{ Component, route: r }">
           <transition name="fade" mode="out-in">
             <component :is="Component" :key="r.fullPath" />
