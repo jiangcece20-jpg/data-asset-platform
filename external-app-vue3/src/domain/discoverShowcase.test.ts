@@ -10,5 +10,6 @@ describe('discoverShowcase', () => {
     expect(showcase.find((item) => item.id === 'prod-qualification-api')?.dealChannel).toBe('space_purchase')
     expect(showcase.find((item) => item.id === 'prod-enterprise-activity')?.dealChannel).toBe('space_purchase')
     expect(showcase.find((item) => item.id === 'prod-personal-waybill-dataset')?.tags).toContain('个人数据集')
+    expect(showcase.find((item) => item.id === 'prod-truck-trajectory')?.origin).toBe('asset_platform')
   })
 })

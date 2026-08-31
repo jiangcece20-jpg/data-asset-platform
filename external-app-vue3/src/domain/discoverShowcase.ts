@@ -6,7 +6,8 @@ export const DISCOVER_SHOWCASE_PRODUCT_IDS = [
   'prod-qualification-api',
   'prod-logistics-monthly',
   'prod-personal-waybill-dataset',
-  'prod-enterprise-activity'
+  'prod-enterprise-activity',
+  'prod-truck-trajectory'
 ] as const
 
 export type DiscoverShowcaseProductId = (typeof DISCOVER_SHOWCASE_PRODUCT_IDS)[number]
