@@ -590,24 +590,36 @@ export const seedProducts: Product[] = [
             maxDate: '2026-06-01',
             span: '1 年 6 个月',
             distributionYear: [
-              { label: '2025', count: 57600, percent: 66 },
-              { label: '2026', count: 28800, percent: 34 }
+              { label: '2025', count: 63900, percent: 66 },
+              { label: '2026', count: 33000, percent: 34 }
             ],
             distributionQuarter: [
-              { label: '2025 Q1', count: 14400, percent: 17 },
-              { label: '2025 Q2', count: 14400, percent: 17 },
-              { label: '2025 Q3', count: 14400, percent: 17 },
-              { label: '2025 Q4', count: 14400, percent: 17 },
-              { label: '2026 Q1', count: 14400, percent: 16 },
-              { label: '2026 Q2', count: 14400, percent: 16 }
+              { label: '2025Q1', count: 14400, percent: 15 },
+              { label: '2025Q2', count: 17200, percent: 18 },
+              { label: '2025Q3', count: 14700, percent: 15 },
+              { label: '2025Q4', count: 17600, percent: 18 },
+              { label: '2026Q1', count: 15000, percent: 15 },
+              { label: '2026Q2', count: 18000, percent: 19 }
             ],
             distributionMonth: [
-              { label: '2025-01', count: 4800, percent: 6 },
-              { label: '2025-06', count: 4800, percent: 6 },
-              { label: '2025-12', count: 4800, percent: 6 },
-              { label: '2026-01', count: 4800, percent: 6 },
-              { label: '2026-06', count: 4800, percent: 6 },
-              { label: '其他月份', count: 57600, percent: 70 }
+              { label: '2025年01月', count: 4500, percent: 5 },
+              { label: '2025年02月', count: 4800, percent: 5 },
+              { label: '2025年03月', count: 5100, percent: 5 },
+              { label: '2025年04月', count: 5400, percent: 6 },
+              { label: '2025年05月', count: 5700, percent: 6 },
+              { label: '2025年06月', count: 6100, percent: 6 },
+              { label: '2025年07月', count: 4600, percent: 5 },
+              { label: '2025年08月', count: 4900, percent: 5 },
+              { label: '2025年09月', count: 5200, percent: 5 },
+              { label: '2025年10月', count: 5500, percent: 6 },
+              { label: '2025年11月', count: 5900, percent: 6 },
+              { label: '2025年12月', count: 6200, percent: 6 },
+              { label: '2026年01月', count: 4700, percent: 5 },
+              { label: '2026年02月', count: 5000, percent: 5 },
+              { label: '2026年03月', count: 5300, percent: 5 },
+              { label: '2026年04月', count: 5700, percent: 6 },
+              { label: '2026年05月', count: 6000, percent: 6 },
+              { label: '2026年06月', count: 6300, percent: 7 }
             ],
             updatedAt: '2026-07-01'
           },
@@ -786,23 +798,53 @@ export const seedProducts: Product[] = [
             maxDate: '2026-06-01',
             span: '2 年 6 个月',
             distributionYear: [
-              { label: '2024', count: 1066000, percent: 41 },
-              { label: '2025', count: 1118000, percent: 43 },
-              { label: '2026', count: 416000, percent: 16 }
+              { label: '2024', count: 849900, percent: 40 },
+              { label: '2025', count: 852700, percent: 40 },
+              { label: '2026', count: 427400, percent: 20 }
             ],
             distributionQuarter: [
-              { label: '2024 H1', count: 520000, percent: 20 },
-              { label: '2024 H2', count: 546000, percent: 21 },
-              { label: '2025 H1', count: 572000, percent: 22 },
-              { label: '2025 H2', count: 546000, percent: 21 },
-              { label: '2026 H1', count: 416000, percent: 16 }
+              { label: '2024Q1', count: 210900, percent: 10 },
+              { label: '2024Q2', count: 213700, percent: 10 },
+              { label: '2024Q3', count: 211200, percent: 10 },
+              { label: '2024Q4', count: 214100, percent: 10 },
+              { label: '2025Q1', count: 211500, percent: 10 },
+              { label: '2025Q2', count: 214500, percent: 10 },
+              { label: '2025Q3', count: 211900, percent: 10 },
+              { label: '2025Q4', count: 214800, percent: 10 },
+              { label: '2026Q1', count: 212300, percent: 10 },
+              { label: '2026Q2', count: 215100, percent: 10 }
             ],
             distributionMonth: [
-              { label: '2024-01', count: 86000, percent: 3 },
-              { label: '2025-06', count: 96000, percent: 4 },
-              { label: '2026-01', count: 70000, percent: 3 },
-              { label: '2026-02', count: 52000, percent: 2 },
-              { label: '其他月份', count: 2336000, percent: 88 }
+              { label: '2024年01月', count: 70000, percent: 3 },
+              { label: '2024年02月', count: 70300, percent: 3 },
+              { label: '2024年03月', count: 70600, percent: 3 },
+              { label: '2024年04月', count: 70900, percent: 3 },
+              { label: '2024年05月', count: 71200, percent: 3 },
+              { label: '2024年06月', count: 71600, percent: 3 },
+              { label: '2024年07月', count: 70100, percent: 3 },
+              { label: '2024年08月', count: 70400, percent: 3 },
+              { label: '2024年09月', count: 70700, percent: 3 },
+              { label: '2024年10月', count: 71000, percent: 3 },
+              { label: '2024年11月', count: 71400, percent: 3 },
+              { label: '2024年12月', count: 71700, percent: 3 },
+              { label: '2025年01月', count: 70200, percent: 3 },
+              { label: '2025年02月', count: 70500, percent: 3 },
+              { label: '2025年03月', count: 70800, percent: 3 },
+              { label: '2025年04月', count: 71200, percent: 3 },
+              { label: '2025年05月', count: 71500, percent: 3 },
+              { label: '2025年06月', count: 71800, percent: 3 },
+              { label: '2025年07月', count: 70300, percent: 3 },
+              { label: '2025年08月', count: 70600, percent: 3 },
+              { label: '2025年09月', count: 71000, percent: 3 },
+              { label: '2025年10月', count: 71300, percent: 3 },
+              { label: '2025年11月', count: 71600, percent: 3 },
+              { label: '2025年12月', count: 71900, percent: 3 },
+              { label: '2026年01月', count: 70400, percent: 3 },
+              { label: '2026年02月', count: 70800, percent: 3 },
+              { label: '2026年03月', count: 71100, percent: 3 },
+              { label: '2026年04月', count: 71400, percent: 3 },
+              { label: '2026年05月', count: 71700, percent: 3 },
+              { label: '2026年06月', count: 72000, percent: 13 }
             ],
             anomalies: '2026-02 春节窗口企业活跃记录偏少，已按业务日历标注',
             updatedAt: '2026-07-01'
@@ -988,19 +1030,36 @@ export const seedProducts: Product[] = [
             maxDate: '2026-06-01',
             span: '1 年 6 个月',
             distributionYear: [
-              { label: '2024 H1', count: 400, percent: 33 },
-              { label: '2024 H2', count: 400, percent: 33 },
-              { label: '2025 H1', count: 400, percent: 34 }
+              { label: '2024', count: 10620, percent: 63 },
+              { label: '2025', count: 6360, percent: 37 }
             ],
             distributionQuarter: [
-              { label: '2024 H1', count: 400, percent: 33 },
-              { label: '2024 H2', count: 400, percent: 33 },
-              { label: '2025 H1', count: 400, percent: 34 }
+              { label: '2024Q1', count: 1080, percent: 6 },
+              { label: '2024Q2', count: 3880, percent: 23 },
+              { label: '2024Q3', count: 1380, percent: 8 },
+              { label: '2024Q4', count: 4280, percent: 25 },
+              { label: '2025Q1', count: 1680, percent: 10 },
+              { label: '2025Q2', count: 4680, percent: 28 }
             ],
             distributionMonth: [
-              { label: '2024 H1', count: 400, percent: 33 },
-              { label: '2024 H2', count: 400, percent: 33 },
-              { label: '2025 H1', count: 400, percent: 34 }
+              { label: '2024年01月', count: 60, percent: 1 },
+              { label: '2024年02月', count: 360, percent: 2 },
+              { label: '2024年03月', count: 660, percent: 4 },
+              { label: '2024年04月', count: 960, percent: 6 },
+              { label: '2024年05月', count: 1260, percent: 7 },
+              { label: '2024年06月', count: 1660, percent: 10 },
+              { label: '2024年07月', count: 160, percent: 1 },
+              { label: '2024年08月', count: 460, percent: 3 },
+              { label: '2024年09月', count: 760, percent: 4 },
+              { label: '2024年10月', count: 1060, percent: 6 },
+              { label: '2024年11月', count: 1460, percent: 9 },
+              { label: '2024年12月', count: 1760, percent: 10 },
+              { label: '2025年01月', count: 260, percent: 2 },
+              { label: '2025年02月', count: 560, percent: 3 },
+              { label: '2025年03月', count: 860, percent: 5 },
+              { label: '2025年04月', count: 1260, percent: 7 },
+              { label: '2025年05月', count: 1560, percent: 9 },
+              { label: '2025年06月', count: 1860, percent: 11 }
             ],
             updatedAt: '2026-07-01'
           },
@@ -1098,22 +1157,29 @@ export const seedProducts: Product[] = [
             maxDate: '2026-07-30',
             span: '12 个月',
             distributionYear: [
-              { label: '工作日白天', count: 7440000, percent: 40 },
-              { label: '工作日夜间', count: 3720000, percent: 20 },
-              { label: '周末白天', count: 3720000, percent: 20 },
-              { label: '周末夜间', count: 3720000, percent: 20 }
+              { label: '2025', count: 7003000, percent: 42 },
+              { label: '2026', count: 9806900, percent: 58 }
             ],
             distributionQuarter: [
-              { label: '工作日白天', count: 7440000, percent: 40 },
-              { label: '工作日夜间', count: 3720000, percent: 20 },
-              { label: '周末白天', count: 3720000, percent: 20 },
-              { label: '周末夜间', count: 3720000, percent: 20 }
+              { label: '2025Q3', count: 2800300, percent: 17 },
+              { label: '2025Q4', count: 4202700, percent: 25 },
+              { label: '2026Q1', count: 4202100, percent: 25 },
+              { label: '2026Q2', count: 4203100, percent: 25 },
+              { label: '2026Q3', count: 1401700, percent: 8 }
             ],
             distributionMonth: [
-              { label: '工作日白天', count: 7440000, percent: 40 },
-              { label: '工作日夜间', count: 3720000, percent: 20 },
-              { label: '周末白天', count: 3720000, percent: 20 },
-              { label: '周末夜间', count: 3720000, percent: 20 }
+              { label: '2025年08月', count: 1400000, percent: 8 },
+              { label: '2025年09月', count: 1400300, percent: 8 },
+              { label: '2025年10月', count: 1400600, percent: 8 },
+              { label: '2025年11月', count: 1400900, percent: 8 },
+              { label: '2025年12月', count: 1401200, percent: 8 },
+              { label: '2026年01月', count: 1401600, percent: 8 },
+              { label: '2026年02月', count: 1400100, percent: 8 },
+              { label: '2026年03月', count: 1400400, percent: 8 },
+              { label: '2026年04月', count: 1400700, percent: 8 },
+              { label: '2026年05月', count: 1401000, percent: 8 },
+              { label: '2026年06月', count: 1401400, percent: 8 },
+              { label: '2026年07月', count: 1401700, percent: 12 }
             ],
             updatedAt: '2026-07-30'
           },

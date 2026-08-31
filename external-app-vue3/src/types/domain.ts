@@ -84,9 +84,11 @@ export interface DateTimeFieldProfiling extends FieldProfilingBase {
   maxDate: string
   /** 时间跨度描述，如 "2 年 6 个月" */
   span: string
+  /** 按年分布；横轴标签如 2026 */
   distributionYear: DistributionBucket[]
+  /** 按年季分布；横轴标签如 2026Q1 */
   distributionQuarter: DistributionBucket[]
-  /** 默认展示粒度 */
+  /** 按年月分布（默认粒度）；横轴标签如 2026年01月 */
   distributionMonth: DistributionBucket[]
 }
 

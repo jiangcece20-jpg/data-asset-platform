@@ -67,22 +67,15 @@ const unlistedTruckDataset: DatasetDetail = {
       maxDate: '2026-07-30',
       span: '30 天',
       distributionYear: [
-        { label: '工作日白天', count: 19300000, percent: 40 },
-        { label: '工作日夜间', count: 9650000, percent: 20 },
-        { label: '周末白天', count: 9650000, percent: 20 },
-        { label: '周末夜间', count: 9650000, percent: 20 }
+        { label: '2026', count: 48300000, percent: 100 }
       ],
-            distributionQuarter: [
-        { label: '工作日白天', count: 19300000, percent: 40 },
-        { label: '工作日夜间', count: 9650000, percent: 20 },
-        { label: '周末白天', count: 9650000, percent: 20 },
-        { label: '周末夜间', count: 9650000, percent: 20 }
+      distributionQuarter: [
+        { label: '2026Q2', count: 16100000, percent: 33 },
+        { label: '2026Q3', count: 32200000, percent: 67 }
       ],
-            distributionMonth: [
-        { label: '工作日白天', count: 19300000, percent: 40 },
-        { label: '工作日夜间', count: 9650000, percent: 20 },
-        { label: '周末白天', count: 9650000, percent: 20 },
-        { label: '周末夜间', count: 9650000, percent: 20 }
+      distributionMonth: [
+        { label: '2026年06月', count: 16100000, percent: 33 },
+        { label: '2026年07月', count: 32200000, percent: 67 }
       ],
       updatedAt: '2026-07-30'
     },

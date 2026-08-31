@@ -9,9 +9,9 @@ import type {
   BooleanFieldProfiling,
   DistributionBucket
 } from '@/types/domain'
+import type { TimeGrain } from '@/domain/timeDistribution'
+import TimeDistributionChart from '@/components/shared/TimeDistributionChart.vue'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
-
-type TimeGrain = 'year' | 'quarter' | 'month'
 
 const props = defineProps<{ detail: DatasetDetail }>()
 
@@ -108,16 +108,19 @@ const distributionTitle = computed(() => {
   if (!s) return ''
   if (isNumeric(s)) return '区间分布直方图'
   if (isString(s)) return 'TOP 值分布'
-  if (isDateTime(s)) return '时间分布'
   return ''
 })
 
-const showTimeGrain = computed(() => {
+const showListDistribution = computed(() => {
   const s = currentStat.value
-  return Boolean(s && isDateTime(s))
+  return Boolean(s && (isNumeric(s) || isString(s)) && distributionData.value.length > 0)
 })
 
-const showDistribution = computed(() => distributionData.value.length > 0)
+const showTimeDistribution = computed(() => {
+  const s = currentStat.value
+  return Boolean(s && isDateTime(s) && distributionData.value.length > 0)
+})
+
 const showBooleanBar = computed(() => {
   const s = currentStat.value
   return Boolean(s && isBoolean(s))
@@ -134,12 +137,6 @@ const kindLabel: Record<string, string> = {
   datetime: '时间型',
   boolean: '布尔型'
 }
-
-const grainOptions: { key: TimeGrain; label: string }[] = [
-  { key: 'year', label: '年' },
-  { key: 'quarter', label: '年季' },
-  { key: 'month', label: '年月' }
-]
 </script>
 
 <template>
@@ -184,33 +181,9 @@ const grainOptions: { key: TimeGrain; label: string }[] = [
         </div>
       </div>
 
-      <!-- 分布图（数值型直方图 / 字符串 TOP / 时间型分布） -->
-      <div v-if="showDistribution" class="pt-1">
-        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <div class="text-[12px] font-medium text-slate-500">{{ distributionTitle }}</div>
-          <div
-            v-if="showTimeGrain"
-            class="flex gap-1"
-            role="tablist"
-            aria-label="时间粒度"
-          >
-            <button
-              v-for="g in grainOptions"
-              :key="g.key"
-              type="button"
-              role="tab"
-              :aria-selected="timeGrain === g.key"
-              :data-grain="g.key"
-              class="rounded border px-2 py-0.5 text-[11px] transition"
-              :class="timeGrain === g.key
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-slate-200 bg-white text-slate-500'"
-              @click="timeGrain = g.key"
-            >
-              {{ g.label }}
-            </button>
-          </div>
-        </div>
+      <!-- 数值 / 字符串：纵向列表条 -->
+      <div v-if="showListDistribution" class="pt-1">
+        <div class="mb-2 text-[12px] font-medium text-slate-500">{{ distributionTitle }}</div>
         <div class="space-y-2">
           <div v-for="bucket in distributionData" :key="bucket.label">
             <div class="mb-1 flex items-baseline justify-between gap-3 text-[12px]">
@@ -225,6 +198,15 @@ const grainOptions: { key: TimeGrain; label: string }[] = [
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 时间型：横滑柱状图（横轴时间，纵轴条数+占比） -->
+      <div v-if="showTimeDistribution" class="pt-1">
+        <TimeDistributionChart
+          :buckets="distributionData"
+          :grain="timeGrain"
+          @update:grain="timeGrain = $event"
+        />
       </div>
 
       <!-- 异常提示 -->

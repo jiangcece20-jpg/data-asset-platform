@@ -71,15 +71,17 @@ function makeDetail(overrides: Partial<DatasetDetail> = {}): DatasetDetail {
           { label: '2026', count: 1000, percent: 8 }
         ],
         distributionQuarter: [
-          { label: '2024 Q1', count: 4000, percent: 33 },
-          { label: '2024 Q2', count: 4000, percent: 33 },
-          { label: '2025 Q1', count: 4000, percent: 34 }
+          { label: '2024Q1', count: 4000, percent: 33 },
+          { label: '2024Q2', count: 4000, percent: 33 },
+          { label: '2025Q1', count: 4000, percent: 34 }
         ],
         distributionMonth: [
-          { label: '2024-01', count: 2000, percent: 17 },
-          { label: '2024-06', count: 2000, percent: 17 },
-          { label: '2025-01', count: 2000, percent: 16 },
-          { label: '其他月份', count: 6000, percent: 50 }
+          { label: '2024年01月', count: 2000, percent: 17 },
+          { label: '2024年06月', count: 2000, percent: 17 },
+          { label: '2025年01月', count: 2000, percent: 16 },
+          { label: '2025年06月', count: 2000, percent: 16 },
+          { label: '2026年01月', count: 2000, percent: 17 },
+          { label: '2026年06月', count: 2000, percent: 17 }
         ],
         updatedAt: '2026-07-01'
       },
@@ -129,25 +131,33 @@ describe('FieldProfilingPanel', () => {
     expect(wrapper.text()).toContain('988,000')
   })
 
-  it('renders datetime distribution with month grain by default', async () => {
+  it('renders datetime scrollable chart with month grain by default', async () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     await wrapper.get('[data-dim="register_date"]').trigger('click')
     expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('注册日期')
     expect(wrapper.text()).toContain('时间型')
     expect(wrapper.text()).toContain('最早日期')
     expect(wrapper.text()).toContain('2024-01-01')
-    expect(wrapper.text()).toContain('时间分布')
+    expect(wrapper.get('[data-testid="time-distribution-chart"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="time-distribution-scroll"]').exists()).toBe(true)
     expect(wrapper.get('[data-grain="month"]').attributes('aria-selected')).toBe('true')
-    expect(wrapper.text()).toContain('2024-01')
+    expect(wrapper.text()).toContain('2024年01月')
+    expect(wrapper.text()).toContain('2,000')
+    expect(wrapper.text()).toContain('17%')
   })
 
-  it('switches datetime grain to year', async () => {
+  it('switches datetime grain to year and quarter label formats', async () => {
     const wrapper = mount(FieldProfilingPanel, { props: { detail: makeDetail() } })
     await wrapper.get('[data-dim="register_date"]').trigger('click')
     await wrapper.get('[data-grain="year"]').trigger('click')
     expect(wrapper.get('[data-grain="year"]').attributes('aria-selected')).toBe('true')
     expect(wrapper.text()).toContain('8,000')
-    expect(wrapper.text()).not.toContain('其他月份')
+    expect(wrapper.text()).toContain('2024')
+    expect(wrapper.text()).not.toContain('2024年01月')
+
+    await wrapper.get('[data-grain="quarter"]').trigger('click')
+    expect(wrapper.get('[data-grain="quarter"]').attributes('aria-selected')).toBe('true')
+    expect(wrapper.text()).toContain('2024Q1')
   })
 
   it('renders boolean TRUE/FALSE ratio bar', async () => {

@@ -11,9 +11,9 @@ import type {
   DistributionBucket
 } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import TimeDistributionChart from '@/components/shared/TimeDistributionChart.vue'
 import { datasetKeyMetrics } from '@/domain/datasetMetrics'
-
-type TimeGrain = 'year' | 'quarter' | 'month'
+import type { TimeGrain } from '@/domain/timeDistribution'
 
 export interface InfoItem {
   label: string
@@ -49,12 +49,6 @@ const kindLabel: Record<string, string> = {
   datetime: '时间型',
   boolean: '布尔型'
 }
-
-const grainOptions: { key: TimeGrain; label: string }[] = [
-  { key: 'year', label: '年' },
-  { key: 'quarter', label: '年季' },
-  { key: 'month', label: '年月' }
-]
 
 // ---- 探查维度 ----
 const dimensions = computed(() => {
@@ -147,16 +141,18 @@ const distributionTitle = computed(() => {
   if (!s) return ''
   if (isNumeric(s)) return '区间分布直方图'
   if (isString(s)) return 'TOP 值分布'
-  if (isDateTime(s)) return '时间分布'
   return ''
 })
 
-const showTimeGrain = computed(() => {
+const showListDistribution = computed(() => {
   const s = currentStat.value
-  return Boolean(s && isDateTime(s))
+  return Boolean(s && (isNumeric(s) || isString(s)) && distributionData.value.length > 0)
 })
 
-const showDistribution = computed(() => distributionData.value.length > 0)
+const showTimeDistribution = computed(() => {
+  const s = currentStat.value
+  return Boolean(s && isDateTime(s) && distributionData.value.length > 0)
+})
 
 const showBooleanBar = computed(() => {
   const s = currentStat.value
@@ -349,33 +345,9 @@ const booleanBar = computed(() => {
                 </div>
               </div>
 
-              <!-- 分布图（数值型直方图 / 字符串 TOP / 时间型分布） -->
-              <div v-if="showDistribution" class="mb-6">
-                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div class="text-xs font-medium text-slate-500">{{ distributionTitle }}</div>
-                  <div
-                    v-if="showTimeGrain"
-                    class="flex gap-1"
-                    role="tablist"
-                    aria-label="时间粒度"
-                  >
-                    <button
-                      v-for="g in grainOptions"
-                      :key="g.key"
-                      type="button"
-                      role="tab"
-                      :aria-selected="timeGrain === g.key"
-                      :data-grain="g.key"
-                      class="rounded border px-2.5 py-0.5 text-xs transition"
-                      :class="timeGrain === g.key
-                        ? 'border-brand-500 bg-brand-500 text-white'
-                        : 'border-slate-200 bg-white text-slate-500'"
-                      @click="timeGrain = g.key"
-                    >
-                      {{ g.label }}
-                    </button>
-                  </div>
-                </div>
+              <!-- 数值 / 字符串：纵向列表条 -->
+              <div v-if="showListDistribution" class="mb-6">
+                <div class="mb-3 text-xs font-medium text-slate-500">{{ distributionTitle }}</div>
                 <div class="space-y-2.5">
                   <div v-for="bucket in distributionData" :key="bucket.label">
                     <div class="mb-1 flex items-baseline justify-between gap-3 text-xs">
@@ -392,6 +364,15 @@ const booleanBar = computed(() => {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- 时间型：横滑柱状图 -->
+              <div v-if="showTimeDistribution" class="mb-6">
+                <TimeDistributionChart
+                  :buckets="distributionData"
+                  :grain="timeGrain"
+                  @update:grain="timeGrain = $event"
+                />
               </div>
 
               <!-- 异常提示 -->
