@@ -2,6 +2,11 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import StatusBadge from '@/components/StatusBadge.vue'
+import {
+  isValidDemandPriceRange,
+  resolveDemandSubmitterSnapshot,
+  sanitizeDemandPriceRangeInput
+} from '@/domain/demandSubmitFields'
 import { useDemandStore } from '@/stores/demand'
 import { useUserStore } from '@/stores/user'
 
@@ -14,12 +19,29 @@ const user = useUserStore()
 type Tab = 'list' | 'form'
 const activeTab = ref<Tab>('list')
 
-const form = ref({
-  title: '',
-  description: '',
-  priceRange: '',
-  contact: user.context.phone || ''
-})
+function emptyForm() {
+  const snapshot = resolveDemandSubmitterSnapshot(user.context)
+  return {
+    title: '',
+    description: '',
+    priceRange: '',
+    contactName: snapshot.defaultContactName,
+    contact: user.context.phone || ''
+  }
+}
+
+const form = ref(emptyForm())
+const canSubmit = computed(
+  () => form.value.title.trim().length > 0 && isValidDemandPriceRange(form.value.priceRange)
+)
+
+function setPriceRange(raw: string) {
+  form.value.priceRange = sanitizeDemandPriceRangeInput(raw)
+}
+
+function onPriceRangeInput(event: Event) {
+  setPriceRange((event.target as HTMLInputElement).value)
+}
 
 const myDemands = computed(() =>
   demand.list
@@ -32,7 +54,7 @@ function formatDate(dateStr: string) {
 }
 
 function submitDemand() {
-  if (!form.value.title.trim()) return
+  if (!canSubmit.value) return
   demand.submit({
     question: form.value.title,
     filters: [],
@@ -44,9 +66,10 @@ function submitDemand() {
     scenario: form.value.description,
     expectedDelivery: '',
     priceRange: form.value.priceRange,
+    contactName: form.value.contactName,
     contact: form.value.contact
   })
-  form.value = { title: '', description: '', priceRange: '', contact: user.context.phone || '' }
+  form.value = emptyForm()
   activeTab.value = 'list'
 }
 
@@ -106,6 +129,7 @@ function goProduct(productId: string) {
         </div>
         <div class="mt-1.5 space-y-0.5 text-[11px] text-slate-400">
           <div v-if="item.scenario">需求描述：{{ item.scenario }}</div>
+          <div v-if="item.contactName">联系人：{{ item.contactName }}</div>
           <div v-if="item.priceRange">期望价格区间：{{ item.priceRange }}</div>
           <div v-if="item.contact">联系方式：{{ item.contact }}</div>
           <div>{{ formatDate(item.createdAt) }}</div>
@@ -150,13 +174,24 @@ function goProduct(productId: string) {
             placeholder="请详细描述您需要的数据内容、格式、用途..."
           />
         </div>
+        <div>
+          <label class="mb-1 block text-[12px] font-medium text-slate-600">联系人</label>
+          <input
+            v-model="form.contactName"
+            data-testid="demand-contact-name"
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-brand-400"
+            placeholder="默认使用登录姓名，可修改"
+          />
+        </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="mb-1 block text-[12px] font-medium text-slate-600">期望价格区间（元）</label>
             <input
-              v-model="form.priceRange"
+              :value="form.priceRange"
+              data-testid="demand-price-range"
               class="w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] focus:outline-none"
-              placeholder="如：0-500"
+              placeholder="如：0-5000"
+              @input="onPriceRangeInput"
             />
           </div>
           <div>
@@ -171,7 +206,7 @@ function goProduct(productId: string) {
         <button
           class="w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white disabled:opacity-50"
           data-testid="demand-submit"
-          :disabled="!form.title.trim()"
+          :disabled="!canSubmit"
           @click="submitDemand"
         >
           提交需求

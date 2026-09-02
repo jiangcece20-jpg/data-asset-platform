@@ -739,6 +739,12 @@ export interface DemandLead {
   expectedDelivery: string
   priceRange?: string
   contact?: string
+  /** 用户填写的联系人姓名，默认回显登录姓名，提交前可改 */
+  contactName?: string
+  /** 提交时的登录账号快照，用户不可改 */
+  submitterAccount?: string
+  /** 提交时的用户 ID 快照，用户不可改 */
+  submitterUserId?: string
   enterpriseName?: string
   status: DemandStatus
   recommendedProductIds: string[]

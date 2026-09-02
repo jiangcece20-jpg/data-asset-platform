@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { seedDemands } from '@/data/seed'
+import { resolveDemandSubmitterSnapshot, revealDemandPhoneForOps } from '@/domain/demandSubmitFields'
 import type { DemandLead, DemandSource, DemandStatus } from '@/types/domain'
 import { genId, now } from '@/utils/id'
 import { useUserStore } from './user'
@@ -16,12 +17,23 @@ export interface DemandSubmitPayload {
   expectedDelivery: string
   priceRange?: string
   contact?: string
+  contactName?: string
   ownerId?: string
   source?: DemandSource
 }
 
 function submitEnterpriseName(user: ReturnType<typeof useUserStore>): string {
   return user.isEnterpriseAuthenticated ? user.enterprise.name : '个人'
+}
+
+function submitterSnapshot(user: ReturnType<typeof useUserStore>, contactName?: string, contact?: string) {
+  const snapshot = resolveDemandSubmitterSnapshot(user.context)
+  return {
+    contactName: contactName?.trim() || snapshot.defaultContactName,
+    contact: contact !== undefined ? revealDemandPhoneForOps(contact) : contact,
+    submitterAccount: snapshot.submitterAccount,
+    submitterUserId: snapshot.submitterUserId
+  }
 }
 
 export interface BridgeListingPayload {
@@ -65,10 +77,11 @@ export const useDemandStore = defineStore('demand', {
   actions: {
     submit(payload: DemandSubmitPayload) {
       const user = useUserStore()
-      const { ownerId, source, ...rest } = payload
+      const { ownerId, source, contactName, contact, ...rest } = payload
       const lead: DemandLead = {
         id: genId('demand'),
         ...rest,
+        ...submitterSnapshot(user, contactName, contact),
         enterpriseName: submitEnterpriseName(user),
         status: 'new',
         recommendedProductIds: [],
@@ -151,6 +164,7 @@ export const useDemandStore = defineStore('demand', {
         updateFreq: payload.updateFreq,
         scenario: payload.scenario,
         expectedDelivery: payload.expectedDelivery,
+        ...submitterSnapshot(user),
         enterpriseName: submitEnterpriseName(user),
         status: 'new',
         recommendedProductIds: [],

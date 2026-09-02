@@ -3,6 +3,11 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDemandStore } from '@/stores/demand'
 import { useUserStore } from '@/stores/user'
+import {
+  isValidDemandPriceRange,
+  resolveDemandSubmitterSnapshot,
+  sanitizeDemandPriceRangeInput
+} from '@/domain/demandSubmitFields'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const router = useRouter()
@@ -14,12 +19,29 @@ type Tab = 'list' | 'form'
 const activeTab = ref<Tab>('list')
 const submitted = ref(false)
 
-const form = ref({
-  title: '',
-  description: '',
-  priceRange: '',
-  contact: ''
-})
+function emptyForm() {
+  const snapshot = resolveDemandSubmitterSnapshot(user.context)
+  return {
+    title: '',
+    description: '',
+    priceRange: '',
+    contactName: snapshot.defaultContactName,
+    contact: user.context.phone || ''
+  }
+}
+
+const form = ref(emptyForm())
+const canSubmit = computed(
+  () => form.value.title.trim().length > 0 && isValidDemandPriceRange(form.value.priceRange)
+)
+
+function setPriceRange(raw: string) {
+  form.value.priceRange = sanitizeDemandPriceRangeInput(raw)
+}
+
+function onPriceRangeInput(event: Event) {
+  setPriceRange((event.target as HTMLInputElement).value)
+}
 
 // 当前用户的需求列表
 const myDemands = computed(() => {
@@ -39,7 +61,7 @@ const demandStatusMap: Record<string, string> = {
 }
 
 function submitDemand() {
-  if (!form.value.title.trim()) return
+  if (!canSubmit.value) return
   demand.submit({
     question: form.value.title,
     filters: [],
@@ -51,6 +73,7 @@ function submitDemand() {
     scenario: form.value.description,
     expectedDelivery: '',
     priceRange: form.value.priceRange,
+    contactName: form.value.contactName,
     contact: form.value.contact
   })
   submitted.value = true
@@ -58,12 +81,7 @@ function submitDemand() {
 }
 
 function resetForm() {
-  form.value = {
-    title: '',
-    description: '',
-    priceRange: '',
-    contact: ''
-  }
+  form.value = emptyForm()
   submitted.value = false
 }
 
@@ -118,6 +136,7 @@ function formatDate(dateStr: string) {
             </div>
             <div class="mt-1.5 space-y-1 text-xs text-slate-400">
               <div v-if="item.scenario">需求描述：{{ item.scenario }}</div>
+              <div v-if="item.contactName">联系人：{{ item.contactName }}</div>
               <div v-if="item.priceRange">期望价格区间：{{ item.priceRange }}</div>
               <div v-if="item.contact">联系方式：{{ item.contact }}</div>
               <div>{{ formatDate(item.createdAt) }}</div>
@@ -166,13 +185,25 @@ function formatDate(dateStr: string) {
           />
         </div>
 
+        <div>
+          <label class="mb-1 block text-sm font-medium text-slate-700">联系人</label>
+          <input
+            v-model="form.contactName"
+            data-testid="demand-contact-name"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+            placeholder="默认使用登录姓名，可修改"
+          />
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="mb-1 block text-sm font-medium text-slate-700">期望价格区间（元）</label>
             <input
-              v-model="form.priceRange"
+              :value="form.priceRange"
+              data-testid="demand-price-range"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-              placeholder="如：0-500"
+              placeholder="如：0-5000"
+              @input="onPriceRangeInput"
             />
           </div>
           <div>
@@ -189,7 +220,7 @@ function formatDate(dateStr: string) {
           <button class="rounded-lg border border-slate-200 px-6 py-2.5 text-sm text-slate-600" @click="activeTab = 'list'">取消</button>
           <button
             class="rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
-            :disabled="!form.title.trim()"
+            :disabled="!canSubmit"
             @click="submitDemand"
           >提交需求</button>
         </div>

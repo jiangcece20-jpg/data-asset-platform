@@ -2,6 +2,7 @@
 import { computed, reactive } from 'vue'
 import PageHeader from '@/components/admin/PageHeader.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { revealDemandPhoneForOps } from '@/domain/demandSubmitFields'
 import { useDemandStore } from '@/stores/demand'
 import { useCatalogStore } from '@/stores/catalog'
 import { useUserStore } from '@/stores/user'
@@ -90,9 +91,12 @@ function leadEnterpriseName(lead: { enterpriseName?: string; ownerId: string }) 
         </div>
         <div class="mt-1 space-y-0.5 text-[12px] text-slate-500">
           <div>企业名称：{{ leadEnterpriseName(d) }}</div>
+          <div>联系人：{{ d.contactName || '—' }}</div>
+          <div>提交人账号：{{ revealDemandPhoneForOps(d.submitterAccount || '') || '—' }}</div>
+          <div>用户ID：{{ d.submitterUserId || '—' }}</div>
           <div>需求描述：{{ d.scenario || '—' }}</div>
           <div>期望价格区间：{{ d.priceRange || '—' }}</div>
-          <div>联系方式：{{ d.contact || '—' }}</div>
+          <div>联系方式：{{ revealDemandPhoneForOps(d.contact || '') || '—' }}</div>
         </div>
         <div v-if="d.browsedProductIds.length" class="mt-1 text-[12px] text-slate-400">
           浏览过：{{ d.browsedProductIds.map((id) => catalog.byId(id)?.name).filter(Boolean).join('、') }}
