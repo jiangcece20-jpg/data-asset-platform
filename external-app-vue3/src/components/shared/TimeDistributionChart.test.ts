@@ -12,6 +12,7 @@ describe('TimeDistributionChart', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
   })
 
   it('uses content-width track and scrolls latest bar into view', async () => {
@@ -45,6 +46,27 @@ describe('TimeDistributionChart', () => {
 
     expect(scrollIntoView).toHaveBeenCalled()
     expect(wrapper.findAll('[data-testid="time-distribution-bar"]').at(-1)!.text()).toContain('2026Q2')
+    wrapper.unmount()
+  })
+
+  it('falls back to scrolling the container when scrollIntoView is unavailable', async () => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+    const wrapper = mount(TimeDistributionChart, {
+      props: {
+        grain: 'month',
+        buckets: [
+          { label: '2025年01月', count: 100, percent: 25 },
+          { label: '2026年06月', count: 300, percent: 75 }
+        ]
+      }
+    })
+    const scroller = wrapper.get('[data-testid="time-distribution-scroll"]').element as HTMLElement
+    Object.defineProperty(scroller, 'scrollWidth', { configurable: true, value: 600 })
+    Object.defineProperty(scroller, 'clientWidth', { configurable: true, value: 200 })
+
+    await flushPromises()
+
+    expect(scroller.scrollLeft).toBe(400)
     wrapper.unmount()
   })
 })

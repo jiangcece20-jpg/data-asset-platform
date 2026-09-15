@@ -37,7 +37,7 @@ async function scrollToLatest() {
   const scroller = scrollEl.value
   if (!scroller) return
   const bar = scroller.querySelector<HTMLElement>('[data-testid="time-distribution-bar"]:last-child')
-  if (bar) {
+  if (bar && typeof bar.scrollIntoView === 'function') {
     bar.scrollIntoView({ inline: 'end', block: 'nearest', behavior: 'instant' as ScrollBehavior })
     return
   }
