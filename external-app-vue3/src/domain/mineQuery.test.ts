@@ -11,11 +11,13 @@ describe('mineQuery', () => {
     })
   })
 
-  it('maps legacy tab=我的数据 to data/purchased', () => {
+  it('maps removed my-data links back to orders', () => {
     expect(parseMineQuery({ tab: '我的数据' })).toMatchObject({
-      menu: 'data',
-      dataTab: 'purchased'
+      menu: 'orders',
+      orderTab: 'buy'
     })
+    expect(parseMineQuery({ tab: 'data' }).menu).toBe('orders')
+    expect(parseMineQuery({ menu: 'data', dataTab: 'produced' }).menu).toBe('orders')
   })
 
   it('maps legacy tab=求上架 to seller menu', () => {
@@ -25,8 +27,7 @@ describe('mineQuery', () => {
     })
   })
 
-  it('maps legacy tab=data and tab=orders', () => {
-    expect(parseMineQuery({ tab: 'data' }).menu).toBe('data')
+  it('maps legacy tab=orders', () => {
     expect(parseMineQuery({ tab: 'orders' }).menu).toBe('orders')
   })
 
@@ -42,13 +43,14 @@ describe('mineQuery', () => {
     })).toMatchObject({ menu: 'orders', orderTab: 'buy' })
   })
 
-  it('builds patch that writes menu/orderTab and clears conflicting tab when needed', () => {
+  it('builds patch that writes menu/orderTab and clears removed data state', () => {
     const patch = mineQueryPatch(
-      { menu: 'data', dataTab: 'purchased' },
-      { tab: 'orders', subject: 'enterprise' }
+      { menu: 'orders', orderTab: 'buy' },
+      { menu: 'data', dataTab: 'produced', subject: 'enterprise' }
     )
-    expect(patch.menu).toBe('data')
-    expect(patch.dataTab).toBe('purchased')
+    expect(patch.menu).toBe('orders')
+    expect(patch.orderTab).toBe('buy')
+    expect(patch.dataTab).toBeUndefined()
     expect(patch.tab).toBeUndefined()
     expect(patch.subject).toBe('enterprise')
   })

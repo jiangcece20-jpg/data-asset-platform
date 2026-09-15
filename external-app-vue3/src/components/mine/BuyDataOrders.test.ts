@@ -19,7 +19,9 @@ function makeRouter(_initialPath?: string) {
       { path: '/portal/mine', component: Dummy },
       { path: '/portal/mine/orders/:source/:id', component: Dummy },
       { path: '/app/payment/dataset/:orderId', component: Dummy },
-      { path: '/portal/payment/dataset/:orderId', component: Dummy }
+      { path: '/portal/payment/dataset/:orderId', component: Dummy },
+      { path: '/app/product/:id', component: Dummy },
+      { path: '/portal/product/:id', component: Dummy }
     ]
   })
 }
@@ -49,36 +51,34 @@ async function mountBuyDataOrders(
 describe('BuyDataOrders', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('lists only dataset buy-data orders and keeps status filters', async () => {
-    // 种子数据中没有会员/VIP 订单（购买会员走 productId === 'membership'，无 productType，
-    // 因此不会通过 filterBuyDataOrders 的 productType === 'dataset' 判定）。
-    // 这里显式注入一条“标准VIP”会员订单，验证它绝不出现在买数列表中。
+  it('lists buy-data product orders, excludes VIP, and uses the four status chips', async () => {
     useUserStore().completeEnterpriseAuth()
     useOrderStore().purchaseMember(12, 'standard')
 
-    const { wrapper, openBills } = await mountBuyDataOrders()
+    const { wrapper } = await mountBuyDataOrders()
 
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="api-bills-order-entry"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('标准VIP')
-    expect(wrapper.text()).not.toContain('会员')
     expect(wrapper.text()).toContain('全国货车轨迹热力数据集')
+    expect(wrapper.text()).toContain('中国公路物流行业月报')
     expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(true)
-    // 报告订单（order-history-001）非数据集，不应出现
-    expect(wrapper.text()).not.toContain('中国公路物流行业月报')
 
-    await wrapper.find('[data-testid="api-bills-order-entry"]').trigger('click')
-    expect(openBills).toHaveBeenCalledTimes(1)
+    const chips = wrapper.findAll('button').map((btn) => btn.text())
+    expect(chips).toContain('待付款')
+    expect(chips).toContain('已支付')
+    expect(chips).toContain('已取消')
+    expect(chips).toContain('已关闭')
+    expect(chips).not.toContain('待领取')
+    expect(chips).not.toContain('支付完成')
 
-    const paidChip = wrapper.findAll('button').find((btn) => btn.text() === '支付完成')
-    expect(paidChip).toBeTruthy()
+    const paidChip = wrapper.findAll('button').find((btn) => btn.text() === '已支付')
     await paidChip!.trigger('click')
-
     expect(wrapper.text()).toContain('全国货车轨迹热力数据集')
     expect(wrapper.text()).not.toContain('标准VIP')
   })
 
-  it('shows the four actual intent statuses instead of an aggregate intent status', async () => {
-    useUserStore().completeEnterpriseAuth()
+  it('keeps unclaimed intents in all, not in 待付款', async () => {
     useSpaceIntentStore().list = []
     const intent = useSpaceIntentStore().submit({
       productId: 'prod-enterprise-activity',
@@ -87,28 +87,30 @@ describe('BuyDataOrders', () => {
       scenario: '试用'
     })
     const { wrapper } = await mountBuyDataOrders()
+    const card = wrapper.get(`[data-testid="order-card-intent-${intent.id}"]`)
+    expect(card.text()).toContain('待领取')
 
-    expect(wrapper.findAll('button').some((btn) => btn.text() === '待领取')).toBe(true)
-    expect(wrapper.findAll('button').some((btn) => btn.text() === '权益生效')).toBe(true)
-    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
-    expect(wrapper.text()).toContain('待领取')
-
-    const intentChip = wrapper.findAll('button').find((btn) => btn.text() === '待领取')
-    await intentChip!.trigger('click')
-    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
-    expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(false)
+    await wrapper.findAll('button').find((btn) => btn.text() === '待付款')!.trigger('click')
+    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(false)
   })
 
-  it('keeps list cards compact: type, name, status, amount, time; no dense meta or extra actions', async () => {
+  it('shows channel, subject and paid caption on compact cards', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountBuyDataOrders()
 
-    expect(wrapper.text()).not.toContain('查看商品')
     expect(wrapper.text()).not.toContain('查看我的数据')
-    expect(wrapper.text()).not.toContain('购买主体')
     expect(wrapper.text()).not.toContain('购买方案')
     expect(wrapper.text()).not.toContain('付款方式')
-    expect(wrapper.text()).not.toContain('前往可信空间')
+    expect(wrapper.find('[aria-label="购买主体筛选"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('全部主体')
+
+    const card = wrapper.get('[data-testid="order-card-app-order-enterprise-dataset-001"]')
+    expect(card.text()).toContain('APP 内购买')
+    expect(card.text()).toContain('企业')
+    expect(card.text()).toContain('实付款')
+    expect(card.text()).toContain('查看商品')
+    expect(card.text()).toContain('进入用数模块')
+    expect(card.text()).toContain('下载数据')
   })
 
   it('opens order detail when a card is clicked', async () => {
@@ -120,11 +122,19 @@ describe('BuyDataOrders', () => {
     expect(router.currentRoute.value.path).toBe('/app/mine/orders/app/order-enterprise-dataset-001')
   })
 
-  it('keeps continue-pay on the card and does not open detail', async () => {
+  it('includes a seeded unpaid dataset order with 继续支付', async () => {
+    const { wrapper } = await mountBuyDataOrders()
+    const card = wrapper.get('[data-testid="order-card-app-order-dataset-pending-001"]')
+    expect(card.text()).toContain('待付款')
+    expect(card.text()).toContain('继续支付')
+    expect(card.text()).toContain('应付款')
+  })
+
+  it('shows continue payment for a pending order and does not open detail', async () => {
     const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
     const { wrapper, pay, router } = await mountBuyDataOrders()
 
-    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续付款')
+    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续支付')
     expect(payButton).toBeTruthy()
     await payButton!.trigger('click')
     await flushPromises()
@@ -134,21 +144,51 @@ describe('BuyDataOrders', () => {
     expect(router.currentRoute.value.path).toBe('/app/mine')
   })
 
-  it('does not render a product-type select', async () => {
-    const { wrapper } = await mountBuyDataOrders()
-    expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(false)
+  it('opens the product from the order card action without opening order detail', async () => {
+    useUserStore().completeEnterpriseAuth()
+    const { wrapper, router } = await mountBuyDataOrders()
+    const card = wrapper.get('[data-testid="order-card-app-order-enterprise-dataset-001"]')
+
+    await card.findAll('button').find((button) => button.text() === '查看商品')!.trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/app/product/prod-truck-trajectory')
   })
 
-  it('keeps subject and channel filters and emits update:subjectFilter', async () => {
+  it('does not show dataset actions for an API intent', async () => {
+    useSpaceIntentStore().list = []
+    const intent = useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '核验'
+    })
+    const { wrapper } = await mountBuyDataOrders()
+    const card = wrapper.get(`[data-testid="order-card-intent-${intent.id}"]`)
+
+    expect(card.text()).toContain('查看商品')
+    expect(card.text()).not.toContain('进入用数模块')
+    expect(card.text()).not.toContain('下载数据')
+  })
+
+  it('filters the mixed buy-data list by product type', async () => {
+    const { wrapper } = await mountBuyDataOrders()
+    const typeSelect = wrapper.get('[aria-label="商品类型筛选"]')
+    expect(typeSelect.text()).toContain('行业报告')
+    expect(typeSelect.text()).toContain('自有看板')
+
+    await typeSelect.setValue('report')
+    expect(wrapper.text()).toContain('中国公路物流行业月报')
+    expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(false)
+  })
+
+  it('keeps channel filter without a subject picker', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountBuyDataOrders({ subjectFilter: 'all' })
 
     expect(wrapper.find('[aria-label="成交渠道筛选"]').exists()).toBe(true)
-
-    const enterpriseButton = wrapper.findAll('button').find((btn) => btn.text() === '企业')
-    await enterpriseButton!.trigger('click')
-
-    expect(wrapper.emitted('update:subjectFilter')?.[0]).toEqual(['enterprise'])
+    expect(wrapper.find('[aria-label="购买主体筛选"]').exists()).toBe(false)
+    expect(wrapper.findAll('button').find((btn) => btn.text() === '企业')).toBeFalsy()
   })
 
   it('renders portal enterprise context, export and operator filter testids for variant=portal', async () => {
@@ -161,8 +201,10 @@ describe('BuyDataOrders', () => {
     expect(wrapper.find('[data-testid="portal-enterprise-order-filter-context"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="export-enterprise-orders"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="经办人筛选"]').exists()).toBe(true)
-    expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(false)
-    expect(wrapper.findAll('a').find((link) => link.text() === '下载数据')).toBeFalsy()
+    expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="购买主体筛选"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('API 调用与费用账单')
+    expect(wrapper.findAll('a').find((link) => link.text() === '下载数据')).toBeTruthy()
   })
 
   it('opens portal order detail from a portal card', async () => {

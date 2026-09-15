@@ -162,7 +162,7 @@ function resolveInProgressAction(phase: PurchaseInProgress | null | undefined): 
 } | null {
   if (!phase) return null
   if (phase.phase === 'pending_payment') {
-    return { primary: { key: 'continue_payment', label: '继续付款' } }
+    return { primary: { key: 'continue_payment', label: '继续支付' } }
   }
   if (phase.phase === 'fulfilling') {
     const label =
@@ -237,7 +237,7 @@ const listActionLabelByKey: Record<ProductActionKey, string> = {
   member_purchase: '开通会员',
   item_purchase: '购买',
   dataset_purchase: '购买数据集',
-  continue_payment: '继续付款',
+  continue_payment: '继续支付',
   delivery_progress: '查看交付进度',
   intent_progress: '查看订单',
   unavailable: '暂不可购'

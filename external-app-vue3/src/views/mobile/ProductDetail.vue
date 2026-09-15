@@ -98,7 +98,7 @@ const actions = computed(() => {
     })
   })
   if (current.type === 'dataset' && current.origin === 'asset_platform' && owned.value) {
-    return { ...resolved, primary: { ...resolved.primary, label: '查看我的数据' } }
+    return { ...resolved, primary: { ...resolved.primary, label: '查看我的订单' } }
   }
   return resolved
 })
@@ -232,7 +232,7 @@ function handleAction(key: ProductActionKey) {
     case 'view':
     case 'free_view':
       router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
-        ? { path: '/app/mine', query: { menu: 'data', dataTab: 'purchased' } }
+        ? { path: '/app/mine', query: { menu: 'orders', orderTab: 'buy' } }
         : '/app/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break
@@ -399,7 +399,7 @@ function handleAction(key: ProductActionKey) {
       <div class="text-[13px] font-semibold text-emerald-700">
         ✅ {{ product.type === 'dataset' && product.origin === 'asset_platform' ? '已获得数据权益' : access === 'member' ? '会员权益已覆盖' : access === 'item' ? '已单独购买' : '企业席位已授权' }}
       </div>
-      <div class="mt-1 text-[12px] text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的数据”查看交付状态并进入用数模块' : '可直接查看完整内容 / 在线看板 / 调用测试' }}</div>
+      <div class="mt-1 text-[12px] text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的订单”查看交付状态并进入用数模块' : '可直接查看完整内容 / 在线看板 / 调用测试' }}</div>
     </div>
 
     <!-- API 用量明细 -->

@@ -8,7 +8,10 @@ import PortalProductDetail from './PortalProductDetail.vue'
 async function mountProductDetail(productId: string) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/portal/product/:id', component: PortalProductDetail }]
+    routes: [
+      { path: '/portal/product/:id', component: PortalProductDetail },
+      { path: '/portal/mine', component: { template: '<div />' } }
+    ]
   })
   await router.push(`/portal/product/${productId}`)
   await router.isReady()
@@ -49,6 +52,23 @@ describe('PortalProductDetail samples empty copy', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('当前无样例')
     expect(wrapper.text()).not.toContain('上架审核通过后提供脱敏样例')
+  })
+})
+
+describe('PortalProductDetail owned dataset', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('sends owned asset-platform datasets to my orders', async () => {
+    const wrapper = await mountProductDetail('prod-warehouse-turnover-risk')
+
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('查看我的订单')
+    expect(wrapper.text()).toContain('可在“我的订单”查看交付并进入用数模块')
+    expect(wrapper.text()).not.toContain('查看我的数据')
+
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/portal/mine')
+    expect(wrapper.vm.$router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
   })
 })
 

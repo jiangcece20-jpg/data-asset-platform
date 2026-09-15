@@ -211,7 +211,7 @@ function goBills() {
         <div class="text-sm font-medium text-emerald-700">
           ✅ {{ product.type === 'dataset' && product.origin === 'asset_platform' ? '已获得数据权益' : access === 'member' ? '会员权益已覆盖' : access === 'item' ? '已单独购买' : '企业席位已授权' }}
         </div>
-        <div class="mt-0.5 text-xs text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的数据”查看交付并进入用数模块' : '可直接查看完整内容' }}</div>
+        <div class="mt-0.5 text-xs text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的订单”查看交付并进入用数模块' : '可直接查看完整内容' }}</div>
       </div>
 
       <!-- 操作按钮：会员+单品未开通时直接双路径 -->

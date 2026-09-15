@@ -41,27 +41,9 @@ function pay() {
   void router.push(path)
 }
 
-function goData() {
-  void router.push({
-    path: isPortal.value ? '/portal/mine' : '/app/mine',
-    query: { menu: 'data' }
-  })
-}
-
-function goRenewal() {
-  if (!order.value?.renewalInfo) return
-  const path = isPortal.value
-    ? order.value.renewalInfo.renewalPath
-    : order.value.renewalInfo.renewalPath.replace(/^\/portal\//, '/app/')
-  void router.push(path)
-}
-
 const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600'
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
 const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px] text-brand-600'
-const actionSoft = 'rounded-full bg-brand-50 px-3 py-1.5 text-[11px] text-brand-600'
-const actionDark = 'rounded-full bg-slate-800 px-3 py-1.5 text-[11px] text-white'
-const actionWarn = 'rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white'
 </script>
 
 <template>
@@ -115,13 +97,9 @@ const actionWarn = 'rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white
 
       <div class="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
         <button :class="actionBtn" @click="goProduct">查看商品</button>
-        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续付款</button>
-        <button v-if="order.filter === 'paid' || order.filter === 'entitled'" :class="actionSoft" @click="goData">查看我的数据</button>
-        <button v-if="order.renewalInfo" :class="actionWarn" @click="goRenewal">
-          {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
-        </button>
-        <a v-if="order.downloadUrl" :href="order.downloadUrl" :class="actionBrand">下载数据</a>
-        <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" :class="actionDark">前往可信空间</a>
+        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续支付</button>
+        <a v-if="order.productType === 'dataset' && order.biEntryUrl" :href="order.biEntryUrl" :class="actionPrimary">进入用数模块</a>
+        <a v-if="order.productType === 'dataset' && order.downloadUrl" :href="order.downloadUrl" :class="actionBrand">下载数据</a>
       </div>
     </article>
   </div>
@@ -172,13 +150,9 @@ const actionWarn = 'rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white
 
       <div class="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3">
         <button :class="actionBtn" @click="goProduct">查看商品</button>
-        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续付款</button>
-        <button v-if="order.filter === 'paid' || order.filter === 'entitled'" :class="actionSoft" @click="goData">查看我的数据</button>
-        <button v-if="order.renewalInfo" :class="actionWarn" @click="goRenewal">
-          {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
-        </button>
-        <a v-if="order.downloadUrl" :href="order.downloadUrl" :class="actionBrand">下载数据</a>
-        <a v-if="order.detailUrl" :href="order.detailUrl" target="_blank" rel="noopener noreferrer" :class="actionDark">前往可信空间</a>
+        <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续支付</button>
+        <a v-if="order.productType === 'dataset' && order.biEntryUrl" :href="order.biEntryUrl" :class="actionPrimary">进入用数模块</a>
+        <a v-if="order.productType === 'dataset' && order.downloadUrl" :href="order.downloadUrl" :class="actionBrand">下载数据</a>
       </div>
     </article>
   </div>

@@ -86,7 +86,8 @@ describe('OrdersPanel', () => {
     store.effect(intent.id, '已完成开通')
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
     expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
-    expect(wrapper.text()).toContain('权益生效')
+    expect(wrapper.text()).toContain('已支付')
+    expect(wrapper.text()).not.toContain('权益生效')
   })
 
   it('gives the active tab a distinguishing selected class', () => {
@@ -112,15 +113,15 @@ describe('OrdersPanel', () => {
     expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
   })
 
-  it('passes BuyDataOrders props and re-emits subject filter', async () => {
+  it('keeps enterprise context without a subject picker or bills entry', async () => {
     useUserStore().completeEnterpriseAuth()
-    const { wrapper, openBills } = mountOrdersPanel({ orderTab: 'buy' })
+    const { wrapper } = mountOrdersPanel({ orderTab: 'buy', subjectFilter: 'enterprise' })
 
-    await wrapper.find('[data-testid="api-bills-order-entry"]').trigger('click')
-    expect(openBills).toHaveBeenCalledTimes(1)
+    expect(wrapper.find('[data-testid="api-bills-order-entry"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(true)
+    expect(wrapper.findAll('button').find((btn) => btn.text() === '企业')).toBeFalsy()
 
-    const enterpriseButton = wrapper.findAll('button').find((btn) => btn.text() === '企业')
-    await enterpriseButton!.trigger('click')
-    expect(wrapper.emitted('update:subjectFilter')?.[0]).toEqual(['enterprise'])
+    await wrapper.get('[data-testid="enterprise-order-filter-context"] button').trigger('click')
+    expect(wrapper.emitted('update:subjectFilter')?.[0]).toEqual(['all'])
   })
 })

@@ -95,4 +95,19 @@ describe('dataset commerce views', () => {
     expect(order.paymentMethod).toBe('enterprise_contract')
     expect(order.contractStatus).toBe('payment_confirmed')
   })
+
+  it('sends a delivered payment success CTA to my orders', async () => {
+    const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
+    const { router, wrapper } = await mountRoute(`/app/payment/dataset/${order.id}`, DatasetPayment)
+    await wrapper.find('[data-testid="dataset-pay"]').trigger('click')
+    await flushPromises()
+
+    const cta = wrapper.findAll('button').find((btn) => btn.text() === '查看我的订单')
+    expect(cta).toBeTruthy()
+    expect(wrapper.text()).not.toContain('查看我的数据')
+    await cta!.trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/app/mine')
+    expect(router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
+  })
 })

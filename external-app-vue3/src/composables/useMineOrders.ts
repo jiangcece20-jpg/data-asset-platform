@@ -8,21 +8,24 @@ import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useEntitlementStore } from '@/stores/entitlements'
 import {
   appOrderCard,
+  matchesBuyDataStatusFilter,
   spaceIntentCard,
   spaceOrderCard,
   type MyOrderCard,
   type MyOrderFilter
 } from '@/domain/myCenter'
 import { orderExpiryText } from '@/domain/orderExpiry'
-import type { Entitlement } from '@/types/domain'
+import type { Entitlement, ProductType } from '@/types/domain'
 
 export type MineOrderSubjectFilter = 'all' | 'personal' | 'enterprise'
 export type MineOrderChannelFilter = 'all' | 'app' | 'space'
+export type MineOrderTypeFilter = 'all' | ProductType
 
 export interface FilterBuyDataOrdersOptions {
   orderFilter: MyOrderFilter
   subjectFilter: MineOrderSubjectFilter
   channelFilter: MineOrderChannelFilter
+  typeFilter?: MineOrderTypeFilter
   /** portal 经办人筛选，'all' 或未传表示不过滤 */
   operatorFilter?: string
   /** portal 下单时间筛选的起始时间戳（毫秒），未传表示不过滤 */
@@ -31,7 +34,7 @@ export interface FilterBuyDataOrdersOptions {
 
 /**
  * 迁出自 Mine.vue / PortalMine.vue 的订单聚合与过滤逻辑。
- * 买数订单列表：数据集订单、独立流转的空间试用意向、空间镜像。
+ * 买数订单列表：数据集 / API / 报告 / 看板订单、空间试用意向、空间镜像。不含 VIP 会员单。
  */
 function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefined): MyOrderCard {
   if (!card.productType || card.productType !== 'dataset') return card
@@ -50,12 +53,14 @@ function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefin
   return card
 }
 
+const BUY_DATA_TYPES = new Set(['dataset', 'api', 'report', 'dashboard'])
+
 function isBuyDataCard(order: MyOrderCard): boolean {
   return (
     order.source === 'intent'
-    || order.productType === 'dataset'
-    || Boolean(order.spaceIntentId)
     || order.source === 'space'
+    || Boolean(order.spaceIntentId)
+    || (order.productType != null && BUY_DATA_TYPES.has(order.productType))
   )
 }
 
@@ -99,7 +104,10 @@ export function useMineOrders() {
         })
         if (order.productType === 'dataset' && order.entitlementId) {
           const delivery = datasetCommerce.deliveries.find((item) => item.entitlementId === order.entitlementId)
-          if (delivery?.downloadUrl) card.downloadUrl = delivery.downloadUrl
+          if (delivery?.status === 'delivered') {
+            card.biEntryUrl = delivery.biEntryUrl
+            card.downloadUrl = delivery.downloadUrl
+          }
         }
         if (order.productType === 'dataset') {
           const entitlement = entitlements.list.find((e) => e.id === order.entitlementId)
@@ -126,11 +134,12 @@ export function useMineOrders() {
   })
 
   function filterBuyDataOrders(opts: FilterBuyDataOrdersOptions): MyOrderCard[] {
-    const { orderFilter, subjectFilter, channelFilter, operatorFilter, createdAfter } = opts
+    const { orderFilter, subjectFilter, channelFilter, typeFilter, operatorFilter, createdAfter } = opts
     return allOrders.value.filter((order) => (
       isBuyDataCard(order)
-      && (orderFilter === 'all' || order.filter === orderFilter)
+      && matchesBuyDataStatusFilter(order, orderFilter)
       && (subjectFilter === 'all' || order.ownerType === subjectFilter)
+      && (typeFilter === undefined || typeFilter === 'all' || order.productType === typeFilter)
       && (channelFilter === 'all'
         || (channelFilter === 'app' && (order.source === 'app' || order.source === 'intent'))
         || (channelFilter === 'space' && order.source === 'space'))

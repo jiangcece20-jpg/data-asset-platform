@@ -32,7 +32,7 @@ describe('MineShell pay callback', () => {
     useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
     const { wrapper, router } = await mountMineShell('portal', '/portal/mine?menu=orders')
 
-    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续付款')
+    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续支付')
     expect(payButton).toBeTruthy()
     await payButton!.trigger('click')
     await flushPromises()
@@ -45,7 +45,7 @@ describe('MineShell pay callback', () => {
     useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
     const { wrapper, router } = await mountMineShell('mobile', '/app/mine?menu=orders')
 
-    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续付款')
+    const payButton = wrapper.findAll('button').find((btn) => btn.text() === '继续支付')
     expect(payButton).toBeTruthy()
     await payButton!.trigger('click')
     await flushPromises()
@@ -53,17 +53,16 @@ describe('MineShell pay callback', () => {
     expect(router.currentRoute.value.path).toMatch(/^\/app\/payment\/dataset\//)
   })
 
-  it('exposes both legacy portal testids and mine-menu testids on the same clickable orders/data buttons', () => {
+  it('keeps the orders entry and removes my-data from both layouts', () => {
     const orders = mount(MineShell, {
       props: { layout: 'portal' },
       global: { plugins: [createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: Dummy }] })] }
     })
     const ordersButton = orders.find('[data-testid="portal-my-orders-tab"]')
-    const dataButton = orders.find('[data-testid="portal-my-data-tab"]')
     expect(ordersButton.exists()).toBe(true)
-    expect(dataButton.exists()).toBe(true)
     expect(ordersButton.find('[data-testid="mine-menu-orders"]').exists()).toBe(true)
-    expect(dataButton.find('[data-testid="mine-menu-data"]').exists()).toBe(true)
+    expect(orders.find('[data-testid="portal-my-data-tab"]').exists()).toBe(false)
+    expect(orders.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
   })
 })
 
@@ -82,16 +81,17 @@ describe('MineShell defaults & placeholders', () => {
     expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('该模块由其它产品负责')
   })
 
-  it('shows purchased data by default when switching to the data menu', async () => {
+  it('falls removed menu=data links back to buy-data orders', async () => {
     const { wrapper } = await mountMineShell('mobile', '/app/mine?menu=data')
-    expect(wrapper.find('[data-testid="data-tab-purchased"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="mine-placeholder"]').exists()).toBe(false)
   })
 
-  it('resolves legacy ?tab=我的数据 to the data menu', async () => {
+  it('resolves legacy ?tab=我的数据 to orders', async () => {
     const { wrapper } = await mountMineShell('mobile', '/app/mine?tab=我的数据')
-    expect(wrapper.find('[data-testid="mine-menu-data"]').classes().join(' ')).toContain('text-brand-600')
-    expect(wrapper.find('[data-testid="my-datasets"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-menu-orders"]').classes().join(' ')).toContain('text-brand-600')
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
   })
 
   it('shows seller panel with function tabs on mobile and portal', async () => {
@@ -113,16 +113,4 @@ describe('MineShell defaults & placeholders', () => {
     expect(wrapper.find('[data-testid="demands-tab-list"]').exists()).toBe(true)
   })
 
-  it('shows personal report list action that deep-links to seller listing', async () => {
-    const { wrapper, router } = await mountMineShell('mobile', '/app/mine?menu=data')
-    const listBtn = wrapper.find('[data-testid="list-personal-report"]')
-    expect(listBtn.exists()).toBe(true)
-    await listBtn.trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.query).toMatchObject({
-      menu: 'seller',
-      sellerTab: 'listing',
-      productId: 'prod-logistics-monthly'
-    })
-  })
 })

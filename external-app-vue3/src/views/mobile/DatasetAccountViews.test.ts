@@ -33,12 +33,14 @@ async function mountPage(path: string, component: any) {
 describe('dataset account views', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('shows dataset rights separately in mobile My Data', async () => {
+  it('lands old mobile my-data links on buy-data orders with delivered dataset actions', async () => {
     const wrapper = await mountPage('/app/mine?tab=我的数据', Mine)
-   expect(wrapper.find('[data-testid="my-datasets"]').text()).toContain('仓储周转效率数据集')
-   expect(wrapper.text()).toContain('资产版本')
-   expect(wrapper.text()).toContain('v2.3.2')
+    expect(wrapper.find('[data-testid="my-datasets"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('仓储周转效率数据集')
     expect(wrapper.text()).toContain('进入用数模块')
+    expect(wrapper.text()).toContain('下载数据')
   })
 
  it('lets an enterprise admin configure purchase policy and approve a member request', async () => {
@@ -66,6 +68,26 @@ describe('dataset account views', () => {
     expect(wrapper.find('[data-testid="continue-enterprise-dataset-payment"]').text()).toBe('继续企业付款')
   })
 
+  it('sends delivered enterprise purchases to my orders', async () => {
+    const user = useUserStore()
+    user.context.currentMemberId = 'mem-2'
+    user.completeEnterpriseAuth()
+    user.enterprise.purchasePolicy.memberPurchaseApprovalRequired = true
+    const { order, approvalRequest } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'enterprise')
+    user.switchMockEnterpriseMember('mem-1')
+    useDatasetCommerceStore().approve(approvalRequest!.id)
+    order.status = 'entitlement_active'
+    user.switchMockEnterpriseMember('mem-2')
+
+    const wrapper = await mountPage('/app/mine/enterprise', MineEnterprise)
+    const cta = wrapper.findAll('button').find((btn) => btn.text() === '查看已交付数据')
+    expect(cta).toBeTruthy()
+    await cta!.trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/app/mine')
+    expect(wrapper.vm.$router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
+  })
+
   it('keeps enterprise member management read-only for ordinary members', async () => {
     const user = useUserStore()
     user.context.currentMemberId = 'mem-2'
@@ -78,11 +100,13 @@ describe('dataset account views', () => {
     expect(wrapper.find('[data-testid="invite-enterprise-member"]').exists()).toBe(false)
   })
 
-  it('shows the same use-module dataset projection in the PC portal My Data tab', async () => {
+  it('lands old portal my-data links on buy-data orders with delivered dataset actions', async () => {
     const wrapper = await mountPage('/portal/mine?tab=data', PortalMine)
-    expect(wrapper.find('[data-testid="portal-my-data-tab"]').exists()).toBe(true)
-   expect(wrapper.find('[data-testid="portal-dataset-entitlement"]').text()).toContain('仓储周转效率数据集')
-   expect(wrapper.text()).toContain('已交付')
+    expect(wrapper.find('[data-testid="portal-my-data-tab"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="portal-my-orders"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('仓储周转效率数据集')
+    expect(wrapper.text()).toContain('进入用数模块')
+    expect(wrapper.text()).toContain('下载数据')
   })
 
   it('applies the same enterprise order context and management filters in the PC portal', async () => {

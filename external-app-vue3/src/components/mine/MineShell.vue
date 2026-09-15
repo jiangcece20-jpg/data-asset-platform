@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrdersPanel from './OrdersPanel.vue'
-import DataPanel from './DataPanel.vue'
 import SellerPanel from './SellerPanel.vue'
 import DemandsPanel from './DemandsPanel.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
@@ -12,7 +11,6 @@ import {
   mineQueryPatch,
   type MineMenu,
   type OrderTab,
-  type DataTab,
   type SellerTab,
   type MineSubject
 } from '@/domain/mineQuery'
@@ -34,7 +32,6 @@ const menus: Array<{ value: MineMenu; label: string; icon: string }> = [
   { value: 'messages', label: '消息中心', icon: '💬' },
   { value: 'favorites', label: '我的收藏', icon: '⭐' },
   { value: 'profile', label: '个人信息', icon: '🙍' },
-  { value: 'data', label: '我的数据', icon: '🗂️' },
   { value: 'seller', label: '卖家中心', icon: '🏪' }
 ]
 
@@ -46,10 +43,6 @@ function selectMenu(next: MineMenu) {
 
 function selectOrderTab(next: OrderTab) {
   void router.replace({ query: mineQueryPatch({ orderTab: next }, route.query) })
-}
-
-function selectDataTab(next: DataTab) {
-  void router.replace({ query: mineQueryPatch({ dataTab: next }, route.query) })
 }
 
 function selectSellerTab(next: SellerTab) {
@@ -81,8 +74,7 @@ function openBills() {
 }
 
 const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
-  orders: 'portal-my-orders-tab',
-  data: 'portal-my-data-tab'
+  orders: 'portal-my-orders-tab'
 }
 </script>
 
@@ -147,13 +139,6 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
       />
-      <DataPanel
-        v-else-if="state.menu === 'data'"
-        class="px-4"
-        :data-tab="state.dataTab"
-        variant="mobile"
-        @update:data-tab="selectDataTab"
-      />
       <DemandsPanel
         v-else-if="state.menu === 'demands'"
         class="px-4"
@@ -217,12 +202,6 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         :open-bills="openBills"
         @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
-      />
-      <DataPanel
-        v-else-if="state.menu === 'data'"
-        :data-tab="state.dataTab"
-        variant="portal"
-        @update:data-tab="selectDataTab"
       />
       <DemandsPanel
         v-else-if="state.menu === 'demands'"

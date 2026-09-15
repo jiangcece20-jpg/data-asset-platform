@@ -15,7 +15,8 @@ async function mountProductDetail(path = '/app/product/prod-qualification-api') 
       { path: '/app/space-bridge/:id', name: 'space-bridge', component: { template: '<div />' } },
       { path: '/app/checkout/item/:id', name: 'checkout-item', component: { template: '<div />' } },
       { path: '/app/checkout/dataset/:id', name: 'checkout-dataset', component: { template: '<div />' } },
-      { path: '/app/checkout/member', name: 'checkout-member', component: { template: '<div />' } }
+      { path: '/app/checkout/member', name: 'checkout-member', component: { template: '<div />' } },
+      { path: '/app/mine', name: 'mine', component: { template: '<div />' } }
     ]
   })
   await router.push(path)
@@ -162,6 +163,24 @@ describe('ProductDetail dashboard overview', () => {
     await discount.wrapper.get('[data-testid="product-become-member"]').trigger('click')
     await flushPromises()
     expect(discount.router.currentRoute.value.path).toBe('/app/checkout/member')
+  })
+})
+
+describe('ProductDetail owned dataset', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sends owned asset-platform datasets to my orders', async () => {
+    const { wrapper, router } = await mountProductDetail('/app/product/prod-warehouse-turnover-risk')
+
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('查看我的订单')
+    expect(wrapper.text()).toContain('可在“我的订单”查看交付状态并进入用数模块')
+    expect(wrapper.text()).not.toContain('查看我的数据')
+
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/app/mine')
+    expect(router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
   })
 })
 

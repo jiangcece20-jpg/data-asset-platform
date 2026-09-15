@@ -380,10 +380,10 @@ describe('mine order views', () => {
     expect(wrapper.text()).toContain('可信空间购买')
   })
 
-  it('exposes orders/data as primary mine menus with buy default', async () => {
+  it('exposes orders as a primary mine menu with buy default', async () => {
     const wrapper = await mountMine()
     expect(wrapper.find('[data-testid="mine-menu-orders"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
   })

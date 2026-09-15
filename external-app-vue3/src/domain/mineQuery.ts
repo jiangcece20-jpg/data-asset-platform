@@ -1,6 +1,6 @@
 import type { LocationQuery, LocationQueryValue } from 'vue-router'
 
-export type MineMenu = 'orders' | 'data' | 'demands' | 'vip' | 'messages' | 'favorites' | 'profile' | 'seller'
+export type MineMenu = 'orders' | 'demands' | 'vip' | 'messages' | 'favorites' | 'profile' | 'seller'
 export type OrderTab = 'vip' | 'buy' | 'intent'
 export type DataTab = 'purchased' | 'produced'
 export type SellerTab = 'apply' | 'listing' | 'orders' | 'listings'
@@ -14,7 +14,7 @@ export interface MineQueryState {
   subject?: MineSubject
 }
 
-const MENUS: MineMenu[] = ['orders', 'data', 'demands', 'vip', 'messages', 'favorites', 'profile', 'seller']
+const MENUS: MineMenu[] = ['orders', 'demands', 'vip', 'messages', 'favorites', 'profile', 'seller']
 const ORDER_TABS: OrderTab[] = ['vip', 'buy', 'intent']
 const DATA_TABS: DataTab[] = ['purchased', 'produced']
 const SELLER_TABS: SellerTab[] = ['apply', 'listing', 'orders', 'listings']
@@ -47,8 +47,7 @@ export function parseMineQuery(query: LocationQuery): MineQueryState {
   const legacyTab = first(query.tab)
   let menu: MineMenu = menuFromQuery ?? 'orders'
   if (!menuFromQuery) {
-    if (legacyTab === 'data' || legacyTab === '我的数据') menu = 'data'
-    else if (legacyTab === '求上架') menu = 'seller'
+    if (legacyTab === '求上架') menu = 'seller'
     else menu = 'orders'
   }
 
@@ -80,7 +79,7 @@ export function mineQueryPatch(
     ),
     menu: merged.menu,
     orderTab: merged.menu === 'orders' ? merged.orderTab : undefined,
-    dataTab: merged.menu === 'data' ? merged.dataTab : undefined,
+    dataTab: undefined,
     sellerTab: merged.menu === 'seller' ? merged.sellerTab : undefined,
     tab: undefined,
     subject: merged.subject

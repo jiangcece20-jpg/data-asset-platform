@@ -52,7 +52,8 @@ describe('OrderDetail', () => {
     expect(wrapper.text()).toContain('订单金额')
     expect(wrapper.text()).toContain('¥3,800')
     expect(wrapper.text()).toContain('查看商品')
-    expect(wrapper.text()).toContain('查看我的数据')
+    expect(wrapper.text()).toContain('进入用数模块')
+    expect(wrapper.text()).toContain('下载数据')
   })
 
   it('offers download on the portal detail of a delivered dataset order', async () => {
@@ -64,7 +65,7 @@ describe('OrderDetail', () => {
     expect(downloadLink!.attributes('href')).toContain('/download/dataset/')
   })
 
-  it('navigates to the product and my-data from detail actions', async () => {
+  it('navigates to the product from detail actions', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper, router } = await mountOrderDetail('/app/mine/orders/app/order-enterprise-dataset-001')
 
@@ -72,20 +73,13 @@ describe('OrderDetail', () => {
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/app/product/prod-truck-trajectory')
 
-    await router.push('/app/mine/orders/app/order-enterprise-dataset-001')
-    await flushPromises()
-    const remount = mount(OrderDetail, { global: { plugins: [router] } })
-    await remount.findAll('button').find((btn) => btn.text() === '查看我的数据')!.trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/app/mine')
-    expect(router.currentRoute.value.query).toMatchObject({ menu: 'data' })
   })
 
   it('continues payment from a pending dataset order', async () => {
     const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
     const { wrapper, router } = await mountOrderDetail(`/app/mine/orders/app/${order.id}`)
 
-    await wrapper.findAll('button').find((btn) => btn.text() === '继续付款')!.trigger('click')
+    await wrapper.findAll('button').find((btn) => btn.text() === '继续支付')!.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(`/app/payment/dataset/${order.id}`)
   })
@@ -94,7 +88,7 @@ describe('OrderDetail', () => {
     const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
     const { wrapper, router } = await mountOrderDetail(`/portal/mine/orders/app/${order.id}`)
 
-    await wrapper.findAll('button').find((btn) => btn.text() === '继续付款')!.trigger('click')
+    await wrapper.findAll('button').find((btn) => btn.text() === '继续支付')!.trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe(`/portal/payment/dataset/${order.id}`)
   })

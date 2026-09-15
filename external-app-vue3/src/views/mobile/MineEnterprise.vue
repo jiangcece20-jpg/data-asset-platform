@@ -83,10 +83,10 @@ function continueDatasetPayment(orderId: string) {
   router.push(`/app/payment/dataset/${orderId}`)
 }
 
-function goMyData() {
+function goMyOrders() {
   router.push({
     path: '/app/mine',
-    query: { menu: 'data', dataTab: 'purchased' }
+    query: { menu: 'orders', orderTab: 'buy' }
   })
 }
 
@@ -202,7 +202,7 @@ function goEnterpriseOrders() {
           <template v-else-if="purchase.order">
             <div class="mt-2 text-[11px] text-slate-500">订单状态：{{ statusMeta('appOrder', purchase.order.status).label }}</div>
             <button v-if="purchase.order.status === 'pending_payment'" data-testid="continue-enterprise-dataset-payment" class="mt-2 rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white" @click="continueDatasetPayment(purchase.order.id)">继续企业付款</button>
-            <button v-else-if="purchase.order.status === 'entitlement_active'" class="mt-2 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] text-white" @click="goMyData">查看已交付数据</button>
+            <button v-else-if="purchase.order.status === 'entitlement_active'" class="mt-2 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] text-white" @click="goMyOrders">查看已交付数据</button>
           </template>
         </div>
       </div>

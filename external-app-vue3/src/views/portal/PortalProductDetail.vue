@@ -94,7 +94,7 @@ const pcActions = computed(() => {
   const p = product.value
   if (!p || !actions.value) return null
   if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value) {
-    return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的数据' } }
+    return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的订单' } }
   }
   return actions.value
 })
@@ -265,7 +265,7 @@ function handleAction(key: ProductActionKey) {
     case 'view':
     case 'free_view':
       router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
-        ? { path: '/portal/mine', query: { menu: 'data', dataTab: 'purchased' } }
+        ? { path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } }
         : '/portal/mine')
       break
     case 'enterprise_auth': goEnterpriseAuth(); break

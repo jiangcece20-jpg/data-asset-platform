@@ -225,12 +225,12 @@ describe('resolveProductActions', () => {
     }).primary.key).toBe('unavailable')
   })
 
-  it('shows 继续付款 for pending_payment purchase-in-progress', () => {
+  it('shows 继续支付 for pending_payment purchase-in-progress', () => {
     expect(resolveProductActions({
       ...base,
       acquisitions: ['item_purchase'],
       purchaseInProgress: { phase: 'pending_payment', orderId: 'ord-1', canPay: true }
-    }).primary).toEqual({ key: 'continue_payment', label: '继续付款' })
+    }).primary).toEqual({ key: 'continue_payment', label: '继续支付' })
   })
 
   it('shows fulfilling labels by order status', () => {

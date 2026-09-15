@@ -235,6 +235,27 @@ export const seedOrders: Order[] = [
   },
 
   {
+    id: 'order-dataset-pending-001',
+    channel: 'app',
+    ownerType: 'personal',
+    ownerId: 'mem-1',
+    operatorMemberId: 'mem-1',
+    productId: 'prod-truck-trajectory',
+    productName: '全国货车轨迹热力数据集',
+    productType: 'dataset',
+    datasetOfferId: 'offer-truck-personal-snapshot',
+    commerceOfferId: 'offer-truck-personal-snapshot',
+    serviceMode: 'one_time',
+    selectedTermMonths: 12,
+    paymentMethod: 'personal_online',
+    amount: 399,
+    status: 'pending_payment',
+    entitlementGranted: false,
+    contractStatus: 'not_required',
+    createdAt: '2026-09-10T09:00:00.000Z'
+  },
+
+  {
     id: 'order-history-001',
     channel: 'app',
     ownerType: 'personal',

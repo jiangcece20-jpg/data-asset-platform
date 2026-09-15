@@ -141,7 +141,7 @@ function submit() {
     <div :class="embedded ? 'space-y-3' : 'space-y-3 px-4 pt-3'">
       <div class="rounded-2xl border border-slate-100 bg-white p-3 text-[12px] text-slate-600 shadow-card">
         <template v-if="sourceProduct?.type === 'report'">
-          来自「我的数据」个人报告：{{ sourceProduct.name }}。可选择用数对象后提交上架审核。
+          来自已购个人报告：{{ sourceProduct.name }}。可选择用数对象后提交上架审核。
         </template>
         <template v-else>
           以下字段会进入找数详情页。系统项（卖家、来源）不可改；其余由你填写，运营审核通过后发布。

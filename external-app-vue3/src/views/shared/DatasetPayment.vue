@@ -78,10 +78,10 @@ function retry() {
   commerce.retryDelivery(delivery.value.id)
 }
 
-function goMyData() {
+function goMyOrders() {
   router.push({
     path: isPortal.value ? '/portal/mine' : '/app/mine',
-    query: { menu: 'data', dataTab: 'purchased' }
+    query: { menu: 'orders', orderTab: 'buy' }
   })
 }
 
@@ -141,7 +141,7 @@ function goApprovalCenter() {
 
         <div v-else-if="order.status === 'payment_pending_confirmation'" data-testid="dataset-payment-pending-confirmation" class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
           <div class="text-base font-medium text-amber-900">付款确认中</div>
-          <p class="mt-1 text-sm text-amber-700">订单已提交，等待运营确认{{ selectedPaymentLabel }}到账。确认完成后权益自动开通，你将在"我的数据"中看到交付结果。</p>
+          <p class="mt-1 text-sm text-amber-700">订单已提交，等待运营确认{{ selectedPaymentLabel }}到账。确认完成后权益自动开通，你将在「我的订单」中看到交付结果。</p>
           <div class="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-slate-500">订单编号 {{ order.id }} · 金额 ¥{{ order.amount.toLocaleString() }}</div>
         </div>
 
@@ -154,7 +154,7 @@ function goApprovalCenter() {
         <div v-else-if="delivery?.status === 'delivered'" data-testid="dataset-delivery-success" class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
           <div class="text-3xl">✓</div><div class="mt-2 text-base font-medium text-emerald-800">支付成功，数据已交付至用数模块</div>
           <p class="mt-1 text-xs text-emerald-700">实例 {{ delivery.datasetInstanceId }} · 数据集权益已激活</p>
-          <button class="mt-4 rounded-lg bg-emerald-700 px-5 py-2.5 text-sm text-white" @click="goMyData">查看我的数据</button>
+          <button class="mt-4 rounded-lg bg-emerald-700 px-5 py-2.5 text-sm text-white" @click="goMyOrders">查看我的订单</button>
         </div>
       </div>
     </div>
