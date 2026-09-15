@@ -31,7 +31,7 @@ export interface FilterBuyDataOrdersOptions {
 
 /**
  * 迁出自 Mine.vue / PortalMine.vue 的订单聚合与过滤逻辑。
- * 买数订单列表：数据集订单、空间试用意向（状态=意向单）、空间意向转入订单、空间镜像。
+ * 买数订单列表：数据集订单、独立流转的空间试用意向、空间镜像。
  */
 function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefined): MyOrderCard {
   if (!card.productType || card.productType !== 'dataset') return card
@@ -53,7 +53,6 @@ function injectRenewalInfo(card: MyOrderCard, entitlement: Entitlement | undefin
 function isBuyDataCard(order: MyOrderCard): boolean {
   return (
     order.source === 'intent'
-    || order.status === 'intent'
     || order.productType === 'dataset'
     || Boolean(order.spaceIntentId)
     || order.source === 'space'

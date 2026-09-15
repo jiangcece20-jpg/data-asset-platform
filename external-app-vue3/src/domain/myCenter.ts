@@ -1,9 +1,10 @@
 import type { AppOrderStatus, Order, PaymentMethod, ProductType } from '@/types/domain'
-import type { SpaceIntentOrder } from '@/types/spaceIntent'
+import type { SpaceIntentOpsStatus, SpaceIntentOrder } from '@/types/spaceIntent'
 import type { SpaceOrderDisplayStatus, SpaceOrderMirror } from '@/types/trustedSpace'
 import { USER_STATUS_LABELS, userStatusOf } from '@/domain/spaceIntent'
 
-export type MyOrderFilter = 'all' | 'intent' | 'pending_payment' | 'processing' | 'completed' | 'closed'
+export type NormalOrderStatus = 'pending_payment' | 'paid' | 'cancelled'
+export type MyOrderFilter = 'all' | SpaceIntentOpsStatus | NormalOrderStatus
 
 export interface RenewalInfo {
   /** 续订入口路径 */
@@ -26,8 +27,8 @@ export interface MyOrderCard {
   ownerLabel: string
   operatorMemberId?: string
   channelLabel: string
-  status: AppOrderStatus | SpaceOrderDisplayStatus
-  statusDict: 'appOrder' | 'spaceOrder'
+  status: AppOrderStatus | SpaceOrderDisplayStatus | SpaceIntentOpsStatus
+  statusDict: 'appOrder' | 'spaceOrder' | 'spaceIntentOrder'
   filter: MyOrderFilter
   planSummary: string
   amountText: string
@@ -73,15 +74,17 @@ export function formatOrderTime(value?: string): string {
 export function orderFilterLabel(filter: MyOrderFilter): string {
   return ({
     all: '全部',
-    intent: '意向单',
-    pending_payment: '待付款',
+    unclaimed: '待领取',
     processing: '处理中',
-    completed: '已完成',
-    closed: '已关闭'
+    entitled: '权益生效',
+    closed: '已关闭',
+    pending_payment: '待支付',
+    paid: '支付完成',
+    cancelled: '订单取消'
   } as const)[filter]
 }
 
-/** 未转买数的空间试用意向 → 统一订单卡片，状态固定为「意向单」 */
+/** 意向单始终保留在自身生命周期中，不转为普通订单。 */
 export function spaceIntentCard(
   intent: SpaceIntentOrder,
   productName: string,
@@ -99,9 +102,9 @@ export function spaceIntentCard(
     ownerLabel: isEnterprise ? enterpriseName : '个人',
     operatorMemberId: intent.ownerMemberId,
     channelLabel: '空间试用 · 意向单',
-    status: 'intent',
-    statusDict: 'appOrder',
-    filter: userStatus === 'closed' ? 'closed' : 'intent',
+    status: intent.opsStatus,
+    statusDict: 'spaceIntentOrder',
+    filter: userStatus,
     planSummary: intent.scenario || '提交试用申请',
     amountText: '—',
     createdAt: intent.createdAt,
@@ -130,7 +133,7 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ownerLabel: order.ownerType === 'enterprise' ? enterpriseName : '个人',
     operatorMemberId: order.operatorMemberId,
     channelLabel: isSpaceIntent ? '平台成交 · 线下付款' : isSellerOrder ? '入驻商家 · 平台成交' : 'APP 内购买',
-    status: order.status,
+    status: normalOrderStatusOf(order.status),
     statusDict: 'appOrder',
     filter: appOrderFilter(order.status),
     planSummary,
@@ -182,19 +185,21 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
   }
 }
 
+export function normalOrderStatusOf(status: AppOrderStatus): NormalOrderStatus {
+  if (['approval_rejected', 'payment_cancelled', 'payment_failed', 'refunded', 'cancelled'].includes(status)) return 'cancelled'
+  if (['pending_approval', 'pending_payment', 'payment_pending_confirmation'].includes(status)) return 'pending_payment'
+  return 'paid'
+}
+
 function appOrderFilter(status: AppOrderStatus): MyOrderFilter {
-  if (status === 'intent') return 'intent'
-  if (status === 'pending_payment') return 'pending_payment'
-  if (['pending_approval', 'paid', 'pending_activation', 'payment_pending_confirmation'].includes(status)) return 'processing'
-  if (status === 'entitlement_active') return 'completed'
-  return 'closed'
+  return normalOrderStatusOf(status)
 }
 
 function spaceOrderFilter(status: SpaceOrderDisplayStatus): MyOrderFilter {
   if (status === 'pending_payment') return 'pending_payment'
   if (['accepted', 'paid', 'delivering', 'unknown_processing'].includes(status)) return 'processing'
-  if (status === 'delivered') return 'completed'
-  return 'closed'
+  if (status === 'delivered') return 'paid'
+  return 'cancelled'
 }
 
 function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerOrder = false, isSpaceIntent = false): string {
@@ -224,6 +229,7 @@ function appProgress(status: AppOrderStatus, isDataset: boolean, isSellerOrder =
     paid: isDataset ? '付款成功，数据权益与用数交付处理中' : '付款成功，权益开通处理中',
     pending_activation: '平台已收款，待运营开通',
     refunded: '订单已退款，相关权益按售后结果处理',
+    cancelled: '订单已取消，未形成权益',
     entitlement_active: isDataset ? '付款成功 · 权益已生效 · 数据已交付' : '付款成功 · 权益已生效'
   }
   return labels[status]

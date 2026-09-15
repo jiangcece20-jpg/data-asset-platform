@@ -38,11 +38,18 @@ const dictionaries: Record<string, Record<string, Meta>> = {
    payment_cancelled: { label: '支付取消', tone: 'slate' },
    payment_failed: { label: '支付失败', tone: 'red' },
     payment_pending_confirmation: { label: '付款确认中', tone: 'amber' },
-   paid: { label: '已支付', tone: 'blue' },
+   paid: { label: '支付完成', tone: 'green' },
+    cancelled: { label: '订单取消', tone: 'slate' },
     pending_activation: { label: '待开通', tone: 'amber' },
    refunded: { label: '已退款', tone: 'slate' },
     entitlement_active: { label: '权益已生效', tone: 'green' },
     intent: { label: '意向单', tone: 'purple' }
+  },
+  spaceIntentOrder: {
+    unclaimed: { label: '待领取', tone: 'amber' },
+    processing: { label: '处理中', tone: 'blue' },
+    entitled: { label: '权益生效', tone: 'green' },
+    closed: { label: '已关闭', tone: 'slate' }
   },
   biDelivery: {
     pending: { label: '待创建', tone: 'slate' },

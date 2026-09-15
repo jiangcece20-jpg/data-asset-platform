@@ -367,6 +367,20 @@ export const seedSpaceIntents: SpaceIntentOrder[] = [
     closeReason: '客户已线下签约，改走空间直购',
     createdAt: '2026-08-20 14:00',
     updatedAt: '2026-08-21 09:30'
+  },
+  {
+    id: 'intent-seed-005',
+    productId: 'prod-enterprise-activity',
+    productType: 'dataset',
+    ownerMemberId: 'mem-1',
+    contactName: '陈静',
+    contactPhone: '138****2201',
+    scenario: '合作企业活跃度分析',
+    enterpriseId: 'ent-wanlian-logistics',
+    opsStatus: 'entitled',
+    processNote: '已完成空间数据接入并开通权益',
+    createdAt: '2026-08-19 11:10',
+    updatedAt: '2026-08-22 15:20'
   }
 ]
 

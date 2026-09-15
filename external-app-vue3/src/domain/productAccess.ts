@@ -32,7 +32,7 @@ export interface ProductAction {
 export type PurchaseInProgress =
   | { phase: 'pending_payment'; orderId: string; canPay: boolean }
   | { phase: 'fulfilling'; orderId: string; status: AppOrderStatus }
-  | { phase: 'space_intent'; intentId: string; userStatus: Extract<SpaceIntentUserStatus, 'submitted' | 'processing'> }
+  | { phase: 'space_intent'; intentId: string; userStatus: Extract<SpaceIntentUserStatus, 'unclaimed' | 'processing'> }
 
 export interface ProductActionContext {
   type: StandardProductType
@@ -103,7 +103,7 @@ export function resolvePurchaseInProgress(input: {
 
   if (!intent) return null
   const userStatus = userStatusOf(intent.opsStatus)
-  if (userStatus !== 'submitted' && userStatus !== 'processing') return null
+  if (userStatus !== 'unclaimed' && userStatus !== 'processing') return null
   return { phase: 'space_intent', intentId: intent.id, userStatus }
 }
 
@@ -174,7 +174,7 @@ function resolveInProgressAction(phase: PurchaseInProgress | null | undefined): 
   return {
     primary: {
       key: 'intent_progress',
-      label: phase.userStatus === 'submitted' ? '查看订单' : '意向处理中'
+      label: phase.userStatus === 'unclaimed' ? '查看订单' : '意向处理中'
     }
   }
 }

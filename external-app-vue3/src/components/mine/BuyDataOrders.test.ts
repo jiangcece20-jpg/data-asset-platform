@@ -10,7 +10,7 @@ import { useSpaceIntentStore } from '@/stores/spaceIntents'
 
 const Dummy = { template: '<div />' }
 
-function makeRouter() {
+function makeRouter(_initialPath?: string) {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -69,15 +69,15 @@ describe('BuyDataOrders', () => {
     await wrapper.find('[data-testid="api-bills-order-entry"]').trigger('click')
     expect(openBills).toHaveBeenCalledTimes(1)
 
-    const completedChip = wrapper.findAll('button').find((btn) => btn.text() === '已完成')
-    expect(completedChip).toBeTruthy()
-    await completedChip!.trigger('click')
+    const paidChip = wrapper.findAll('button').find((btn) => btn.text() === '支付完成')
+    expect(paidChip).toBeTruthy()
+    await paidChip!.trigger('click')
 
     expect(wrapper.text()).toContain('全国货车轨迹热力数据集')
     expect(wrapper.text()).not.toContain('标准VIP')
   })
 
-  it('shows intent filter and merges space intents as status 意向单', async () => {
+  it('shows the four actual intent statuses instead of an aggregate intent status', async () => {
     useUserStore().completeEnterpriseAuth()
     useSpaceIntentStore().list = []
     const intent = useSpaceIntentStore().submit({
@@ -88,11 +88,12 @@ describe('BuyDataOrders', () => {
     })
     const { wrapper } = await mountBuyDataOrders()
 
-    expect(wrapper.findAll('button').some((btn) => btn.text() === '意向单')).toBe(true)
+    expect(wrapper.findAll('button').some((btn) => btn.text() === '待领取')).toBe(true)
+    expect(wrapper.findAll('button').some((btn) => btn.text() === '权益生效')).toBe(true)
     expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
-    expect(wrapper.text()).toContain('意向单')
+    expect(wrapper.text()).toContain('待领取')
 
-    const intentChip = wrapper.findAll('button').find((btn) => btn.text() === '意向单')
+    const intentChip = wrapper.findAll('button').find((btn) => btn.text() === '待领取')
     await intentChip!.trigger('click')
     expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-card-app-order-enterprise-dataset-001"]').exists()).toBe(false)

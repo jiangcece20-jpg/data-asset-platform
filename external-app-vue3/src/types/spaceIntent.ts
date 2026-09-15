@@ -3,10 +3,10 @@ export type SpaceKind = 'owned' | 'federated'
 export type SpaceIntentOpsStatus =
   | 'unclaimed'
   | 'processing'
-  | 'converted'
+  | 'entitled'
   | 'closed'
 
-export type SpaceIntentUserStatus = 'submitted' | 'processing' | 'closed'
+export type SpaceIntentUserStatus = SpaceIntentOpsStatus
 
 export interface SpaceIntentOrder {
   id: string
@@ -19,7 +19,7 @@ export interface SpaceIntentOrder {
   requestedEnterpriseName?: string
   enterpriseId?: string
   opsStatus: SpaceIntentOpsStatus
-  orderId?: string
+  processNote?: string
   closeReason?: string
   createdAt: string
   updatedAt: string

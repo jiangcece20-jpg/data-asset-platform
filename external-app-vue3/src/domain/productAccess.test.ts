@@ -249,7 +249,7 @@ describe('resolveProductActions', () => {
   it('shows intent progress instead of submit-intent while space intent is open', () => {
     expect(resolveProductActions({
       ...base,
-      purchaseInProgress: { phase: 'space_intent', intentId: 'intent-1', userStatus: 'submitted' }
+      purchaseInProgress: { phase: 'space_intent', intentId: 'intent-1', userStatus: 'unclaimed' }
     }).primary).toEqual({ key: 'intent_progress', label: '查看订单' })
     expect(resolveProductActions({
       ...base,
@@ -300,7 +300,7 @@ describe('resolvePurchaseInProgress', () => {
     })).toEqual({ phase: 'space_intent', intentId: 'intent-1', userStatus: 'processing' })
   })
 
-  it('marks seller or space-converted pending_payment as not canPay', () => {
+  it('marks seller-managed pending_payment as not canPay', () => {
     expect(resolvePurchaseInProgress({
       productId: 'prod-x',
       ownerMemberId: 'mem-1',

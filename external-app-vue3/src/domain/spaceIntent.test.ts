@@ -1,28 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import {
-  canConfirmPayment,
   nextOpsStatus,
   userStatusOf
 } from './spaceIntent'
 
 describe('spaceIntent domain', () => {
-  it('maps ops status to user-facing intent statuses without converted', () => {
-    expect(userStatusOf('unclaimed')).toBe('submitted')
+  it('keeps the four intent statuses visible to users', () => {
+    expect(userStatusOf('unclaimed')).toBe('unclaimed')
     expect(userStatusOf('processing')).toBe('processing')
-    expect(userStatusOf('converted')).toBe('processing')
+    expect(userStatusOf('entitled')).toBe('entitled')
     expect(userStatusOf('closed')).toBe('closed')
   })
 
-  it('blocks payment confirmation until an enterprise is attached', () => {
-    expect(canConfirmPayment({})).toBe(false)
-    expect(canConfirmPayment({ enterpriseId: 'ent-1' })).toBe(true)
-  })
-
-  it('converts processing intents to orders and forbids closing converted ones', () => {
+  it('moves intents only inside their own lifecycle', () => {
     expect(nextOpsStatus('unclaimed', 'claim')).toBe('processing')
-    expect(nextOpsStatus('processing', 'confirm_payment')).toBe('converted')
-    expect(nextOpsStatus('unclaimed', 'confirm_payment')).toBe('converted')
-    expect(() => nextOpsStatus('converted', 'close')).toThrow('已转订单不可关闭')
+    expect(nextOpsStatus('processing', 'effect')).toBe('entitled')
+    expect(() => nextOpsStatus('unclaimed', 'effect')).toThrow('仅处理中可确认权益生效')
+    expect(() => nextOpsStatus('entitled', 'close')).toThrow('终态意向单不可关闭')
     expect(nextOpsStatus('processing', 'close')).toBe('closed')
   })
 })

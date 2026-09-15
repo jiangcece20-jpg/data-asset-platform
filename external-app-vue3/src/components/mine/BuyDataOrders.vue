@@ -25,7 +25,7 @@ const router = useRouter()
 const user = useUserStore()
 const { filterBuyDataOrders } = useMineOrders()
 
-const orderFilters: MyOrderFilter[] = ['all', 'intent', 'pending_payment', 'processing', 'completed', 'closed']
+const orderFilters: MyOrderFilter[] = ['all', 'unclaimed', 'processing', 'entitled', 'closed', 'pending_payment', 'paid', 'cancelled']
 const orderFilter = ref<MyOrderFilter>('all')
 const channelFilter = ref<MineOrderChannelFilter>('all')
 const operatorFilter = ref('all')

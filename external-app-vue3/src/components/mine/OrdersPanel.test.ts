@@ -58,7 +58,7 @@ describe('OrdersPanel', () => {
     expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
   })
 
-  it('lists space intents inside buy orders with status 意向单', async () => {
+  it('lists space intents inside buy orders with their actual status', async () => {
     useSpaceIntentStore().submit({
       productId: 'prod-qualification-api',
       contactName: '陈静',
@@ -67,12 +67,12 @@ describe('OrdersPanel', () => {
     })
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('意向单')
+    expect(wrapper.text()).toContain('待领取')
     expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
     expect(wrapper.find('[data-testid="my-space-intents"]').exists()).toBe(false)
   })
 
-  it('hides converted intents from buy list after payment confirmation', async () => {
+  it('keeps entitled intents in the buy list without creating a normal order', async () => {
     const user = useUserStore()
     user.completeEnterpriseAuth()
     const store = useSpaceIntentStore()
@@ -83,10 +83,10 @@ describe('OrdersPanel', () => {
       scenario: '核验'
     })
     store.claim(intent.id, user.enterprise.id)
-    store.confirmOfflinePayment(intent.id, user.enterprise.id)
+    store.effect(intent.id, '已完成开通')
     const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
-    // 转单后意向卡片消失；买数列表可能仍有其它种子订单，但不含该意向 id
-    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(false)
+    expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
+    expect(wrapper.text()).toContain('权益生效')
   })
 
   it('gives the active tab a distinguishing selected class', () => {

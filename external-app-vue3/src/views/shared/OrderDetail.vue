@@ -116,7 +116,7 @@ const actionWarn = 'rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white
       <div class="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
         <button :class="actionBtn" @click="goProduct">查看商品</button>
         <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续付款</button>
-        <button v-if="order.filter === 'completed'" :class="actionSoft" @click="goData">查看我的数据</button>
+        <button v-if="order.filter === 'paid' || order.filter === 'entitled'" :class="actionSoft" @click="goData">查看我的数据</button>
         <button v-if="order.renewalInfo" :class="actionWarn" @click="goRenewal">
           {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
         </button>
@@ -173,7 +173,7 @@ const actionWarn = 'rounded-full bg-amber-500 px-3 py-1.5 text-[11px] text-white
       <div class="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3">
         <button :class="actionBtn" @click="goProduct">查看商品</button>
         <button v-if="order.canPay && order.paymentPath" :class="actionPrimary" @click="pay">继续付款</button>
-        <button v-if="order.filter === 'completed'" :class="actionSoft" @click="goData">查看我的数据</button>
+        <button v-if="order.filter === 'paid' || order.filter === 'entitled'" :class="actionSoft" @click="goData">查看我的数据</button>
         <button v-if="order.renewalInfo" :class="actionWarn" @click="goRenewal">
           {{ order.renewalInfo.status === 'expired' ? '重新订阅' : '立即续订' }}
         </button>

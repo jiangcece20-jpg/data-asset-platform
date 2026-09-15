@@ -303,20 +303,62 @@ export const useOrderStore = defineStore('orders', {
       const order = this.list.find((o) => o.id === orderId)
       if (order) order.contractStatus = 'contract_signed'
     },
-    /** 空间意向转单：运营确认线下到账，进入履约（不自动开通权益） */
-    confirmSpaceIntentPayment(orderId: string) {
-      const order = this.list.find((o) => o.id === orderId)
-      if (!order?.spaceIntentId) throw new Error('仅空间意向转单可确认到账')
-      if (order.status !== 'payment_pending_confirmation') throw new Error('仅待确认到账订单可操作')
-      order.status = 'paid'
-      order.paidAt = now()
-      order.contractStatus = 'payment_confirmed'
-      order.note = '运营已确认到账，履约中'
-      return order
-    },
     cancelOrder(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
       if (order) order.status = 'payment_cancelled'
+    },
+    manualConfirmPayment(orderId: string, processNote: string) {
+      const order = this.list.find((item) => item.id === orderId)
+      if (!order) throw new Error('订单不存在')
+      if (order.status !== 'pending_payment') throw new Error('仅待支付订单可人工确认支付成功')
+      if (!processNote.trim()) throw new Error('人工确认支付成功必须填写处理说明')
+      const product = useCatalogStore().byId(order.productId)
+      if (!product) throw new Error('商品不存在')
+      const entitlements = useEntitlementStore()
+      if (product.type === 'dataset') {
+        const offer = product.datasetOffers?.find((item) => item.id === order.datasetOfferId) ?? product.datasetOffers?.[0]
+        if (!offer) throw new Error('数据集缺少购买方案，无法生效')
+        const entitlement = entitlements.grantDatasetPending({
+          product,
+          orderId: order.id,
+          ownerType: order.ownerType,
+          ownerId: order.ownerId,
+          operatorMemberId: order.operatorMemberId ?? order.ownerId,
+          offerId: offer.id,
+          selectedTermMonths: order.selectedTermMonths
+        })
+        entitlements.activateDataset(entitlement.id, `bi-order-${order.id}`)
+        order.entitlementId = entitlement.id
+      } else if (order.ownerType === 'enterprise') {
+        entitlements.grantEnterpriseSeat(product.id, order.ownerId, {
+          offerId: order.commerceOfferId,
+          serviceMode: order.serviceMode,
+          termMonths: order.selectedTermMonths,
+          orderId: order.id
+        })
+      } else {
+        entitlements.grantItem(product, order.ownerId, {
+          offerId: order.commerceOfferId,
+          serviceMode: order.serviceMode,
+          termMonths: order.selectedTermMonths,
+          orderId: order.id
+        })
+      }
+      order.status = 'paid'
+      order.paidAt = now()
+      order.entitlementGranted = true
+      order.processNote = processNote.trim()
+      if (order.contractStatus) order.contractStatus = 'payment_confirmed'
+      return order
+    },
+    manualCancel(orderId: string, reason: string) {
+      const order = this.list.find((item) => item.id === orderId)
+      if (!order) throw new Error('订单不存在')
+      if (order.status !== 'pending_payment') throw new Error('仅待支付订单可取消')
+      if (!reason.trim()) throw new Error('取消订单必须填写原因')
+      order.status = 'cancelled'
+      order.cancelReason = reason.trim()
+      return order
     },
     refundOrder(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)
@@ -374,39 +416,6 @@ export const useOrderStore = defineStore('orders', {
       const needsWorkOrder = order.entitlementGrantAttempts >= MAX_GRANT_ATTEMPTS
       if (needsWorkOrder) order.entitlementPendingManual = true
       return { granted: false, needsWorkOrder }
-    },
-    createFromSpaceIntent(input: {
-      intentId: string
-      product: Product
-      enterpriseId: string
-      operatorMemberId: string
-    }): Order {
-      if (this.list.some((item) => item.spaceIntentId === input.intentId)) {
-        throw new Error('该意向单已转为订单')
-      }
-      const offer = input.product.datasetOffers?.[0]
-      const stamp = now()
-      const order: Order = {
-        id: genId('order'),
-        channel: 'app',
-        ownerType: 'enterprise',
-        ownerId: input.enterpriseId,
-        productId: input.product.id,
-        productName: input.product.name,
-        productType: input.product.type,
-        amount: offer?.price ?? 0,
-        status: 'payment_pending_confirmation',
-        createdAt: stamp,
-        contractStatus: 'contract_signed',
-        paymentMethod: 'enterprise_bank_transfer',
-        operatorMemberId: input.operatorMemberId,
-        datasetOfferId: offer?.id,
-        selectedTermMonths: offer?.termMonths,
-        spaceIntentId: input.intentId,
-        note: '空间侧线下方案已确认，待运营确认到账后开通履约'
-      }
-      this.list.push(order)
-      return order
     }
   }
 })

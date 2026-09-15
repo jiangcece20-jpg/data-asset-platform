@@ -646,6 +646,7 @@ export type AppOrderStatus =
   | 'paid'
   | 'pending_activation'
   | 'refunded'
+  | 'cancelled'
   | 'entitlement_active'
 export interface Order {
   id: string
@@ -660,6 +661,8 @@ export interface Order {
   paidAt?: string
   contractStatus?: 'quoting' | 'contract_signed' | 'payment_confirmed' | 'not_required'
   note?: string
+  processNote?: string
+  cancelReason?: string
   productType?: ProductType
   operatorMemberId?: string
   datasetOfferId?: string
