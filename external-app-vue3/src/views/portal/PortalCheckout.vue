@@ -12,6 +12,8 @@ import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
 import { checkoutDualPathFields, previewOrderNo } from '@/domain/checkoutDualPath'
+import { usePortalPurchaseStore } from '@/stores/portalPurchase'
+import type { PurchasePricePath } from '@/domain/portalPurchase'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +21,9 @@ const catalog = useCatalogStore()
 const orders = useOrderStore()
 const user = useUserStore()
 const entitlements = useEntitlementStore()
+const purchase = usePortalPurchaseStore()
+const error = ref('')
+const pricePath = computed<PurchasePricePath | undefined>(() => route.query.pricePath === 'member' ? 'member' : route.query.pricePath === 'item' ? 'item' : undefined)
 
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
@@ -29,11 +34,12 @@ const purpose = ref('')
 const subject = computed(() => currentPurchaseSubject(user))
 const identity = computed(() => currentPurchaseIdentity(user))
 const enterpriseMode = ref<'online' | 'contract'>('online')
-const offer = computed(() => product.value ? commerceOffersOf(product.value).find((item) => item.subject === subject.value) : undefined)
+const offer = computed(() => product.value ? commerceOffersOf(product.value, !!pricePath.value).find((item) => item.subject === subject.value) : undefined)
 const purchasePeriodMonths = computed(() => product.value ? salePeriodMonthsOf(product.value) : 12)
 const listPrice = computed(() => offer.value?.price ?? 0)
 const amount = computed(() => {
   if (!product.value) return listPrice.value
+  if (pricePath.value) return purchase.amount(product.value, pricePath.value)
   if (isSellerMarket.value) return listPrice.value
   return memberDiscountedAmount(listPrice.value, product.value, entitlements.hasEffectiveMembership)
 })
@@ -75,11 +81,20 @@ const paidTitle = computed(() => {
 const sellerMarket = useSellerMarketStore()
 
 function goMemberCheckout() {
-  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
+  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value, returnPortal: '1' } })
 }
 
 function confirmPurchase() {
   if (submitting.value || paid.value || !product.value || !offer.value) return
+  if (pricePath.value) {
+    const reason = purchase.blockingReason(product.value, pricePath.value)
+    if (reason) { error.value = reason; return }
+    if (!purchase.actions(product.value).some((action) => action.key === pricePath.value)) {
+      error.value = '购买方式已更新，请返回商品详情重新选择'
+      return
+    }
+  }
+  error.value = ''
   submitting.value = true
   try {
     if (isSellerMarket.value) {
@@ -109,9 +124,10 @@ function confirmPurchase() {
           serviceMode: offer.value.serviceMode
         })
       : undefined
-    orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, purchasePeriodMonths.value, enterpriseMode.value, intent?.id)
+    orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, purchasePeriodMonths.value, enterpriseMode.value, intent?.id, pricePath.value)
     paid.value = true
   } catch {
+    error.value = '操作失败，请稍后重试'
     submitting.value = false
   }
 }
@@ -119,6 +135,7 @@ function confirmPurchase() {
 
 <template>
   <div v-if="product" class="mx-auto max-w-4xl">
+    <div v-if="error" role="status" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-slate-900 px-5 py-3 text-sm text-white">{{ error }}</div>
     <div class="grid grid-cols-3 gap-6">
       <!-- 左栏：订单信息 -->
       <div class="col-span-2 space-y-4">
@@ -169,7 +186,7 @@ function confirmPurchase() {
               <div class="flex justify-between gap-2 text-sm">
                 <span>{{ memberPriced ? '会员价' : offer.name }}</span>
                 <strong class="text-brand-600">
-                  <span v-if="memberPriced" class="mr-2 text-xs font-normal text-slate-400 line-through">{{ formatYuan(listPrice) }}</span>
+                  <span v-if="memberPriced && !pricePath" class="mr-2 text-xs font-normal text-slate-400 line-through">{{ formatYuan(listPrice) }}</span>
                   {{ formatYuan(amount) }}
                 </strong>
               </div>
@@ -233,7 +250,7 @@ function confirmPurchase() {
               <span class="text-slate-700">{{ purchasePeriodMonths }} 个月</span>
             </div>
             <div class="border-t border-slate-100 pt-2">
-              <div class="flex justify-between">
+              <div v-if="!pricePath" class="flex justify-between">
                 <span class="text-slate-400">原价</span>
                 <span class="text-slate-700">{{ formatYuan(listPrice) }}</span>
               </div>
@@ -276,7 +293,7 @@ function confirmPurchase() {
             class="mt-4 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
             :disabled="submitting || !offer"
             @click="confirmPurchase"
-          >{{ subject === 'enterprise' && enterpriseMode === 'contract' ? `以${identity.name}提交合同采购` : `以${identity.name}支付` }}</button>
+          >{{ submitting ? '处理中…' : subject === 'enterprise' ? '确认企业付款' : '确认并支付' }}</button>
           <button
             v-if="!paid && !dualPath.showDualPath"
             class="mt-2 w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600"

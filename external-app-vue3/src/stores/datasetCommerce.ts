@@ -9,6 +9,7 @@ import { useUserStore } from './user'
 import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
 import { seedBiDatasetDeliveries } from '@/data/datasetCommerce'
 import { commerceOffersOf, datasetOfferToCommerce, salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { purchasePrice, type PurchasePricePath } from '@/domain/portalPurchase'
 
 function plusMonthsFrom(dateStr: string, months: number): string {
   const d = new Date(dateStr)
@@ -34,8 +35,8 @@ function requireOffer(product: Product, subject: 'personal' | 'enterprise', offe
   return offer
 }
 
-function fixedOffer(product: Product, subject: 'personal' | 'enterprise'): DatasetOffer {
-  const fixed = commerceOffersOf(product).find((offer) => offer.subject === subject)
+function fixedOffer(product: Product, subject: 'personal' | 'enterprise', includeMemberOnly = false): DatasetOffer {
+  const fixed = commerceOffersOf(product, includeMemberOnly).find((offer) => offer.subject === subject)
   const offer = product.datasetOffers?.find((item) => item.id === fixed?.id)
   if (!offer) throw new Error(subject === 'personal' ? '未配置个人单品价' : '未配置企业单品价')
   return offer
@@ -69,12 +70,12 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
     }
   },
   actions: {
-    createOrder(productId: string, subject: 'personal' | 'enterprise', _offerId?: string, _selectedTermMonths?: number) {
+    createOrder(productId: string, subject: 'personal' | 'enterprise', _offerId?: string, _selectedTermMonths?: number, pricePath?: PurchasePricePath) {
       const product = requireDatasetProduct(productId)
-      const offer = fixedOffer(product, subject)
+      const offer = fixedOffer(product, subject, !!pricePath)
       const commerceOffer = datasetOfferToCommerce(offer)
       const termMonths = salePeriodMonthsOf(product)
-      const amount = offer.price
+      const amount = pricePath ? purchasePrice(product, subject, pricePath, useEntitlementStore().currentMemberTier) : offer.price
       const user = useUserStore()
       const orders = useOrderStore()
       let ownerId = user.context.currentMemberId
@@ -86,9 +87,9 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
           throw new Error('企业购买需要先完成企业认证')
         }
         const isAdmin = user.currentEnterpriseMember.role === 'admin'
-        if (!isAdmin && !user.enterprise.purchasePolicy.memberPurchaseAllowed) throw new Error('企业策略不允许普通成员发起采购')
+        if (!pricePath && !isAdmin && !user.enterprise.purchasePolicy.memberPurchaseAllowed) throw new Error('企业策略不允许普通成员发起采购')
         ownerId = user.context.currentEnterpriseId
-        if (!isAdmin && user.enterprise.purchasePolicy.memberPurchaseApprovalRequired) status = 'pending_approval'
+        if (!pricePath && !isAdmin && user.enterprise.purchasePolicy.memberPurchaseApprovalRequired) status = 'pending_approval'
       }
 
       const order: Order = {

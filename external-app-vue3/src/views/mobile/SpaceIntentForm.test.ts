@@ -11,7 +11,9 @@ async function mountForm(path = '/app/space-intent/prod-qualification-api') {
     history: createMemoryHistory(),
     routes: [
       { path: '/app/space-intent/:id', name: 'space-intent', component: SpaceIntentForm },
-      { path: '/app/mine', name: 'mine', component: { template: '<div />' } }
+      { path: '/portal/space-intent/:id', name: 'portal-space-intent', component: SpaceIntentForm },
+      { path: '/app/mine', name: 'mine', component: { template: '<div />' } },
+      { path: '/portal/mine', name: 'portal-mine', component: { template: '<div />' } }
     ]
   })
   await router.push(path)
@@ -70,5 +72,23 @@ describe('SpaceIntentForm', () => {
       requestedEnterpriseName: '万联供应链管理有限公司',
       enterpriseId: 'ent-wanlian-logistics'
     })
+  })
+
+  it('blocks a second portal trial submit and stays on the form', async () => {
+    useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '司机核验'
+    })
+    const wrapper = await mountForm('/portal/space-intent/prod-qualification-api')
+    await wrapper.get('[data-testid="contact-phone"]').setValue('13800000001')
+    await wrapper.get('[data-testid="scenario"]').setValue('再次申请')
+    await wrapper.get('[data-testid="submit-intent"]').trigger('click')
+    await flushPromises()
+
+    expect(useSpaceIntentStore().list).toHaveLength(1)
+    expect(wrapper.get('[role="status"]').text()).toBe('您已提交过试用申请，请勿重复提交')
+    expect(wrapper.get('[data-testid="submit-intent"]').exists()).toBe(true)
   })
 })

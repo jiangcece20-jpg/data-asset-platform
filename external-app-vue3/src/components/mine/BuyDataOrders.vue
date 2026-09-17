@@ -38,7 +38,6 @@ const { filterBuyDataOrders } = useMineOrders()
 const orderFilter = ref<MyOrderFilter>('all')
 const typeFilter = ref<MineOrderTypeFilter>('all')
 const channelFilter = ref<MineOrderChannelFilter>('all')
-const operatorFilter = ref('all')
 const timeFilter = ref<TimeFilter>('all')
 const exportNotice = ref('')
 
@@ -58,7 +57,6 @@ const filteredOrders = computed(() => filterBuyDataOrders({
   subjectFilter: props.subjectFilter,
   channelFilter: channelFilter.value,
   typeFilter: typeFilter.value,
-  operatorFilter: props.variant === 'portal' ? operatorFilter.value : undefined,
   createdAfter: createdAfter.value
 }))
 
@@ -78,10 +76,6 @@ function openProduct(order: MyOrderCard) {
 
 function exportEnterpriseOrders() {
   exportNotice.value = `已创建 ${user.enterprise.name} 企业订单导出任务，可在导出记录中查看进度。`
-}
-
-function ownerKindLabel(order: MyOrderCard) {
-  return order.ownerType === 'enterprise' ? '企业' : '个人'
 }
 
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
@@ -131,9 +125,8 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       </template>
       <template #notice>
         <div class="flex items-end justify-between gap-3">
-          <div class="min-w-0 text-[11px] text-slate-500">
-            <div class="truncate">{{ order.channelLabel }} · {{ ownerKindLabel(order) }}</div>
-            <div class="mt-0.5 text-slate-400">{{ formatOrderTime(order.createdAt) }}</div>
+          <div class="min-w-0 text-[11px] text-slate-400">
+            {{ formatOrderTime(order.createdAt) }}
           </div>
           <div class="shrink-0 text-right">
             <div v-if="orderAmountCaption(order)" class="text-[10px] text-slate-400">{{ orderAmountCaption(order) }}</div>
@@ -163,15 +156,11 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       <button v-if="isAdmin" data-testid="export-enterprise-orders" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-600" @click="exportEnterpriseOrders">导出企业订单</button>
     </div>
 
-    <div class="grid grid-cols-4 gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs">
+    <div class="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs">
       <select v-model="typeFilter" aria-label="商品类型筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600">
         <option v-for="option in buyDataTypeFilterOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
       <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600"><option value="all">全部成交渠道</option><option value="app">APP 内购买</option><option value="space">可信空间购买</option></select>
-      <select v-model="operatorFilter" aria-label="经办人筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600 disabled:bg-slate-50 disabled:text-slate-400" :disabled="!user.isEnterpriseAuthenticated || !isAdmin">
-        <option value="all">{{ isAdmin ? '全部经办人' : '本人经办' }}</option>
-        <option v-for="member in (user.isEnterpriseAuthenticated && isAdmin ? user.enterprise.members.filter(item => item.status === 'active') : [])" :key="member.id" :value="member.id">{{ member.name }}</option>
-      </select>
       <select v-model="timeFilter" aria-label="下单时间筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600"><option value="all">全部下单时间</option><option value="30d">近 30 天</option><option value="365d">近 1 年</option></select>
     </div>
     <div v-if="exportNotice" class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-xs text-emerald-700"><span>{{ exportNotice }}</span><button @click="exportNotice = ''">关闭</button></div>
@@ -193,9 +182,8 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       </template>
       <template #notice>
         <div class="flex items-end justify-between gap-3">
-          <div class="min-w-0 text-xs text-slate-500">
-            <div class="truncate">{{ order.channelLabel }} · {{ ownerKindLabel(order) }}</div>
-            <div class="mt-0.5 text-slate-400">{{ formatOrderTime(order.createdAt) }}</div>
+          <div class="min-w-0 text-xs text-slate-400">
+            {{ formatOrderTime(order.createdAt) }}
           </div>
           <div class="shrink-0 text-right">
             <div v-if="orderAmountCaption(order)" class="text-[11px] text-slate-400">{{ orderAmountCaption(order) }}</div>

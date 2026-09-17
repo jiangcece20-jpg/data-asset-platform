@@ -7,6 +7,7 @@ import { SPACE_TRIAL_APPLY_LABEL, USER_INTENT_HINT } from '@/domain/spaceIntent'
 import { currentIntentPartyName, currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { useUserStore } from '@/stores/user'
+import { usePortalPurchaseStore } from '@/stores/portalPurchase'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,9 @@ const user = useUserStore()
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const submitted = ref(false)
+const submitting = ref(false)
+const error = ref('')
+const purchase = usePortalPurchaseStore()
 
 const contactName = ref(user.context.name)
 const contactPhone = ref('')
@@ -24,16 +28,32 @@ const scenario = ref('')
 const currentEnterprise = computed(() => currentIntentPartyName(user))
 
 function submit() {
-  if (!user.context.loggedIn || !product.value) return
-  intents.submit({
+  if (!user.context.loggedIn || !product.value || submitting.value || submitted.value) return
+  if (route.path.startsWith('/portal')) {
+    const reason = purchase.blockingReason(product.value, 'trial')
+    if (reason) { error.value = reason; return }
+    if (!purchase.actions(product.value).some((action) => action.key === 'trial')) {
+      error.value = '购买方式已更新，请返回商品详情重新选择'
+      return
+    }
+  }
+  submitting.value = true
+  error.value = ''
+  try {
+    intents.submit({
     productId: product.value.id,
     contactName: contactName.value,
     contactPhone: contactPhone.value,
     scenario: scenario.value,
     enterpriseId: currentPurchaseSubject(user) === 'enterprise' ? user.context.currentEnterpriseId : undefined,
     requestedEnterpriseName: currentEnterprise.value
-  })
-  submitted.value = true
+    })
+    submitted.value = true
+  } catch {
+    error.value = '操作失败，请稍后重试'
+  } finally {
+    submitting.value = false
+  }
 }
 
 function goMine() {
@@ -45,6 +65,7 @@ function goMine() {
 <template>
   <div class="min-h-full bg-slate-50 pb-8">
     <MobileHeader :title="SPACE_TRIAL_APPLY_LABEL" />
+    <div v-if="error" role="status" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-slate-900 px-5 py-3 text-sm text-white">{{ error }}</div>
 
     <div class="px-4 pt-3">
       <div v-if="!user.context.loggedIn" class="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-card">
@@ -85,9 +106,10 @@ function goMine() {
         </div>
         <button
           data-testid="submit-intent"
+          :disabled="submitting"
           class="mt-4 w-full rounded-full bg-brand-500 py-3 text-[14px] font-medium text-white"
           @click="submit"
-        >{{ SPACE_TRIAL_APPLY_LABEL }}</button>
+        >{{ submitting ? '处理中…' : SPACE_TRIAL_APPLY_LABEL }}</button>
       </div>
 
       <div v-else class="p-6 text-center text-sm text-slate-400">商品不存在</div>

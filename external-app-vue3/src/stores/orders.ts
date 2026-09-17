@@ -9,6 +9,7 @@ import { useUserStore } from './user'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { memberDiscountedAmount, membershipPlanForSubject } from '@/domain/membership'
+import { purchasePrice, type PurchasePricePath } from '@/domain/portalPurchase'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -51,7 +52,7 @@ function requireAppOwnedPersonalPurchasableProduct(productId: string): Product {
 
 function requireAppOwnedEnterprisePurchasableProduct(productId: string): Product {
   const product = useCatalogStore().byId(productId)
-  if (!product || product.type === 'dataset' || product.dealChannel !== 'app_payment' || !product.acquisitions.includes('item_purchase')) {
+  if (!product || product.type === 'dataset' || product.dealChannel !== 'app_payment' || !product.acquisitions.some((option) => option === 'item_purchase' || option === 'member')) {
     // 保留旧报告接口的错误语义，避免可信空间商品从历史深链绕过购买边界。
     throw new Error('仅支持 APP 自营报告购买')
   }
@@ -143,13 +144,16 @@ export const useOrderStore = defineStore('orders', {
       offerId: string,
       _selectedTermMonths?: number,
       mode: EnterprisePurchaseMode = 'online',
-      checkoutIntentId?: string
+      checkoutIntentId?: string,
+      pricePath?: PurchasePricePath
     ) {
       const product = requireAppOwnedEnterprisePurchasableProduct(productId)
-      const offer = commerceOffersOf(product).find((item) => item.id === offerId && item.subject === subject)
+      const offer = commerceOffersOf(product, !!pricePath).find((item) => item.id === offerId && item.subject === subject)
       if (!offer) throw new Error(subject === 'personal' ? '未配置个人价格方案' : '未配置企业价格方案')
       const termMonths = salePeriodMonthsOf(product)
-      const amount = memberDiscountedAmount(offer.price, product, useEntitlementStore().hasEffectiveMembership)
+      const amount = pricePath
+        ? purchasePrice(product, subject, pricePath, useEntitlementStore().currentMemberTier)
+        : memberDiscountedAmount(offer.price, product, useEntitlementStore().hasEffectiveMembership)
       if (subject === 'enterprise') {
         return this.submitEnterpriseOrder(productId, amount, mode, checkoutIntentId)
       }

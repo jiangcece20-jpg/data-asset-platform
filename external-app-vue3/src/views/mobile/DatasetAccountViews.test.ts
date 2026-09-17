@@ -124,10 +124,8 @@ describe('dataset account views', () => {
     user.context.currentMemberId = 'mem-2'
     user.completeEnterpriseAuth()
     const wrapper = await mountPage('/portal/mine?tab=orders&subject=enterprise', PortalMine)
-    const operatorSelect = wrapper.find<HTMLSelectElement>('[aria-label="经办人筛选"]')
-    expect(operatorSelect.attributes('disabled')).toBeDefined()
-    expect(operatorSelect.text()).toContain('本人经办')
-    expect(operatorSelect.text()).not.toContain('陈静')
+    expect(wrapper.find('[aria-label="经办人筛选"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('本人经办')
     expect(wrapper.find('[data-testid="export-enterprise-orders"]').exists()).toBe(false)
   })
 

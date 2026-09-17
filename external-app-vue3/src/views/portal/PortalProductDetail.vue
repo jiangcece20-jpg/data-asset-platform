@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProductChips from '@/components/shared/ProductChips.vue'
 import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
@@ -8,298 +8,124 @@ import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
 import PortalApiDetail from './components/PortalApiDetail.vue'
 import PortalReportDetail from './components/PortalReportDetail.vue'
 import PortalDashboardDetail from './components/PortalDashboardDetail.vue'
-import PortalSpaceGateDialog from './components/PortalSpaceGateDialog.vue'
 import { useCatalogStore } from '@/stores/catalog'
-import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
-import { useOrderStore } from '@/stores/orders'
-import { useSpaceIntentStore } from '@/stores/spaceIntents'
-import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
-import { useTrustedSpacePurchaseStore } from '@/stores/trustedSpacePurchase'
-import { trustedSpaceAdapter } from '@/services/trusted-space/TrustedSpaceAdapter'
-import { resolveProductActions, resolvePurchaseInProgress, type ProductActionKey } from '@/domain/productAccess'
-import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
-import { membershipActionFields } from '@/domain/membership'
+import { usePortalPurchaseStore } from '@/stores/portalPurchase'
+import { startDatasetPayment } from '@/domain/purchaseIdentity'
 import { productTopicTags } from '@/domain/productListChips'
+import type { PortalPurchaseAction } from '@/domain/portalPurchase'
 import type { ProductType } from '@/types/domain'
-import type { SpaceBindingStatus } from '@/types/trustedSpace'
 
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
-const entitlements = useEntitlementStore()
 const user = useUserStore()
-const orders = useOrderStore()
-const spaceIntents = useSpaceIntentStore()
-const listingRequests = useListingRequestStore()
+const purchase = usePortalPurchaseStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
-const trustedPurchase = useTrustedSpacePurchaseStore()
-const bindingStatus = ref<SpaceBindingStatus>('unbound')
-
 const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
-const topicTags = computed(() => (product.value ? productTopicTags(product.value) : []))
-
-const access = computed(() => (product.value ? entitlements.accessLevel(product.value) : 'none'))
+const topicTags = computed(() => product.value ? productTopicTags(product.value) : [])
+const access = computed(() => {
+  if (!product.value || !user.context.loggedIn) return 'none'
+  if (purchase.hasItem(product.value)) return purchase.subject === 'enterprise' ? 'enterprise' : 'item'
+  return purchase.memberFree(product.value) ? 'member' : 'none'
+})
 const owned = computed(() => access.value !== 'none')
-const purchaseInProgress = computed(() => resolvePurchaseInProgress({
-  productId: id.value,
-  orders: orders.list,
-  intents: spaceIntents.list,
-  ownerMemberId: user.context.currentMemberId,
-  enterpriseId: user.context.currentEnterpriseId
-}))
-const contentUnlocked = computed(() => {
-  if (!product.value) return false
-  if (product.value.acquisitions.includes('free')) return true
-  return owned.value
-})
-
-const listingRequest = computed(() => product.value
-  ? listingRequests.byProduct(product.value.id, user.context.currentMemberId)
-  : undefined)
-const hasOpenListingRequest = computed(() =>
-  listingRequest.value != null && ['submitted', 'evaluating', 'preparing'].includes(listingRequest.value.status)
-)
-const trustedPurchaseCheck = computed(() => {
-  if (!product.value || product.value.dealChannel !== 'space_purchase') return undefined
-  return trustedSpaceCatalog.purchaseCheck(
-    product.value.id,
-    user.context.enterpriseAuthStatus,
-    bindingStatus.value
-  )
-})
-
-const actions = computed(() => product.value ? resolveProductActions({
-  type: product.value.type,
-  origin: product.value.origin,
-  availability: product.value.availability,
-  acquisitions: product.value.acquisitions,
-  hasAccess: owned.value,
-  hasOpenListingRequest: hasOpenListingRequest.value,
-  enterpriseAuthenticated: user.isEnterpriseAuthenticated,
-  serviceStatus: product.value.serviceStatus,
-  trustedPurchaseCheck: trustedPurchaseCheck.value,
-  purchaseInProgress: purchaseInProgress.value,
-  ...membershipActionFields(product.value, {
-    identitySubject: currentPurchaseSubject(user),
-    hasEffectiveMembership: entitlements.hasEffectiveMembership,
-    canPurchaseMembership: entitlements.canPurchaseMembership
-  })
-}) : null)
-
-const pcActions = computed(() => {
-  const p = product.value
-  if (!p || !actions.value) return null
-  if (p.type === 'dataset' && p.origin === 'asset_platform' && owned.value) {
-    return { ...actions.value, primary: { ...actions.value.primary, label: '查看我的订单' } }
-  }
-  return actions.value
-})
-
-/** 可信空间跳转门禁弹窗状态 */
-const spaceGate = ref<'login' | 'auth-notice' | 'browse-mock' | null>(null)
+const contentUnlocked = computed(() => user.context.loggedIn && (owned.value || !!product.value?.acquisitions.includes('free')))
+const pcActions = computed(() => product.value ? purchase.actions(product.value) : [])
+const busy = ref(false)
+const loginOpen = ref(false)
+const toast = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+function notify(message: string) {
+  toast.value = message
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = '' }, 4000)
+}
+onUnmounted(() => clearTimeout(toastTimer))
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
   dataset: [
-    { key: 'basic', label: '基本信息' },
-    { key: 'samples', label: '样例数据' },
-    { key: 'fields', label: '字段信息' },
-    { key: 'profiling', label: '探查报告' }
+    { key: 'basic', label: '基本信息' }, { key: 'samples', label: '样例数据' },
+    { key: 'fields', label: '字段信息' }, { key: 'profiling', label: '探查报告' }
   ],
   api: [
-    { key: 'basic', label: '基本信息' },
-    { key: 'docs', label: '接口文档' },
-    { key: 'sandbox', label: '在线调试' },
-    { key: 'sla', label: '错误码与 SLA' }
+    { key: 'basic', label: '基本信息' }, { key: 'docs', label: '接口文档' },
+    { key: 'sandbox', label: '在线调试' }, { key: 'sla', label: '错误码与 SLA' }
   ],
   report: [
-    { key: 'preview', label: '报表预览' },
-    { key: 'reader', label: '在线阅读' },
-    { key: 'catalog', label: '目录' },
-    { key: 'overview', label: '报告介绍' }
+    { key: 'preview', label: '报表预览' }, { key: 'reader', label: '在线阅读' },
+    { key: 'catalog', label: '目录' }, { key: 'overview', label: '报告介绍' }
   ],
   dashboard: [
-    { key: 'preview', label: '看板预览' },
-    { key: 'metrics', label: '指标定义' },
-    { key: 'overview', label: '基本信息' },
-    { key: 'updates', label: '更新与导出' }
+    { key: 'preview', label: '看板预览' }, { key: 'metrics', label: '指标定义' },
+    { key: 'overview', label: '基本信息' }, { key: 'updates', label: '更新与导出' }
   ]
 }
-
-const defaultTabByType: Record<ProductType, string> = {
-  dataset: 'basic',
-  api: 'basic',
-  report: 'reader',
-  dashboard: 'preview'
-}
-
-const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
+const defaultTabByType: Record<ProductType, string> = { dataset: 'basic', api: 'basic', report: 'reader', dashboard: 'preview' }
+const currentTabs = computed(() => product.value ? tabsByType[product.value.type] : [])
 const activeTab = ref('basic')
-
 watch(id, () => {
-  const p = product.value
-  if (p) activeTab.value = defaultTabByType[p.type]
+  if (product.value) activeTab.value = defaultTabByType[product.value.type]
+  toast.value = ''
 }, { immediate: true })
-
 onMounted(() => {
   if (product.value?.dealChannel === 'space_purchase') void trustedSpaceCatalog.syncAll()
-  void refreshEnterpriseBinding()
 })
-
-function toggleFav() {
-  catalog.toggleFavorite(id.value)
-}
-
-function goEnterpriseAuth() {
-  router.push({ path: '/app/enterprise-auth', query: { redirect: route.fullPath } })
-}
-async function refreshEnterpriseBinding() {
-  if (!user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId) {
-    bindingStatus.value = 'unbound'
-    return
-  }
-  const enterpriseId = user.context.currentEnterpriseId
-  const operatorMemberId = user.context.currentMemberId
-  const enterpriseContextGeneration = user.enterpriseContextGeneration
-  try {
-    const binding = await trustedSpaceAdapter.ensureEnterpriseBinding(enterpriseId)
-    if (
-      user.enterpriseContextGeneration !== enterpriseContextGeneration
-      || user.context.enterpriseAuthStatus !== 'authenticated'
-      || user.context.currentEnterpriseId !== enterpriseId
-      || user.context.currentMemberId !== operatorMemberId
-      || !user.enterpriseMemberFor(enterpriseId, operatorMemberId)
-      || binding.appEnterpriseId !== enterpriseId
-    ) {
-      bindingStatus.value = 'failed'
-      return
-    }
-    trustedPurchase.upsertBinding(binding)
-    bindingStatus.value = binding.status
-  } catch {
-    bindingStatus.value = 'failed'
-  }
-}
-
-async function goSpace() {
-  // 硬门禁：游客先登录（可信空间对游客仅开放 10 条且详情不可达）
-  if (!user.context.loggedIn) {
-    spaceGate.value = 'login'
-    return
-  }
-  // 软提示：个人用户可浏览，正式采购需企业认证
-  if (!user.isEnterpriseAuthenticated) {
-    spaceGate.value = 'auth-notice'
-    return
-  }
-  if (!product.value || !user.context.currentEnterpriseId) return
-  if (bindingStatus.value !== 'active') await refreshEnterpriseBinding()
-  if (bindingStatus.value !== 'active') return
-  try {
-    const intent = await trustedPurchase.preparePurchase({
-      appEnterpriseId: user.context.currentEnterpriseId,
-      operatorMemberId: user.context.currentMemberId,
-      appProductId: product.value.id,
-      enterpriseAuthStatus: user.context.enterpriseAuthStatus,
-      returnUrl: route.fullPath
-    })
-    await router.push({ name: 'space-bridge', params: { id: product.value.id }, query: { intent: intent.id } })
-  } catch {
-    await refreshEnterpriseBinding()
-  }
-}
-
-/** 门禁弹窗：原型模拟登录，登录后自动继续原跳转动作 */
-function gateLogin() {
-  user.context.loggedIn = true
-  spaceGate.value = null
-  void goSpace()
-}
-
-/** 门禁弹窗：个人用户继续前往浏览（不携带购买意图，原型展示模拟跳转态） */
-function gateContinueBrowse() {
-  spaceGate.value = 'browse-mock'
-}
-
-/** 门禁弹窗：去企业认证 */
-function gateGoAuth() {
-  spaceGate.value = null
-  goEnterpriseAuth()
-}
-
-function goMember() {
-  router.push({ path: '/app/checkout/member', query: { returnProduct: id.value } })
-}
-function goItem() {
-  router.push(`/portal/checkout/${id.value}`)
-}
-function goDatasetPayment() {
-  try {
-    const { path } = startDatasetPayment(id.value, true)
-    router.push(path)
-  } catch {
-    router.push(`/portal/checkout/dataset/${id.value}`)
-  }
-}
-/** 报告章节点「阅读」时，走该商品当前可用的解锁路径 */
+function toggleFav() { catalog.toggleFavorite(id.value) }
 function handleUnlock() {
-  const primary = pcActions.value?.primary?.key
-  if (primary) return handleAction(primary)
-  goItem()
+  const primary = pcActions.value[0]
+  if (primary) void handleAction(primary)
 }
-
-function goInProgressOrder(orderId: string) {
-  const order = orders.list.find((item) => item.id === orderId)
-  if (order?.status === 'pending_payment' && !order.spaceIntentId && !order.sellerId && order.productType === 'dataset') {
-    void router.push(`/portal/payment/dataset/${orderId}`)
+async function handleAction(action: PortalPurchaseAction) {
+  const p = product.value
+  if (!p || busy.value) return
+  if (p.availability === 'delisted' || p.status === 'delisted') {
+    notify('商品已下架，暂不可操作')
     return
   }
-  void router.push(`/portal/mine/orders/app/${orderId}`)
-}
-
-function handleAction(key: ProductActionKey) {
-  switch (key) {
-    case 'view':
-    case 'free_view':
-      router.push(product.value?.type === 'dataset' && product.value.origin === 'asset_platform'
-        ? { path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } }
-        : '/portal/mine')
-      break
-    case 'enterprise_auth': goEnterpriseAuth(); break
-    case 'submit_space_intent':
-    case 'space_purchase':
-      router.push(`/portal/space-intent/${id.value}`)
-      break
-    case 'member_purchase': goMember(); break
-    case 'item_purchase': goItem(); break
-    case 'dataset_purchase': goDatasetPayment(); break
-    case 'request_listing': router.push(`/app/listing-request/${id.value}`); break
-    case 'listing_progress': router.push({ path: '/app/mine', query: { menu: 'favorites' } }); break
-    case 'continue_payment':
-    case 'delivery_progress': {
-      const phase = purchaseInProgress.value
-      if (phase && (phase.phase === 'pending_payment' || phase.phase === 'fulfilling')) {
-        goInProgressOrder(phase.orderId)
+  if (!user.context.loggedIn) { loginOpen.value = true; return }
+  // Price-only changes use the latest price; a changed action requires another click.
+  const current = purchase.actions(p).find((item) => item.key === action.key)
+  if (!current || current.disabled) { notify('购买方式已更新，请重新选择'); return }
+  const reason = purchase.blockingReason(p, action.key)
+  if (reason) { notify(reason); return }
+  busy.value = true
+  try {
+    if (action.key === 'subscribe') {
+      await router.push({ path: '/app/checkout/member', query: { returnProduct: p.id, returnPortal: '1' } })
+    } else if (action.key === 'trial') {
+      await router.push(`/portal/space-intent/${p.id}`)
+    } else if (action.key === 'free') {
+      purchase.claimFree(p)
+      notify('获取成功')
+    } else if (action.key === 'item' || action.key === 'member') {
+      if (p.type === 'dataset' && p.origin === 'asset_platform') {
+        const { path } = startDatasetPayment(p.id, true, action.key)
+        await router.push(path)
+      } else {
+        await router.push({ path: `/portal/checkout/${p.id}`, query: { pricePath: action.key, skipDual: '1' } })
       }
-      break
+    } else if (action.key === 'listing') {
+      await router.push(p.availability === 'candidate' ? `/app/listing-request/${p.id}` : '/portal/mine?menu=favorites')
     }
-    case 'intent_progress': {
-      const phase = purchaseInProgress.value
-      if (phase?.phase === 'space_intent') {
-        void router.push(`/portal/mine/orders/intent/${phase.intentId}`)
-      }
-      break
-    }
+  } catch {
+    notify('操作失败，请稍后重试')
+  } finally {
+    busy.value = false
   }
+}
+function confirmLogin() {
+  user.context.loggedIn = true
+  loginOpen.value = false
 }
 </script>
 
 <template>
   <div v-if="product" class="mx-auto max-w-7xl">
-    <div class="grid grid-cols-[minmax(0,1fr)_340px] gap-6">
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <!-- 左栏：标题卡 + Tab 导航 + Tab 内容 -->
       <div class="min-w-0 space-y-4">
         <!-- 商品标题卡 -->
@@ -365,20 +191,23 @@ function handleAction(key: ProductActionKey) {
           :owned="owned"
           :access="access"
           :actions="pcActions"
+          :busy="busy"
           @action="handleAction"
         />
       </div>
     </div>
 
-    <!-- 可信空间跳转门禁弹窗 -->
-    <PortalSpaceGateDialog
-      v-if="spaceGate"
-      :mode="spaceGate"
-      @login="gateLogin"
-      @continue-browse="gateContinueBrowse"
-      @go-auth="gateGoAuth"
-      @close="spaceGate = null"
-    />
+    <div v-if="toast" role="status" aria-live="polite" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-slate-900 px-5 py-3 text-sm text-white shadow-lg">{{ toast }}</div>
+    <div v-if="loginOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" @click.self="loginOpen = false">
+      <section role="dialog" aria-modal="true" aria-labelledby="purchase-login-title" class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" @keydown.esc="loginOpen = false">
+        <h2 id="purchase-login-title" class="text-lg font-semibold text-slate-900">登录</h2>
+        <p class="mt-3 text-sm text-slate-600">{{ user.context.name }} · {{ user.context.phone }}</p>
+        <div class="mt-6 flex justify-end gap-3">
+          <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm" @click="loginOpen = false">取消</button>
+          <button data-testid="purchase-login-confirm" class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white" @click="confirmLogin">登录</button>
+        </div>
+      </section>
+    </div>
   </div>
   <div v-else class="p-8 text-center text-sm text-slate-400">商品不存在</div>
 </template>

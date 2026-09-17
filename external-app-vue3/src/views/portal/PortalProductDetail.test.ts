@@ -4,13 +4,19 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import PortalDetailTabs from '@/views/portal/components/PortalDetailTabs.vue'
 import PortalProductDetail from './PortalProductDetail.vue'
+import { useUserStore } from '@/stores/user'
+import { useCatalogStore } from '@/stores/catalog'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useOrderStore } from '@/stores/orders'
 
 async function mountProductDetail(productId: string) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/portal/product/:id', component: PortalProductDetail },
-      { path: '/portal/mine', component: { template: '<div />' } }
+      { path: '/portal/mine', component: { template: '<div />' } },
+      { path: '/portal/checkout/:id', component: { template: '<div />' } },
+      { path: '/app/checkout/member', component: { template: '<div />' } }
     ]
   })
   await router.push(`/portal/product/${productId}`)
@@ -58,17 +64,80 @@ describe('PortalProductDetail samples empty copy', () => {
 describe('PortalProductDetail owned dataset', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('sends owned asset-platform datasets to my orders', async () => {
+  it('keeps the purchase action and blocks duplicate acquisition in place', async () => {
     const wrapper = await mountProductDetail('prod-warehouse-turnover-risk')
 
-    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('查看我的订单')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toMatch(/^单品购买｜¥/)
     expect(wrapper.text()).toContain('可在“我的订单”查看交付并进入用数模块')
     expect(wrapper.text()).not.toContain('查看我的数据')
 
     await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
     await flushPromises()
-    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/portal/mine')
-    expect(wrapper.vm.$router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/portal/product/prod-warehouse-turnover-risk')
+    expect(wrapper.get('[role="status"]').text()).toBe('您已拥有该商品权益，无需重复获取')
+  })
+})
+
+describe('PortalProductDetail V1.0.0 purchase actions', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('hides guest prices and returns from login without creating an order', async () => {
+    const user = useUserStore()
+    user.context.loggedIn = false
+    const orders = useOrderStore()
+    const count = orders.list.length
+    const wrapper = await mountProductDetail('prod-truck-trajectory')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('登录查看价格')
+    expect(wrapper.find('[data-testid="purchase-price"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await wrapper.get('[data-testid="purchase-login-confirm"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toMatch(/^单品购买｜¥/)
+    expect(orders.list).toHaveLength(count)
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/portal/product/prod-truck-trajectory')
+  })
+
+  it('keeps item first for members and allows item purchase alongside free membership', async () => {
+    const product = useCatalogStore().byId('prod-logistics-monthly')!
+    product.acquisitions = ['item_purchase', 'member']
+    product.memberBenefits = [{ tier: 'standard', mode: 'free' }]
+    const entitlements = useEntitlementStore()
+    entitlements.list = []
+    entitlements.grantMember()
+    const wrapper = await mountProductDetail(product.id)
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toMatch(/^单品购买｜¥/)
+    expect(wrapper.get('[data-testid="product-secondary-action"]').text()).toBe('会员价｜¥0')
+    await wrapper.get('[data-testid="product-secondary-action"]').trigger('click')
+    expect(wrapper.get('[role="status"]').text()).toBe('您已享会员免费权益，无需重复获取')
+  })
+
+  it('opens membership checkout with a portal return', async () => {
+    const product = useCatalogStore().byId('prod-logistics-monthly')!
+    product.acquisitions = ['item_purchase', 'member']
+    useEntitlementStore().list = []
+    const wrapper = await mountProductDetail(product.id)
+    expect(wrapper.get('[data-testid="product-secondary-action"]').text()).toMatch(/^开通会员｜会员价/)
+    await wrapper.get('[data-testid="product-secondary-action"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/app/checkout/member')
+    expect(wrapper.vm.$router.currentRoute.value.query).toMatchObject({
+      returnProduct: product.id,
+      returnPortal: '1'
+    })
+  })
+
+  it('sends the selected item price into portal checkout', async () => {
+    const product = useCatalogStore().byId('prod-logistics-monthly')!
+    product.acquisitions = ['item_purchase', 'member']
+    useEntitlementStore().list = []
+    const wrapper = await mountProductDetail(product.id)
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe(`/portal/checkout/${product.id}`)
+    expect(wrapper.vm.$router.currentRoute.value.query).toMatchObject({
+      pricePath: 'item',
+      skipDual: '1'
+    })
   })
 })
 

@@ -94,7 +94,7 @@ describe('BuyDataOrders', () => {
     expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(false)
   })
 
-  it('shows channel, subject and paid caption on compact cards', async () => {
+  it('shows paid caption without channel or subject on compact cards', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountBuyDataOrders()
 
@@ -105,8 +105,8 @@ describe('BuyDataOrders', () => {
     expect(wrapper.text()).not.toContain('全部主体')
 
     const card = wrapper.get('[data-testid="order-card-app-order-enterprise-dataset-001"]')
-    expect(card.text()).toContain('APP 内购买')
-    expect(card.text()).toContain('企业')
+    expect(card.text()).not.toContain('APP 内购买')
+    expect(card.text()).not.toContain('企业')
     expect(card.text()).toContain('实付款')
     expect(card.text()).toContain('查看商品')
     expect(card.text()).toContain('进入用数模块')
@@ -191,7 +191,7 @@ describe('BuyDataOrders', () => {
     expect(wrapper.findAll('button').find((btn) => btn.text() === '企业')).toBeFalsy()
   })
 
-  it('renders portal enterprise context, export and operator filter testids for variant=portal', async () => {
+  it('renders portal enterprise context and export without operator filter', async () => {
     useUserStore().completeEnterpriseAuth()
     const { wrapper } = await mountBuyDataOrders(
       { variant: 'portal', subjectFilter: 'enterprise' },
@@ -200,11 +200,16 @@ describe('BuyDataOrders', () => {
 
     expect(wrapper.find('[data-testid="portal-enterprise-order-filter-context"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="export-enterprise-orders"]').exists()).toBe(true)
-    expect(wrapper.find('[aria-label="经办人筛选"]').exists()).toBe(true)
+    expect(wrapper.find('[aria-label="经办人筛选"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('本人经办')
     expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(true)
     expect(wrapper.find('[aria-label="购买主体筛选"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('API 调用与费用账单')
     expect(wrapper.findAll('a').find((link) => link.text() === '下载数据')).toBeTruthy()
+
+    const card = wrapper.get('[data-testid="order-card-app-order-enterprise-dataset-001"]')
+    expect(card.text()).not.toContain('APP 内购买')
+    expect(card.text()).not.toContain('企业')
   })
 
   it('opens portal order detail from a portal card', async () => {

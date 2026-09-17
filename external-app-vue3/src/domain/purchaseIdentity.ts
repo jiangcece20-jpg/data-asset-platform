@@ -1,5 +1,6 @@
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useUserStore } from '@/stores/user'
+import type { PurchasePricePath } from './portalPurchase'
 
 export type PurchaseIdentitySubject = 'personal' | 'enterprise'
 
@@ -45,10 +46,10 @@ export function datasetPaymentPath(orderId: string, portal: boolean): string {
 }
 
 /** 按当前登录身份创建数据集订单，并返回支付页路径。 */
-export function startDatasetPayment(productId: string, portal: boolean) {
+export function startDatasetPayment(productId: string, portal: boolean, pricePath?: PurchasePricePath) {
   const user = useUserStore()
   const commerce = useDatasetCommerceStore()
-  const { order, approvalRequest } = commerce.createOrder(productId, currentPurchaseSubject(user))
+  const { order, approvalRequest } = commerce.createOrder(productId, currentPurchaseSubject(user), undefined, undefined, pricePath)
   return {
     order,
     approvalRequest,

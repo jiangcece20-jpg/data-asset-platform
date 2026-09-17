@@ -26,7 +26,7 @@ export function datasetOfferToCommerce(offer: DatasetOffer): CommerceOffer {
 }
 
 /** APP 商品只暴露当前主体的一条单品价；旧多方案 Mock 在读取时收口，可信空间多方案保持原样。 */
-export function commerceOffersOf(product: Product): CommerceOffer[] {
+export function commerceOffersOf(product: Product, includeMemberOnly = false): CommerceOffer[] {
   const configured = product.commerceOffers?.length
     ? product.commerceOffers
     : product.datasetOffers?.length
@@ -34,9 +34,9 @@ export function commerceOffersOf(product: Product): CommerceOffer[] {
       : []
 
   if (product.dealChannel !== 'app_payment') return configured
-  if (!product.acquisitions.includes('item_purchase')) return []
+  if (!product.acquisitions.includes('item_purchase') && !(includeMemberOnly && product.acquisitions.includes('member'))) return []
 
-  const base = Math.max(1, product.price.itemPrice || 100)
+  const base = Math.max(0, product.price.itemPrice ?? 100)
   return (['personal', 'enterprise'] as const).flatMap((subject) => {
     const candidates = configured.filter((offer) => offer.subject === subject)
     const source = candidates.find((offer) => offer.serviceMode === 'one_time') ?? candidates[0]

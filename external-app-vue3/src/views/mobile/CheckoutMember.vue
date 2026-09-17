@@ -15,7 +15,7 @@ function goBackToContext() {
   if (returnQ.value) {
     router.replace({ path: '/app/answer', query: { q: returnQ.value, mode: returnMode.value || 'auto', unlocked: '1' } })
   } else if (returnProduct.value) {
-    router.replace(`/app/product/${returnProduct.value}`)
+    router.replace(`${route.query.returnPortal === '1' ? '/portal' : '/app'}/product/${returnProduct.value}`)
   } else if (route.path.startsWith('/portal')) {
     router.replace('/portal/mine')
   } else {

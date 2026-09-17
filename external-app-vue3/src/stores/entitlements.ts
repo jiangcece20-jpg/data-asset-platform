@@ -32,6 +32,17 @@ export const useEntitlementStore = defineStore('entitlements', {
     list: seedEntitlements.map((e) => ({ ...e })) as Entitlement[]
   }),
   getters: {
+    currentMemberTier(state): MemberTier | null {
+      const user = useUserStore()
+      if (!user.context.loggedIn) return null
+      const subject = currentPurchaseSubject(user)
+      const ownerId = subject === 'enterprise' ? user.context.currentEnterpriseId : user.context.currentMemberId
+      const memberships = state.list.filter((item) => item.type === 'member'
+        && item.source === subject && item.ownerId === ownerId
+        && item.validFrom.slice(0, 10) <= todayStr() && isActive(item, todayStr()))
+      if (memberships.some((item) => item.memberTier === 'premium')) return 'premium'
+      return memberships.length ? 'standard' : null
+    },
     hasPersonalMember(state): boolean {
       const user = useUserStore()
       const today = todayStr()
