@@ -52,7 +52,6 @@ const statItems = computed<InfoItem[]>(() => {
   if (!s) return []
   const tail: InfoItem[] = [
     { label: '空值率', value: s.nullRate },
-    { label: '唯一值数', value: s.distinctCount.toLocaleString() },
     { label: '更新时间', value: s.updatedAt }
   ]
   if (isNumeric(s)) {

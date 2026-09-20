@@ -30,3 +30,16 @@ describe('ApiDetail sandbox', () => {
     expect((wrapper.get('[data-param="idCardNo"]').element as HTMLInputElement).value).toBe('110101199001010011')
   })
 })
+
+describe('ApiDetail docs', () => {
+  it('puts error messages under docs without error code values for space APIs', () => {
+    const wrapper = mount(ApiDetail, { props: { product: api, activeTab: 'docs' } })
+    const errorCodes = wrapper.get('[data-testid="api-error-codes"]')
+    expect(errorCodes.text()).toContain('错误码')
+    expect(errorCodes.text()).toContain('参数缺失')
+    expect(errorCodes.text()).toContain('证件不存在')
+    expect(errorCodes.text()).not.toContain('40001')
+    expect(errorCodes.text()).not.toContain('40401')
+    expect(wrapper.text()).not.toContain('SLA：')
+  })
+})

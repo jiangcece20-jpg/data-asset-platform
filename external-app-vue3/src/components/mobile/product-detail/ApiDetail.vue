@@ -3,10 +3,15 @@ import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 import ScrollTable, { type ScrollColumn } from './ScrollTable.vue'
+import { isSpaceSyncedProduct } from '@/domain/productDetailFields'
 
 const props = defineProps<{ product: Product; activeTab: 'basic' | 'docs' | 'sandbox' | 'sla' }>()
 
 const detail = computed(() => props.product.typeDetail.api)
+const isSpaceApi = computed(() => isSpaceSyncedProduct(props.product))
+const errorCodeMessages = computed(() =>
+  (detail.value?.errorCodes ?? []).map((err) => err.message).filter(Boolean)
+)
 
 const basicItems = computed<InfoItem[]>(() => {
   const d = detail.value
@@ -112,6 +117,13 @@ function simulateFail() {
       <div v-if="detail.responseExample">
         <div class="mb-1.5 text-[12px] font-medium text-slate-500">返回示例</div>
         <pre class="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
+      </div>
+
+      <div v-if="isSpaceApi && errorCodeMessages.length" data-testid="api-error-codes">
+        <div class="mb-1.5 text-[12px] font-medium text-slate-500">错误码</div>
+        <ul class="space-y-1.5 text-[12px] text-slate-600">
+          <li v-for="message in errorCodeMessages" :key="message">{{ message }}</li>
+        </ul>
       </div>
     </div>
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OrdersPanel from './OrdersPanel.vue'
 import SellerPanel from './SellerPanel.vue'
 import DemandsPanel from './DemandsPanel.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
 import { useUserStore } from '@/stores/user'
+import { hasEnterprisePurchaseIdentity } from '@/domain/purchaseIdentity'
 import {
   parseMineQuery,
   mineQueryPatch,
@@ -25,7 +26,7 @@ const user = useUserStore()
 
 const state = computed(() => parseMineQuery(route.query))
 
-const menus: Array<{ value: MineMenu; label: string; icon: string }> = [
+const allMenus: Array<{ value: MineMenu; label: string; icon: string }> = [
   { value: 'vip', label: '成为VIP', icon: '👑' },
   { value: 'orders', label: '我的订单', icon: '🧾' },
   { value: 'demands', label: '我的提报', icon: '📝' },
@@ -35,7 +36,23 @@ const menus: Array<{ value: MineMenu; label: string; icon: string }> = [
   { value: 'seller', label: '卖家中心', icon: '🏪' }
 ]
 
-const menuLabel = computed(() => menus.find((item) => item.value === state.value.menu)?.label)
+const canAccessSellerCenter = computed(() => hasEnterprisePurchaseIdentity(user))
+
+const menus = computed(() =>
+  canAccessSellerCenter.value ? allMenus : allMenus.filter((item) => item.value !== 'seller')
+)
+
+const menuLabel = computed(() => menus.value.find((item) => item.value === state.value.menu)?.label)
+
+watch(
+  () => [canAccessSellerCenter.value, state.value.menu] as const,
+  ([allowed, menu]) => {
+    if (!allowed && menu === 'seller') {
+      void router.replace({ query: mineQueryPatch({ menu: 'orders' }, route.query) })
+    }
+  },
+  { immediate: true }
+)
 
 function selectMenu(next: MineMenu) {
   void router.replace({ query: mineQueryPatch({ menu: next }, route.query) })
@@ -145,7 +162,7 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         variant="mobile"
       />
       <SellerPanel
-        v-else-if="state.menu === 'seller'"
+        v-else-if="state.menu === 'seller' && canAccessSellerCenter"
         class="px-4"
         :seller-tab="state.sellerTab"
         variant="mobile"
@@ -208,7 +225,7 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         variant="portal"
       />
       <SellerPanel
-        v-else-if="state.menu === 'seller'"
+        v-else-if="state.menu === 'seller' && canAccessSellerCenter"
         :seller-tab="state.sellerTab"
         variant="portal"
         @update:seller-tab="selectSellerTab"

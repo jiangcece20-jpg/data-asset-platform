@@ -85,7 +85,6 @@ const statItems = computed<StatItem[]>(() => {
   if (!s) return []
   const tail: StatItem[] = [
     { label: '空值率', value: displayValue(s.nullRate) },
-    { label: '唯一值数', value: displayValue(s.distinctCount) },
     { label: '更新时间', value: displayValue(s.updatedAt) }
   ]
   if (isNumeric(s)) {
