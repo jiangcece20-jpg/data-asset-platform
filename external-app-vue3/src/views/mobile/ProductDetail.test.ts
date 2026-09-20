@@ -65,6 +65,24 @@ describe('ProductDetail trusted-space intent', () => {
     expect(wrapper.text()).toContain('来自可信空间')
     expect(wrapper.text()).toContain('覆盖某省主要港口的集装箱与货物吞吐量指标')
   })
+
+  it('keeps space API tabs to basic and docs, with error messages under docs and no provider in resource info', async () => {
+    const { wrapper } = await mountProductDetail('/app/product/prod-qualification-api')
+
+    expect(wrapper.find('[data-tab="sandbox"]').exists()).toBe(false)
+    expect(wrapper.find('[data-tab="sla"]').exists()).toBe(false)
+    expect(wrapper.find('[data-tab="docs"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="detail-resource-info"]').text()).not.toContain('提供方')
+    expect(wrapper.get('[data-testid="detail-provider"]').text()).toContain('提供方信息')
+
+    await wrapper.get('[data-tab="docs"]').trigger('click')
+    const errorCodes = wrapper.get('[data-testid="api-error-codes"]')
+    expect(errorCodes.text()).toContain('错误码')
+    expect(errorCodes.text()).toContain('参数缺失')
+    expect(errorCodes.text()).not.toContain('40001')
+    expect(wrapper.text()).not.toContain('在线调试')
+    expect(wrapper.text()).not.toContain('错误码与 SLA')
+  })
 })
 
 describe('ProductDetail dashboard overview', () => {

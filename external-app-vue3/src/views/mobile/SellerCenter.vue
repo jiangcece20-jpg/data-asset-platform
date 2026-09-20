@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { hasEnterprisePurchaseIdentity } from '@/domain/purchaseIdentity'
 
 const router = useRouter()
+const user = useUserStore()
 
 onMounted(() => {
+  if (!hasEnterprisePurchaseIdentity(user)) {
+    void router.replace({ path: '/app/mine' })
+    return
+  }
   void router.replace({ path: '/app/mine', query: { menu: 'seller', sellerTab: 'listings' } })
 })
 </script>

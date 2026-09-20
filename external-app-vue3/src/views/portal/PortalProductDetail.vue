@@ -14,6 +14,7 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { usePortalPurchaseStore } from '@/stores/portalPurchase'
 import { startDatasetPayment } from '@/domain/purchaseIdentity'
 import { productTopicTags } from '@/domain/productListChips'
+import { isSpaceSyncedProduct } from '@/domain/productDetailFields'
 import type { PortalPurchaseAction } from '@/domain/portalPurchase'
 import type { ProductType } from '@/types/domain'
 
@@ -65,7 +66,13 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
   ]
 }
 const defaultTabByType: Record<ProductType, string> = { dataset: 'basic', api: 'basic', report: 'reader', dashboard: 'preview' }
-const currentTabs = computed(() => product.value ? tabsByType[product.value.type] : [])
+const currentTabs = computed(() => {
+  if (!product.value) return []
+  if (product.value.type === 'api' && isSpaceSyncedProduct(product.value)) {
+    return tabsByType.api.filter((tab) => tab.key !== 'sandbox' && tab.key !== 'sla')
+  }
+  return tabsByType[product.value.type]
+})
 const activeTab = ref('basic')
 watch(id, () => {
   if (product.value) activeTab.value = defaultTabByType[product.value.type]

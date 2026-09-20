@@ -87,7 +87,10 @@ export function resourceInfoFields(
   const synced = isSpaceSyncedProduct(product)
   const items: DetailFieldItem[] = []
 
-  push(items, field('提供方', m?.providerName || product.provider, { synced: synced && Boolean(m?.providerName), keepEmpty: true }))
+  if (!(product.type === 'api' && synced)) {
+    // 可信空间 API 的提供方只出现在「提供方信息」块，资源信息不重复展示
+    push(items, field('提供方', m?.providerName || product.provider, { synced: synced && Boolean(m?.providerName), keepEmpty: true }))
+  }
   if (product.origin === 'seller_market') {
     push(items, field('入驻卖家', product.sellerName || product.provider))
     push(items, field('数据来源声明', product.dataProvenance === 'derived' ? '已购衍生（受源许可约束）' : '自有数据'))

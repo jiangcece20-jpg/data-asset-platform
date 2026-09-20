@@ -23,7 +23,7 @@ import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { resolveProductActions, resolvePurchaseInProgress, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
-import { billingRuleNotes } from '@/domain/productDetailFields'
+import { billingRuleNotes, isSpaceSyncedProduct } from '@/domain/productDetailFields'
 import { productTopicTags } from '@/domain/productListChips'
 import { USER_INTENT_HINT, SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
 import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
@@ -155,7 +155,13 @@ const tabsByType: Record<ProductType, DetailTab[]> = {
   ]
 }
 
-const currentTabs = computed(() => (product.value ? tabsByType[product.value.type] : []))
+const currentTabs = computed(() => {
+  if (!product.value) return []
+  if (product.value.type === 'api' && isSpaceSyncedProduct(product.value)) {
+    return tabsByType.api.filter((tab) => tab.key !== 'sandbox' && tab.key !== 'sla')
+  }
+  return tabsByType[product.value.type]
+})
 const activeTab = ref('basic')
 const defaultTabByType: Record<ProductType, string> = {
   dataset: 'basic',

@@ -47,6 +47,22 @@ describe('PortalProductDetail space intent CTA', () => {
     expect(wrapper.text()).toContain('来自可信空间')
     expect(wrapper.text()).toContain('覆盖某省主要港口的集装箱与货物吞吐量指标')
   })
+
+  it('keeps space API tabs to basic and docs, with error messages under docs and no provider in resource info', async () => {
+    const wrapper = await mountProductDetail('prod-qualification-api')
+
+    expect(wrapper.text()).not.toContain('在线调试')
+    expect(wrapper.text()).not.toContain('错误码与 SLA')
+    expect(wrapper.get('[data-testid="detail-resource-info"]').text()).not.toContain('提供方')
+    expect(wrapper.get('[data-testid="detail-provider"]').text()).toContain('提供方信息')
+
+    await wrapper.findAll('button').find((b) => b.text() === '接口文档')!.trigger('click')
+    await flushPromises()
+    const errorCodes = wrapper.get('[data-testid="api-error-codes"]')
+    expect(errorCodes.text()).toContain('错误码')
+    expect(errorCodes.text()).toContain('参数缺失')
+    expect(errorCodes.text()).not.toContain('40001')
+  })
 })
 
 describe('PortalProductDetail samples empty copy', () => {

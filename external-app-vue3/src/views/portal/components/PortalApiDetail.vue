@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { Product } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import { isSpaceSyncedProduct } from '@/domain/productDetailFields'
 
 export interface InfoItem {
   label: string
@@ -15,6 +16,10 @@ const props = defineProps<{
 }>()
 
 const detail = computed(() => props.product.typeDetail.api)
+const isSpaceApi = computed(() => isSpaceSyncedProduct(props.product))
+const errorCodeMessages = computed(() =>
+  (detail.value?.errorCodes ?? []).map((err) => err.message).filter(Boolean)
+)
 
 const hasResponseExamples = computed(() =>
   (detail.value?.responseFields ?? []).some((f) => f.example != null)
@@ -210,6 +215,13 @@ function simulateFail() {
           </div>
           <pre class="overflow-x-auto rounded-lg bg-slate-900 p-4 font-mono text-xs leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
         </div>
+      </div>
+
+      <div v-if="isSpaceApi && errorCodeMessages.length" class="rounded-xl border border-slate-200 bg-white p-5" data-testid="api-error-codes">
+        <h3 class="mb-3 text-sm font-semibold text-slate-800">错误码</h3>
+        <ul class="space-y-2 text-sm text-slate-600">
+          <li v-for="message in errorCodeMessages" :key="message">{{ message }}</li>
+        </ul>
       </div>
     </div>
 

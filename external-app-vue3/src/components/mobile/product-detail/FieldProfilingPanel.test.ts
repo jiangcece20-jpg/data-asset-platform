@@ -113,6 +113,7 @@ describe('FieldProfilingPanel', () => {
     expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('发单频次')
     expect(wrapper.text()).toContain('数值型')
     expect(wrapper.text()).toContain('2,180')
+    expect(wrapper.text()).not.toContain('唯一值数')
   })
 
   it('renders numeric histogram when a numeric field is active', () => {
@@ -127,6 +128,7 @@ describe('FieldProfilingPanel', () => {
     expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('活跃等级')
     expect(wrapper.text()).toContain('字符串')
     expect(wrapper.text()).toContain('唯一性')
+    expect(wrapper.text()).not.toContain('唯一值数')
     expect(wrapper.text()).toContain('TOP 值分布')
     expect(wrapper.text()).toContain('988,000')
   })
@@ -137,6 +139,7 @@ describe('FieldProfilingPanel', () => {
     expect(wrapper.find('[data-dim][aria-selected="true"]').text()).toBe('注册日期')
     expect(wrapper.text()).toContain('时间型')
     expect(wrapper.text()).toContain('最早日期')
+    expect(wrapper.text()).not.toContain('唯一值数')
     expect(wrapper.text()).toContain('2024-01-01')
     expect(wrapper.get('[data-testid="time-distribution-chart"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="time-distribution-scroll"]').exists()).toBe(true)

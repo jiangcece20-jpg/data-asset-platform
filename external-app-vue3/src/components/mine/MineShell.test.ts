@@ -4,6 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import MineShell from './MineShell.vue'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
+import { useUserStore } from '@/stores/user'
 
 const Dummy = { template: '<div />' }
 
@@ -94,7 +95,21 @@ describe('MineShell defaults & placeholders', () => {
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
   })
 
-  it('shows seller panel with function tabs on mobile and portal', async () => {
+  it('hides seller center for personal identity on mobile and portal', async () => {
+    const mobile = await mountMineShell('mobile', '/app/mine?menu=seller')
+    await flushPromises()
+    expect(mobile.wrapper.find('[data-testid="mine-menu-seller"]').exists()).toBe(false)
+    expect(mobile.wrapper.find('[data-testid="seller-panel"]').exists()).toBe(false)
+    expect(mobile.wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
+
+    const portal = await mountMineShell('portal', '/portal/mine?menu=seller&sellerTab=apply')
+    await flushPromises()
+    expect(portal.wrapper.find('[data-testid="mine-menu-seller"]').exists()).toBe(false)
+    expect(portal.wrapper.find('[data-testid="seller-panel"]').exists()).toBe(false)
+  })
+
+  it('shows seller panel with function tabs for enterprise identity', async () => {
+    useUserStore().completeEnterpriseAuth()
     const mobile = await mountMineShell('mobile', '/app/mine?menu=seller')
     expect(mobile.wrapper.find('[data-testid="mine-menu-seller"]').exists()).toBe(true)
     expect(mobile.wrapper.find('[data-testid="seller-panel"]').exists()).toBe(true)
