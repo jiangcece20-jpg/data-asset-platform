@@ -28,20 +28,20 @@ function aggregateGroup(demands: DemandLead[]) {
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200 bg-white p-4">
-    <div class="mb-2 text-[13px] font-medium text-slate-700">待聚合需求（按相似度分组）</div>
-    <div v-for="g in groups" :key="g.key" data-testid="demand-group" class="mb-3 rounded-lg border border-slate-100 p-2">
+  <div class="rounded-xl border border-ink-200 bg-white p-4">
+    <div class="mb-2 text-[13px] font-medium text-ink-700">待聚合需求（按相似度分组）</div>
+    <div v-for="g in groups" :key="g.key" data-testid="demand-group" class="mb-3 rounded-lg border border-ink-100 p-2">
       <div class="mb-1 flex items-center justify-between">
-        <span class="text-[12px] text-slate-500">{{ g.demands[0]?.objectDesc }} · {{ g.demands[0]?.region }} · {{ g.demands[0]?.timeRange }}（{{ g.demands.length }} 条）</span>
-        <button class="rounded-full bg-blue-600 px-3 py-1 text-[11px] text-white" data-testid="aggregate-btn" @click="aggregateGroup(g.demands)">聚合为供给任务</button>
+        <span class="text-[12px] text-ink-500">{{ g.demands[0]?.objectDesc }} · {{ g.demands[0]?.region }} · {{ g.demands[0]?.timeRange }}（{{ g.demands.length }} 条）</span>
+        <button class="rounded-full bg-brand-600 px-3 py-1 text-[11px] text-white" data-testid="aggregate-btn" @click="aggregateGroup(g.demands)">聚合为供给任务</button>
       </div>
       <label v-for="d in g.demands" :key="d.id" class="flex items-center gap-2 py-1 text-[12px]">
         <input v-model="selected[d.id]" type="checkbox" data-testid="demand-check" :data-id="d.id" />
-        <span class="text-slate-600">{{ d.question }}</span>
+        <span class="text-ink-600">{{ d.question }}</span>
         <StatusBadge dict="demand" :value="d.status" />
-        <span class="ml-auto text-slate-400">{{ d.ownerId }}</span>
+        <span class="ml-auto text-ink-500">{{ d.ownerId }}</span>
       </label>
     </div>
-    <div v-if="!groups.length" class="py-3 text-center text-[12px] text-slate-400">暂无待聚合需求</div>
+    <div v-if="!groups.length" class="py-3 text-center text-[12px] text-ink-500">暂无待聚合需求</div>
   </div>
 </template>

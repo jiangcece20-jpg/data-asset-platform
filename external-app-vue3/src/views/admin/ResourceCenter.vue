@@ -39,11 +39,11 @@ const originLabels: Record<string, string> = {
 }
 
 const statusColors: Record<string, string> = {
-  published: 'bg-emerald-100 text-emerald-700',
-  draft: 'bg-blue-100 text-blue-700',
-  paused: 'bg-slate-100 text-slate-600',
-  delisted: 'bg-red-100 text-red-700',
-  unlisted: 'bg-slate-100 text-slate-500'
+  published: 'bg-success-100 text-success-600',
+  draft: 'bg-brand-100 text-brand-700',
+  paused: 'bg-ink-100 text-ink-600',
+  delisted: 'bg-danger-100 text-danger-600',
+  unlisted: 'bg-ink-100 text-ink-500'
 }
 
 interface ResourceRow {
@@ -104,17 +104,17 @@ function goEdit(resourceId: string) {
 <template>
   <div>
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-xl font-semibold text-slate-800">资源管理</h1>
+      <h1 class="text-xl font-semibold text-ink-900">资源管理</h1>
     </div>
 
-    <div class="mb-4 flex gap-1 border-b border-slate-200" role="tablist" aria-label="资源与商品">
+    <div class="mb-4 flex gap-1 border-b border-ink-200" role="tablist" aria-label="资源与商品">
       <button
         type="button"
         role="tab"
         data-testid="resource-center-tab-products"
         :aria-selected="listTab === 'products' ? 'true' : 'false'"
         class="px-4 py-2 text-sm"
-        :class="listTab === 'products' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        :class="listTab === 'products' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-ink-500 hover:text-ink-700'"
         @click="listTab = 'products'"
       >
         商品
@@ -125,7 +125,7 @@ function goEdit(resourceId: string) {
         data-testid="resource-center-tab-resources"
         :aria-selected="listTab === 'resources' ? 'true' : 'false'"
         class="px-4 py-2 text-sm"
-        :class="listTab === 'resources' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        :class="listTab === 'resources' ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-ink-500 hover:text-ink-700'"
         @click="listTab = 'resources'"
       >
         资源
@@ -139,7 +139,7 @@ function goEdit(resourceId: string) {
           v-for="t in types"
           :key="t.value"
           class="rounded-full px-3 py-1 text-xs font-medium transition"
-          :class="activeType === t.value ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-brand-300'"
+          :class="activeType === t.value ? 'bg-brand-600 text-white' : 'bg-white text-ink-600 border border-ink-200 hover:border-brand-300'"
           @click="activeType = t.value"
         >
           {{ t.label }}
@@ -148,15 +148,15 @@ function goEdit(resourceId: string) {
       <input
         v-model="searchQuery"
         placeholder="搜索资源名称或商品名称"
-        class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-brand-400 focus:outline-none"
+        class="rounded-lg border border-ink-200 px-3 py-1.5 text-sm focus:border-brand-400 focus:outline-none"
       />
     </div>
 
     <!-- 资源列表 -->
-    <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div class="overflow-x-auto rounded-lg border border-ink-200 bg-white">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-slate-100 bg-slate-50 text-left text-xs text-slate-500">
+          <tr class="border-b border-ink-100 bg-ink-100 text-left text-xs text-ink-500">
             <th class="px-4 py-3 font-medium">资源名称</th>
             <th class="px-4 py-3 font-medium">类型</th>
             <th class="px-4 py-3 font-medium">来源</th>
@@ -168,25 +168,25 @@ function goEdit(resourceId: string) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows" :key="row.resourceId" class="border-b border-slate-50 hover:bg-slate-50/50">
-            <td class="px-4 py-3 font-medium text-slate-800">{{ row.resourceName }}</td>
+          <tr v-for="row in rows" :key="row.resourceId" class="border-b border-ink-100 hover:bg-ink-100/50">
+            <td class="px-4 py-3 font-medium text-ink-900">{{ row.resourceName }}</td>
             <td class="px-4 py-3">
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{{ typeLabels[row.type] || row.type }}</span>
+              <span class="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-600">{{ typeLabels[row.type] || row.type }}</span>
             </td>
-            <td class="px-4 py-3 text-slate-600">{{ originLabels[row.origin] || row.origin }}</td>
-            <td class="px-4 py-3 text-slate-500">{{ row.assetVersion || '—' }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ originLabels[row.origin] || row.origin }}</td>
+            <td class="px-4 py-3 text-ink-500">{{ row.assetVersion || '—' }}</td>
             <td class="px-4 py-3">
-              <span :class="row.eligibility === '可商品化' ? 'text-emerald-600' : row.eligibility === '—' ? 'text-slate-400' : 'text-red-500'">{{ row.eligibility }}</span>
-              <span v-if="row.changeRisk === 'high'" class="ml-1 rounded bg-red-50 px-1 py-0.5 text-[10px] text-red-600">高风险</span>
+              <span :class="row.eligibility === '可商品化' ? 'text-success-600' : row.eligibility === '—' ? 'text-ink-500' : 'text-danger-500'">{{ row.eligibility }}</span>
+              <span v-if="row.changeRisk === 'high'" class="ml-1 rounded bg-danger-50 px-1 py-0.5 text-[10px] text-danger-600">高风险</span>
             </td>
-            <td class="px-4 py-3 text-slate-600">{{ row.productName }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ row.productName }}</td>
             <td class="px-4 py-3">
               <span class="rounded px-1.5 py-0.5 text-xs font-medium" :class="row.statusColor">{{ row.salesLabel }}</span>
             </td>
             <td class="px-4 py-3">
               <div class="flex gap-2">
                 <button
-                  class="rounded border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:border-brand-300 hover:text-brand-600"
+                  class="rounded border border-ink-200 px-2.5 py-1 text-xs text-ink-600 hover:border-brand-300 hover:text-brand-600"
                   @click="goEdit(row.resourceId)"
                 >
                   编辑
@@ -195,7 +195,7 @@ function goEdit(resourceId: string) {
             </td>
           </tr>
           <tr v-if="!rows.length">
-            <td colspan="8" class="px-4 py-10 text-center text-sm text-slate-400">
+            <td colspan="8" class="px-4 py-10 text-center text-sm text-ink-500">
               {{ listTab === 'products' ? '暂无商品' : '暂无未关联资源' }}
             </td>
           </tr>

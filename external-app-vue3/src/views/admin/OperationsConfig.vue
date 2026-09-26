@@ -35,18 +35,18 @@ const tabs: Array<{ key: Tab; label: string }> = [
     <PageHeader title="运营配置" desc="管理首页入口、频道、热门词、AI 引导问题与商品推荐位" />
 
     <!-- Tab 切换 -->
-    <div class="mb-6 flex gap-1 rounded-xl bg-slate-100 p-1">
+    <div class="mb-6 flex gap-1 rounded-xl bg-ink-100 p-1">
       <button
         v-for="tab in tabs"
         :key="tab.key"
         class="flex-1 rounded-lg py-2 text-[13px] font-medium transition"
-        :class="activeTab === tab.key ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500'"
+        :class="activeTab === tab.key ? 'bg-white text-brand-600 shadow-sm' : 'text-ink-500'"
         @click="activeTab = tab.key"
       >{{ tab.label }}</button>
     </div>
 
     <!-- Tab 内容 -->
-    <div class="rounded-xl border border-slate-200 bg-white p-5">
+    <div class="rounded-xl border border-ink-200 bg-white p-5">
       <OperationsChannels v-if="activeTab === 'channels'" />
       <OperationsHotWords v-else-if="activeTab === 'hotwords'" v-model:hot-words="hotWords" />
       <OperationsGuideQuestions v-else-if="activeTab === 'guide'" v-model:guide-questions="guideQuestions" />

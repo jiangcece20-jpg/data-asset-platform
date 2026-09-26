@@ -19,19 +19,23 @@ export interface ProductDetailPriceSummary {
   purchaseNote?: string
 }
 
-function minOfferPrice(product: Product, subject: PurchaseIdentitySubject): number | undefined {
+function offerPrices(product: Product, subject: PurchaseIdentitySubject): number[] {
   const offers = commerceOffersOf(product).filter((offer) => offer.subject === subject)
-  if (!offers.length) return undefined
-  return Math.min(...offers.map((offer) => offer.price))
+  return offers.map((offer) => offer.price)
 }
 
-function memberPriceLine(product: Product, itemPrice?: number): string | undefined {
+function minOfferPrice(product: Product, subject: PurchaseIdentitySubject): number | undefined {
+  const prices = offerPrices(product, subject)
+  return prices.length ? Math.min(...prices) : undefined
+}
+
+function memberPriceLine(product: Product, itemPrice?: number, hasRange = false): string | undefined {
   const benefit = productMemberBenefit(product)
   if (benefit === 'free') return '会员免费'
   if (benefit === 'discount' && itemPrice != null) {
     const factor = productMemberDiscountFactor(product)
     if (factor == null) return undefined
-    return `会员 ${formatYuan(roundPrice1(itemPrice * factor))} 起`
+    return `会员价 ${formatYuan(roundPrice1(itemPrice * factor))}${hasRange ? ' 起' : ''}`
   }
   return undefined
 }
@@ -51,7 +55,9 @@ export function productPriceLines(product: Product, subject: PurchaseIdentitySub
     return { singleLine: product.price.quoteNote || '询价' }
   }
 
-  const itemPrice = minOfferPrice(product, subject)
+  const prices = offerPrices(product, subject)
+  const itemPrice = prices.length ? Math.min(...prices) : undefined
+  const hasRange = prices.length > 1
   const hasItem = product.acquisitions.includes('item_purchase') && itemPrice != null
   const hasMember = product.acquisitions.includes('member')
   const benefit = productMemberBenefit(product)
@@ -66,8 +72,8 @@ export function productPriceLines(product: Product, subject: PurchaseIdentitySub
     return { singleLine: product.price.quoteNote || '询价' }
   }
 
-  const itemLine = hasItem ? `${formatYuan(itemPrice!)} 起` : undefined
-  const memberLine = hasMember ? memberPriceLine(product, itemPrice) : undefined
+  const itemLine = hasItem ? `${formatYuan(itemPrice!)}${hasRange ? ' 起' : ''}` : undefined
+  const memberLine = hasMember ? memberPriceLine(product, itemPrice, hasRange) : undefined
   const displayParts = [itemLine, memberLine].filter(Boolean) as string[]
 
   return {
@@ -96,7 +102,7 @@ export function productDetailPriceSummary(product: Product, subject: PurchaseIde
   const memberPriceText = hasMember
     ? (benefit === 'free'
       ? '会员免费'
-      : rawMemberLine?.replace(/^会员 /, '').replace(/ 起$/, ''))
+      : rawMemberLine?.replace(/^会员价 /, '').replace(/ 起$/, ''))
     : undefined
   const memberPrice = benefit === 'discount' && listPrice != null
     ? roundPrice1(listPrice * (productMemberDiscountFactor(product) ?? 1))
@@ -114,6 +120,6 @@ export function productDetailPriceSummary(product: Product, subject: PurchaseIde
 export function ownedProductPriceLine(access: 'none' | 'member' | 'item' | 'enterprise'): string | undefined {
   if (access === 'member') return '会员可看'
   if (access === 'item') return '已购买'
-  if (access === 'enterprise') return '企业已购'
+  if (access === 'enterprise') return '团队已购'
   return undefined
 }

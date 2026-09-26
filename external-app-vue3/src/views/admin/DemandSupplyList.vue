@@ -40,7 +40,7 @@ function goToDetail(id: string) {
     <DemandAggregationPanel :demands="demand.list" class="mb-4" @aggregate="onAggregate" />
 
     <div class="mb-3 flex flex-wrap gap-2">
-      <select v-model="filterStatus" data-testid="filter-status" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterStatus" data-testid="filter-status" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部状态</option>
         <option value="evaluating">评估中</option>
         <option value="planned">已规划</option>
@@ -48,7 +48,7 @@ function goToDetail(id: string) {
         <option value="published">已发布</option>
         <option value="cancelled">已取消</option>
       </select>
-      <select v-model="filterDecision" data-testid="filter-decision" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterDecision" data-testid="filter-decision" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部决策</option>
         <option value="recommend_existing">推荐现有</option>
         <option value="link_preparing">关联准备中</option>
@@ -58,9 +58,9 @@ function goToDetail(id: string) {
       </select>
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-white">
+    <div class="rounded-xl border border-ink-200 bg-white">
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400">
+        <thead class="text-xs text-ink-500">
           <tr>
             <th class="px-3 py-2">供给任务</th>
             <th class="px-3 py-2">状态</th>
@@ -70,16 +70,16 @@ function goToDetail(id: string) {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="t in tasks" :key="t.id" data-testid="task-row" :data-id="t.id" class="cursor-pointer border-t border-slate-100 hover:bg-slate-50" @click="goToDetail(t.id)">
-            <td class="px-3 py-2 text-slate-700">{{ t.title }}</td>
+          <tr v-for="t in tasks" :key="t.id" data-testid="task-row" :data-id="t.id" class="cursor-pointer border-t border-ink-100 hover:bg-ink-100" @click="goToDetail(t.id)">
+            <td class="px-3 py-2 text-ink-700">{{ t.title }}</td>
             <td class="px-3 py-2"><StatusBadge dict="supplyTask" :value="t.status" /></td>
             <td class="px-3 py-2"><StatusBadge dict="supplyDecision" :value="t.decision" /></td>
-            <td class="px-3 py-2 text-slate-600">{{ t.demandIds.length }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ t.owner }}</td>
+            <td class="px-3 py-2 text-ink-600">{{ t.demandIds.length }}</td>
+            <td class="px-3 py-2 text-ink-600">{{ t.owner }}</td>
           </tr>
         </tbody>
       </table>
-      <div v-if="!tasks.length" class="py-6 text-center text-[12px] text-slate-400">暂无供给任务</div>
+      <div v-if="!tasks.length" class="py-6 text-center text-[12px] text-ink-500">暂无供给任务</div>
     </div>
   </div>
 </template>

@@ -76,21 +76,21 @@ function onFile(slot: SellingShotSlot, event: Event) {
 </script>
 
 <template>
-  <section class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="seller-listing-shots">
+  <section class="space-y-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-card" data-testid="seller-listing-shots">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <div class="text-[13px] font-medium text-slate-800">数据预览截图 <span class="text-[11px] font-normal text-slate-400">最多上传 5 个图</span></div>
-        <p class="mt-1 text-[11px] leading-relaxed text-slate-500">按模版截数据预览里最能证明价值的画面。总览和核心指标必传。</p>
+        <div class="text-[13px] font-medium text-ink-900">数据预览截图 <span class="text-[11px] font-normal text-ink-500">最多上传 5 个图</span></div>
+        <p class="mt-1 text-[11px] leading-relaxed text-ink-500">按模版截数据预览里最能证明价值的画面。总览和核心指标必传。</p>
       </div>
       <button
         type="button"
         data-testid="fill-example-shots"
-        class="shrink-0 rounded-full border border-orange-200 px-3 py-1.5 text-[11px] text-orange-700"
+        class="shrink-0 rounded-full border border-warning-100 px-3 py-1.5 text-[11px] text-warning-600"
         @click="fillExamples"
       >填入示例截图</button>
     </div>
 
-    <svg viewBox="0 0 320 168" class="w-full overflow-hidden rounded-xl border border-slate-100 bg-slate-900" role="img" aria-label="报表截图模版示意图">
+    <svg viewBox="0 0 320 168" class="w-full overflow-hidden rounded-xl border border-ink-100 bg-ink-900" role="img" aria-label="报表截图模版示意图">
       <rect x="8" y="8" width="304" height="152" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
       <text x="16" y="24" fill="#7dd3fc" font-size="9">① 总览一屏</text>
       <rect x="16" y="32" width="52" height="10" rx="2" fill="#334155" />
@@ -106,7 +106,7 @@ function onFile(slot: SellingShotSlot, event: Event) {
       <text x="210" y="122" fill="#fdba74" font-size="8">④ 异常下钻</text>
     </svg>
 
-    <ul class="space-y-1 text-[11px] text-slate-500">
+    <ul class="space-y-1 text-[11px] text-ink-500">
       <li v-for="tip in SELLING_SHOT_TIPS" :key="tip">· {{ tip }}</li>
     </ul>
 
@@ -115,32 +115,32 @@ function onFile(slot: SellingShotSlot, event: Event) {
         v-for="item in SELLING_SHOT_SLOTS"
         :key="item.slot"
         :data-testid="`shot-slot-${item.slot}`"
-        class="rounded-xl border border-slate-100 p-3"
+        class="rounded-xl border border-ink-100 p-3"
       >
         <div class="flex items-center justify-between gap-2">
-          <div class="text-[12px] font-medium text-slate-800">
+          <div class="text-[12px] font-medium text-ink-900">
             {{ item.order }}. {{ item.name }}
-            <span :class="item.required ? 'text-orange-600' : 'text-slate-400'">{{ item.required ? '必填' : '建议' }}</span>
+            <span :class="item.required ? 'text-warning-600' : 'text-ink-500'">{{ item.required ? '必填' : '建议' }}</span>
           </div>
           <button
             v-if="bySlot.get(item.slot)?.imageDataUrl"
             type="button"
-            class="text-[11px] text-slate-400"
+            class="text-[11px] text-ink-500"
             @click="remove(item.slot)"
           >删除</button>
         </div>
-        <p class="mt-1 text-[11px] leading-relaxed text-slate-500">截哪：{{ item.crop }}</p>
-        <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">为什么：{{ item.why }}</p>
+        <p class="mt-1 text-[11px] leading-relaxed text-ink-500">截哪：{{ item.crop }}</p>
+        <p class="mt-0.5 text-[11px] leading-relaxed text-ink-500">为什么：{{ item.why }}</p>
 
         <div class="mt-2 flex items-start gap-3">
-          <label class="flex h-20 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-200 bg-slate-50">
+          <label class="flex h-20 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-ink-200 bg-ink-100">
             <img
               v-if="bySlot.get(item.slot)?.imageDataUrl"
               :src="bySlot.get(item.slot)!.imageDataUrl"
               :alt="item.name"
               class="h-full w-full object-cover"
             />
-            <span v-else class="px-2 text-center text-[10px] text-slate-400">上传截图</span>
+            <span v-else class="px-2 text-center text-[10px] text-ink-500">上传截图</span>
             <input
               :data-testid="`shot-upload-${item.slot}`"
               type="file"
@@ -149,12 +149,12 @@ function onFile(slot: SellingShotSlot, event: Event) {
               @change="onFile(item.slot, $event)"
             />
           </label>
-          <label class="min-w-0 flex-1 text-[11px] text-slate-500">卖点说明
+          <label class="min-w-0 flex-1 text-[11px] text-ink-500">卖点说明
             <input
               :value="captions[item.slot] || bySlot.get(item.slot)?.caption || ''"
               :maxlength="SELLING_SHOT_CAPTION_MAX"
               :data-testid="`shot-caption-${item.slot}`"
-              class="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] text-slate-800"
+              class="mt-1 w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-[12px] text-ink-900"
               :placeholder="item.exampleCaption"
               @input="updateCaption(item.slot, ($event.target as HTMLInputElement).value)"
             />

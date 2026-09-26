@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { productDetailPriceSummary, productPriceLines } from './productPriceDisplay'
+import { ownedProductPriceLine, productDetailPriceSummary, productPriceLines } from './productPriceDisplay'
 import { seedProducts } from '@/data/products'
 
 function product(id: string) {
@@ -11,22 +11,41 @@ function product(id: string) {
 describe('productPriceLines', () => {
   it('shows item and member-free summary for dashboard products', () => {
     expect(productPriceLines(product('prod-freight-index'), 'personal')).toEqual({
-      itemLine: '¥199 起',
+      itemLine: '¥199',
       memberLine: '会员免费',
-      singleLine: '¥199 起 · 会员免费'
+      singleLine: '¥199 · 会员免费'
     })
   })
 
   it('shows item and member discount summary', () => {
     expect(productPriceLines(product('prod-logistics-monthly'), 'personal')).toEqual({
-      itemLine: '¥199 起',
-      memberLine: '会员 ¥119.4 起',
-      singleLine: '¥199 起 · 会员 ¥119.4 起'
+      itemLine: '¥199',
+      memberLine: '会员价 ¥119.4',
+      singleLine: '¥199 · 会员价 ¥119.4'
+    })
+  })
+
+  it('omits 起 when the current identity has only one fixed offer', () => {
+    const fixed = structuredClone(product('prod-logistics-monthly'))
+    fixed.commerceOffers = fixed.commerceOffers?.filter((offer) =>
+      offer.subject !== 'personal' || offer.id === 'offer-monthly-personal-current'
+    )
+
+    expect(productPriceLines(fixed, 'personal')).toEqual({
+      itemLine: '¥199',
+      memberLine: '会员价 ¥119.4',
+      singleLine: '¥199 · 会员价 ¥119.4'
     })
   })
 
   it('uses enterprise item price for enterprise subject', () => {
-    expect(productPriceLines(product('prod-freight-index'), 'enterprise').itemLine).toBe('¥1,990 起')
+    expect(productPriceLines(product('prod-freight-index'), 'enterprise').itemLine).toBe('¥1,990')
+  })
+})
+
+describe('ownedProductPriceLine', () => {
+  it('uses team ownership language for enterprise entitlements', () => {
+    expect(ownedProductPriceLine('enterprise')).toBe('团队已购')
   })
 })
 

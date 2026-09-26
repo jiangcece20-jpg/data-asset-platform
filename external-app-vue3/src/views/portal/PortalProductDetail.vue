@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ProductChips from '@/components/shared/ProductChips.vue'
+import ProductTypeIcon from '@/components/shared/ProductTypeIcon.vue'
 import PortalDetailTabs, { type DetailTab } from './components/PortalDetailTabs.vue'
 import PortalPurchasePanel from './components/PortalPurchasePanel.vue'
 import PortalDatasetDetail from './components/PortalDatasetDetail.vue'
@@ -13,8 +13,9 @@ import { useUserStore } from '@/stores/user'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { usePortalPurchaseStore } from '@/stores/portalPurchase'
 import { startDatasetPayment } from '@/domain/purchaseIdentity'
-import { productTopicTags } from '@/domain/productListChips'
+import { productListChips, productTopicTags } from '@/domain/productListChips'
 import { isSpaceSyncedProduct } from '@/domain/productDetailFields'
+import { productPriceSummary } from '@/domain/productPriceSummary'
 import type { PortalPurchaseAction } from '@/domain/portalPurchase'
 import type { ProductType } from '@/types/domain'
 
@@ -28,6 +29,18 @@ const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
 const topicTags = computed(() => product.value ? productTopicTags(product.value) : [])
+// Hero 标签收敛：类型 + 来源（可信空间等信任信息）+ 至多 1 个运营标签
+const heroTags = computed<string[]>(() => {
+  const p = product.value
+  if (!p) return []
+  const chips = productListChips(p)
+  const tags = [chips.typeLabel]
+  if (chips.venue) tags.push(chips.venue.name)
+  if (chips.ops) tags.push(chips.ops.label)
+  return tags.slice(0, 3)
+})
+// 头部起步价锚点（右栏购买卡同步展示）
+const priceSummary = computed(() => product.value ? productPriceSummary(product.value) : null)
 const access = computed(() => {
   if (!product.value || !user.context.loggedIn) return 'none'
   if (purchase.hasItem(product.value)) return purchase.subject === 'enterprise' ? 'enterprise' : 'item'
@@ -133,34 +146,65 @@ function confirmLogin() {
 <template>
   <div v-if="product" class="mx-auto max-w-7xl">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <!-- 左栏：标题卡 + Tab 导航 + Tab 内容 -->
+      <!-- 左栏：商品头部 + Tab 导航 + Tab 内容 -->
       <div class="min-w-0 space-y-4">
-        <!-- 商品标题卡 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <ProductChips :product="product" show-trial />
-              <h1 class="mt-3 text-xl font-bold text-slate-900">{{ title }}</h1>
-              <p class="mt-1 text-sm text-slate-500">{{ product.recommendText || product.subtitle }}</p>
-              <div v-if="topicTags.length" class="mt-2 flex flex-wrap gap-1.5">
+        <!-- 商品头部：浅蓝柔和底，蓝色仅作点缀 -->
+        <section class="rounded-xl border border-brand-100 bg-[#F2F7FF] px-7 py-6">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 text-xs text-brand-600 transition hover:text-brand-700"
+            @click="router.push('/portal/search')"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+            返回找数
+          </button>
+          <div class="mt-3 flex items-start gap-4">
+            <ProductTypeIcon :type="product.type" :size="52" />
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
                 <span
-                  v-for="tag in topicTags"
+                  v-for="(tag, index) in heroTags"
                   :key="tag"
-                  class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
+                  class="inline-flex items-center rounded px-2 py-0.5 text-xs"
+                  :class="index === 0
+                    ? 'border border-brand-200 bg-white font-medium text-brand-600'
+                    : 'border border-ink-300 bg-white text-ink-600'"
+                >{{ tag }}</span>
+              </div>
+              <h1 class="mt-2 pr-10 text-[22px] font-bold leading-8 text-ink-900">{{ title }}</h1>
+              <p v-if="product.recommendText || product.subtitle" class="mt-1 max-w-3xl truncate text-sm text-ink-600">{{ product.recommendText || product.subtitle }}</p>
+              <div v-if="priceSummary && priceSummary.kind !== 'none'" class="mt-2 flex items-baseline gap-1.5" data-testid="product-header-price">
+                <template v-if="priceSummary.kind === 'money'">
+                  <span class="text-xl font-bold leading-none text-danger-500">{{ priceSummary.text }}</span>
+                  <span class="text-xs text-ink-500">{{ priceSummary.suffix }}</span>
+                </template>
+                <span v-else-if="priceSummary.kind === 'free'" class="text-base font-bold text-success-600">免费</span>
+                <span v-else class="rounded bg-warning-50 px-1.5 py-0.5 text-xs font-medium text-warning-600">待报价</span>
+                <span v-if="priceSummary.hint" class="text-xs text-ink-500">{{ priceSummary.hint }}</span>
+              </div>
+              <div v-if="topicTags.length" class="mt-2.5 flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in topicTags.slice(0, 6)"
+                  :key="tag"
+                  class="rounded bg-white px-2 py-0.5 text-xs text-ink-500"
                 >{{ tag }}</span>
               </div>
             </div>
             <button
-              class="shrink-0 text-xl transition-colors"
-              :class="product.favorite ? 'text-amber-400' : 'text-slate-200 hover:text-slate-300'"
+              type="button"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white border border-ink-300 transition hover:border-brand-300"
               :title="product.favorite ? '取消收藏' : '收藏'"
               @click="toggleFav"
-            >★</button>
+            >
+              <svg class="h-5 w-5" viewBox="0 0 24 24" :fill="product.favorite ? '#FFB400' : 'none'" :stroke="product.favorite ? '#FFB400' : '#86909C'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 17.3-6.2 3.6 1.6-6.9L2 9.2l7-.6L12 2.2l3 6.4 7 .6-5.4 4.8 1.6 6.9z" />
+              </svg>
+            </button>
           </div>
-        </div>
+        </section>
 
         <!-- Tab 导航 + 内容 -->
-        <div class="rounded-xl border border-slate-200 bg-white">
+        <div class="ui-card overflow-hidden">
           <PortalDetailTabs v-model="activeTab" :tabs="currentTabs" class="px-5" />
           <div class="p-5">
             <PortalDatasetDetail
@@ -186,7 +230,7 @@ function confirmLogin() {
               :active-tab="activeTab"
               :unlocked="contentUnlocked"
             />
-            <div v-else class="py-8 text-center text-sm text-slate-400">资料准备中</div>
+            <div v-else class="py-8 text-center text-sm text-ink-500">资料准备中</div>
           </div>
         </div>
       </div>
@@ -204,17 +248,17 @@ function confirmLogin() {
       </div>
     </div>
 
-    <div v-if="toast" role="status" aria-live="polite" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-slate-900 px-5 py-3 text-sm text-white shadow-lg">{{ toast }}</div>
-    <div v-if="loginOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" @click.self="loginOpen = false">
-      <section role="dialog" aria-modal="true" aria-labelledby="purchase-login-title" class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl" @keydown.esc="loginOpen = false">
-        <h2 id="purchase-login-title" class="text-lg font-semibold text-slate-900">登录</h2>
-        <p class="mt-3 text-sm text-slate-600">{{ user.context.name }} · {{ user.context.phone }}</p>
+    <div v-if="toast" role="status" aria-live="polite" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-ink-900/90 px-5 py-3 text-sm text-white shadow-float">{{ toast }}</div>
+    <div v-if="loginOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4" @click.self="loginOpen = false">
+      <section role="dialog" aria-modal="true" aria-labelledby="purchase-login-title" class="w-full max-w-sm rounded-xl bg-white p-6 shadow-float" @keydown.esc="loginOpen = false">
+        <h2 id="purchase-login-title" class="text-base font-semibold text-ink-900">登录</h2>
+        <p class="mt-3 text-sm text-ink-600">{{ user.context.name }} · {{ user.context.phone }}</p>
         <div class="mt-6 flex justify-end gap-3">
-          <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm" @click="loginOpen = false">取消</button>
-          <button data-testid="purchase-login-confirm" class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white" @click="confirmLogin">登录</button>
+          <button class="rounded-md border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:bg-ink-100" @click="loginOpen = false">取消</button>
+          <button data-testid="purchase-login-confirm" class="rounded-md bg-brand-500 px-4 py-2 text-sm text-white transition hover:bg-brand-600" @click="confirmLogin">登录</button>
         </div>
       </section>
     </div>
   </div>
-  <div v-else class="p-8 text-center text-sm text-slate-400">商品不存在</div>
+  <div v-else class="p-8 text-center text-sm text-ink-500">商品不存在</div>
 </template>

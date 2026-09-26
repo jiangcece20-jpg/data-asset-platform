@@ -64,7 +64,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <InfoGrid :items="basicItems" />
       <div
         v-if="product.entitlementPolicy?.kind === 'report_version'"
-        class="mt-3 rounded-lg bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-700"
+        class="mt-3 rounded-lg bg-warning-50 p-3 text-[12px] leading-relaxed text-warning-600"
       >
         单品购买永久绑定当前版本 {{ product.entitlementPolicy.version }}；后续独立版本需另行购买。
       </div>
@@ -75,14 +75,14 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <div
         v-for="row in catalogRows"
         :key="row.no"
-        class="flex items-center gap-3 border-b border-slate-100 py-3.5 last:border-0"
+        class="flex items-center gap-3 border-b border-ink-100 py-3.5 last:border-0"
       >
-        <span class="w-7 shrink-0 text-[17px] font-semibold tabular-nums text-slate-300">{{ row.no }}</span>
+        <span class="w-7 shrink-0 text-[17px] font-semibold tabular-nums text-ink-300">{{ row.no }}</span>
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-[14px] font-semibold text-slate-900">{{ row.title }}</span>
-          <span v-if="row.page" class="mt-0.5 block text-[12px] text-slate-400">第 {{ row.page }} 页</span>
+          <span class="block truncate text-[14px] font-semibold text-ink-900">{{ row.title }}</span>
+          <span v-if="row.page" class="mt-0.5 block text-[12px] text-ink-400">第 {{ row.page }} 页</span>
         </span>
-        <span class="shrink-0 text-[13px] font-medium" :class="row.readable ? 'text-brand-500' : 'text-slate-400'">
+        <span class="shrink-0 text-[13px] font-medium" :class="row.readable ? 'text-brand-500' : 'text-ink-400'">
           {{ row.readable ? '可阅读' : '会员/单篇' }}
         </span>
       </div>
@@ -94,16 +94,16 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <div
         v-for="block in readerBlocks"
         :key="block.id"
-        class="rounded-xl border border-slate-200 p-3.5"
+        class="rounded-xl border border-ink-200 p-3.5"
       >
-        <div class="text-[12px] text-slate-400">
+        <div class="text-[12px] text-ink-400">
           <template v-if="block.open && !unlocked">公开样例 · </template>第 {{ block.page ?? '—' }} 页
         </div>
-        <div class="mt-1 text-[14px] font-semibold text-slate-900">{{ block.title }}</div>
+        <div class="mt-1 text-[14px] font-semibold text-ink-900">{{ block.title }}</div>
 
         <!-- 可读：正文 + 图表区块渲染柱状占位 -->
         <template v-if="block.open">
-          <p class="mt-2 text-[13px] leading-relaxed text-slate-600">{{ block.content }}</p>
+          <p class="mt-2 text-[13px] leading-relaxed text-ink-600">{{ block.content }}</p>
           <div v-if="block.kind === 'chart'" class="mt-3 flex h-24 items-end gap-2.5">
             <span
               v-for="(h, i) in BAR_HEIGHTS"
@@ -116,11 +116,11 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
         <!-- 未解锁：只给轮廓，不泄露正文 -->
         <template v-else>
-          <p class="mt-2 text-[13px] leading-relaxed text-slate-300">
+          <p class="mt-2 text-[13px] leading-relaxed text-ink-300">
             完整正文与精确图表已打码，仅展示章节轮廓。
           </p>
           <button
-            class="mt-3 w-full rounded-lg border border-slate-200 py-2.5 text-[13px] font-medium text-brand-500"
+            class="mt-3 w-full rounded-lg border border-ink-200 py-2.5 text-[13px] font-medium text-brand-500"
             @click="emit('unlock')"
           >
             阅读{{ block.title }}
@@ -129,5 +129,5 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       </div>
     </div>
   </div>
-  <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+  <div v-else class="py-8 text-center text-[13px] text-ink-400">资料准备中</div>
 </template>

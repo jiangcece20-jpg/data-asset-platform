@@ -16,11 +16,11 @@ const chosen = ref<PaymentAmbiguityCase>('space_success_app_stale')
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200 bg-white p-4" data-testid="payment-reconcile">
-    <div class="mb-2 text-[13px] font-medium text-slate-700">支付结果核对</div>
-    <select v-model="chosen" data-testid="reconcile-case" class="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+  <div class="rounded-xl border border-ink-200 bg-white p-4" data-testid="payment-reconcile">
+    <div class="mb-2 text-[13px] font-medium text-ink-700">支付结果核对</div>
+    <select v-model="chosen" data-testid="reconcile-case" class="mb-2 w-full rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
       <option v-for="s in scenarios" :key="s.value" :value="s.value">{{ s.label }}</option>
     </select>
-    <button class="rounded-lg bg-blue-600 px-3 py-1 text-[12px] text-white" data-testid="reconcile-run" @click="emit('reconcile', props.orderId, chosen)">执行对账决策</button>
+    <button class="rounded-lg bg-brand-600 px-3 py-1 text-[12px] text-white" data-testid="reconcile-run" @click="emit('reconcile', props.orderId, chosen)">执行对账决策</button>
   </div>
 </template>

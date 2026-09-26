@@ -95,33 +95,33 @@ function simulateFail() {
     <!-- 接口文档（含接口基础信息） -->
     <div v-if="activeTab === 'docs'" class="space-y-4">
       <div>
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">接口基础信息</div>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">接口基础信息</div>
         <InfoGrid :items="basicItems" />
       </div>
       <div>
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">请求参数</div>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">请求参数</div>
         <ScrollTable :columns="paramColumns" :rows="paramRows" sticky-first />
       </div>
       <div>
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">响应字段</div>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">响应字段</div>
         <ScrollTable :columns="responseColumns" :rows="responseRows" sticky-first />
       </div>
 
       <!-- 请求示例 -->
       <div v-if="detail.requestExample">
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">请求示例</div>
-        <pre class="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-slate-100">{{ detail.requestExample }}</pre>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">请求示例</div>
+        <pre class="overflow-x-auto rounded-lg bg-ink-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink-100">{{ detail.requestExample }}</pre>
       </div>
 
       <!-- 返回示例 -->
       <div v-if="detail.responseExample">
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">返回示例</div>
-        <pre class="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-slate-100">{{ detail.responseExample }}</pre>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">返回示例</div>
+        <pre class="overflow-x-auto rounded-lg bg-ink-900 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-ink-100">{{ detail.responseExample }}</pre>
       </div>
 
       <div v-if="isSpaceApi && errorCodeMessages.length" data-testid="api-error-codes">
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">错误码</div>
-        <ul class="space-y-1.5 text-[12px] text-slate-600">
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">错误码</div>
+        <ul class="space-y-1.5 text-[12px] text-ink-600">
           <li v-for="message in errorCodeMessages" :key="message">{{ message }}</li>
         </ul>
       </div>
@@ -135,11 +135,11 @@ function simulateFail() {
 
       <div class="space-y-2">
         <div v-for="paramName in detail.sandbox.editableParameters" :key="paramName" class="flex items-center gap-2">
-          <label class="w-32 shrink-0 text-[12px] font-mono text-slate-600">{{ paramName }}</label>
+          <label class="w-32 shrink-0 text-[12px] font-mono text-ink-600">{{ paramName }}</label>
           <input
             :data-param="paramName"
             v-model="paramValues[paramName]"
-            class="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[13px]"
+            class="flex-1 rounded-lg border border-ink-200 px-2.5 py-1.5 text-[13px]"
             :placeholder="`输入 ${paramName}`"
           />
         </div>
@@ -156,7 +156,7 @@ function simulateFail() {
         </button>
         <button
           data-testid="sandbox-fail"
-          class="rounded-full border border-slate-300 px-4 py-2 text-[13px] text-slate-500"
+          class="rounded-full border border-ink-300 px-4 py-2 text-[13px] text-ink-500"
           @click="simulateFail"
         >
           模拟失败
@@ -167,39 +167,39 @@ function simulateFail() {
         {{ sandboxError }}
       </div>
 
-      <div v-if="sandboxResult" class="rounded-lg bg-slate-50 p-3 font-mono text-[12px] text-slate-700">
+      <div v-if="sandboxResult" class="rounded-lg bg-ink-100 p-3 font-mono text-[12px] text-ink-700">
         <div v-for="(value, key) in sandboxResult" :key="key">
-          <span class="text-slate-400">{{ key }}:</span> {{ value }}
+          <span class="text-ink-400">{{ key }}:</span> {{ value }}
         </div>
-        <div class="mt-1 text-[11px] text-slate-400">不调用真实服务</div>
+        <div class="mt-1 text-[11px] text-ink-400">不调用真实服务</div>
       </div>
     </div>
 
     <!-- 错误码与 SLA -->
-    <div v-else-if="activeTab === 'sla'" class="space-y-4 text-[13px] text-slate-700">
+    <div v-else-if="activeTab === 'sla'" class="space-y-4 text-[13px] text-ink-700">
       <div>
-        <div class="mb-1.5 text-[12px] font-medium text-slate-500">错误码</div>
+        <div class="mb-1.5 text-[12px] font-medium text-ink-500">错误码</div>
         <table class="w-full text-left text-[12px]">
-          <thead class="bg-slate-50 text-slate-400">
+          <thead class="bg-ink-100 text-ink-400">
             <tr>
               <th class="px-3 py-2 font-medium">错误码</th>
               <th class="px-3 py-2 font-medium">说明</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="err in detail.errorCodes" :key="err.code" class="border-t border-slate-100">
-              <td class="px-3 py-2 font-mono text-slate-800">{{ err.code }}</td>
-              <td class="px-3 py-2 text-slate-600">{{ err.message }}</td>
+            <tr v-for="err in detail.errorCodes" :key="err.code" class="border-t border-ink-100">
+              <td class="px-3 py-2 font-mono text-ink-900">{{ err.code }}</td>
+              <td class="px-3 py-2 text-ink-600">{{ err.message }}</td>
             </tr>
           </tbody>
         </table>
       </div>
       <div class="space-y-1">
-        <div><span class="text-slate-400">SLA：</span>{{ detail.sla }}</div>
-        <div><span class="text-slate-400">限流：</span>{{ detail.rateLimit }}</div>
-        <div><span class="text-slate-400">计费：</span>{{ detail.billing }}</div>
+        <div><span class="text-ink-400">SLA：</span>{{ detail.sla }}</div>
+        <div><span class="text-ink-400">限流：</span>{{ detail.rateLimit }}</div>
+        <div><span class="text-ink-400">计费：</span>{{ detail.billing }}</div>
       </div>
     </div>
   </div>
-  <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+  <div v-else class="py-8 text-center text-[13px] text-ink-400">资料准备中</div>
 </template>

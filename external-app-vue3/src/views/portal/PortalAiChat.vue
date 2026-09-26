@@ -43,7 +43,7 @@ watch(
 
 function handleSelectFollowUp(text: string) {
   if (text === '提交需求') {
-    router.push({ path: '/portal/demand', query: { q: lastQuestion.value } })
+    router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })
     return
   }
   handleSend(text)
@@ -66,11 +66,11 @@ function handleDowngrade() {
 </script>
 
 <template>
-  <div class="mx-auto flex h-[calc(100vh-7rem)] max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" data-testid="portal-ai-chat">
-    <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-      <h1 class="text-base font-semibold text-slate-900">AI 问答</h1>
+  <div class="mx-auto flex h-[calc(100vh-7rem)] max-w-4xl flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm" data-testid="portal-ai-chat">
+    <div class="flex items-center justify-between border-b border-ink-100 px-5 py-3">
+      <h1 class="text-base font-semibold text-ink-900">AI 问答</h1>
       <button
-        class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+        class="rounded-lg border border-ink-200 px-3 py-1.5 text-xs text-ink-600 hover:bg-ink-100"
         @click="router.push('/portal/search')"
       >
         关键词搜索

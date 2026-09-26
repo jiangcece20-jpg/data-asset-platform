@@ -57,9 +57,9 @@ function confirmSelection() {
 }
 
 function tagClass(status: ProductPackCandidate['packagingStatus']) {
-  if (status === 'available') return 'bg-emerald-50 text-emerald-600'
+  if (status === 'available') return 'bg-success-50 text-success-600'
   if (status === 'linked_here') return 'bg-brand-50 text-brand-700'
-  return 'bg-slate-100 text-slate-500'
+  return 'bg-ink-100 text-ink-500'
 }
 </script>
 
@@ -71,9 +71,9 @@ function tagClass(status: ProductPackCandidate['packagingStatus']) {
     @click.self="emit('close')"
   >
     <div class="w-full max-w-lg rounded-xl bg-white shadow-lg">
-      <div class="border-b border-slate-100 px-5 py-4">
-        <h3 class="text-sm font-semibold text-slate-800">关联商品（打包）</h3>
-        <p class="mt-1 text-[11px] leading-relaxed text-slate-400">
+      <div class="border-b border-ink-100 px-5 py-4">
+        <h3 class="text-sm font-semibold text-ink-900">关联商品（打包）</h3>
+        <p class="mt-1 text-[11px] leading-relaxed text-ink-500">
           为「{{ sourceProductName }}」打包关联其它商品，可多选未打包商品。已关联商品会标记状态；已在其它组内的商品不可重复选择。
         </p>
       </div>
@@ -84,19 +84,19 @@ function tagClass(status: ProductPackCandidate['packagingStatus']) {
           data-testid="associate-product-search"
           type="search"
           placeholder="搜索商品名称"
-          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+          class="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
         />
 
-        <div class="max-h-56 overflow-y-auto rounded-lg border border-slate-100">
+        <div class="max-h-56 overflow-y-auto rounded-lg border border-ink-100">
           <button
             v-for="item in filtered"
             :key="item.product.id"
             type="button"
             :data-testid="`associate-product-option-${item.product.id}`"
             :disabled="!item.selectable"
-            class="flex w-full items-center gap-3 border-b border-slate-50 px-3 py-2.5 text-left text-sm last:border-b-0"
+            class="flex w-full items-center gap-3 border-b border-ink-100 px-3 py-2.5 text-left text-sm last:border-b-0"
             :class="[
-              !item.selectable ? 'cursor-not-allowed bg-slate-50/80 text-slate-500' : 'hover:bg-slate-50',
+              !item.selectable ? 'cursor-not-allowed bg-ink-100/80 text-ink-500' : 'hover:bg-ink-100',
               isSelected(item.product.id) ? 'bg-brand-50 text-brand-700' : '',
               item.packagingStatus === 'linked_here' ? 'bg-brand-50/60' : ''
             ]"
@@ -119,18 +119,18 @@ function tagClass(status: ProductPackCandidate['packagingStatus']) {
               {{ packagingStatusLabel(item) }}
             </span>
           </button>
-          <p v-if="!filtered.length" class="px-3 py-6 text-center text-xs text-slate-400">暂无匹配商品</p>
+          <p v-if="!filtered.length" class="px-3 py-6 text-center text-xs text-ink-500">暂无匹配商品</p>
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-5 py-3">
-        <span class="text-[11px] text-slate-400" data-testid="associate-product-selected-count">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-t border-ink-100 px-5 py-3">
+        <span class="text-[11px] text-ink-500" data-testid="associate-product-selected-count">
           已选 {{ selectedIds.length }} 个
         </span>
         <div class="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+            class="rounded-lg border border-ink-200 px-3 py-1.5 text-xs text-ink-600 hover:bg-ink-100"
             @click="emit('close')"
           >
             取消

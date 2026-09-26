@@ -11,13 +11,13 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" @click.self="emit('close')">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4" @click.self="emit('close')">
     <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
       <!-- 游客：要求先登录 -->
       <template v-if="mode === 'login'">
-        <div class="text-3xl">🔐</div>
-        <div class="mt-3 text-base font-semibold text-slate-900">请先登录</div>
-        <p class="mt-2 text-sm leading-relaxed text-slate-500">
+        
+        <div class="mt-3 text-base font-semibold text-ink-900">请先登录</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink-500">
           可信空间对游客仅开放 10 条数据浏览，且无法查看商品详情。登录后即可正常前往。
         </p>
         <div class="mt-5 space-y-2">
@@ -26,7 +26,7 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
             @click="emit('login')"
           >立即登录</button>
           <button
-            class="w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+            class="w-full rounded-lg border border-ink-200 py-2.5 text-sm text-ink-600 hover:bg-ink-100"
             @click="emit('close')"
           >取消</button>
         </div>
@@ -34,10 +34,10 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
 
       <!-- 个人用户：软提示正式采购需企业认证 -->
       <template v-else-if="mode === 'auth-notice'">
-        <div class="text-3xl">🏢</div>
-        <div class="mt-3 text-base font-semibold text-slate-900">前往可信空间</div>
-        <p class="mt-2 text-sm leading-relaxed text-slate-500">
-          你可以直接进入可信空间浏览商品。请注意：<span class="font-medium text-amber-600">正式采购时需要完成企业认证</span>，个人身份无法下单。
+        
+        <div class="mt-3 text-base font-semibold text-ink-900">前往可信空间</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink-500">
+          你可以直接进入可信空间浏览商品。请注意：<span class="font-medium text-warning-600">正式采购时需要完成企业认证</span>，个人身份无法下单。
         </p>
         <div class="mt-5 space-y-2">
           <button
@@ -49,7 +49,7 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
             @click="emit('goAuth')"
           >去企业认证</button>
           <button
-            class="w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+            class="w-full rounded-lg border border-ink-200 py-2.5 text-sm text-ink-600 hover:bg-ink-100"
             @click="emit('close')"
           >取消</button>
         </div>
@@ -57,13 +57,13 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
 
       <!-- 原型模拟：浏览模式跳转成功 -->
       <template v-else>
-        <div class="text-3xl">🔗</div>
-        <div class="mt-3 text-base font-semibold text-slate-900">已前往可信空间（浏览模式）</div>
-        <p class="mt-2 text-sm leading-relaxed text-slate-500">
+        
+        <div class="mt-3 text-base font-semibold text-ink-900">已前往可信空间（浏览模式）</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink-500">
           原型模拟：已在新窗口打开可信空间浏览页，不携带购买意图。正式采购请先完成企业认证后从本页发起。
         </p>
         <button
-          class="mt-5 w-full rounded-lg border border-slate-200 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+          class="mt-5 w-full rounded-lg border border-ink-200 py-2.5 text-sm text-ink-600 hover:bg-ink-100"
           @click="emit('close')"
         >知道了</button>
       </template>

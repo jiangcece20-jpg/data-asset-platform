@@ -32,15 +32,14 @@ describe('ProductDetail trusted-space intent', () => {
 
   it('shows submit-intent as the primary action for personal users', async () => {
     const { wrapper } = await mountProductDetail()
-    const primary = wrapper.find('button.w-full')
-    expect(primary.text()).toBe('提交试用申请')
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('提交试用申请')
     expect(wrapper.text()).not.toContain('前往可信空间购买')
     expect(wrapper.text()).not.toContain('个人身份不能下单')
   })
 
   it('does not push space-bridge from product detail', async () => {
     const { wrapper, router } = await mountProductDetail()
-    await wrapper.find('button.w-full').trigger('click')
+    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.name).toBe('space-intent')
     expect(router.currentRoute.value.path).toBe('/app/space-intent/prod-qualification-api')
@@ -159,28 +158,25 @@ describe('ProductDetail dashboard overview', () => {
     expect(wrapper.text()).not.toContain('解锁后可阅读完整内容')
   })
 
-  it('shows dual-path actions on the detail page for member-eligible products', async () => {
+  it('shows one acquisition action with price and member benefit for member-eligible products', async () => {
     useEntitlementStore().list = []
 
     const free = await mountProductDetail('/app/product/prod-freight-index')
     expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('¥199')
     expect(free.wrapper.get('[data-testid="product-price-summary"]').text()).toContain('会员免费')
-    expect(free.wrapper.find('[data-testid="product-primary-action"]').exists()).toBe(false)
-    expect(free.wrapper.get('[data-testid="product-dual-path"]').exists()).toBe(true)
-    expect(free.wrapper.get('[data-testid="product-direct-purchase"]').text()).toContain('直接购买')
-    expect(free.wrapper.get('[data-testid="product-become-member"]').text()).toContain('成为个人会员')
-    expect(free.wrapper.get('[data-testid="product-member-savings"]').text()).toContain('立省')
-    await free.wrapper.get('[data-testid="product-direct-purchase"]').trigger('click')
+    expect(free.wrapper.find('[data-testid="product-dual-path"]').exists()).toBe(false)
+    expect(free.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即获取')
+    expect(free.wrapper.get('[data-testid="product-action-headline"]').text()).toBe('个人价 ¥199')
+    expect(free.wrapper.get('[data-testid="product-action-supporting"]').text()).toBe('会员免费')
+    await free.wrapper.get('[data-testid="product-primary-action"]').trigger('click')
     await flushPromises()
     expect(free.router.currentRoute.value.path).toBe('/app/checkout/item/prod-freight-index')
-    expect(free.router.currentRoute.value.query.skipDual).toBe('1')
+    expect(free.router.currentRoute.value.query.skipDual).toBeUndefined()
 
     const discount = await mountProductDetail('/app/product/prod-logistics-monthly')
-    expect(discount.wrapper.find('[data-testid="product-primary-action"]').exists()).toBe(false)
-    expect(discount.wrapper.get('[data-testid="product-dual-path"]').exists()).toBe(true)
-    await discount.wrapper.get('[data-testid="product-become-member"]').trigger('click')
-    await flushPromises()
-    expect(discount.router.currentRoute.value.path).toBe('/app/checkout/member')
+    expect(discount.wrapper.get('[data-testid="product-primary-action"]').text()).toBe('立即获取')
+    expect(discount.wrapper.get('[data-testid="product-action-headline"]').text()).toBe('个人价 ¥199')
+    expect(discount.wrapper.get('[data-testid="product-action-supporting"]').text()).toBe('会员价 ¥119.4')
   })
 })
 
@@ -188,17 +184,16 @@ describe('ProductDetail owned dataset', () => {
   beforeEach(() => setActivePinia(createPinia()))
   afterEach(() => vi.restoreAllMocks())
 
-  it('sends owned asset-platform datasets to my orders', async () => {
-    const { wrapper, router } = await mountProductDetail('/app/product/prod-warehouse-turnover-risk')
+  it('opens an owned asset-platform dataset directly in the BI module', async () => {
+    const { wrapper } = await mountProductDetail('/app/product/prod-warehouse-turnover-risk')
 
-    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('查看我的订单')
-    expect(wrapper.text()).toContain('可在“我的订单”查看交付状态并进入用数模块')
-    expect(wrapper.text()).not.toContain('查看我的数据')
-
-    await wrapper.get('[data-testid="product-primary-action"]').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/app/mine')
-    expect(router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
+    const action = wrapper.get('[data-testid="product-primary-action"]')
+    expect(action.text()).toBe('在用数中使用')
+    expect(action.element.tagName).toBe('A')
+    expect(action.attributes('href')).toBe('/bi/workbench/dataset/bi-dataset-warehouse-turnover-v232')
+    expect(wrapper.get('[data-testid="product-entitlement-summary"]').text()).toContain('数据权益已生效')
+    expect(wrapper.get('[data-testid="product-action-headline"]').text()).toBe('权益已生效')
+    expect(wrapper.get('[data-testid="product-action-supporting"]').text()).toBe('当前账号可用')
   })
 })
 

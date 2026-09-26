@@ -49,24 +49,24 @@ function onFile(id: string, event: Event) {
 </script>
 
 <template>
-  <section class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="seller-listing-custom-shots">
+  <section class="space-y-3 rounded-2xl border border-ink-100 bg-white p-4 shadow-card" data-testid="seller-listing-custom-shots">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <div class="text-[13px] font-medium text-slate-800">自定义补充截图</div>
-        <p class="mt-1 text-[11px] leading-relaxed text-slate-500">
+        <div class="text-[13px] font-medium text-ink-900">自定义补充截图</div>
+        <p class="mt-1 text-[11px] leading-relaxed text-ink-500">
           模版四槽位之外，可再传 {{ CUSTOM_SELLING_SHOT_MAX }} 张补充图。每张须自定义标题与描述，用于补充说明报表价值。
         </p>
       </div>
       <button
         type="button"
         data-testid="add-custom-shot"
-        class="shrink-0 rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600 disabled:opacity-40"
+        class="shrink-0 rounded-full border border-ink-200 px-3 py-1.5 text-[11px] text-ink-600 disabled:opacity-40"
         :disabled="modelValue.length >= CUSTOM_SELLING_SHOT_MAX"
         @click="addRow"
       >+ 添加截图</button>
     </div>
 
-    <div v-if="!modelValue.length" class="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-[11px] text-slate-400">
+    <div v-if="!modelValue.length" class="rounded-xl border border-dashed border-ink-200 px-3 py-6 text-center text-[11px] text-ink-500">
       暂无自定义截图，点击「添加截图」上传
     </div>
 
@@ -74,17 +74,17 @@ function onFile(id: string, event: Event) {
       v-for="(row, index) in modelValue"
       :key="row.id"
       :data-testid="`custom-shot-row-${index}`"
-      class="rounded-xl border border-slate-100 p-3"
+      class="rounded-xl border border-ink-100 p-3"
     >
       <div class="flex items-center justify-between gap-2">
-        <div class="text-[12px] font-medium text-slate-800">自定义 {{ index + 1 }}</div>
-        <button type="button" class="text-[11px] text-slate-400" @click="remove(row.id)">删除</button>
+        <div class="text-[12px] font-medium text-ink-900">自定义 {{ index + 1 }}</div>
+        <button type="button" class="text-[11px] text-ink-500" @click="remove(row.id)">删除</button>
       </div>
 
       <div class="mt-2 flex items-start gap-3">
-        <label class="flex h-20 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-200 bg-slate-50">
+        <label class="flex h-20 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-ink-200 bg-ink-100">
           <img v-if="row.imageDataUrl" :src="row.imageDataUrl" :alt="row.title || '自定义截图'" class="h-full w-full object-cover" />
-          <span v-else class="px-2 text-center text-[10px] text-slate-400">上传图片</span>
+          <span v-else class="px-2 text-center text-[10px] text-ink-500">上传图片</span>
           <input
             :data-testid="`custom-shot-upload-${index}`"
             type="file"
@@ -94,23 +94,23 @@ function onFile(id: string, event: Event) {
           />
         </label>
         <div class="min-w-0 flex-1 space-y-2">
-          <label class="block text-[11px] text-slate-500">标题
+          <label class="block text-[11px] text-ink-500">标题
             <input
               :value="row.title"
               :maxlength="CUSTOM_SELLING_SHOT_TITLE_MAX"
               :data-testid="`custom-shot-title-${index}`"
-              class="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] text-slate-800"
+              class="mt-1 w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-[12px] text-ink-900"
               placeholder="如：线路对比专题"
               @input="patch(row.id, { title: ($event.target as HTMLInputElement).value })"
             />
           </label>
-          <label class="block text-[11px] text-slate-500">描述
+          <label class="block text-[11px] text-ink-500">描述
             <textarea
               :value="row.description"
               :maxlength="CUSTOM_SELLING_SHOT_DESC_MAX"
               rows="2"
               :data-testid="`custom-shot-desc-${index}`"
-              class="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] text-slate-800"
+              class="mt-1 w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-[12px] text-ink-900"
               placeholder="说明这张图想传达什么价值"
               @input="patch(row.id, { description: ($event.target as HTMLTextAreaElement).value })"
             />

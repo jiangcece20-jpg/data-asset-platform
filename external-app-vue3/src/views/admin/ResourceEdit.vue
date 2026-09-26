@@ -972,48 +972,48 @@ function removePackedAssociate(targetProductId: string) {
 <template>
   <div v-if="resource">
     <div class="mb-6 flex items-center gap-3">
-      <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50" @click="goBack">← 返回</button>
-      <h1 class="text-xl font-semibold text-slate-800">{{ resource.resourceName }}</h1>
-      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ typeLabels[resource.type] }}</span>
-      <span class="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{{ originLabels[resource.origin] }}</span>
+      <button class="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-100" @click="goBack">← 返回</button>
+      <h1 class="text-xl font-semibold text-ink-900">{{ resource.resourceName }}</h1>
+      <span class="rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">{{ typeLabels[resource.type] }}</span>
+      <span class="rounded bg-brand-50 px-2 py-0.5 text-xs text-brand-600">{{ originLabels[resource.origin] }}</span>
     </div>
 
     <!-- 资源基本信息 -->
-    <div class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">资源信息</h2>
+    <div class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+      <h2 class="mb-3 text-sm font-semibold text-ink-700">资源信息</h2>
       <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">资源名称：</span>{{ resource.resourceName }}</div>
-        <div><span class="text-slate-500">资源 ID：</span><code class="text-xs">{{ resource.id }}</code></div>
-        <div><span class="text-slate-500">类型：</span>{{ typeLabels[resource.type] }}</div>
-        <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
-        <div v-if="resource.createdBy"><span class="text-slate-500">创建者：</span>{{ resource.createdBy }}</div>
-        <div><span class="text-slate-500">上架时间：</span>{{ product ? listedAtOf(product) : '未上架' }}</div>
+        <div><span class="text-ink-500">资源名称：</span>{{ resource.resourceName }}</div>
+        <div><span class="text-ink-500">资源 ID：</span><code class="text-xs">{{ resource.id }}</code></div>
+        <div><span class="text-ink-500">类型：</span>{{ typeLabels[resource.type] }}</div>
+        <div><span class="text-ink-500">来源：</span>{{ originLabels[resource.origin] }}</div>
+        <div v-if="resource.createdBy"><span class="text-ink-500">创建者：</span>{{ resource.createdBy }}</div>
+        <div><span class="text-ink-500">上架时间：</span>{{ product ? listedAtOf(product) : '未上架' }}</div>
       </div>
     </div>
 
-    <div class="mb-6 flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="sales-status-bar">
+    <div class="mb-6 flex items-center gap-3 rounded-lg border border-ink-200 bg-white p-4" data-testid="sales-status-bar">
       <div class="mr-auto">
-        <div class="text-sm font-medium text-slate-700">销售状态</div>
-        <div class="mt-0.5 text-xs text-slate-400">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
-        <p v-if="publishErrors.some((e) => e.field === 'listing')" data-testid="listing-block-error" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'listing')?.message }}</p>
+        <div class="text-sm font-medium text-ink-700">销售状态</div>
+        <div class="mt-0.5 text-xs text-ink-500">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
+        <p v-if="publishErrors.some((e) => e.field === 'listing')" data-testid="listing-block-error" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'listing')?.message }}</p>
       </div>
-      <button v-if="canSave" data-testid="save-product" class="rounded-lg border border-slate-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
-      <span v-if="productSaved" class="text-sm text-emerald-600">已保存</span>
+      <button v-if="canSave" data-testid="save-product" class="rounded-lg border border-ink-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
+      <span v-if="productSaved" class="text-sm text-success-600">已保存</span>
       <button v-if="showPublish" data-testid="publish-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">上架</button>
-      <button v-if="salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
-      <button v-if="salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
-      <button v-if="salesState === 'published' || salesState === 'paused'" data-testid="delist-product" class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600" type="button" @click="confirmDelist">下架</button>
+      <button v-if="salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-warning-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
+      <button v-if="salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-success-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
+      <button v-if="salesState === 'published' || salesState === 'paused'" data-testid="delist-product" class="rounded-lg bg-danger-50 px-4 py-2 text-sm text-danger-600" type="button" @click="confirmDelist">下架</button>
       <button v-if="!listingBlocked && salesState === 'delisted'" data-testid="relist-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">重新上架</button>
     </div>
 
     <!-- 类型特有区块：用数视图（只读） -->
-    <div v-if="resource.type === 'user_view' && resource.typeDetail.userView" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-      <h2 class="mb-3 text-sm font-semibold text-slate-700">用数视图详情</h2>
+    <div v-if="resource.type === 'user_view' && resource.typeDetail.userView" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+      <h2 class="mb-3 text-sm font-semibold text-ink-700">用数视图详情</h2>
       <div class="grid grid-cols-2 gap-4 text-sm">
-        <div><span class="text-slate-500">来源模块：</span>{{ resource.typeDetail.userView.sourceModule }}</div>
-        <div><span class="text-slate-500">图表类型：</span>{{ resource.typeDetail.userView.chartType }}</div>
-        <div><span class="text-slate-500">数据源：</span>{{ resource.typeDetail.userView.dataSourceName }}</div>
-        <div><span class="text-slate-500">浏览次数：</span>{{ resource.typeDetail.userView.viewCount ?? '—' }}</div>
+        <div><span class="text-ink-500">来源模块：</span>{{ resource.typeDetail.userView.sourceModule }}</div>
+        <div><span class="text-ink-500">图表类型：</span>{{ resource.typeDetail.userView.chartType }}</div>
+        <div><span class="text-ink-500">数据源：</span>{{ resource.typeDetail.userView.dataSourceName }}</div>
+        <div><span class="text-ink-500">浏览次数：</span>{{ resource.typeDetail.userView.viewCount ?? '—' }}</div>
       </div>
       <div class="mt-3">
         <a :href="resource.typeDetail.userView.externalUrl" target="_blank" class="text-sm text-brand-600 hover:underline">
@@ -1025,7 +1025,7 @@ function removePackedAssociate(targetProductId: string) {
     <div
       v-if="editable"
       data-testid="resource-edit-tabs"
-      class="mb-6 flex gap-1 border-b border-slate-200"
+      class="mb-6 flex gap-1 border-b border-ink-200"
       role="tablist"
     >
       <button
@@ -1040,14 +1040,14 @@ function removePackedAssociate(targetProductId: string) {
         :data-testid="`resource-edit-tab-${tab.id}`"
         :aria-selected="activeTab === tab.id ? 'true' : 'false'"
         class="relative -mb-px px-4 py-2 text-sm"
-        :class="activeTab === tab.id ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-slate-500 hover:text-slate-700'"
+        :class="activeTab === tab.id ? 'border-b-2 border-brand-600 font-medium text-brand-700' : 'text-ink-500 hover:text-ink-700'"
         @click="activeTab = tab.id"
       >
         {{ tab.label }}
         <span
           v-if="tabError.has(tab.id)"
           :data-testid="`resource-edit-tab-error-${tab.id}`"
-          class="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-red-500"
+          class="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-danger-500"
         />
       </button>
     </div>
@@ -1058,8 +1058,8 @@ function removePackedAssociate(targetProductId: string) {
     <template v-if="editable">
 
       <!-- 商品信息 Tab -->
-      <div v-if="activeTab === 'product'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-4 text-sm font-semibold text-slate-700">商品信息</h2>
+      <div v-if="activeTab === 'product'" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-ink-700">商品信息</h2>
 
         <ProductGroupField
           v-if="product"
@@ -1070,78 +1070,78 @@ function removePackedAssociate(targetProductId: string) {
 
         <!-- 标题与展示（对应详情页标题卡） -->
         <div class="mb-4">
-          <div class="mb-2 text-xs font-medium text-slate-500">标题与展示</div>
+          <div class="mb-2 text-xs font-medium text-ink-500">标题与展示</div>
           <div class="space-y-3">
             <label class="block">
-              <span class="mb-1 block text-xs text-slate-400">商品名称</span>
-              <input v-model="productForm.name" data-testid="product-name-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
-              <p v-if="publishErrors.some((e) => e.field === 'name')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'name')?.message }}</p>
+              <span class="mb-1 block text-xs text-ink-500">商品名称</span>
+              <input v-model="productForm.name" data-testid="product-name-input" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
+              <p v-if="publishErrors.some((e) => e.field === 'name')" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'name')?.message }}</p>
             </label>
             <label class="block">
-              <span class="mb-1 block text-xs text-slate-400">商品副标题（推荐语为空时展示，不超过 {{ PRODUCT_SUBTITLE_MAX }} 字）</span>
+              <span class="mb-1 block text-xs text-ink-500">商品副标题（推荐语为空时展示，不超过 {{ PRODUCT_SUBTITLE_MAX }} 字）</span>
               <input
                 v-model="productForm.subtitle"
                 :maxlength="PRODUCT_SUBTITLE_MAX"
                 data-testid="product-subtitle-input"
-                class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm"
+                class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm"
               />
-              <p class="mt-1 text-right text-[11px] text-slate-400">{{ productForm.subtitle.length }}/{{ PRODUCT_SUBTITLE_MAX }}</p>
-              <p v-if="publishErrors.some((e) => e.field === 'subtitle')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'subtitle')?.message }}</p>
+              <p class="mt-1 text-right text-[11px] text-ink-500">{{ productForm.subtitle.length }}/{{ PRODUCT_SUBTITLE_MAX }}</p>
+              <p v-if="publishErrors.some((e) => e.field === 'subtitle')" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'subtitle')?.message }}</p>
             </label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">推荐语（商品卡片与详情页优先展示）</span><input v-model="productForm.recommendText" data-testid="product-recommend-input" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">推荐语（商品卡片与详情页优先展示）</span><input v-model="productForm.recommendText" data-testid="product-recommend-input" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">标签（顿号分隔）</span><input v-model="productForm.tags" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             <div class="flex items-center gap-4">
-              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-slate-200 px-2 py-1 text-sm" />排序权重</label>
-              <label class="flex items-center gap-1.5 text-xs text-slate-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
-              <span class="text-[11px] text-slate-400">仅影响发现页排序与推荐，不在详情页展示</span>
+              <label class="flex items-center gap-1.5 text-xs text-ink-500"><input v-model.number="productForm.sortWeight" type="number" class="w-16 rounded-lg border border-ink-200 px-2 py-1 text-sm" />排序权重</label>
+              <label class="flex items-center gap-1.5 text-xs text-ink-500"><input v-model="productForm.recommendSlot" type="checkbox" />进入推荐位</label>
+              <span class="text-[11px] text-ink-500">仅影响发现页排序与推荐，不在详情页展示</span>
             </div>
           </div>
         </div>
 
         <!-- 运营信息：空间商品整体只读同步，与详情页「资源信息 / 合规与授权」同源 -->
-        <div class="mb-4 border-t border-slate-100 pt-4">
+        <div class="mb-4 border-t border-ink-100 pt-4">
           <template v-if="product?.dealChannel === 'space_purchase'">
-            <div data-testid="space-kind-readonly" class="mb-3 rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">来源类型</span>
-              <div class="mt-1 text-sm text-slate-700">{{ product.spaceKind === 'owned' ? '自有' : product.spaceKind === 'federated' ? '互联' : '—' }}</div>
+            <div data-testid="space-kind-readonly" class="mb-3 rounded-md bg-ink-100 px-3 py-2">
+              <span class="text-xs text-ink-500">来源类型</span>
+              <div class="mt-1 text-sm text-ink-700">{{ product.spaceKind === 'owned' ? '自有' : product.spaceKind === 'federated' ? '互联' : '—' }}</div>
             </div>
             <ProductInfoSections :product="product" :columns="2" include-department />
           </template>
           <template v-else>
-            <div class="mb-2 text-xs font-medium text-slate-500">运营信息</div>
+            <div class="mb-2 text-xs font-medium text-ink-500">运营信息</div>
             <div class="grid grid-cols-2 gap-3">
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">更新频率</span>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">更新频率</span>
                 <UpdateFrequencySelect v-model="productForm.updateFrequency" data-testid="product-update-frequency" class="px-2.5 py-1.5 text-sm" />
               </label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-              <label class="block"><span class="mb-1 block text-xs text-slate-400">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             </div>
           </template>
         </div>
 
         <!-- 商品说明书（对应详情页商品说明书区） -->
-        <div class="mb-4 border-t border-slate-100 pt-4">
+        <div class="mb-4 border-t border-ink-100 pt-4">
           <div class="mb-2 flex items-center gap-2">
-            <span class="text-xs font-medium text-slate-500">商品说明书</span>
-            <span v-if="product?.dealChannel === 'space_purchase'" class="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">部分字段来自可信空间同步</span>
+            <span class="text-xs font-medium text-ink-500">商品说明书</span>
+            <span v-if="product?.dealChannel === 'space_purchase'" class="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] text-brand-600">部分字段来自可信空间同步</span>
           </div>
           <div class="space-y-3">
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">价值主张</span><textarea v-model="productForm.valueProposition" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             <!-- 详细描述：空间商品只读 -->
-            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">详细描述 <span class="text-blue-500">· 同步</span></span>
-              <div class="mt-1 text-sm leading-relaxed text-slate-700">{{ product.description || '—' }}</div>
+            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-ink-100 px-3 py-2">
+              <span class="text-xs text-ink-500">详细描述 <span class="text-brand-500">· 同步</span></span>
+              <div class="mt-1 text-sm leading-relaxed text-ink-700">{{ product.description || '—' }}</div>
             </div>
-            <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-slate-400">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label v-else class="block"><span class="mb-1 block text-xs text-ink-500">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             <!-- 适用场景：空间商品只读 -->
-            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-slate-50 px-3 py-2">
-              <span class="text-xs text-slate-400">适用场景 <span class="text-blue-500">· 同步</span></span>
-              <div class="mt-0.5 text-sm text-slate-700">{{ (product.scenarios || []).join('、') || '—' }}</div>
+            <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-ink-100 px-3 py-2">
+              <span class="text-xs text-ink-500">适用场景 <span class="text-brand-500">· 同步</span></span>
+              <div class="mt-0.5 text-sm text-ink-700">{{ (product.scenarios || []).join('、') || '—' }}</div>
             </div>
-            <label v-else class="block"><span class="mb-1 block text-xs text-slate-400">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+            <label v-else class="block"><span class="mb-1 block text-xs text-ink-500">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
           </div>
         </div>
       </div>
@@ -1150,67 +1150,67 @@ function removePackedAssociate(targetProductId: string) {
       <template v-if="activeTab === 'content'">
 
       <!-- 类型特有区块：数据集关键指标（运营配置，非必填） -->
-      <div v-if="resource.type === 'dataset'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div v-if="resource.type === 'dataset'" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
         <div class="mb-3 flex items-center gap-2">
-          <h2 class="text-sm font-semibold text-slate-700">数据集详情</h2>
-          <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">运营配置 · 非必填</span>
+          <h2 class="text-sm font-semibold text-ink-700">数据集详情</h2>
+          <span class="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-500">运营配置 · 非必填</span>
         </div>
-        <p class="mb-4 text-xs leading-relaxed text-slate-400">
+        <p class="mb-4 text-xs leading-relaxed text-ink-500">
           粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
         </p>
         <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
           <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">数据粒度</span>
-            <input v-model="datasetForm.granularity" data-testid="dataset-metric-granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+            <span class="mb-1 block text-xs text-ink-500">数据粒度</span>
+            <input v-model="datasetForm.granularity" data-testid="dataset-metric-granularity" placeholder="如：企业 × 月" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
           </label>
           <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">时间范围</span>
-            <input v-model="datasetForm.timeRange" data-testid="dataset-metric-time-range" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+            <span class="mb-1 block text-xs text-ink-500">时间范围</span>
+            <input v-model="datasetForm.timeRange" data-testid="dataset-metric-time-range" placeholder="如：2024-01 至 2026-06" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
           </label>
           <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">数据行数</span>
-            <input v-model="datasetForm.rowCount" data-testid="dataset-metric-row-count" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+            <span class="mb-1 block text-xs text-ink-500">数据行数</span>
+            <input v-model="datasetForm.rowCount" data-testid="dataset-metric-row-count" type="text" inputmode="numeric" placeholder="如：2600000" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
           </label>
           <label class="block">
-            <span class="mb-1 block text-xs text-slate-400">字段数</span>
-            <input v-model="datasetForm.fieldCount" data-testid="dataset-metric-field-count" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" />
+            <span class="mb-1 block text-xs text-ink-500">字段数</span>
+            <input v-model="datasetForm.fieldCount" data-testid="dataset-metric-field-count" type="text" inputmode="numeric" placeholder="如：6" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
           </label>
         </div>
       </div>
 
       <!-- 类型特有区块：API -->
-      <div v-if="resource.type === 'api' && resource.typeDetail.api" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-3 text-sm font-semibold text-slate-700">API 详情</h2>
+      <div v-if="resource.type === 'api' && resource.typeDetail.api" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+        <h2 class="mb-3 text-sm font-semibold text-ink-700">API 详情</h2>
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><span class="text-slate-500">方法：</span>{{ resource.typeDetail.api.method }}</div>
-          <div><span class="text-slate-500">路径：</span><code class="text-xs">{{ resource.typeDetail.api.pathExample }}</code></div>
-          <div><span class="text-slate-500">版本：</span>{{ resource.typeDetail.api.version }}</div>
-          <div><span class="text-slate-500">SLA：</span>{{ resource.typeDetail.api.sla }}</div>
+          <div><span class="text-ink-500">方法：</span>{{ resource.typeDetail.api.method }}</div>
+          <div><span class="text-ink-500">路径：</span><code class="text-xs">{{ resource.typeDetail.api.pathExample }}</code></div>
+          <div><span class="text-ink-500">版本：</span>{{ resource.typeDetail.api.version }}</div>
+          <div><span class="text-ink-500">SLA：</span>{{ resource.typeDetail.api.sla }}</div>
         </div>
       </div>
 
       <!-- 报告介绍配置 -->
-      <div v-if="resource.type === 'report' && product?.typeDetail.report" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="report-config-editor">
+      <div v-if="resource.type === 'report' && product?.typeDetail.report" class="mb-6 rounded-lg border border-ink-200 bg-white p-5" data-testid="report-config-editor">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-sm font-semibold text-slate-700">报告介绍配置</h2>
-            <p class="mt-1 text-xs leading-relaxed text-slate-400">对应前台「报告介绍」中的类型特有字段；通用运营信息（提供方、更新频率等）仍在上方商品信息中维护。来源与上架时间为系统事实，只读展示。</p>
+            <h2 class="text-sm font-semibold text-ink-700">报告介绍配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-ink-500">对应前台「报告介绍」中的类型特有字段；通用运营信息（提供方、更新频率等）仍在上方商品信息中维护。来源与上架时间为系统事实，只读展示。</p>
           </div>
-          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+          <span class="shrink-0 rounded bg-brand-50 px-2 py-1 text-[11px] text-brand-600">前台公开</span>
         </div>
 
-        <div class="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
-          <div><span class="text-slate-500">来源：</span>{{ originLabels[resource.origin] }}</div>
-          <div><span class="text-slate-500">上架时间：</span>{{ listedAtOf(product) || '未上架' }}</div>
+        <div class="mb-4 grid grid-cols-2 gap-3 rounded-lg bg-ink-100 p-3 text-sm">
+          <div><span class="text-ink-500">来源：</span>{{ originLabels[resource.origin] }}</div>
+          <div><span class="text-ink-500">上架时间：</span>{{ listedAtOf(product) || '未上架' }}</div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">发布日期</span><input v-model="reportForm.publishedAt" data-testid="report-published-at" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" placeholder="YYYY-MM-DD" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告页数</span><input v-model.number="reportForm.pageCount" type="number" min="1" data-testid="report-page-count" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">研究机构</span><input v-model="reportForm.author" data-testid="report-author" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">报告版本</span><input v-model="reportForm.version" data-testid="report-version" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">适用读者</span><input v-model="reportForm.audience" data-testid="report-audience" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">发布日期</span><input v-model="reportForm.publishedAt" data-testid="report-published-at" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" placeholder="YYYY-MM-DD" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">报告页数</span><input v-model.number="reportForm.pageCount" type="number" min="1" data-testid="report-page-count" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">研究机构</span><input v-model="reportForm.author" data-testid="report-author" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">报告版本</span><input v-model="reportForm.version" data-testid="report-version" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-ink-500">适用读者</span><input v-model="reportForm.audience" data-testid="report-audience" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-ink-500">下载授权</span><textarea v-model="reportForm.license" rows="2" data-testid="report-license" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
         </div>
 
         <ReportPreviewImagesEditor
@@ -1220,56 +1220,56 @@ function removePackedAssociate(targetProductId: string) {
           description="上传后在商品详情页「报表预览」展示；APP 与 PC 分别维护，每端最多 3 张。"
         />
 
-        <p class="mt-4 text-[11px] leading-relaxed text-slate-400">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
+        <p class="mt-4 text-[11px] leading-relaxed text-ink-500">目录章节与在线阅读正文块本期由内容稿维护，编辑页展示结构摘要但不改正文；保存后版本字段同步影响单次购买绑定的当前版本口径。</p>
 
         <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-report-config" type="button" @click="saveReportConfig">保存报告配置</button>
-          <span v-if="reportConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
+          <button class="rounded-lg bg-ink-900 px-4 py-2 text-sm text-white hover:bg-ink-700" data-testid="save-report-config" type="button" @click="saveReportConfig">保存报告配置</button>
+          <span v-if="reportConfigSaved" class="text-sm text-success-600">已同步到前台详情</span>
         </div>
       </div>
 
       <!-- 看板与指标定义配置 -->
-      <div v-if="resource.type === 'dashboard' && (product?.typeDetail.dashboard || resource.typeDetail.dashboard)" class="mb-6 rounded-lg border border-slate-200 bg-white p-5" data-testid="dashboard-config-editor">
+      <div v-if="resource.type === 'dashboard' && (product?.typeDetail.dashboard || resource.typeDetail.dashboard)" class="mb-6 rounded-lg border border-ink-200 bg-white p-5" data-testid="dashboard-config-editor">
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-sm font-semibold text-slate-700">看板与指标定义配置</h2>
-            <p class="mt-1 text-xs leading-relaxed text-slate-400">这些内容对应前台“看板信息”和“指标定义”。指标定义属于购买前说明，所有用户无需解锁即可查看。</p>
+            <h2 class="text-sm font-semibold text-ink-700">看板与指标定义配置</h2>
+            <p class="mt-1 text-xs leading-relaxed text-ink-500">这些内容对应前台“看板信息”和“指标定义”。指标定义属于购买前说明，所有用户无需解锁即可查看。</p>
           </div>
-          <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-600">前台公开</span>
+          <span class="shrink-0 rounded bg-brand-50 px-2 py-1 text-[11px] text-brand-600">前台公开</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">时间范围</span><input v-model="dashboardForm.timeRange" data-testid="dashboard-time-range" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="block"><span class="mb-1 block text-xs text-slate-400">更新周期</span><input v-model="dashboardForm.updateCycle" data-testid="dashboard-update-cycle" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-          <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">导出规则</span><textarea v-model="dashboardForm.exportRule" rows="2" data-testid="dashboard-export-rule" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">时间范围</span><input v-model="dashboardForm.timeRange" data-testid="dashboard-time-range" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="block"><span class="mb-1 block text-xs text-ink-500">更新周期</span><input v-model="dashboardForm.updateCycle" data-testid="dashboard-update-cycle" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+          <label class="col-span-2 block"><span class="mb-1 block text-xs text-ink-500">导出规则</span><textarea v-model="dashboardForm.exportRule" rows="2" data-testid="dashboard-export-rule" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
         </div>
 
-        <div class="mt-5 border-t border-slate-100 pt-4">
+        <div class="mt-5 border-t border-ink-100 pt-4">
           <div class="mb-3 flex items-center justify-between">
             <div>
-              <div class="text-xs font-medium text-slate-600">指标定义</div>
-              <div class="mt-0.5 text-[11px] text-slate-400">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
-              <p v-if="publishErrors.some((e) => e.field === 'dashboardMetrics')" class="mt-1 text-xs text-red-500">{{ publishErrors.find((e) => e.field === 'dashboardMetrics')?.message }}</p>
+              <div class="text-xs font-medium text-ink-600">指标定义</div>
+              <div class="mt-0.5 text-[11px] text-ink-500">指标名称、描述、计算公式和支持维度会直接展示在详情页指标卡片中。</div>
+              <p v-if="publishErrors.some((e) => e.field === 'dashboardMetrics')" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'dashboardMetrics')?.message }}</p>
             </div>
-            <button class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50" type="button" @click="addDashboardMetric">+ 添加指标</button>
+            <button class="rounded-lg border border-ink-200 px-3 py-1.5 text-xs text-ink-600 hover:bg-ink-100" type="button" @click="addDashboardMetric">+ 添加指标</button>
           </div>
 
           <div class="space-y-3">
-            <div v-for="(metric, index) in dashboardForm.metrics" :key="index" class="rounded-lg border border-slate-200 p-4" :data-testid="`dashboard-metric-${index}`">
+            <div v-for="(metric, index) in dashboardForm.metrics" :key="index" class="rounded-lg border border-ink-200 p-4" :data-testid="`dashboard-metric-${index}`">
               <div class="mb-3 flex items-center justify-between">
-                <span class="text-xs font-medium text-slate-600">指标 {{ index + 1 }}</span>
-                <button class="text-xs text-red-500 hover:text-red-600" type="button" @click="removeDashboardMetric(index)">删除</button>
+                <span class="text-xs font-medium text-ink-600">指标 {{ index + 1 }}</span>
+                <button class="text-xs text-danger-500 hover:text-danger-600" type="button" @click="removeDashboardMetric(index)">删除</button>
               </div>
               <div class="grid grid-cols-2 gap-3">
-                <label class="block"><span class="mb-1 block text-xs text-slate-400">指标名称</span><input v-model="metric.name" :data-testid="`dashboard-metric-name-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="block"><span class="mb-1 block text-xs text-slate-400">支持维度（顿号分隔）</span><input v-model="metric.dimensions" :data-testid="`dashboard-metric-dimensions-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">指标描述</span><textarea v-model="metric.definition" rows="2" :data-testid="`dashboard-metric-definition-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
-                <label class="col-span-2 block"><span class="mb-1 block text-xs text-slate-400">计算公式</span><input v-model="metric.formula" :data-testid="`dashboard-metric-formula-${index}`" class="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-ink-500">指标名称</span><input v-model="metric.name" :data-testid="`dashboard-metric-name-${index}`" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="block"><span class="mb-1 block text-xs text-ink-500">支持维度（顿号分隔）</span><input v-model="metric.dimensions" :data-testid="`dashboard-metric-dimensions-${index}`" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-ink-500">指标描述</span><textarea v-model="metric.definition" rows="2" :data-testid="`dashboard-metric-definition-${index}`" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+                <label class="col-span-2 block"><span class="mb-1 block text-xs text-ink-500">计算公式</span><input v-model="metric.formula" :data-testid="`dashboard-metric-formula-${index}`" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
               </div>
             </div>
           </div>
 
-          <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-slate-50 py-8 text-center text-xs text-slate-400">暂无指标，点击“添加指标”补充。</div>
+          <div v-if="!dashboardForm.metrics.length" class="rounded-lg bg-ink-100 py-8 text-center text-xs text-ink-500">暂无指标，点击“添加指标”补充。</div>
         </div>
 
         <ReportPreviewImagesEditor
@@ -1282,18 +1282,18 @@ function removePackedAssociate(targetProductId: string) {
         />
 
         <div class="mt-4 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
-          <span v-if="dashboardConfigSaved" class="text-sm text-emerald-600">已同步到前台详情</span>
+          <button class="rounded-lg bg-ink-900 px-4 py-2 text-sm text-white hover:bg-ink-700" data-testid="save-dashboard-config" @click="saveDashboardConfig">保存看板配置</button>
+          <span v-if="dashboardConfigSaved" class="text-sm text-success-600">已同步到前台详情</span>
         </div>
       </div>
 
       <!-- 数据探查配置（仅数据集类型） -->
-      <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-1 text-sm font-semibold text-slate-700">数据探查配置</h2>
-        <p class="mb-3 text-xs text-slate-400">勾选字段开放探查。数值/时间/布尔按字段类型探查；字符串同时计算唯一性与 Top10，不区分标识/分类。敏感字段（主键、L2/L3）默认不开放。</p>
+      <div v-if="canConfigureProfiling" data-testid="profiling-config" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+        <h2 class="mb-1 text-sm font-semibold text-ink-700">数据探查配置</h2>
+        <p class="mb-3 text-xs text-ink-500">勾选字段开放探查。数值/时间/布尔按字段类型探查；字符串同时计算唯一性与 Top10，不区分标识/分类。敏感字段（主键、L2/L3）默认不开放。</p>
 
         <table class="w-full text-left text-xs">
-          <thead class="bg-slate-50 text-slate-400">
+          <thead class="bg-ink-100 text-ink-500">
             <tr>
               <th class="w-9 px-2 py-2">
                 <input
@@ -1314,42 +1314,42 @@ function removePackedAssociate(targetProductId: string) {
             <tr
               v-for="f in datasetFields"
               :key="f.name"
-              class="border-t border-slate-100"
-              :class="f.sensitive ? 'bg-amber-50/40' : ''"
+              class="border-t border-ink-100"
+              :class="f.sensitive ? 'bg-warning-50/40' : ''"
             >
               <td class="px-2 py-2">
                 <input v-model="profilingSelection" type="checkbox" :value="f.name" :disabled="!f.hasStat" :data-testid="`profiling-field-${f.name}`" />
               </td>
-              <td class="px-2 py-2 font-mono text-slate-800">{{ f.name }}</td>
-              <td class="px-2 py-2 text-slate-600">{{ f.meaning }}</td>
-              <td class="px-2 py-2 text-slate-500">{{ f.dataType }}</td>
+              <td class="px-2 py-2 font-mono text-ink-900">{{ f.name }}</td>
+              <td class="px-2 py-2 text-ink-600">{{ f.meaning }}</td>
+              <td class="px-2 py-2 text-ink-500">{{ f.dataType }}</td>
               <td class="px-2 py-2">
-                <span v-if="f.sensitive" class="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-700">
+                <span v-if="f.sensitive" class="rounded bg-warning-100 px-1.5 py-0.5 text-[11px] text-warning-600">
                   {{ f.sensitivityLabel }}
                 </span>
-                <span v-else class="text-slate-300">—</span>
+                <span v-else class="text-ink-300">—</span>
               </td>
               <td class="px-2 py-2">
-                <span v-if="f.hasStat" class="text-emerald-600">已产出</span>
-                <span v-else class="text-slate-300">未产出</span>
+                <span v-if="f.hasStat" class="text-success-600">已产出</span>
+                <span v-else class="text-ink-300">未产出</span>
               </td>
             </tr>
           </tbody>
         </table>
 
         <div class="mt-3 flex items-center gap-3">
-          <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700" data-testid="save-profiling-config" @click="saveProfilingFields">
+          <button class="rounded-lg bg-ink-900 px-4 py-2 text-sm text-white hover:bg-ink-700" data-testid="save-profiling-config" @click="saveProfilingFields">
             保存探查配置
           </button>
-          <span class="text-xs text-slate-400">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
-          <span v-if="profilingSaved" class="text-sm text-emerald-600">已保存</span>
+          <span class="text-xs text-ink-500">已开放 {{ profilingSelection.length }} / {{ datasetFields.length }} 个字段</span>
+          <span v-if="profilingSaved" class="text-sm text-success-600">已保存</span>
         </div>
       </div>
 
       <p
         v-if="!hasContentConfig"
         data-testid="content-tab-empty"
-        class="mb-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm text-slate-400"
+        class="mb-6 rounded-lg border border-dashed border-ink-200 bg-ink-100 px-5 py-8 text-center text-sm text-ink-500"
       >
         当前资源类型暂无内容配置项
       </p>
@@ -1357,8 +1357,8 @@ function removePackedAssociate(targetProductId: string) {
       </template>
 
       <!-- 价格与权益 Tab -->
-      <div v-if="activeTab === 'pricing'" class="mb-6 rounded-lg border border-slate-200 bg-white p-5">
-        <h2 class="mb-4 text-sm font-semibold text-slate-700">价格与权益</h2>
+      <div v-if="activeTab === 'pricing'" class="mb-6 rounded-lg border border-ink-200 bg-white p-5">
+        <h2 class="mb-4 text-sm font-semibold text-ink-700">价格与权益</h2>
 
         <ProductGroupField
           v-if="product"
@@ -1369,29 +1369,29 @@ function removePackedAssociate(targetProductId: string) {
 
         <p
           v-else-if="salesState === 'unlisted'"
-          class="mb-4 text-[11px] text-slate-400"
+          class="mb-4 text-[11px] text-ink-500"
           data-testid="resource-pricing-draft-hint"
         >
           价格与打码保存在资源草稿；点击「上架」后生成商品。
         </p>
 
         <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
-        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-slate-100 pt-4" data-testid="pricing-plan-editor">
+        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-ink-100 pt-4" data-testid="pricing-plan-editor">
           <div class="mb-1 flex items-center justify-between gap-3">
-            <div class="text-xs font-medium text-slate-600">
+            <div class="text-xs font-medium text-ink-600">
               价格方案
-              <span v-if="product" class="ml-2 font-normal text-slate-400">· {{ product.name }}</span>
+              <span v-if="product" class="ml-2 font-normal text-ink-500">· {{ product.name }}</span>
             </div>
-            <span class="rounded bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-600">APP 内配置</span>
+            <span class="rounded bg-success-50 px-2 py-0.5 text-[11px] text-success-600">APP 内配置</span>
           </div>
-          <p class="mb-3 text-[11px] leading-relaxed text-slate-400">免费商品与付费单品、会员权益互斥；非免费商品可同时配置个人单品、企业单品及普通 / 高级会员权益。</p>
-          <p v-if="publishErrors.some((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')" class="mb-3 text-xs text-red-500">
+          <p class="mb-3 text-[11px] leading-relaxed text-ink-500">免费商品与付费单品、会员权益互斥；非免费商品可同时配置个人单品、企业单品及普通 / 高级会员权益。</p>
+          <p v-if="publishErrors.some((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')" class="mb-3 text-xs text-danger-500">
             {{ publishErrors.find((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')?.message }}
           </p>
-          <label class="mb-3 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+          <label class="mb-3 inline-flex items-center gap-2 rounded-lg border border-success-100 bg-success-50 px-3 py-2 text-xs font-medium text-success-600">
             <input v-model="productForm.isFree" type="checkbox" data-testid="product-free" />
             免费
-            <span class="font-normal text-emerald-600">· 勾选后其他价格方案不可配置</span>
+            <span class="font-normal text-success-600">· 勾选后其他价格方案不可配置</span>
           </label>
           <fieldset
             :disabled="productForm.isFree"
@@ -1399,21 +1399,21 @@ function removePackedAssociate(targetProductId: string) {
             class="transition-opacity disabled:cursor-not-allowed"
             :class="productForm.isFree ? 'opacity-40' : ''"
           >
-            <label class="mb-3 flex items-center gap-2 text-xs text-slate-600">
-              <span class="font-medium text-slate-700">可售卖周期</span>
+            <label class="mb-3 flex items-center gap-2 text-xs text-ink-600">
+              <span class="font-medium text-ink-700">可售卖周期</span>
               <input
                 v-model.number="productForm.salePeriodMonths"
                 type="number"
                 min="1"
                 :disabled="productForm.isFree"
                 data-testid="sale-period-months"
-                class="w-24 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                class="w-24 rounded border border-ink-200 px-2 py-1.5 text-sm text-ink-700 disabled:bg-ink-100"
               />
-              <span class="text-slate-400">个月 · 客户下单时锁定</span>
-              <span v-if="publishErrors.some((e) => e.field === 'salePeriod')" class="text-red-500">{{ publishErrors.find((e) => e.field === 'salePeriod')?.message }}</span>
+              <span class="text-ink-500">个月 · 客户下单时锁定</span>
+              <span v-if="publishErrors.some((e) => e.field === 'salePeriod')" class="text-danger-500">{{ publishErrors.find((e) => e.field === 'salePeriod')?.message }}</span>
             </label>
-            <div class="overflow-hidden rounded-lg border border-slate-200">
-            <div class="grid grid-cols-[160px_1fr] border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-medium text-slate-500">
+            <div class="overflow-hidden rounded-lg border border-ink-200">
+            <div class="grid grid-cols-[160px_1fr] border-b border-ink-200 bg-ink-100 px-4 py-2 text-[11px] font-medium text-ink-500">
               <div>价格类型</div>
               <div>配置</div>
             </div>
@@ -1421,11 +1421,11 @@ function removePackedAssociate(targetProductId: string) {
             <div
               v-for="offer in [itemOfferForm.personal, itemOfferForm.enterprise]"
               :key="offer.subject"
-              class="grid grid-cols-[160px_1fr] items-center border-b border-slate-100 px-4 py-3 last:border-b-0"
+              class="grid grid-cols-[160px_1fr] items-center border-b border-ink-100 px-4 py-3 last:border-b-0"
               :data-testid="`item-offer-${offer.subject}`"
             >
-              <div class="text-xs font-medium text-slate-700">{{ offer.subject === 'personal' ? '个人单品' : '企业单品' }}</div>
-              <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+              <div class="text-xs font-medium text-ink-700">{{ offer.subject === 'personal' ? '个人单品' : '企业单品' }}</div>
+              <div class="flex flex-wrap items-center gap-3 text-xs text-ink-600">
                 <label class="flex items-center gap-1.5">
                   <input v-model="offer.enabled" type="checkbox" :disabled="productForm.isFree" :data-testid="`item-offer-${offer.subject}-enabled`" />启用
                 </label>
@@ -1438,7 +1438,7 @@ function removePackedAssociate(targetProductId: string) {
                     step="0.1"
                     :disabled="productForm.isFree || !offer.enabled"
                     :data-testid="`item-offer-${offer.subject}-original-price`"
-                    class="w-28 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                    class="w-28 rounded border border-ink-200 px-2 py-1.5 text-sm text-ink-700 disabled:bg-ink-100"
                     @input="syncItemOfferPrice(offer)"
                   />
                 </label>
@@ -1452,12 +1452,12 @@ function removePackedAssociate(targetProductId: string) {
                     step="0.1"
                     :disabled="productForm.isFree || !offer.enabled"
                     :data-testid="`item-offer-${offer.subject}-discount-zhe`"
-                    class="w-20 rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-700 disabled:bg-slate-50"
+                    class="w-20 rounded border border-ink-200 px-2 py-1.5 text-sm text-ink-700 disabled:bg-ink-100"
                     @input="syncItemOfferPrice(offer)"
                   />
                   <span>折</span>
                 </label>
-                <span class="text-slate-500" :data-testid="`item-offer-${offer.subject}-sale-price-preview`">
+                <span class="text-ink-500" :data-testid="`item-offer-${offer.subject}-sale-price-preview`">
                   → 售价 {{ itemOfferSalePricePreview(offer) }}
                 </span>
               </div>
@@ -1466,11 +1466,11 @@ function removePackedAssociate(targetProductId: string) {
             <div
               v-for="tier in (['standard', 'premium'] as const)"
               :key="tier"
-              class="grid grid-cols-[160px_1fr] items-center border-b border-slate-100 px-4 py-3 last:border-b-0"
+              class="grid grid-cols-[160px_1fr] items-center border-b border-ink-100 px-4 py-3 last:border-b-0"
               :data-testid="`member-tier-${tier}`"
             >
-              <div class="text-xs font-medium text-slate-700">{{ MEMBER_TIER_LABELS[tier] }}</div>
-              <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+              <div class="text-xs font-medium text-ink-700">{{ MEMBER_TIER_LABELS[tier] }}</div>
+              <div class="flex flex-wrap items-center gap-4 text-xs text-ink-600">
                   <label class="flex items-center gap-1.5">
                     <input
                       type="radio"
@@ -1508,7 +1508,7 @@ function removePackedAssociate(targetProductId: string) {
                     v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) !== 'none'"
                     class="flex items-center gap-1.5"
                   >
-                    <span class="text-slate-400">原价 ¥</span>
+                    <span class="text-ink-500">原价 ¥</span>
                     <input
                       v-if="tier === 'standard'"
                       v-model.number="productForm.standardMemberOriginalPrice"
@@ -1517,7 +1517,7 @@ function removePackedAssociate(targetProductId: string) {
                       step="0.1"
                       :disabled="productForm.isFree"
                       data-testid="member-standard-original-price"
-                      class="w-28 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 disabled:bg-slate-50"
+                      class="w-28 rounded border border-ink-200 px-2 py-1 text-sm text-ink-700 disabled:bg-ink-100"
                     />
                     <input
                       v-else
@@ -1527,14 +1527,14 @@ function removePackedAssociate(targetProductId: string) {
                       step="0.1"
                       :disabled="productForm.isFree"
                       data-testid="member-premium-original-price"
-                      class="w-28 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700 disabled:bg-slate-50"
+                      class="w-28 rounded border border-ink-200 px-2 py-1 text-sm text-ink-700 disabled:bg-ink-100"
                     />
                   </label>
                   <label
                     v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) === 'discount'"
                     class="flex items-center gap-1.5"
                   >
-                    <span class="text-slate-400">折扣</span>
+                    <span class="text-ink-500">折扣</span>
                     <input
                       v-if="tier === 'standard'"
                       v-model.number="productForm.standardMemberZhe"
@@ -1544,7 +1544,7 @@ function removePackedAssociate(targetProductId: string) {
                       step="0.1"
                       :disabled="productForm.isFree"
                       data-testid="member-standard-zhe"
-                      class="w-16 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700"
+                      class="w-16 rounded border border-ink-200 px-2 py-1 text-sm text-ink-700"
                     />
                     <input
                       v-else
@@ -1555,13 +1555,13 @@ function removePackedAssociate(targetProductId: string) {
                       step="0.1"
                       :disabled="productForm.isFree"
                       data-testid="member-premium-zhe"
-                      class="w-16 rounded border border-slate-200 px-2 py-1 text-sm text-slate-700"
+                      class="w-16 rounded border border-ink-200 px-2 py-1 text-sm text-ink-700"
                     />
-                    <span class="text-slate-400">折</span>
+                    <span class="text-ink-500">折</span>
                   </label>
                   <span
                     v-if="(tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode) !== 'none'"
-                    class="text-slate-500"
+                    class="text-ink-500"
                     :data-testid="`member-${tier}-price-preview`"
                   >
                     → {{ memberTierPricePreview(tier) }}
@@ -1574,7 +1574,7 @@ function removePackedAssociate(targetProductId: string) {
 
         <p
           v-if="canConfigurePaywall"
-          class="mb-2 text-[11px] text-slate-400"
+          class="mb-2 text-[11px] text-ink-500"
           data-testid="paywall-scroll-hint"
         >
           下方为自营看板收费内容区，可配置模块/字段/按钮打码。
@@ -1582,26 +1582,26 @@ function removePackedAssociate(targetProductId: string) {
 
         <DashboardPaywallEditor
           v-if="canConfigurePaywall"
-          class="mb-4 border-t border-slate-100 pt-4"
+          class="mb-4 border-t border-ink-100 pt-4"
           :catalog="paywallCatalog"
           v-model="paywallSelection"
         />
 
-        <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-slate-100 pt-4" data-testid="space-pricing-readonly">
-          <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-slate-600">同步价格方案</span><span class="rounded bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">可信空间只读</span></div>
-          <p class="mb-2 text-[11px] text-slate-400">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
+        <div v-if="product?.dealChannel === 'space_purchase'" class="mb-4 border-t border-ink-100 pt-4" data-testid="space-pricing-readonly">
+          <div class="mb-1 flex items-center justify-between"><span class="text-xs font-medium text-ink-600">同步价格方案</span><span class="rounded bg-brand-50 px-2 py-0.5 text-[11px] text-brand-600">可信空间只读</span></div>
+          <p class="mb-2 text-[11px] text-ink-500">价格、套餐和有效期由可信空间同步，APP 只展示，不在本页改价。</p>
           <div v-if="product.datasetOffers?.length" class="space-y-2">
-            <div v-for="offer in product.datasetOffers" :key="offer.id" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{{ offer.name }} · {{ offer.licenseKind === 'subscription' ? `${offer.termMonths}个月` : '一次性' }}</span><span class="font-medium text-slate-700">¥{{ offer.price.toLocaleString() }}</span></div>
+            <div v-for="offer in product.datasetOffers" :key="offer.id" class="flex items-center justify-between rounded-lg bg-ink-100 px-3 py-2 text-xs"><span>{{ offer.name }} · {{ offer.licenseKind === 'subscription' ? `${offer.termMonths}个月` : '一次性' }}</span><span class="font-medium text-ink-700">¥{{ offer.price.toLocaleString() }}</span></div>
           </div>
           <div v-else-if="product.typeDetail.api?.pricingPlans?.length" class="space-y-2">
-            <div v-for="plan in product.typeDetail.api.pricingPlans" :key="plan.name" class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs"><span>{{ plan.name }} · {{ plan.quota }}</span><span class="font-medium text-slate-700">{{ plan.price }}</span></div>
+            <div v-for="plan in product.typeDetail.api.pricingPlans" :key="plan.name" class="flex items-center justify-between rounded-lg bg-ink-100 px-3 py-2 text-xs"><span>{{ plan.name }} · {{ plan.quota }}</span><span class="font-medium text-ink-700">{{ plan.price }}</span></div>
           </div>
-          <div v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">{{ product.price.quoteNote || product.spaceMeta?.billingNote || '以可信空间实际报价为准' }}</div>
+          <div v-else class="rounded-lg bg-ink-100 px-3 py-2 text-xs text-ink-500">{{ product.price.quoteNote || product.spaceMeta?.billingNote || '以可信空间实际报价为准' }}</div>
         </div>
       </div>
     </template>
   </div>
-  <div v-else class="py-20 text-center text-slate-500">
+  <div v-else class="py-20 text-center text-ink-500">
     资源不存在
   </div>
 

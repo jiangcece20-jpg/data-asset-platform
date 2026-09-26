@@ -271,6 +271,10 @@ export const seedProducts: Product[] = [
     qualityPromise: '权威机构数据源，命中率 99.2%',
     complianceNote: '核验结果仅返回是否有效，不返回证件原始影像',
     price: { model: 'quote', quoteNote: '按调用量阶梯计费，详见空间报价' },
+    commerceOffers: [
+      { id: 'space-api-20415-10k', externalPlanCode: 'API-20415-10K', name: '1 万次调用包', subject: 'enterprise', price: 1980, currency: 'CNY', serviceMode: 'one_time', contentKind: 'quota_package', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' },
+      { id: 'space-api-20415-100k', externalPlanCode: 'API-20415-100K', name: '10 万次调用包', subject: 'enterprise', price: 15800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'quota_package', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true }
+    ],
     status: 'published',
     tags: ['合规核验', '空间商品', '合规首选'],
     description: '输入身份证号与证件编号即可核验从业资格证的有效性与准驾类型，适用于司机准入与承运商审核场景。',
@@ -396,6 +400,10 @@ export const seedProducts: Product[] = [
     qualityPromise: '隐私信息检索机制，查询方与数据方互不感知明细',
     complianceNote: '仅返回匹配结果（命中/不命中），不返回原始记录',
     price: { model: 'quote', quoteNote: '按核验次数报价' },
+    commerceOffers: [
+      { id: 'space-pir-40217-5k', externalPlanCode: 'PIR-40217-5K', name: '5,000 次核验包', subject: 'enterprise', price: 980, currency: 'CNY', serviceMode: 'one_time', contentKind: 'quota_package', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection' },
+      { id: 'space-pir-40217-50k', externalPlanCode: 'PIR-40217-50K', name: '50,000 次核验包', subject: 'enterprise', price: 8800, currency: 'CNY', serviceMode: 'one_time', contentKind: 'quota_package', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'managed_connection', recommended: true }
+    ],
     status: 'published',
     tags: ['隐私核验', '隐私计算'],
     description: '基于隐私信息检索（PIR）技术，在不暴露查询内容与数据库明细的前提下完成企业资质核验。',

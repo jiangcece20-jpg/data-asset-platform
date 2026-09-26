@@ -13,18 +13,21 @@ function select(key: string) {
 </script>
 
 <template>
-  <div class="sticky top-12 z-10 flex gap-1 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2">
-    <button
-      v-for="tab in tabs"
-      :key="tab.key"
-      role="tab"
-      :aria-selected="modelValue === tab.key"
-      :data-tab="tab.key"
-      class="whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition"
-      :class="modelValue === tab.key ? 'bg-brand-500 text-white' : 'text-slate-500'"
-      @click="select(tab.key)"
-    >
-      {{ tab.label }}
-    </button>
+  <div class="sticky top-0 z-20">
+    <div class="mx-4 flex overflow-x-auto rounded-t-2xl bg-white px-2 pt-1 shadow-card">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        role="tab"
+        :aria-selected="modelValue === tab.key"
+        :data-tab="tab.key"
+        class="relative whitespace-nowrap px-3.5 py-3 text-[14px] transition"
+        :class="modelValue === tab.key ? 'font-semibold text-brand-600' : 'text-ink-500'"
+        @click="select(tab.key)"
+      >
+        {{ tab.label }}
+        <span v-if="modelValue === tab.key" class="absolute inset-x-3.5 bottom-1.5 h-0.5 rounded-full bg-brand-500"></span>
+      </button>
+    </div>
   </div>
 </template>

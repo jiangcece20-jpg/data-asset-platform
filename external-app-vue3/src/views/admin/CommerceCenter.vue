@@ -30,10 +30,10 @@ function memberPrice(product: Product, tier: MemberTier) {
 }
 
 function salesStatus(product: Product) {
-  if (product.availability === 'published') return { label: '销售中', className: 'text-emerald-600' }
-  if (product.availability === 'paused') return { label: '暂停销售', className: 'text-amber-600' }
-  if (product.availability === 'delisted') return { label: '已下架', className: 'text-slate-400' }
-  return { label: '未上架', className: 'text-slate-400' }
+  if (product.availability === 'published') return { label: '销售中', className: 'text-success-600' }
+  if (product.availability === 'paused') return { label: '暂停销售', className: 'text-warning-600' }
+  if (product.availability === 'delisted') return { label: '已下架', className: 'text-ink-500' }
+  return { label: '未上架', className: 'text-ink-500' }
 }
 
 function addMonths(dateValue: string, months: number): string | undefined {
@@ -82,14 +82,14 @@ function editProduct(product: Product) {
   <div>
     <PageHeader title="商业化中心" desc="统一查看商品价格方案；价格维护在资源编辑页完成" />
 
-    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white" data-testid="product-pricing-table">
-      <div class="border-b border-slate-100 px-5 py-4">
-        <div class="text-[13px] font-medium text-slate-700">商品价格方案</div>
-        <div class="mt-1 text-[11px] text-slate-400">点击商品名称进入资源编辑页</div>
+    <div class="overflow-hidden rounded-xl border border-ink-200 bg-white" data-testid="product-pricing-table">
+      <div class="border-b border-ink-100 px-5 py-4">
+        <div class="text-[13px] font-medium text-ink-700">商品价格方案</div>
+        <div class="mt-1 text-[11px] text-ink-500">点击商品名称进入资源编辑页</div>
       </div>
 
       <table class="w-full text-left text-[13px]">
-        <thead class="bg-slate-50 text-xs text-slate-400">
+        <thead class="bg-ink-100 text-xs text-ink-500">
           <tr>
             <th class="px-5 py-2.5 font-medium">商品</th>
             <th class="px-3 py-2.5 font-medium">个人单品</th>
@@ -99,29 +99,29 @@ function editProduct(product: Product) {
             <th class="px-3 py-2.5 font-medium">可售卖周期</th>
             <th class="px-3 py-2.5 font-medium">
               <div>交付保障至</div>
-              <div class="mt-0.5 text-[10px] font-normal text-slate-300">已售订单最晚履约日</div>
+              <div class="mt-0.5 text-[10px] font-normal text-ink-300">已售订单最晚履约日</div>
             </th>
             <th class="px-5 py-2.5 font-medium">销售状态</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="product in products" :key="product.id" class="border-t border-slate-100" data-testid="pricing-row">
+          <tr v-for="product in products" :key="product.id" class="border-t border-ink-100" data-testid="pricing-row">
             <td class="px-5 py-3">
-              <button class="text-left font-medium text-slate-700 hover:text-brand-600 hover:underline" @click="editProduct(product)">
+              <button class="text-left font-medium text-ink-700 hover:text-brand-600 hover:underline" @click="editProduct(product)">
                 {{ product.name }}
               </button>
             </td>
-            <td class="px-3 py-3 text-slate-600">{{ itemPrice(product, 'personal') }}</td>
-            <td class="px-3 py-3 text-slate-600">{{ itemPrice(product, 'enterprise') }}</td>
-            <td class="px-3 py-3 text-slate-600">{{ memberPrice(product, 'standard') }}</td>
-            <td class="px-3 py-3 text-slate-600">{{ memberPrice(product, 'premium') }}</td>
-            <td class="px-3 py-3 text-slate-600">{{ salePeriodMonthsOf(product) }} 个月</td>
+            <td class="px-3 py-3 text-ink-600">{{ itemPrice(product, 'personal') }}</td>
+            <td class="px-3 py-3 text-ink-600">{{ itemPrice(product, 'enterprise') }}</td>
+            <td class="px-3 py-3 text-ink-600">{{ memberPrice(product, 'standard') }}</td>
+            <td class="px-3 py-3 text-ink-600">{{ memberPrice(product, 'premium') }}</td>
+            <td class="px-3 py-3 text-ink-600">{{ salePeriodMonthsOf(product) }} 个月</td>
             <td class="px-3 py-3" data-testid="delivery-guarantee">
               <template v-if="deliveryGuarantee(product)">
-                <div class="font-medium text-slate-700">{{ deliveryGuarantee(product) }}</div>
-                <div class="mt-0.5 text-[10px] text-slate-400">{{ soldOrders(product).length }} 笔已售订单</div>
+                <div class="font-medium text-ink-700">{{ deliveryGuarantee(product) }}</div>
+                <div class="mt-0.5 text-[10px] text-ink-500">{{ soldOrders(product).length }} 笔已售订单</div>
               </template>
-              <span v-else class="text-slate-400">暂无已售订单</span>
+              <span v-else class="text-ink-500">暂无已售订单</span>
             </td>
             <td class="px-5 py-3" :class="salesStatus(product).className">{{ salesStatus(product).label }}</td>
           </tr>

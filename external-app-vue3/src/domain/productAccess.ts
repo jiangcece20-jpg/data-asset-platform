@@ -26,6 +26,7 @@ export interface ProductAction {
   key: ProductActionKey
   label: string
   disabled?: boolean
+  href?: string
 }
 
 /** 购买中：已下单未发权，或空间意向未转买数。 */
@@ -210,7 +211,7 @@ function resolveMemberAwareActions(context: ProductActionContext): {
   if (canBuyMember) {
     if (hasItem) {
       return {
-        primary: { key: 'item_purchase', label: '立即购买' }
+        primary: { key: 'item_purchase', label: '立即获取' }
       }
     }
     const primaryLabel = benefit === 'discount'

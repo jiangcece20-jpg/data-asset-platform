@@ -37,9 +37,9 @@ function gateMode(mode: PreviewMode, unlocked: boolean): 'visible' | 'masked' | 
 }
 
 function chartIcon(chartType: 'line' | 'bar' | 'number'): string {
-  if (chartType === 'line') return '📈'
-  if (chartType === 'bar') return '📊'
-  return '🔢'
+  if (chartType === 'line') return '折线图'
+  if (chartType === 'bar') return '柱状图'
+  return '指标卡'
 }
 
 function displayValue(value: string | number | null | undefined): string {
@@ -55,16 +55,16 @@ function displayValue(value: string | number | null | undefined): string {
     <div v-if="activeTab === 'overview'" class="space-y-5">
       <!-- 关键指标（看板专属） -->
       <div>
-        <h3 class="mb-3 text-sm font-semibold text-slate-800">看板信息</h3>
-        <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
+        <h3 class="mb-3 text-sm font-semibold text-ink-900">看板信息</h3>
+        <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-ink-100 bg-ink-100">
           <div
             v-for="(item, i) in dashboardItems"
             :key="`dash-${item.label}-${i}`"
             class="bg-white p-3"
             :class="item.full ? 'col-span-3' : ''"
           >
-            <div class="text-xs text-slate-400">{{ item.label }}</div>
-            <div class="mt-1 text-sm font-semibold text-slate-900">{{ displayValue(item.value) }}</div>
+            <div class="text-xs text-ink-500">{{ item.label }}</div>
+            <div class="mt-1 text-sm font-semibold text-ink-900">{{ displayValue(item.value) }}</div>
           </div>
         </div>
       </div>
@@ -73,23 +73,23 @@ function displayValue(value: string | number | null | undefined): string {
       <ProductInfoSections :product="product" />
 
       <!-- 商品说明书 -->
-      <div class="rounded-lg border border-slate-200 p-4">
-        <h3 class="mb-3 text-sm font-semibold text-slate-800">商品说明书</h3>
-        <div class="space-y-2 text-sm leading-relaxed text-slate-600">
-          <div><span class="text-slate-400">价值主张：</span>{{ product.valueProposition }}</div>
-          <div><span class="text-slate-400">详细描述：</span>{{ product.description }}</div>
-          <div><span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}</div>
-          <div><span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}</div>
+      <div class="rounded-lg border border-ink-200 p-4">
+        <h3 class="mb-3 text-sm font-semibold text-ink-900">商品说明书</h3>
+        <div class="space-y-2 text-sm leading-relaxed text-ink-600">
+          <div><span class="text-ink-500">价值主张：</span>{{ product.valueProposition }}</div>
+          <div><span class="text-ink-500">详细描述：</span>{{ product.description }}</div>
+          <div><span class="text-ink-500">质量承诺：</span>{{ product.qualityPromise }}</div>
+          <div><span class="text-ink-500">合规声明：</span>{{ product.complianceNote }}</div>
         </div>
       </div>
 
       <!-- 产品介绍（空间同步富文本） -->
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
-          <h3 class="text-sm font-semibold text-slate-800">产品介绍</h3>
-          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+          <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
+          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
         </div>
-        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
     </div>
 
@@ -105,26 +105,26 @@ function displayValue(value: string | number | null | undefined): string {
       <div
         v-for="panel in detail.panels"
         :key="panel.id"
-        class="rounded-lg border border-slate-200 p-4"
+        class="rounded-lg border border-ink-200 p-4"
       >
         <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm font-semibold text-slate-800">{{ panel.title }}</span>
-          <span class="text-xs text-slate-400">{{ chartIcon(panel.chartType) }}</span>
+          <span class="text-sm font-semibold text-ink-900">{{ panel.title }}</span>
+          <span class="text-xs text-ink-500">{{ chartIcon(panel.chartType) }}</span>
         </div>
         <!-- inline content gate -->
-        <div v-if="gateMode(panel.preview, unlocked) === 'visible'" class="text-sm text-slate-500">
+        <div v-if="gateMode(panel.preview, unlocked) === 'visible'" class="text-sm text-ink-500">
           {{ panel.summary }}
         </div>
         <div v-else-if="gateMode(panel.preview, unlocked) === 'masked'" class="space-y-1.5">
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="h-3 rounded bg-slate-100"></div>
-          <div class="pt-1 text-xs text-slate-400">🔒 解锁后查看关键内容</div>
+          <div class="h-3 rounded bg-ink-100"></div>
+          <div class="h-3 rounded bg-ink-100"></div>
+          <div class="h-3 rounded bg-ink-100"></div>
+          <div class="pt-1 text-xs text-ink-500"> 解锁后查看关键内容</div>
         </div>
         <div v-else class="flex flex-col items-center py-4">
-          <span class="text-2xl">🔒</span>
-          <div class="mt-1.5 text-sm font-medium text-slate-600">{{ panel.title }}</div>
-          <div class="mt-0.5 text-xs text-slate-400">解锁后可阅读完整内容</div>
+          <span class="text-2xl"></span>
+          <div class="mt-1.5 text-sm font-medium text-ink-600">{{ panel.title }}</div>
+          <div class="mt-0.5 text-xs text-ink-500">解锁后可阅读完整内容</div>
         </div>
       </div>
     </div>
@@ -134,30 +134,30 @@ function displayValue(value: string | number | null | undefined): string {
       <div
         v-for="metric in detail.metrics"
         :key="metric.name"
-        class="rounded-lg border border-slate-200 p-4"
+        class="rounded-lg border border-ink-200 p-4"
       >
-        <div class="mb-2 text-sm font-semibold text-slate-800">{{ metric.name }}</div>
-        <div class="space-y-1.5 text-sm text-slate-500">
-          <div><span class="text-slate-400">指标描述：</span>{{ metric.definition }}</div>
-          <div><span class="text-slate-400">计算公式：</span>{{ metric.formula }}</div>
-          <div><span class="text-slate-400">支持维度：</span>{{ metric.dimensions.join('、') }}</div>
+        <div class="mb-2 text-sm font-semibold text-ink-900">{{ metric.name }}</div>
+        <div class="space-y-1.5 text-sm text-ink-500">
+          <div><span class="text-ink-500">指标描述：</span>{{ metric.definition }}</div>
+          <div><span class="text-ink-500">计算公式：</span>{{ metric.formula }}</div>
+          <div><span class="text-ink-500">支持维度：</span>{{ metric.dimensions.join('、') }}</div>
         </div>
       </div>
     </div>
 
     <!-- Tab: updates 更新与导出 -->
     <div v-else-if="activeTab === 'updates'" class="space-y-3">
-      <div class="space-y-2 rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
-        <div><span class="text-slate-400">更新周期：</span>{{ detail.updateCycle }}</div>
-        <div><span class="text-slate-400">导出规则：</span>{{ detail.exportRule }}</div>
+      <div class="space-y-2 rounded-lg border border-ink-200 p-4 text-sm text-ink-700">
+        <div><span class="text-ink-500">更新周期：</span>{{ detail.updateCycle }}</div>
+        <div><span class="text-ink-500">导出规则：</span>{{ detail.exportRule }}</div>
       </div>
       <div
         v-if="product.entitlementPolicy?.kind === 'term'"
-        class="rounded-lg bg-amber-50 p-3 text-sm text-amber-700"
+        class="rounded-lg bg-warning-50 p-3 text-sm text-warning-600"
       >
         单品购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
       </div>
     </div>
   </div>
-  <div v-else class="py-8 text-center text-sm text-slate-400">资料准备中</div>
+  <div v-else class="py-8 text-center text-sm text-ink-500">资料准备中</div>
 </template>

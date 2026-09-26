@@ -81,16 +81,16 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
     <div v-if="activeTab === 'overview'" class="space-y-5">
       <!-- 关键指标（报告专属） -->
       <div>
-        <div class="mb-2 text-sm font-semibold text-slate-800">报告信息</div>
-        <dl class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
+        <div class="mb-2 text-sm font-semibold text-ink-900">报告信息</div>
+        <dl class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-ink-100 bg-ink-100">
           <div
             v-for="(item, idx) in reportItems"
             :key="`${item.label}-${idx}`"
             class="bg-white px-3 py-2.5"
             :class="item.full ? 'col-span-3' : ''"
           >
-            <dt class="text-xs text-slate-400">{{ item.label }}</dt>
-            <dd class="mt-0.5 text-sm font-semibold text-slate-900">{{ displayValue(item.value) }}</dd>
+            <dt class="text-xs text-ink-500">{{ item.label }}</dt>
+            <dd class="mt-0.5 text-sm font-semibold text-ink-900">{{ displayValue(item.value) }}</dd>
           </div>
         </dl>
       </div>
@@ -100,26 +100,26 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
       <div
         v-if="product.entitlementPolicy?.kind === 'report_version'"
-        class="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-700"
+        class="rounded-lg bg-warning-50 p-3 text-xs leading-relaxed text-warning-600"
       >
         单品购买永久绑定当前版本 {{ product.entitlementPolicy.version }}；后续独立版本需另行购买。
       </div>
 
       <div class="space-y-2 text-sm leading-relaxed">
-        <div class="text-sm font-semibold text-slate-800">商品说明书</div>
-        <div><span class="text-slate-400">价值主张：</span><span class="text-slate-700">{{ product.valueProposition }}</span></div>
-        <div><span class="text-slate-400">详细描述：</span><span class="text-slate-700">{{ product.description }}</span></div>
-        <div><span class="text-slate-400">质量/服务承诺：</span><span class="text-slate-700">{{ product.qualityPromise }}</span></div>
-        <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
+        <div class="text-sm font-semibold text-ink-900">商品说明书</div>
+        <div><span class="text-ink-500">价值主张：</span><span class="text-ink-700">{{ product.valueProposition }}</span></div>
+        <div><span class="text-ink-500">详细描述：</span><span class="text-ink-700">{{ product.description }}</span></div>
+        <div><span class="text-ink-500">质量/服务承诺：</span><span class="text-ink-700">{{ product.qualityPromise }}</span></div>
+        <div><span class="text-ink-500">合规声明：</span><span class="text-ink-700">{{ product.complianceNote }}</span></div>
       </div>
 
       <!-- 产品介绍（空间同步富文本） -->
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
-          <span class="text-sm font-semibold text-slate-800">产品介绍</span>
-          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+          <span class="text-sm font-semibold text-ink-900">产品介绍</span>
+          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
         </div>
-        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
     </div>
 
@@ -128,14 +128,14 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <div
         v-for="row in catalogRows"
         :key="row.no"
-        class="flex items-center gap-3 border-b border-slate-100 py-3.5 last:border-0"
+        class="flex items-center gap-3 border-b border-ink-100 py-3.5 last:border-0"
       >
-        <span class="w-8 shrink-0 text-lg font-semibold tabular-nums text-slate-300">{{ row.no }}</span>
+        <span class="w-8 shrink-0 text-lg font-semibold tabular-nums text-ink-300">{{ row.no }}</span>
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm font-semibold text-slate-900">{{ row.title }}</span>
-          <span v-if="row.page" class="mt-0.5 block text-xs text-slate-400">第 {{ row.page }} 页</span>
+          <span class="block truncate text-sm font-semibold text-ink-900">{{ row.title }}</span>
+          <span v-if="row.page" class="mt-0.5 block text-xs text-ink-500">第 {{ row.page }} 页</span>
         </span>
-        <span class="shrink-0 text-sm font-medium" :class="row.readable ? 'text-brand-500' : 'text-slate-400'">
+        <span class="shrink-0 text-sm font-medium" :class="row.readable ? 'text-brand-500' : 'text-ink-500'">
           {{ row.readable ? '可阅读' : '会员/单篇' }}
         </span>
       </div>
@@ -152,7 +152,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <ProductContentPeek :product="product" class="col-span-2" />
       <!-- 左侧目录侧边栏 -->
       <div class="sticky top-20 self-start">
-        <div class="mb-2 text-xs font-medium text-slate-400">目录</div>
+        <div class="mb-2 text-xs font-medium text-ink-500">目录</div>
         <div class="space-y-0.5">
           <button
             v-for="(block, idx) in readerBlocks"
@@ -160,12 +160,12 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
             class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-colors"
             :class="activeBlockId === block.id
               ? 'bg-brand-50 font-medium text-brand-600'
-              : 'text-slate-500 hover:bg-slate-50'"
+              : 'text-ink-500 hover:bg-ink-100'"
             @click="scrollToBlock(block.id)"
           >
-            <span class="shrink-0 tabular-nums text-slate-300">{{ String(idx + 1).padStart(2, '0') }}</span>
+            <span class="shrink-0 tabular-nums text-ink-300">{{ String(idx + 1).padStart(2, '0') }}</span>
             <span class="min-w-0 flex-1 truncate">{{ block.title }}</span>
-            <span class="shrink-0">{{ block.open ? '✓' : '🔒' }}</span>
+            <span v-if="block.open" class="shrink-0"><svg class="inline h-3.5 w-3.5 text-success-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </button>
         </div>
       </div>
@@ -176,16 +176,16 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
           v-for="block in readerBlocks"
           :id="`portal-report-block-${block.id}`"
           :key="block.id"
-          class="scroll-mt-20 rounded-xl border border-slate-200 p-4"
+          class="scroll-mt-20 rounded-xl border border-ink-200 p-4"
         >
-          <div class="text-xs text-slate-400">
+          <div class="text-xs text-ink-500">
             <template v-if="block.open && !unlocked">公开样例 · </template>第 {{ block.page ?? '—' }} 页
           </div>
-          <div class="mt-1 text-sm font-semibold text-slate-900">{{ block.title }}</div>
+          <div class="mt-1 text-sm font-semibold text-ink-900">{{ block.title }}</div>
 
           <!-- 可读：正文 + 图表区块渲染柱状占位 -->
           <template v-if="block.open">
-            <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ block.content }}</p>
+            <p class="mt-2 text-sm leading-relaxed text-ink-600">{{ block.content }}</p>
             <div v-if="block.kind === 'chart'" class="mt-3 flex h-28 items-end gap-2.5">
               <span
                 v-for="(h, i) in BAR_HEIGHTS"
@@ -198,11 +198,11 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
           <!-- 未解锁：只给轮廓，不泄露正文 -->
           <template v-else>
-            <p class="mt-2 text-sm leading-relaxed text-slate-300">
+            <p class="mt-2 text-sm leading-relaxed text-ink-300">
               完整正文与精确图表已打码，仅展示章节轮廓。
             </p>
             <button
-              class="mt-3 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50"
+              class="mt-3 rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50"
               @click="emit('unlock')"
             >
               阅读{{ block.title }}
@@ -212,5 +212,5 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       </div>
     </div>
   </div>
-  <div v-else class="py-8 text-center text-sm text-slate-400">资料准备中</div>
+  <div v-else class="py-8 text-center text-sm text-ink-500">资料准备中</div>
 </template>

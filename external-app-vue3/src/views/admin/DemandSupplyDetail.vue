@@ -52,30 +52,30 @@ function onOutcome(id: string, outcome: CallbackOutcome) {
   <div v-if="task">
     <PageHeader :title="task.title" desc="供给任务详情" />
 
-    <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
+    <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-danger-50 px-3 py-2 text-[12px] text-danger-600">{{ error }}</div>
 
     <div class="mb-4 flex items-center gap-2">
       <StatusBadge dict="supplyTask" :value="task.status" />
       <StatusBadge dict="supplyDecision" :value="task.decision" />
       <div class="ml-auto flex gap-2">
-        <button v-if="task.status === 'evaluating'" class="rounded-lg bg-blue-500 px-3 py-1 text-[12px] text-white" data-testid="btn-plan" @click="advance('planned')">进入规划</button>
-        <button v-if="task.status === 'planned'" class="rounded-lg bg-blue-500 px-3 py-1 text-[12px] text-white" data-testid="btn-produce" @click="advance('in_production')">进入加工</button>
+        <button v-if="task.status === 'evaluating'" class="rounded-lg bg-brand-500 px-3 py-1 text-[12px] text-white" data-testid="btn-plan" @click="advance('planned')">进入规划</button>
+        <button v-if="task.status === 'planned'" class="rounded-lg bg-brand-500 px-3 py-1 text-[12px] text-white" data-testid="btn-produce" @click="advance('in_production')">进入加工</button>
         <template v-if="task.status === 'planned' || task.status === 'in_production'">
-          <input v-model="productId" placeholder="商品ID" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]" data-testid="publish-product" />
-          <button class="rounded-lg bg-emerald-600 px-3 py-1 text-[12px] text-white" data-testid="btn-publish" @click="publish">发布并回告</button>
+          <input v-model="productId" placeholder="商品ID" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]" data-testid="publish-product" />
+          <button class="rounded-lg bg-success-600 px-3 py-1 text-[12px] text-white" data-testid="btn-publish" @click="publish">发布并回告</button>
         </template>
       </div>
     </div>
 
-    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4">
-      <div class="mb-2 text-[13px] font-medium text-slate-700">关联需求（{{ demands.length }}）</div>
-      <div v-for="d in demands" :key="d.id" data-testid="task-demand" :data-id="d.id" class="flex flex-wrap items-center gap-2 border-t border-slate-100 py-2 text-[12px]">
-        <span class="text-slate-600">{{ d.question }}</span>
+    <div class="mb-4 rounded-xl border border-ink-200 bg-white p-4">
+      <div class="mb-2 text-[13px] font-medium text-ink-700">关联需求（{{ demands.length }}）</div>
+      <div v-for="d in demands" :key="d.id" data-testid="task-demand" :data-id="d.id" class="flex flex-wrap items-center gap-2 border-t border-ink-100 py-2 text-[12px]">
+        <span class="text-ink-600">{{ d.question }}</span>
         <StatusBadge dict="demand" :value="d.status" />
-        <span class="text-slate-400">{{ d.ownerId }}</span>
+        <span class="text-ink-500">{{ d.ownerId }}</span>
         <div class="ml-auto flex gap-1">
-          <button v-if="d.status !== 'withdrawn'" class="rounded bg-slate-400 px-2 py-0.5 text-white" data-testid="btn-withdraw" @click="withdraw(d.id)">撤回</button>
-          <button v-if="['not_supported','recommended','closed'].includes(d.status)" class="rounded bg-amber-500 px-2 py-0.5 text-white" data-testid="btn-reopen" @click="reopen(d.id)">重开</button>
+          <button v-if="d.status !== 'withdrawn'" class="rounded bg-ink-500 px-2 py-0.5 text-white" data-testid="btn-withdraw" @click="withdraw(d.id)">撤回</button>
+          <button v-if="['not_supported','recommended','closed'].includes(d.status)" class="rounded bg-warning-500 px-2 py-0.5 text-white" data-testid="btn-reopen" @click="reopen(d.id)">重开</button>
         </div>
       </div>
     </div>
@@ -91,5 +91,5 @@ function onOutcome(id: string, outcome: CallbackOutcome) {
 
     <SupplyTaskTimeline :entries="timeline" />
   </div>
-  <div v-else class="py-10 text-center text-[13px] text-slate-400">供给任务不存在</div>
+  <div v-else class="py-10 text-center text-[13px] text-ink-500">供给任务不存在</div>
 </template>

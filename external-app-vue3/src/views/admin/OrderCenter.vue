@@ -321,10 +321,10 @@ function orderCategoryLabel(category: UnifiedOrderRow['orderCategory']): string 
   <div>
     <PageHeader title="订单中心" desc="意向单独立流转、不涉及支付；普通订单支付完成即权益生效。" />
 
-    <div v-if="intentError" data-testid="intent-error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ intentError }}</div>
+    <div v-if="intentError" data-testid="intent-error" class="mb-3 rounded-md bg-danger-50 px-3 py-2 text-[12px] text-danger-600">{{ intentError }}</div>
 
-    <div class="mb-3 flex flex-wrap gap-2">
-      <select v-model="filterOrigin" data-testid="filter-origin" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+    <div class="ui-card mb-3 flex flex-wrap items-center gap-2 p-3">
+      <select v-model="filterOrigin" data-testid="filter-origin" class="ui-field w-32 cursor-pointer pr-7">
         <option value="">全部资源来源</option>
         <option value="asset_platform">资产平台</option>
         <option value="app_content">APP 自有内容</option>
@@ -332,12 +332,12 @@ function orderCategoryLabel(category: UnifiedOrderRow['orderCategory']): string 
         <option value="user_created">用户创建</option>
         <option value="seller_market">入驻商家</option>
       </select>
-      <select v-model="filterOwner" data-testid="filter-owner" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterOwner" data-testid="filter-owner" class="ui-field w-24 cursor-pointer pr-7">
         <option value="">全部客户</option>
         <option value="personal">个人</option>
         <option value="enterprise">企业</option>
       </select>
-      <select v-model="filterStatus" data-testid="filter-status" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterStatus" data-testid="filter-status" class="ui-field w-28 cursor-pointer pr-7">
         <option value="">全部交易状态</option>
         <option value="unclaimed">待领取</option>
         <option value="processing">处理中</option>
@@ -347,12 +347,15 @@ function orderCategoryLabel(category: UnifiedOrderRow['orderCategory']): string 
         <option value="paid">支付完成</option>
         <option value="cancelled">订单取消</option>
       </select>
-      <input v-model="keyword" data-testid="filter-keyword" placeholder="商品名 / 订单号" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]" />
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" /></svg>
+        <input v-model="keyword" data-testid="filter-keyword" placeholder="商品名 / 订单号 / 经办人" class="ui-field w-64 pl-8" />
+      </div>
     </div>
 
-    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div class="ui-card overflow-x-auto">
       <table class="min-w-[1320px] w-full text-left text-[13px] [&_th]:whitespace-nowrap">
-        <thead class="text-xs text-slate-400"><tr><th class="px-3 py-2">商品</th><th class="px-3 py-2">类型</th><th class="px-3 py-2">资源来源</th><th class="px-3 py-2">购买企业</th><th class="px-3 py-2">经办人</th><th class="px-3 py-2">购买时长</th><th class="px-3 py-2">支付成功时间</th><th class="px-3 py-2">到期时间</th><th class="px-3 py-2">金额</th><th class="px-3 py-2">订单状态</th><th class="px-3 py-2">交易状态</th><th class="px-3 py-2">创建时间</th><th class="px-3 py-2">操作</th></tr></thead>
+        <thead class="bg-ink-100 text-xs font-normal text-ink-500"><tr><th class="px-3 py-2.5">商品</th><th class="px-3 py-2.5">类型</th><th class="px-3 py-2.5">资源来源</th><th class="px-3 py-2.5">购买企业</th><th class="px-3 py-2.5">经办人</th><th class="px-3 py-2.5">购买时长</th><th class="px-3 py-2.5">支付成功时间</th><th class="px-3 py-2.5">到期时间</th><th class="px-3 py-2.5">金额</th><th class="px-3 py-2.5">订单状态</th><th class="px-3 py-2.5">交易状态</th><th class="px-3 py-2.5">创建时间</th><th class="px-3 py-2.5">操作</th></tr></thead>
         <tbody>
           <tr
             v-for="order in list"
@@ -360,63 +363,68 @@ function orderCategoryLabel(category: UnifiedOrderRow['orderCategory']): string 
             data-testid="order-row"
             :data-id="order.id"
             :data-row-kind="order.rowKind"
-            class="border-t border-slate-100 hover:bg-slate-50"
+            class="border-t border-ink-200 transition-colors hover:bg-ink-100"
           >
-            <td class="px-3 py-2 text-slate-700"><div>{{ order.productName }}</div><div v-if="order.planSummary" class="text-[10px] text-slate-400">{{ order.planSummary }}</div></td>
-            <td class="px-3 py-2 text-slate-600" data-testid="product-type">{{ productTypeLabel(order.productType) }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-slate-500" data-testid="resource-origin">{{ resourceOriginLabel(order) }}</td>
-            <td class="px-3 py-2 text-slate-700" data-testid="buyer-enterprise">{{ buyerName(order) }}</td>
-            <td class="px-3 py-2 text-slate-600" data-testid="operator-contact">{{ operatorContact(order) }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-slate-500" data-testid="purchase-duration">{{ order.purchaseDuration }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-slate-500" data-testid="paid-at">{{ formatOrderTime(order.paidAt) }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-slate-600" data-testid="order-expiry">{{ order.expiresAt || '—' }}</td>
-            <td class="px-3 py-2 text-slate-500">{{ order.rowKind === 'space_intent' && !order.amount ? '待报价' : `${order.currency === 'CNY' ? '¥' : `${order.currency} `}${order.amount}` }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-slate-600" data-testid="order-category">{{ orderCategoryLabel(order.orderCategory) }}</td>
-            <td class="px-3 py-2"><StatusBadge :dict="statusBadgeDict(order)" :value="order.status" /></td>
-            <td class="px-3 py-2 text-slate-400">{{ order.createdAt }}</td>
-            <td class="px-3 py-2" @click.stop>
+            <td class="px-3 py-2.5 text-ink-900"><div class="max-w-[220px] truncate font-medium">{{ order.productName }}</div><div v-if="order.planSummary" class="mt-0.5 text-[10px] text-ink-500">{{ order.planSummary }}</div></td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="product-type">{{ productTypeLabel(order.productType) }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="resource-origin">{{ resourceOriginLabel(order) }}</td>
+            <td class="px-3 py-2.5 text-ink-900" data-testid="buyer-enterprise">{{ buyerName(order) }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="operator-contact">{{ operatorContact(order) }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="purchase-duration">{{ order.purchaseDuration }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="paid-at">{{ formatOrderTime(order.paidAt) }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-600" data-testid="order-expiry">{{ order.expiresAt || '—' }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5 font-medium text-ink-900">{{ order.rowKind === 'space_intent' && !order.amount ? '待报价' : `${order.currency === 'CNY' ? '¥' : `${order.currency} `}${order.amount}` }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5" data-testid="order-category">
+              <span
+                class="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
+                :class="order.orderCategory === 'intent' ? 'bg-brand-50 text-brand-600' : 'bg-ink-200 text-ink-600'"
+              >{{ orderCategoryLabel(order.orderCategory) }}</span>
+            </td>
+            <td class="px-3 py-2.5"><StatusBadge :dict="statusBadgeDict(order)" :value="order.status" /></td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-ink-500">{{ order.createdAt }}</td>
+            <td class="whitespace-nowrap px-3 py-2.5" @click.stop>
               <template v-if="order.rowKind === 'space_intent'">
-                <button v-if="canClaimIntent(order)" class="mr-2 text-brand-600 hover:underline" data-testid="claim-intent" @click="claimIntent(order.id)">领取</button>
-                <button v-if="canEffectIntent(order)" class="mr-2 text-emerald-600 hover:underline" data-testid="effect-intent" @click="startIntentAction(order.id, 'effect')">确认权益生效</button>
-                <button v-if="canCloseIntent(order)" class="mr-2 text-slate-500 hover:underline" data-testid="close-intent" @click="startIntentAction(order.id, 'close')">关闭</button>
-                <span v-if="!canClaimIntent(order) && !canEffectIntent(order) && !canCloseIntent(order)" class="text-slate-400">—</span>
+                <button v-if="canClaimIntent(order)" class="mr-3 text-[13px] text-brand-600 transition hover:text-brand-700" data-testid="claim-intent" @click="claimIntent(order.id)">领取</button>
+                <button v-if="canEffectIntent(order)" class="mr-3 text-[13px] text-success-500 transition hover:text-success-600" data-testid="effect-intent" @click="startIntentAction(order.id, 'effect')">确认权益生效</button>
+                <button v-if="canCloseIntent(order)" class="mr-3 text-[13px] text-ink-500 transition hover:text-ink-900" data-testid="close-intent" @click="startIntentAction(order.id, 'close')">关闭</button>
+                <span v-if="!canClaimIntent(order) && !canEffectIntent(order) && !canCloseIntent(order)" class="text-ink-400">—</span>
               </template>
               <template v-else-if="order.rowKind === 'order'">
-                <button v-if="isPendingNormalOrder(order)" class="mr-2 text-emerald-600 hover:underline" data-testid="manual-pay-success" @click="startManualOrder(order.id, 'pay')">人工确认支付成功</button>
-                <button v-if="isPendingNormalOrder(order)" class="text-slate-500 hover:underline" data-testid="manual-cancel-order" @click="startManualOrder(order.id, 'cancel')">取消订单</button>
-                <span v-if="!isPendingNormalOrder(order)" class="text-slate-400">—</span>
+                <button v-if="isPendingNormalOrder(order)" class="mr-3 text-[13px] text-success-500 transition hover:text-success-600" data-testid="manual-pay-success" @click="startManualOrder(order.id, 'pay')">人工确认支付成功</button>
+                <button v-if="isPendingNormalOrder(order)" class="text-[13px] text-ink-500 transition hover:text-danger-500" data-testid="manual-cancel-order" @click="startManualOrder(order.id, 'cancel')">取消订单</button>
+                <span v-if="!isPendingNormalOrder(order)" class="text-ink-400">—</span>
               </template>
               <template v-else>
-                <button v-if="reconciliationIntentId(order.id)" class="mr-2 text-brand-600 hover:underline disabled:text-slate-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>
-                <a v-if="spaceDetailUrl(order)" :href="spaceDetailUrl(order)" target="_blank" rel="noopener" class="text-slate-600 hover:underline">查看空间详情</a>
+                <button v-if="reconciliationIntentId(order.id)" class="mr-3 text-[13px] text-brand-600 transition hover:text-brand-700 disabled:text-ink-400" data-testid="reconcile-space" :disabled="reconcilingId === order.id" @click="reconcile(order)">{{ reconcilingId === order.id ? '对账中…' : '主动对账' }}</button>
+                <a v-if="spaceDetailUrl(order)" :href="spaceDetailUrl(order)" target="_blank" rel="noopener" class="text-[13px] text-ink-600 transition hover:text-brand-600">查看空间详情</a>
               </template>
             </td>
           </tr>
         </tbody>
       </table>
-      <div v-if="!list.length" class="py-6 text-center text-[12px] text-slate-400">暂无订单</div>
+      <div v-if="!list.length" class="py-12 text-center text-[12px] text-ink-500">暂无订单</div>
    </div>
-    <div v-if="selectedIntent" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" data-testid="intent-action-modal">
-      <div class="w-[420px] rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-        <div class="text-[15px] font-semibold text-slate-900">{{ intentAction === 'effect' ? '确认权益生效' : '关闭意向单' }}</div>
-        <div class="mt-3 text-[13px] text-slate-500">意向单 {{ selectedIntent.id }} · {{ catalog.byId(selectedIntent.productId)?.name || selectedIntent.productId }}</div>
-        <p class="mt-2 text-[12px] text-slate-400">{{ intentAction === 'effect' ? '确认后权益立即生效，意向单流程结束。' : '确认后意向单关闭，不再继续处理。' }}</p>
-        <textarea v-model="intentActionNote" data-testid="intent-action-note" :placeholder="intentAction === 'effect' ? '处理说明（必填）' : '关闭原因（必填）'" class="mt-4 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
+    <div v-if="selectedIntent" class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40" data-testid="intent-action-modal" @click.self="closeIntentAction">
+      <div class="w-[420px] rounded-xl bg-white p-6 shadow-float">
+        <div class="text-base font-semibold text-ink-900">{{ intentAction === 'effect' ? '确认权益生效' : '关闭意向单' }}</div>
+        <div class="mt-3 text-[13px] text-ink-600">意向单 {{ selectedIntent.id }} · {{ catalog.byId(selectedIntent.productId)?.name || selectedIntent.productId }}</div>
+        <p class="mt-2 text-[12px] text-ink-500">{{ intentAction === 'effect' ? '确认后权益立即生效，意向单流程结束。' : '确认后意向单关闭，不再继续处理。' }}</p>
+        <textarea v-model="intentActionNote" data-testid="intent-action-note" :placeholder="intentAction === 'effect' ? '处理说明（必填）' : '关闭原因（必填）'" class="mt-4 min-h-24 w-full rounded-md border border-ink-300 px-3 py-2 text-[13px] outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10" />
         <div class="mt-5 flex justify-end gap-2">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-[13px] text-slate-500" @click="closeIntentAction">返回</button>
-          <button data-testid="submit-intent-action" class="rounded-lg px-4 py-2 text-[13px] font-medium text-white" :class="intentAction === 'effect' ? 'bg-emerald-600' : 'bg-slate-600'" @click="submitIntentAction">确认</button>
+          <button class="rounded-md border border-ink-300 px-4 py-2 text-[13px] text-ink-600 transition hover:bg-ink-100" @click="closeIntentAction">返回</button>
+          <button data-testid="submit-intent-action" class="rounded-md px-4 py-2 text-[13px] font-medium text-white transition" :class="intentAction === 'effect' ? 'bg-success-500 hover:bg-success-600' : 'bg-danger-500 hover:bg-danger-600'" @click="submitIntentAction">确认</button>
         </div>
       </div>
     </div>
-    <div v-if="manualOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" data-testid="manual-order-modal">
-      <div class="w-[420px] rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-        <div class="text-[15px] font-semibold text-slate-900">{{ manualOrderAction === 'pay' ? '人工确认支付成功' : '取消订单' }}</div>
-        <div class="mt-3 text-[13px] text-slate-500">订单 {{ manualOrder.id }} · {{ manualOrder.productName }} · ¥{{ manualOrder.amount.toLocaleString() }}</div>
-        <p class="mt-2 text-[12px] text-slate-400">{{ manualOrderAction === 'pay' ? '确认后订单将支付完成并立即生效。' : '确认后订单将关闭，不能继续支付。' }}</p>
-        <textarea v-model="manualOrderNote" data-testid="manual-order-note" :placeholder="manualOrderAction === 'pay' ? '到账依据或处理说明（必填）' : '取消原因（必填）'" class="mt-4 min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
+    <div v-if="manualOrder" class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40" data-testid="manual-order-modal" @click.self="closeManualOrder">
+      <div class="w-[420px] rounded-xl bg-white p-6 shadow-float">
+        <div class="text-base font-semibold text-ink-900">{{ manualOrderAction === 'pay' ? '人工确认支付成功' : '取消订单' }}</div>
+        <div class="mt-3 text-[13px] text-ink-600">订单 {{ manualOrder.id }} · {{ manualOrder.productName }} · ¥{{ manualOrder.amount.toLocaleString() }}</div>
+        <p class="mt-2 text-[12px] text-ink-500">{{ manualOrderAction === 'pay' ? '确认后订单将支付完成并立即生效。' : '确认后订单将关闭，不能继续支付。' }}</p>
+        <textarea v-model="manualOrderNote" data-testid="manual-order-note" :placeholder="manualOrderAction === 'pay' ? '到账依据或处理说明（必填）' : '取消原因（必填）'" class="mt-4 min-h-24 w-full rounded-md border border-ink-300 px-3 py-2 text-[13px] outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10" />
         <div class="mt-5 flex justify-end gap-2">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-[13px] text-slate-500" @click="closeManualOrder">返回</button>
-          <button data-testid="submit-manual-order" class="rounded-lg px-4 py-2 text-[13px] font-medium text-white" :class="manualOrderAction === 'pay' ? 'bg-emerald-600' : 'bg-slate-600'" @click="submitManualOrder">确认</button>
+          <button class="rounded-md border border-ink-300 px-4 py-2 text-[13px] text-ink-600 transition hover:bg-ink-100" @click="closeManualOrder">返回</button>
+          <button data-testid="submit-manual-order" class="rounded-md px-4 py-2 text-[13px] font-medium text-white transition" :class="manualOrderAction === 'pay' ? 'bg-brand-500 hover:bg-brand-600' : 'bg-danger-500 hover:bg-danger-600'" @click="submitManualOrder">确认</button>
         </div>
       </div>
     </div>

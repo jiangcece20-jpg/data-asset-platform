@@ -14,7 +14,7 @@ const emit = defineEmits<{
 <template>
   <select
     :value="modelValue"
-    class="w-full rounded-lg border border-slate-200 bg-white"
+    class="w-full rounded-lg border border-ink-200 bg-white"
     @change="emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
   >
     <option value="">{{ placeholder || '请选择更新频率' }}</option>

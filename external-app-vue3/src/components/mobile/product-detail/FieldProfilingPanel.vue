@@ -151,7 +151,7 @@ const kindLabel: Record<string, string> = {
         class="whitespace-nowrap rounded-full border px-3 py-1 text-[12px] transition"
         :class="active === dim.key
           ? 'border-brand-500 bg-brand-500 text-white'
-          : 'border-slate-200 bg-white text-slate-500'"
+          : 'border-ink-200 bg-white text-ink-500'"
         @click="active = dim.key"
       >
         {{ dim.label }}
@@ -161,7 +161,7 @@ const kindLabel: Record<string, string> = {
     <template v-if="currentStat">
       <!-- 类型标签 -->
       <div class="flex items-center gap-2">
-        <span class="rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">{{ kindLabel[currentStat.kind] }}</span>
+        <span class="rounded bg-ink-100 px-2 py-0.5 text-[11px] text-ink-500">{{ kindLabel[currentStat.kind] }}</span>
       </div>
 
       <!-- 指标卡 -->
@@ -169,12 +169,12 @@ const kindLabel: Record<string, string> = {
 
       <!-- 布尔型 TRUE/FALSE 条 -->
       <div v-if="showBooleanBar && booleanBar" class="pt-1">
-        <div class="mb-2 text-[12px] font-medium text-slate-500">TRUE / FALSE 占比</div>
+        <div class="mb-2 text-[12px] font-medium text-ink-500">TRUE / FALSE 占比</div>
         <div class="flex h-6 overflow-hidden rounded-full">
-          <div class="flex items-center justify-center bg-emerald-400 text-[11px] text-white" :style="{ width: booleanBar.truePercent + '%' }">
+          <div class="flex items-center justify-center bg-success-500 text-[11px] text-white" :style="{ width: booleanBar.truePercent + '%' }">
             <span v-if="booleanBar.truePercent >= 15">{{ booleanBar.truePercent }}%</span>
           </div>
-          <div class="flex items-center justify-center bg-slate-300 text-[11px] text-slate-600" :style="{ width: booleanBar.falsePercent + '%' }">
+          <div class="flex items-center justify-center bg-ink-300 text-[11px] text-ink-600" :style="{ width: booleanBar.falsePercent + '%' }">
             <span v-if="booleanBar.falsePercent >= 15">{{ booleanBar.falsePercent }}%</span>
           </div>
         </div>
@@ -182,14 +182,14 @@ const kindLabel: Record<string, string> = {
 
       <!-- 数值 / 字符串：纵向列表条 -->
       <div v-if="showListDistribution" class="pt-1">
-        <div class="mb-2 text-[12px] font-medium text-slate-500">{{ distributionTitle }}</div>
+        <div class="mb-2 text-[12px] font-medium text-ink-500">{{ distributionTitle }}</div>
         <div class="space-y-2">
           <div v-for="bucket in distributionData" :key="bucket.label">
             <div class="mb-1 flex items-baseline justify-between gap-3 text-[12px]">
-              <span class="truncate text-slate-700">{{ bucket.label }}</span>
-              <span class="shrink-0 text-slate-400">{{ bucket.count.toLocaleString() }} · {{ bucket.percent }}%</span>
+              <span class="truncate text-ink-700">{{ bucket.label }}</span>
+              <span class="shrink-0 text-ink-400">{{ bucket.count.toLocaleString() }} · {{ bucket.percent }}%</span>
             </div>
-            <div class="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div class="h-1.5 overflow-hidden rounded-full bg-ink-100">
               <div
                 class="h-full rounded-full bg-brand-500"
                 :style="{ width: `${Math.min(Math.max(bucket.percent, 0), 100)}%` }"
@@ -209,19 +209,19 @@ const kindLabel: Record<string, string> = {
       </div>
 
       <!-- 异常提示 -->
-      <div v-if="currentStat.anomalies" class="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
+      <div v-if="currentStat.anomalies" class="rounded-lg bg-warning-50 px-3 py-2 text-[12px] text-warning-600">
         ⚠️ {{ currentStat.anomalies }}
       </div>
     </template>
 
-    <div v-else-if="!dimensions.length" class="py-8 text-center text-[13px] text-slate-400">
+    <div v-else-if="!dimensions.length" class="py-8 text-center text-[13px] text-ink-400">
       暂无可探查字段
     </div>
-    <div v-else class="py-8 text-center text-[13px] text-slate-400">
+    <div v-else class="py-8 text-center text-[13px] text-ink-400">
       该字段暂无探查结果
     </div>
 
-    <div class="pt-1 text-[11px] text-slate-400">
+    <div class="pt-1 text-[11px] text-ink-400">
       探查结果基于脱敏样本统计，空值率/唯一值率可抽样（默认上限 100 万），仅供评估参考。
     </div>
   </div>

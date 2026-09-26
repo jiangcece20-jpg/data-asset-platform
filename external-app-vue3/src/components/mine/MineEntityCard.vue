@@ -15,7 +15,7 @@ function onActivate(event: MouseEvent | KeyboardEvent) {
 
 <template>
   <article
-    class="rounded-2xl border border-slate-100 bg-white shadow-card"
+    class="rounded-2xl border border-ink-100 bg-white shadow-card"
     :class="[
       variant === 'portal' ? 'p-5' : 'p-4',
       clickable ? 'cursor-pointer transition hover:border-brand-200' : ''
@@ -34,7 +34,7 @@ function onActivate(event: MouseEvent | KeyboardEvent) {
           <slot name="badges" />
         </div>
         <h3
-          class="mt-2 font-semibold leading-snug text-slate-900"
+          class="mt-2 font-semibold leading-snug text-ink-900"
           :class="variant === 'portal' ? 'text-base' : 'text-[14px]'"
         >
           <slot name="title" />
@@ -42,13 +42,13 @@ function onActivate(event: MouseEvent | KeyboardEvent) {
       </div>
       <div class="flex shrink-0 items-center gap-1">
         <slot name="status" />
-        <span v-if="clickable" class="text-lg leading-none text-slate-300" aria-hidden="true">›</span>
+        <span v-if="clickable" class="text-lg leading-none text-ink-300" aria-hidden="true">›</span>
       </div>
     </div>
 
     <div
       v-if="$slots.meta"
-      class="mt-3 grid gap-x-4 gap-y-2 rounded-xl bg-slate-50"
+      class="mt-3 grid gap-x-4 gap-y-2 rounded-xl bg-ink-100"
       :class="variant === 'portal' ? 'grid-cols-3 p-4 text-xs' : 'grid-cols-2 p-3 text-[10px]'"
     >
       <slot name="meta" />
@@ -60,7 +60,7 @@ function onActivate(event: MouseEvent | KeyboardEvent) {
 
     <div
       v-if="$slots.actions"
-      class="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3"
+      class="mt-3 flex flex-wrap justify-end gap-2 border-t border-ink-100 pt-3"
     >
       <slot name="actions" />
     </div>

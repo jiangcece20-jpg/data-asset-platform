@@ -4,7 +4,7 @@ defineProps<{ title: string; desc?: string }>()
 
 <template>
   <div class="mb-4">
-    <div class="text-lg font-semibold text-slate-900">{{ title }}</div>
-    <div v-if="desc" class="mt-0.5 text-[13px] text-slate-400">{{ desc }}</div>
+    <div class="text-xl font-semibold text-ink-900">{{ title }}</div>
+    <div v-if="desc" class="mt-1 text-[13px] text-ink-500">{{ desc }}</div>
   </div>
 </template>

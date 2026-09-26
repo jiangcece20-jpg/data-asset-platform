@@ -51,7 +51,7 @@ function goToDetail(id: string) {
 
     <!-- Filters -->
     <div class="mb-4 flex flex-wrap gap-2">
-      <select v-model="filterStatus" data-testid="filter-status" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterStatus" data-testid="filter-status" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部状态</option>
         <option value="pending_assessment">待评估</option>
         <option value="impact_analysis">影响分析</option>
@@ -62,32 +62,32 @@ function goToDetail(id: string) {
         <option value="closed">已关闭</option>
         <option value="cancelled">已取消</option>
       </select>
-      <select v-model="filterSeverity" data-testid="filter-severity" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterSeverity" data-testid="filter-severity" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部级别</option>
         <option value="S1">S1</option>
         <option value="S2">S2</option>
         <option value="S3">S3</option>
       </select>
-      <select v-model="filterAction" data-testid="filter-action" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterAction" data-testid="filter-action" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部操作</option>
         <option value="pause">暂停销售</option>
         <option value="delist">下架</option>
         <option value="recall">召回</option>
       </select>
-      <select v-model="filterReason" data-testid="filter-reason" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]">
+      <select v-model="filterReason" data-testid="filter-reason" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部原因</option>
         <option value="commercial_adjustment">商业调整</option>
         <option value="quality_issue">质量问题</option>
         <option value="compliance_risk">合规风险</option>
         <option value="upstream_stop">上游停供</option>
       </select>
-      <input v-model="filterProduct" data-testid="filter-product" placeholder="商品ID" class="rounded-lg border border-slate-200 px-2 py-1 text-[12px]" />
+      <input v-model="filterProduct" data-testid="filter-product" placeholder="商品ID" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]" />
     </div>
 
     <!-- Table -->
-    <div class="rounded-xl border border-slate-200 bg-white">
+    <div class="rounded-xl border border-ink-200 bg-white">
       <table class="w-full text-left text-[13px]">
-        <thead class="text-xs text-slate-400">
+        <thead class="text-xs text-ink-500">
           <tr>
             <th class="px-3 py-2">级别</th>
             <th class="px-3 py-2">状态</th>
@@ -104,20 +104,20 @@ function goToDetail(id: string) {
             :key="w.id"
             data-testid="wo-row"
             :data-id="w.id"
-            class="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+            class="cursor-pointer border-t border-ink-100 hover:bg-ink-100"
             @click="goToDetail(w.id)"
           >
             <td class="px-3 py-2"><StatusBadge dict="reverseSeverity" :value="w.severity" /></td>
             <td class="px-3 py-2"><StatusBadge dict="reverseWo" :value="w.status" /></td>
-            <td class="px-3 py-2 text-slate-700">{{ productName(w.subjectId) }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ w.action }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ w.reason }}</td>
-            <td class="px-3 py-2 text-slate-600">{{ w.owner }}</td>
-            <td class="px-3 py-2 text-slate-400">{{ w.createdAt.slice(0, 19) }}</td>
+            <td class="px-3 py-2 text-ink-700">{{ productName(w.subjectId) }}</td>
+            <td class="px-3 py-2 text-ink-600">{{ w.action }}</td>
+            <td class="px-3 py-2 text-ink-600">{{ w.reason }}</td>
+            <td class="px-3 py-2 text-ink-600">{{ w.owner }}</td>
+            <td class="px-3 py-2 text-ink-500">{{ w.createdAt.slice(0, 19) }}</td>
           </tr>
         </tbody>
       </table>
-      <div v-if="!sortedList.length" class="py-6 text-center text-[12px] text-slate-400">暂无逆向工单</div>
+      <div v-if="!sortedList.length" class="py-6 text-center text-[12px] text-ink-500">暂无逆向工单</div>
     </div>
   </div>
 </template>

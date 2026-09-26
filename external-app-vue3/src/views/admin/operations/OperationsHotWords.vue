@@ -18,23 +18,23 @@ function removeWord(i: number) {
 
 <template>
   <div>
-    <div class="mb-2 text-[13px] font-medium text-slate-700">热门词</div>
+    <div class="mb-2 text-[13px] font-medium text-ink-700">热门词</div>
     <div class="mb-3 flex flex-wrap gap-1.5">
       <span
         v-for="(w, i) in hotWords"
         :key="w"
-        class="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[12px] text-slate-600"
+        class="flex items-center gap-1 rounded-full bg-ink-100 px-2.5 py-1 text-[12px] text-ink-600"
       >
         {{ w }}
-        <button class="text-slate-400 hover:text-slate-600" @click="removeWord(i)">×</button>
+        <button class="text-ink-500 hover:text-ink-600" @click="removeWord(i)">×</button>
       </span>
-      <span v-if="!hotWords.length" class="text-[12px] text-slate-400">暂无热门词</span>
+      <span v-if="!hotWords.length" class="text-[12px] text-ink-500">暂无热门词</span>
     </div>
     <div class="flex gap-1.5">
       <input
         v-model="newWord"
         placeholder="输入新热门词后按回车或点击添加"
-        class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[12px] focus:border-brand-500 focus:outline-none"
+        class="flex-1 rounded-lg border border-ink-200 px-3 py-2 text-[12px] focus:border-brand-500 focus:outline-none"
         @keydown.enter="addWord"
       />
       <button

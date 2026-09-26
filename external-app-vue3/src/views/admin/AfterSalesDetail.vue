@@ -31,12 +31,12 @@ function onExecute(refundId: string, outcome: 'succeeded' | 'failed' | 'rejected
 <template>
   <div v-if="workOrder">
     <PageHeader :title="`售后工单 ${workOrder.id}`" desc="退款排序与客户处置" />
-    <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">{{ error }}</div>
+    <div v-if="error" data-testid="error" class="mb-3 rounded-lg bg-danger-50 px-3 py-2 text-[12px] text-danger-600">{{ error }}</div>
 
     <div class="mb-4 flex items-center gap-2">
       <StatusBadge dict="reverseSeverity" :value="workOrder.severity" />
       <StatusBadge dict="reverseWo" :value="workOrder.status" />
-      <span class="text-[12px] text-slate-500">对象：{{ workOrder.subjectType }} · {{ workOrder.subjectId }}</span>
+      <span class="text-[12px] text-ink-500">对象：{{ workOrder.subjectType }} · {{ workOrder.subjectId }}</span>
     </div>
 
     <RefundSequencePanel
@@ -46,7 +46,7 @@ function onExecute(refundId: string, outcome: 'succeeded' | 'failed' | 'rejected
       :refund="r"
       @execute="onExecute"
     />
-    <div v-if="!relatedRefunds.length" class="rounded-xl border border-slate-200 bg-white p-4 text-[12px] text-slate-400">该工单暂无关联退款</div>
+    <div v-if="!relatedRefunds.length" class="rounded-xl border border-ink-200 bg-white p-4 text-[12px] text-ink-500">该工单暂无关联退款</div>
   </div>
-  <div v-else class="py-10 text-center text-[13px] text-slate-400">售后工单不存在</div>
+  <div v-else class="py-10 text-center text-[13px] text-ink-500">售后工单不存在</div>
 </template>

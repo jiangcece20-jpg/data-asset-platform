@@ -71,7 +71,7 @@ function cellText(row: Record<string, string | number | boolean | null | undefin
               class="scroll-table__td"
               :class="[
                 col.align === 'center' ? 'text-center' : 'text-left',
-                col.mono ? 'font-mono text-slate-800' : 'text-slate-600',
+                col.mono ? 'font-mono text-ink-900' : 'text-ink-600',
                 stickyFirst && i === 0 ? 'scroll-table__sticky' : ''
               ]"
             >

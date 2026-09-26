@@ -7,21 +7,21 @@ const emit = defineEmits<{ repair: [id: string]; reconcile: [event: ConnectorEve
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200 bg-white p-4" data-testid="dead-letter-list">
-    <div class="mb-2 text-[13px] font-medium text-slate-700">死信队列</div>
-    <div v-for="e in events" :key="e.id" data-testid="dead-letter-row" :data-id="e.id" class="flex items-center gap-2 border-t border-slate-100 py-2 text-[12px]">
-      <span class="text-slate-600">{{ e.connector }} · 对象 {{ e.subjectId }} · {{ e.eventType }} · v{{ e.eventVersion }}</span>
+  <div class="rounded-xl border border-ink-200 bg-white p-4" data-testid="dead-letter-list">
+    <div class="mb-2 text-[13px] font-medium text-ink-700">死信队列</div>
+    <div v-for="e in events" :key="e.id" data-testid="dead-letter-row" :data-id="e.id" class="flex items-center gap-2 border-t border-ink-100 py-2 text-[12px]">
+      <span class="text-ink-600">{{ e.connector }} · 对象 {{ e.subjectId }} · {{ e.eventType }} · v{{ e.eventVersion }}</span>
       <StatusBadge dict="connectorEvent" :value="e.status" />
-      <span class="text-slate-400">业务版本 {{ e.processingVersion }} · 尝试 {{ e.attempts }}</span>
-      <span v-if="e.connector === 'trusted_space' && !canReconcile(e)" class="text-amber-700">关联异常：无当前企业可用购买意图</span>
-      <button v-if="canReconcile(e)" class="rounded border border-blue-200 px-2 py-0.5 text-blue-600" data-testid="reconcile-event" @click="emit('reconcile', e)">主动对账</button>
+      <span class="text-ink-500">业务版本 {{ e.processingVersion }} · 尝试 {{ e.attempts }}</span>
+      <span v-if="e.connector === 'trusted_space' && !canReconcile(e)" class="text-warning-600">关联异常：无当前企业可用购买意图</span>
+      <button v-if="canReconcile(e)" class="rounded border border-brand-200 px-2 py-0.5 text-brand-600" data-testid="reconcile-event" @click="emit('reconcile', e)">主动对账</button>
       <button
-        class="ml-auto rounded bg-blue-600 px-2 py-0.5 text-white disabled:bg-slate-300"
+        class="ml-auto rounded bg-brand-600 px-2 py-0.5 text-white disabled:bg-ink-300"
         data-testid="repair-btn"
         :disabled="Boolean(e.repairRevisionId)"
         @click="emit('repair', e.id)"
       >{{ e.repairRevisionId ? '审计处置已记录' : '记录审计处置' }}</button>
     </div>
-    <div v-if="!events.length" class="py-3 text-center text-[12px] text-slate-400">暂无死信事件</div>
+    <div v-if="!events.length" class="py-3 text-center text-[12px] text-ink-500">暂无死信事件</div>
   </div>
 </template>

@@ -75,7 +75,7 @@ function listReport(entitlement: Entitlement) {
   })
 }
 
-const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600'
+const actionBtn = 'rounded-full border border-ink-200 px-3 py-1.5 text-[11px] text-ink-600'
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
 const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px] text-brand-600'
 </script>
@@ -83,16 +83,16 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
 <template>
   <section class="space-y-3" :data-testid="variant === 'portal' ? 'portal-my-data' : 'my-datasets'">
     <div
-      class="rounded-xl px-3 py-2 leading-relaxed text-blue-700"
-      :class="variant === 'portal' ? 'border border-blue-100 bg-blue-50 px-4 py-3 text-xs' : 'bg-blue-50 text-[11px]'"
+      class="rounded-xl px-3 py-2 leading-relaxed text-brand-700"
+      :class="variant === 'portal' ? 'border border-brand-100 bg-brand-50 px-4 py-3 text-xs' : 'bg-brand-50 text-[11px]'"
     >
       <template v-if="variant === 'portal'">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <div class="text-sm font-medium text-blue-900">已购数据与个人报告</div>
-            <div class="mt-1 text-xs text-blue-700">管理交付状态、购买周期结束日与续订；个人报告可申请上架到卖家中心。</div>
+            <div class="text-sm font-medium text-brand-700">已购数据与个人报告</div>
+            <div class="mt-1 text-xs text-brand-700">管理交付状态、购买周期结束日与续订；个人报告可申请上架到卖家中心。</div>
           </div>
-          <div class="shrink-0 text-sm font-semibold text-blue-900">{{ datasetEntitlements.length + personalReportEntitlements.length }} 项</div>
+          <div class="shrink-0 text-sm font-semibold text-brand-700">{{ datasetEntitlements.length + personalReportEntitlements.length }} 项</div>
         </div>
       </template>
       <template v-else>
@@ -107,16 +107,16 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
       data-testid="personal-report-entitlement"
     >
       <template #badges>
-        <span class="rounded-full bg-violet-50 px-2 py-0.5 text-violet-600">个人报告</span>
-        <span class="text-slate-400">订单 {{ entitlement.orderId || '—' }}</span>
+        <span class="rounded-full bg-[#F5E8FF] px-2 py-0.5 text-[#722ED1]">个人报告</span>
+        <span class="text-ink-500">订单 {{ entitlement.orderId || '—' }}</span>
       </template>
       <template #title>{{ catalog.byId(entitlement.productId || '')?.name || '未知报告' }}</template>
       <template #status><StatusBadge dict="entitlementStatus" :value="entitlement.status" /></template>
       <template #meta>
-        <div><span class="text-slate-400">版本</span><div class="mt-0.5 text-slate-700">{{ entitlement.productVersion || '—' }}</div></div>
-        <div><span class="text-slate-400">生效日</span><div class="mt-0.5 text-slate-700">{{ entitlement.validFrom || '—' }}</div></div>
-        <div><span class="text-slate-400">有效期</span><div class="mt-0.5 text-slate-700">{{ entitlement.validTo || '长期有效' }}</div></div>
-        <div><span class="text-slate-400">来源</span><div class="mt-0.5 text-slate-700">个人购买</div></div>
+        <div><span class="text-ink-500">版本</span><div class="mt-0.5 text-ink-700">{{ entitlement.productVersion || '—' }}</div></div>
+        <div><span class="text-ink-500">生效日</span><div class="mt-0.5 text-ink-700">{{ entitlement.validFrom || '—' }}</div></div>
+        <div><span class="text-ink-500">有效期</span><div class="mt-0.5 text-ink-700">{{ entitlement.validTo || '长期有效' }}</div></div>
+        <div><span class="text-ink-500">来源</span><div class="mt-0.5 text-ink-700">个人购买</div></div>
       </template>
       <template #actions>
         <button
@@ -135,26 +135,26 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
       :data-testid="variant === 'portal' ? 'portal-dataset-entitlement' : undefined"
     >
       <template #badges>
-        <span class="rounded-full bg-blue-50 px-2 py-0.5 text-blue-600">{{ entitlement.source === 'enterprise' ? '企业数据' : '个人数据' }}</span>
-        <span class="text-slate-400">订单 {{ entitlement.orderId || '—' }}</span>
+        <span class="rounded-full bg-brand-50 px-2 py-0.5 text-brand-600">{{ entitlement.source === 'enterprise' ? '企业数据' : '个人数据' }}</span>
+        <span class="text-ink-500">订单 {{ entitlement.orderId || '—' }}</span>
       </template>
       <template #title>{{ catalog.byId(entitlement.productId || '')?.name || '未知数据集' }}</template>
       <template #status><StatusBadge dict="entitlementStatus" :value="entitlement.status" /></template>
       <template #meta>
-        <div><span class="text-slate-400">购买周期</span><div class="mt-0.5 text-slate-700">{{ entitlement.selectedTermMonths ? `${entitlement.selectedTermMonths} 个月` : '按订单约定' }}</div></div>
-        <div><span class="text-slate-400">资产版本</span><div class="mt-0.5 text-slate-700">{{ entitlement.assetVersion || '—' }}</div></div>
-        <div><span class="text-slate-400">用数交付</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.status === 'delivered' ? '已交付' : '处理中' }}</div></div>
-        <div><span class="text-slate-400">最近更新</span><div class="mt-0.5 text-slate-700">{{ deliveryFor(entitlement.id)?.lastSuccessfulRefreshAt?.slice(0, 10) || '—' }}</div></div>
+        <div><span class="text-ink-500">购买周期</span><div class="mt-0.5 text-ink-700">{{ entitlement.selectedTermMonths ? `${entitlement.selectedTermMonths} 个月` : '按订单约定' }}</div></div>
+        <div><span class="text-ink-500">资产版本</span><div class="mt-0.5 text-ink-700">{{ entitlement.assetVersion || '—' }}</div></div>
+        <div><span class="text-ink-500">用数交付</span><div class="mt-0.5 text-ink-700">{{ deliveryFor(entitlement.id)?.status === 'delivered' ? '已交付' : '处理中' }}</div></div>
+        <div><span class="text-ink-500">最近更新</span><div class="mt-0.5 text-ink-700">{{ deliveryFor(entitlement.id)?.lastSuccessfulRefreshAt?.slice(0, 10) || '—' }}</div></div>
         <div :class="variant === 'portal' ? 'col-span-3' : 'col-span-2'">
-          <span class="text-slate-400">{{ isRenewable(entitlement) ? '购买周期结束日' : '数据保留期限' }}</span>
-          <div class="mt-0.5 font-medium" :class="isExpiring(entitlement) ? 'text-amber-600' : 'text-slate-700'">
+          <span class="text-ink-500">{{ isRenewable(entitlement) ? '购买周期结束日' : '数据保留期限' }}</span>
+          <div class="mt-0.5 font-medium" :class="isExpiring(entitlement) ? 'text-warning-600' : 'text-ink-700'">
             {{ effectiveExpiry(entitlement) || '当前快照长期保留' }}
             <span v-if="isExpiring(entitlement)"> · 即将到期</span>
           </div>
         </div>
       </template>
       <template v-if="isRenewable(entitlement)" #notice>
-        <div class="rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-700" :class="variant === 'portal' ? 'text-xs' : ''">
+        <div class="rounded-lg bg-warning-50 px-3 py-2 text-[10px] leading-relaxed text-warning-600" :class="variant === 'portal' ? 'text-xs' : ''">
           到期后停止接收新版本，最近已交付版本仍可使用；续订后延长更新服务。
         </div>
       </template>
@@ -172,6 +172,6 @@ const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px
     </MineEntityCard>
 
     <EmptyState v-if="variant === 'mobile' && !hasAny" icon="🗂️" title="暂无可用数据" desc="已购买并完成交付的数据集与个人报告会显示在这里" />
-    <div v-else-if="!hasAny" class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-sm text-slate-400 shadow-card">暂无已购数据</div>
+    <div v-else-if="!hasAny" class="rounded-2xl border border-ink-100 bg-white p-12 text-center text-sm text-ink-500 shadow-card">暂无已购数据</div>
   </section>
 </template>

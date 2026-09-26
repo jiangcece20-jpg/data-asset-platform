@@ -56,8 +56,8 @@ watch(
   <div data-testid="time-distribution-chart">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
       <div>
-        <div class="text-[12px] font-medium text-slate-500">时间分布</div>
-        <div class="mt-0.5 text-[11px] text-slate-400">{{ yAxisHint }}</div>
+        <div class="text-[12px] font-medium text-ink-500">时间分布</div>
+        <div class="mt-0.5 text-[11px] text-ink-500">{{ yAxisHint }}</div>
       </div>
       <div class="flex gap-1" role="tablist" aria-label="时间粒度">
         <button
@@ -70,7 +70,7 @@ watch(
           class="rounded border px-2 py-0.5 text-[11px] transition"
           :class="grain === option.key
             ? 'border-brand-500 bg-brand-500 text-white'
-            : 'border-slate-200 bg-white text-slate-500'"
+            : 'border-ink-200 bg-white text-ink-500'"
           @click="emit('update:grain', option.key)"
         >
           {{ option.label }}
@@ -92,23 +92,23 @@ watch(
           class="flex w-14 shrink-0 flex-col items-center"
           data-testid="time-distribution-bar"
         >
-          <div class="mb-1 text-center text-[10px] leading-tight text-slate-500">
-            <div class="font-medium text-slate-700">{{ bucket.count.toLocaleString() }}</div>
+          <div class="mb-1 text-center text-[10px] leading-tight text-ink-500">
+            <div class="font-medium text-ink-700">{{ bucket.count.toLocaleString() }}</div>
             <div>{{ bucket.percent }}%</div>
           </div>
-          <div class="flex h-28 w-full items-end justify-center rounded-t bg-slate-50 px-1.5 pt-1">
+          <div class="flex h-28 w-full items-end justify-center rounded-t bg-ink-100 px-1.5 pt-1">
             <div
               class="w-full max-w-[28px] rounded-t bg-brand-500"
               :style="{ height: `${Math.max((bucket.percent / maxPercent) * 100, 4)}%` }"
               :title="`${bucket.label}：${bucket.count.toLocaleString()} 条（${bucket.percent}%）`"
             />
           </div>
-          <div class="mt-1 w-full truncate text-center text-[10px] leading-tight text-slate-600" :title="bucket.label">
+          <div class="mt-1 w-full truncate text-center text-[10px] leading-tight text-ink-600" :title="bucket.label">
             {{ bucket.label }}
           </div>
         </div>
       </div>
     </div>
-    <div class="mt-1 text-[10px] text-slate-400">默认停在最新日期；左右滑动可查看更早时间窗口</div>
+    <div class="mt-1 text-[10px] text-ink-500">默认停在最新日期；左右滑动可查看更早时间窗口</div>
   </div>
 </template>

@@ -157,6 +157,51 @@ describe('PortalProductDetail V1.0.0 purchase actions', () => {
   })
 })
 
+describe('PortalProductDetail price anchors', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('shows 待报价 in header and purchase panel for space products without offers or plans', async () => {
+    const catalog = useCatalogStore()
+    const quoteProduct = catalog.products.find(
+      (p) => p.dealChannel === 'space_purchase'
+        && p.availability === 'published'
+        && p.status === 'published'
+        && !p.commerceOffers?.length
+        && !p.datasetOffers?.length
+        && !p.typeDetail.api?.pricingPlans?.length
+    )
+    expect(quoteProduct).toBeTruthy()
+    const wrapper = await mountProductDetail(quoteProduct!.id)
+    expect(wrapper.get('[data-testid="product-header-price"]').text()).toContain('待报价')
+    expect(wrapper.get('[data-testid="purchase-price-summary"]').text()).toContain('待报价')
+  })
+
+  it('shows the cheapest API plan price as starting price and keeps the plan list in the panel', async () => {
+    const wrapper = await mountProductDetail('prod-qualification-api')
+    const header = wrapper.get('[data-testid="product-header-price"]').text()
+    expect(header).toMatch(/¥[\d,.]+/)
+    expect(wrapper.get('[data-testid="purchase-price"]').text()).toContain('¥')
+    expect(wrapper.find('[data-testid="purchase-price-summary"]').exists()).toBe(false)
+  })
+
+  it('keeps the header starting price consistent with the purchase action price', async () => {
+    useEntitlementStore().list = []
+    const wrapper = await mountProductDetail('prod-logistics-monthly')
+    const action = wrapper.get('[data-testid="product-primary-action"]').text()
+    const price = action.match(/¥[\d,.]+/)![0]
+    expect(wrapper.get('[data-testid="product-header-price"]').text()).toContain(price)
+    expect(wrapper.get('[data-testid="purchase-price-summary"]').text()).toContain(price)
+  })
+
+  it('shows the starting price to guests but keeps the purchase CTA login-gated', async () => {
+    const user = useUserStore()
+    user.context.loggedIn = false
+    const wrapper = await mountProductDetail('prod-truck-trajectory')
+    expect(wrapper.get('[data-testid="product-header-price"]').text()).toMatch(/¥|免费|待报价/)
+    expect(wrapper.get('[data-testid="product-primary-action"]').text()).toBe('登录查看价格')
+  })
+})
+
 describe('PortalProductDetail default tabs', () => {
   beforeEach(() => setActivePinia(createPinia()))
 

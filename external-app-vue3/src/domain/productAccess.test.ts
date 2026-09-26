@@ -96,7 +96,7 @@ describe('resolveProductActions', () => {
       acquisitions: ['member', 'item_purchase'],
       itemPrice: 199
     })
-    expect(actions.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(actions.primary).toEqual({ key: 'item_purchase', label: '立即获取' })
     expect(actions.secondary).toBeUndefined()
   })
 
@@ -117,7 +117,7 @@ describe('resolveProductActions', () => {
       memberBenefit: 'free',
       itemPrice: 199
     })
-    expect(free.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(free.primary).toEqual({ key: 'item_purchase', label: '立即获取' })
     expect(free.secondary).toBeUndefined()
 
     const discount = resolveProductActions({
@@ -129,7 +129,7 @@ describe('resolveProductActions', () => {
       itemPrice: 1990,
       discountZhe: 6
     })
-    expect(discount.primary).toEqual({ key: 'item_purchase', label: '立即购买' })
+    expect(discount.primary).toEqual({ key: 'item_purchase', label: '立即获取' })
     expect(discount.secondary).toBeUndefined()
   })
 
@@ -173,7 +173,7 @@ describe('resolveProductActions', () => {
       itemPrice: 199
     }).primary).toEqual({
       key: 'item_purchase',
-      label: '立即购买'
+      label: '立即获取'
     })
   })
 

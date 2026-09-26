@@ -56,9 +56,9 @@ const pendingCounts = computed(() => [
     <PageHeader title="运营概览" desc="供给流程：需求洞察 → 商品规划 → 资产加工/内容生产 → 分类审批 → 发布 → 运营推荐" />
 
     <div class="grid grid-cols-4 gap-3">
-      <div v-for="k in kpis" :key="k.label" class="rounded-xl border border-slate-200 bg-white p-4">
-        <div class="text-xs text-slate-400">{{ k.label }}</div>
-        <div class="mt-1 text-xl font-semibold text-slate-900">{{ k.value }}</div>
+      <div v-for="k in kpis" :key="k.label" class="rounded-xl border border-ink-200 bg-white p-4">
+        <div class="text-xs text-ink-500">{{ k.label }}</div>
+        <div class="mt-1 text-xl font-semibold text-ink-900">{{ k.value }}</div>
       </div>
     </div>
 
@@ -66,15 +66,15 @@ const pendingCounts = computed(() => [
       <button
         v-for="p in pendingCounts"
         :key="p.label"
-        class="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-brand-300 hover:shadow-card"
+        class="rounded-xl border border-ink-200 bg-white p-4 text-left transition hover:border-brand-300 hover:shadow-card"
         @click="router.push(p.to)"
       >
-        <div class="text-xs text-slate-400">{{ p.label }}</div>
+        <div class="text-xs text-ink-500">{{ p.label }}</div>
         <div class="mt-1 text-lg font-semibold text-brand-600" :data-testid="p.label === '空间回调异常' ? 'space-exception-count' : undefined">{{ p.value }}</div>
       </button>
     </div>
 
-    <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-4 text-[12px] leading-relaxed text-slate-400">
+    <div class="mt-6 rounded-xl border border-dashed border-ink-300 bg-white p-4 text-[12px] leading-relaxed text-ink-500">
       本后台与移动端共享同一份 mock 状态：在此处修改商品、审批、企业权益或线索状态后，切换到"移动端原型"即可立即看到对应变化。
     </div>
   </div>

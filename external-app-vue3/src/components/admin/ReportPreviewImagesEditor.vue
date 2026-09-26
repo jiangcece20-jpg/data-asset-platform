@@ -73,19 +73,19 @@ function removeAt(platform: ReportPreviewPlatform, index: number) {
 </script>
 
 <template>
-  <section class="mt-5 border-t border-slate-100 pt-4" :data-testid="`${testId}-images-editor`">
+  <section class="mt-5 border-t border-ink-100 pt-4" :data-testid="`${testId}-images-editor`">
     <div class="mb-3">
-      <div class="text-xs font-medium text-slate-600">{{ title }}</div>
-      <p class="mt-0.5 text-[11px] leading-relaxed text-slate-400">{{ description }}</p>
+      <div class="text-xs font-medium text-ink-600">{{ title }}</div>
+      <p class="mt-0.5 text-[11px] leading-relaxed text-ink-500">{{ description }}</p>
     </div>
 
     <div v-for="section in platformSections" :key="section.key" class="mb-4 last:mb-0">
       <div class="mb-2 flex items-center justify-between gap-2">
         <div>
-          <div class="text-[11px] font-medium text-slate-700">{{ section.label }}</div>
-          <div class="text-[10px] text-slate-400">{{ section.hint }}</div>
+          <div class="text-[11px] font-medium text-ink-700">{{ section.label }}</div>
+          <div class="text-[10px] text-ink-500">{{ section.hint }}</div>
         </div>
-        <span class="text-[10px] text-slate-400" :data-testid="`${testId}-count-${section.key}`">
+        <span class="text-[10px] text-ink-500" :data-testid="`${testId}-count-${section.key}`">
           {{ images(section.key).length }}/{{ REPORT_PREVIEW_IMAGE_MAX }}
         </span>
       </div>
@@ -94,7 +94,7 @@ function removeAt(platform: ReportPreviewPlatform, index: number) {
         <figure
           v-for="(src, index) in images(section.key)"
           :key="`${section.key}-${index}`"
-          class="relative h-24 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
+          class="relative h-24 w-20 overflow-hidden rounded-lg border border-ink-200 bg-ink-100"
           :data-testid="`${testId}-image-${section.key}-${index}`"
         >
           <img :src="src" :alt="`${section.label} ${index + 1}`" class="h-full w-full object-cover" />
@@ -110,7 +110,7 @@ function removeAt(platform: ReportPreviewPlatform, index: number) {
 
         <label
           v-if="canAdd(section.key)"
-          class="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-[10px] text-slate-400 hover:border-brand-300 hover:bg-brand-50/40 hover:text-brand-600"
+          class="flex h-24 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-ink-300 bg-ink-100 text-[10px] text-ink-500 hover:border-brand-300 hover:bg-brand-50/40 hover:text-brand-600"
           :data-testid="`${testId}-upload-${section.key}`"
         >
           <span class="text-lg font-light leading-none">+</span>

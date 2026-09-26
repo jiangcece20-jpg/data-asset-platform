@@ -32,39 +32,39 @@ function moveDown(i: number) {
 
 <template>
   <div>
-    <div class="mb-2 text-[13px] font-medium text-slate-700">AI 引导问题（AI 找数页展示）</div>
+    <div class="mb-2 text-[13px] font-medium text-ink-700">AI 引导问题（AI 找数页展示）</div>
     <div class="mb-3 space-y-2">
       <div
         v-for="(q, i) in guideQuestions"
         :key="i"
-        class="flex items-center gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2"
+        class="flex items-center gap-2 rounded-lg border border-ink-100 bg-white px-3 py-2"
       >
-        <span class="shrink-0 text-[13px] text-slate-400">{{ i + 1 }}</span>
-        <span class="flex-1 text-[12px] text-slate-600">💬 {{ q }}</span>
+        <span class="shrink-0 text-[13px] text-ink-500">{{ i + 1 }}</span>
+        <span class="flex-1 text-[12px] text-ink-600">{{ q }}</span>
         <div class="flex gap-1">
           <button
-            class="rounded px-1.5 py-0.5 text-[11px] text-slate-400 hover:bg-slate-100"
+            class="rounded px-1.5 py-0.5 text-[11px] text-ink-500 hover:bg-ink-100"
             :disabled="i === 0"
             @click="moveUp(i)"
           >↑</button>
           <button
-            class="rounded px-1.5 py-0.5 text-[11px] text-slate-400 hover:bg-slate-100"
+            class="rounded px-1.5 py-0.5 text-[11px] text-ink-500 hover:bg-ink-100"
             :disabled="i === guideQuestions.length - 1"
             @click="moveDown(i)"
           >↓</button>
           <button
-            class="rounded px-1.5 py-0.5 text-[11px] text-red-400 hover:bg-red-50"
+            class="rounded px-1.5 py-0.5 text-[11px] text-danger-500 hover:bg-danger-50"
             @click="removeQuestion(i)"
           >删除</button>
         </div>
       </div>
-      <div v-if="!guideQuestions.length" class="py-4 text-center text-[12px] text-slate-400">暂无引导问题</div>
+      <div v-if="!guideQuestions.length" class="py-4 text-center text-[12px] text-ink-500">暂无引导问题</div>
     </div>
     <div class="flex gap-1.5">
       <input
         v-model="newQuestion"
         placeholder="输入新引导问题后按回车或点击添加"
-        class="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-[12px] focus:border-brand-500 focus:outline-none"
+        class="flex-1 rounded-lg border border-ink-200 px-3 py-2 text-[12px] focus:border-brand-500 focus:outline-none"
         @keydown.enter="addQuestion"
       />
       <button

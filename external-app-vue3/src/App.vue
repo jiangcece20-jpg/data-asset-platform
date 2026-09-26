@@ -17,47 +17,47 @@ const mode = computed(() => {
 
 function switchMode(target: 'app' | 'portal' | 'admin') {
   if (target === 'admin' && mode.value !== 'admin') router.push('/admin')
-  if (target === 'portal' && mode.value !== 'portal') router.push('/portal/home')
+  if (target === 'portal' && mode.value !== 'portal') router.push('/portal/search')
   if (target === 'app' && mode.value !== 'app') router.push('/app/home')
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100">
-    <header class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+  <div class="min-h-screen bg-ink-100">
+    <header class="sticky top-0 z-50 border-b border-ink-200 bg-white/95 backdrop-blur">
       <div class="flex items-center justify-between px-3 py-2.5 sm:px-4">
         <div class="flex items-center gap-2">
           <div class="flex h-7 w-7 items-center justify-center rounded-md bg-brand-500 text-xs font-bold text-white">找</div>
-          <div class="text-sm font-semibold text-slate-800">
+          <div class="text-sm font-semibold text-ink-900">
             <span class="sm:hidden">找数买数原型</span>
             <span class="hidden sm:inline">对外APP问数找数买数 · 交互原型</span>
           </div>
         </div>
-        <div class="flex items-center gap-0.5 rounded-full bg-slate-100 p-1 text-xs sm:gap-1 sm:text-sm">
+        <div class="flex items-center gap-0.5 rounded-full bg-ink-100 p-1 text-xs sm:gap-1 sm:text-sm">
           <button
             class="rounded-full px-2 py-1 transition sm:px-3"
-            :class="mode === 'app' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+            :class="mode === 'app' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-ink-500'"
             @click="switchMode('app')"
           >
             <span class="sm:hidden">移动端</span><span class="hidden sm:inline">移动端原型</span>
           </button>
           <button
             class="rounded-full px-2 py-1 transition sm:px-3"
-            :class="mode === 'portal' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+            :class="mode === 'portal' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-ink-500'"
             @click="switchMode('portal')"
           >
             PC门户
           </button>
           <button
             class="rounded-full px-2 py-1 transition sm:px-3"
-            :class="mode === 'admin' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-slate-500'"
+            :class="mode === 'admin' ? 'bg-white shadow-sm font-medium text-brand-600' : 'text-ink-500'"
             @click="switchMode('admin')"
           >
             <span class="sm:hidden">运营后台</span><span class="hidden sm:inline">PC 运营后台</span>
           </button>
         </div>
       </div>
-      <div class="flex items-center border-t border-violet-100 bg-violet-50 px-3 py-1.5 sm:px-4">
+      <div class="flex items-center border-t border-ink-200 bg-ink-100 px-3 py-1.5 sm:px-4">
         <PrototypeIdentitySwitcher />
       </div>
     </header>

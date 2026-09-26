@@ -21,20 +21,20 @@ const messages = {
 const notice = computed<{ text: string; tone: string } | null>(() => {
   // Priority: terminated → suspended → degraded → paused → delisted
   if (props.serviceStatus === 'terminated') {
-    return { text: messages.terminated, tone: 'bg-slate-50 text-slate-600' }
+    return { text: messages.terminated, tone: 'bg-ink-100 text-ink-600' }
   }
   if (props.serviceStatus === 'suspended') {
     return { text: messages.suspended, tone: 'bg-red-50 text-red-600' }
   }
   if (props.serviceStatus === 'degraded') {
-    return { text: messages.degraded, tone: 'bg-amber-50 text-amber-700' }
+    return { text: messages.degraded, tone: 'bg-warning-50 text-warning-600' }
   }
   if (props.availability === 'paused') {
     const text = props.hasAccess ? messages.pausedOwned : messages.pausedUnowned
-    return { text, tone: 'bg-amber-50 text-amber-700' }
+    return { text, tone: 'bg-warning-50 text-warning-600' }
   }
   if (props.availability === 'delisted') {
-    return { text: messages.delisted, tone: 'bg-slate-50 text-slate-600' }
+    return { text: messages.delisted, tone: 'bg-ink-100 text-ink-600' }
   }
   return null
 })

@@ -52,7 +52,7 @@ const datasetItems = computed<InfoItem[]>(() => {
     <!-- 关键指标（数据集专属，仅已配置项） -->
     <template v-if="activeTab === 'basic'">
       <template v-if="datasetItems.length">
-        <div class="mb-2 text-[13px] font-semibold text-slate-800">关键指标</div>
+        <div class="mb-2 text-[13px] font-semibold text-ink-900">关键指标</div>
         <InfoGrid :items="datasetItems" />
       </template>
     </template>
@@ -68,19 +68,19 @@ const datasetItems = computed<InfoItem[]>(() => {
     <!-- 样例数据 -->
     <div v-else-if="activeTab === 'samples'">
       <template v-if="product.hasSampleData !== false && detail.sampleRows.length > 0">
-        <div class="mb-2 rounded-lg bg-amber-50 px-3 py-1.5 text-[11px] text-amber-700">
+        <div class="mb-2 rounded-lg bg-warning-50 px-3 py-1.5 text-[11px] text-warning-600">
           脱敏样例 · 生成于 {{ detail.sampleGeneratedAt }} · 仅供评估，不可用于生产
         </div>
         <ScrollTable :columns="sampleColumns" :rows="detail.sampleRows" sticky-first />
       </template>
-      <div v-else class="py-8 text-center text-[13px] text-slate-400">当前无样例</div>
+      <div v-else class="py-8 text-center text-[13px] text-ink-400">当前无样例</div>
     </div>
 
     <!-- 探查报告：整表概览 + 按字段维度切换 -->
     <template v-else-if="activeTab === 'profiling'">
       <FieldProfilingPanel v-if="product.availability === 'published'" :detail="detail" />
-      <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+      <div v-else class="py-8 text-center text-[13px] text-ink-400">资料准备中</div>
     </template>
   </div>
-  <div v-else class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+  <div v-else class="py-8 text-center text-[13px] text-ink-400">资料准备中</div>
 </template>

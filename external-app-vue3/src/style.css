@@ -8,10 +8,11 @@ html, body, #app {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #f4f6fb;
-  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: #f7f8fa;
+  color: #1d2129;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 手机壳滚动条隐藏但可滚动 */
@@ -20,8 +21,28 @@ body {
   display: none;
 }
 
-.tag-chip {
-  @apply inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600;
+@layer components {
+  /* 通用中性标签 */
+  .tag-chip {
+    @apply inline-flex items-center gap-1 rounded bg-[#F2F3F5] px-2 py-0.5 text-xs text-[#4E5969];
+  }
+
+  /* PC 端卡片 */
+  .ui-card {
+    @apply rounded-xl border border-[#F0F1F3] bg-white shadow-card;
+  }
+
+  /* PC 端表单控件（原生 select/input 统一为 Arco 视觉） */
+  .ui-field {
+    @apply h-8 rounded-md border border-[#E5E6EB] bg-white px-2.5 text-xs text-[#1D2129] outline-none transition;
+  }
+  .ui-field::placeholder {
+    color: #a9aeb8;
+  }
+  .ui-field:focus {
+    @apply border-brand-500;
+    box-shadow: 0 0 0 2px rgba(22, 93, 255, 0.10);
+  }
 }
 
 .status-dot {

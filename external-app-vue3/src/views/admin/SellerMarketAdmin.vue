@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import PageHeader from '@/components/admin/PageHeader.vue'
 import { useSellerMarketStore } from '@/stores/sellerMarket'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOrderStore } from '@/stores/orders'
@@ -61,57 +62,90 @@ function adminActivate(orderId: string) {
     flash(e instanceof Error ? e.message : '操作失败')
   }
 }
+
+const ACCESS_STATUS: Record<string, { text: string; cls: string }> = {
+  pending_review: { text: '待审核', cls: 'bg-warning-50 text-warning-600' },
+  need_supplement: { text: '待补充材料', cls: 'bg-warning-50 text-warning-600' },
+  approved: { text: '已通过', cls: 'bg-success-50 text-success-600' },
+  rejected: { text: '已驳回', cls: 'bg-ink-100 text-ink-600' },
+  suspended: { text: '已暂停', cls: 'bg-danger-50 text-danger-600' }
+}
+function accessStatusText(s: string) { return ACCESS_STATUS[s]?.text ?? s }
+function accessStatusClass(s: string) { return ACCESS_STATUS[s]?.cls ?? 'bg-ink-100 text-ink-600' }
+
+const LISTING_STATUS: Record<string, { text: string; cls: string }> = {
+  pending_review: { text: '待审核', cls: 'bg-warning-50 text-warning-600' },
+  published: { text: '已发布', cls: 'bg-success-50 text-success-600' },
+  rejected: { text: '已驳回', cls: 'bg-ink-100 text-ink-600' },
+  delisted: { text: '已下架', cls: 'bg-ink-100 text-ink-600' }
+}
+function listingStatusText(s: string) { return LISTING_STATUS[s]?.text ?? s }
+function listingStatusClass(s: string) { return LISTING_STATUS[s]?.cls ?? 'bg-ink-100 text-ink-600' }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
 
 <template>
   <div class="p-6">
-    <div class="mb-4 flex items-end justify-between gap-3">
-      <div>
-        <h1 class="text-xl font-semibold text-slate-900">入驻商家</h1>
-        <p class="mt-1 text-sm text-slate-500">资质合规审 · 上架审 · 平台收款后由运营开通</p>
-      </div>
-      <div v-if="toast" class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">{{ toast }}</div>
-    </div>
+    <PageHeader title="入驻商家" desc="资质合规审 · 上架审 · 平台收款后由运营开通" />
 
-    <div class="mb-4 flex gap-2">
+    <!-- 浮动提示 -->
+    <transition name="fade">
+      <div v-if="toast" class="fixed right-6 top-6 z-50 rounded-lg bg-ink-900 px-4 py-2.5 text-sm text-white shadow-float">{{ toast }}</div>
+    </transition>
+
+    <div class="mb-4 inline-flex rounded-lg bg-ink-100 p-1">
       <button
         v-for="item in [
-          { id: 'access', label: `准入审核 (${seller.pendingAccess.length})` },
-          { id: 'listing', label: `上架审核 (${seller.pendingListings.length})` },
-          { id: 'orders', label: `商家订单 (${sellerOrders.filter(o => o.status === 'pending_payment' || o.status === 'pending_activation' || o.status === 'payment_pending_confirmation').length})` }
+          { id: 'access', label: '准入审核', count: seller.pendingAccess.length },
+          { id: 'listing', label: '上架审核', count: seller.pendingListings.length },
+          { id: 'orders', label: '商家订单', count: sellerOrders.filter(o => o.status === 'pending_payment' || o.status === 'pending_activation' || o.status === 'payment_pending_confirmation').length }
         ]"
         :key="item.id"
-        class="rounded-lg px-3 py-2 text-sm"
-        :class="tab === item.id ? 'bg-orange-500 text-white' : 'border border-slate-200 bg-white text-slate-600'"
+        class="flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm transition"
+        :class="tab === item.id ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-600 hover:text-ink-900'"
         @click="tab = item.id as typeof tab"
-      >{{ item.label }}</button>
+      >
+        {{ item.label }}
+        <span v-if="item.count" class="rounded-full px-1.5 py-px text-[11px] leading-4" :class="tab === item.id ? 'bg-brand-50 text-brand-600' : 'bg-ink-200 text-ink-600'">{{ item.count }}</span>
+      </button>
     </div>
 
-    <section v-if="tab === 'access'" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <section v-if="tab === 'access'" class="ui-card overflow-hidden">
       <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs text-slate-500">
+        <thead class="bg-ink-100 text-left text-xs text-ink-500">
           <tr>
-            <th class="px-4 py-3">卖家</th>
-            <th class="px-4 py-3">主体</th>
-            <th class="px-4 py-3">收款</th>
-            <th class="px-4 py-3">状态</th>
-            <th class="px-4 py-3">操作</th>
+            <th class="px-4 py-3 font-medium">卖家</th>
+            <th class="px-4 py-3 font-medium">主体</th>
+            <th class="px-4 py-3 font-medium">收款</th>
+            <th class="px-4 py-3 font-medium">状态</th>
+            <th class="px-4 py-3 font-medium">操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in seller.profiles" :key="p.id" class="border-t border-slate-100">
+          <tr v-for="p in seller.profiles" :key="p.id" class="border-t border-ink-100 transition hover:bg-ink-100/60">
             <td class="px-4 py-3">
-              <div class="font-medium text-slate-800">{{ p.displayName }}</div>
-              <div class="text-xs text-slate-400">{{ p.id }}</div>
+              <div class="font-medium text-ink-900">{{ p.displayName }}</div>
+              <div class="text-xs text-ink-500">{{ p.id }}</div>
             </td>
-            <td class="px-4 py-3 text-slate-600">{{ p.subjectType }} · {{ p.compliance.realName }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ p.compliance.payoutBank }} {{ p.compliance.payoutAccountMasked }}</td>
-            <td class="px-4 py-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ p.status }}</span></td>
+            <td class="px-4 py-3 text-ink-600">{{ p.subjectType }} · {{ p.compliance.realName }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ p.compliance.payoutBank }} {{ p.compliance.payoutAccountMasked }}</td>
+            <td class="px-4 py-3"><span class="rounded px-2 py-0.5 text-xs" :class="accessStatusClass(p.status)">{{ accessStatusText(p.status) }}</span></td>
             <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-2">
-                <button v-if="p.status === 'pending_review' || p.status === 'need_supplement'" class="rounded bg-orange-500 px-2 py-1 text-xs text-white" @click="approveAccess(p.id)">通过</button>
-                <button v-if="p.status === 'pending_review'" class="rounded border px-2 py-1 text-xs" @click="rejectAccess(p.id)">驳回</button>
-                <button v-if="p.status === 'approved'" class="rounded border border-red-200 px-2 py-1 text-xs text-red-600" @click="suspendAccess(p.id)">暂停</button>
+              <div class="flex flex-wrap items-center gap-3 text-xs">
+                <button v-if="p.status === 'pending_review' || p.status === 'need_supplement'" class="font-medium text-brand-600 hover:text-brand-700" @click="approveAccess(p.id)">通过</button>
+                <button v-if="p.status === 'pending_review'" class="text-ink-500 hover:text-ink-700" @click="rejectAccess(p.id)">驳回</button>
+                <button v-if="p.status === 'approved'" class="text-danger-600 hover:text-danger-500" @click="suspendAccess(p.id)">暂停</button>
+                <span v-if="p.status !== 'pending_review' && p.status !== 'need_supplement' && p.status !== 'approved'" class="text-ink-400">—</span>
               </div>
             </td>
           </tr>
@@ -120,45 +154,45 @@ function adminActivate(orderId: string) {
     </section>
 
     <section v-else-if="tab === 'listing'" class="space-y-4">
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div class="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">上架申请队列</div>
+      <div class="ui-card overflow-hidden">
+        <div class="border-b border-ink-200 px-4 py-3 text-sm font-semibold text-ink-900">上架申请队列</div>
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 text-left text-xs text-slate-500">
+          <thead class="bg-ink-100 text-left text-xs text-ink-500">
             <tr>
-              <th class="px-4 py-3">商品</th>
-              <th class="px-4 py-3">卖家</th>
-              <th class="px-4 py-3">对象版本</th>
-              <th class="px-4 py-3">价格（个人/企业）</th>
-              <th class="px-4 py-3">状态</th>
-              <th class="px-4 py-3">操作</th>
+              <th class="px-4 py-3 font-medium">商品</th>
+              <th class="px-4 py-3 font-medium">卖家</th>
+              <th class="px-4 py-3 font-medium">对象版本</th>
+              <th class="px-4 py-3 font-medium">价格（个人/企业）</th>
+              <th class="px-4 py-3 font-medium">状态</th>
+              <th class="px-4 py-3 font-medium">操作</th>
             </tr>
           </thead>
           <tbody>
             <template v-for="l in seller.listings" :key="l.id">
-              <tr class="border-t border-slate-100">
+              <tr class="border-t border-ink-100 transition hover:bg-ink-100/60">
                 <td class="px-4 py-3">
-                  <div class="font-medium">{{ l.title }}</div>
-                  <div class="text-xs text-slate-400">{{ l.complianceSummary }}</div>
+                  <div class="font-medium text-ink-900">{{ l.title }}</div>
+                  <div class="text-xs text-ink-500">{{ l.complianceSummary }}</div>
                 </td>
-                <td class="px-4 py-3">{{ l.sellerName }}</td>
-                <td class="px-4 py-3 text-slate-600">{{ l.artifactId }} @ {{ l.artifactVersion }}</td>
-                <td class="px-4 py-3">¥{{ l.price }} / ¥{{ l.enterprisePrice }}</td>
-                <td class="px-4 py-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ l.status }}</span></td>
+                <td class="px-4 py-3 text-ink-600">{{ l.sellerName }}</td>
+                <td class="px-4 py-3 text-ink-600">{{ l.artifactId }} @ {{ l.artifactVersion }}</td>
+                <td class="px-4 py-3 text-ink-900">¥{{ l.price }} / ¥{{ l.enterprisePrice }}</td>
+                <td class="px-4 py-3"><span class="rounded px-2 py-0.5 text-xs" :class="listingStatusClass(l.status)">{{ listingStatusText(l.status) }}</span></td>
                 <td class="px-4 py-3">
-                  <div class="flex flex-wrap gap-2">
+                  <div class="flex flex-wrap items-center gap-3 text-xs">
                     <button
-                      class="rounded border px-2 py-1 text-xs"
+                      class="text-ink-600 hover:text-brand-600"
                       :data-testid="`listing-shots-toggle-${l.id}`"
                       @click="expandedListingId = expandedListingId === l.id ? '' : l.id"
                     >{{ expandedListingId === l.id ? '收起内容' : '查看上架内容' }}</button>
-                    <button v-if="l.status === 'pending_review'" class="rounded bg-orange-500 px-2 py-1 text-xs text-white" @click="approveListing(l.id)">通过并发布</button>
-                    <button v-if="l.status === 'pending_review'" class="rounded border px-2 py-1 text-xs" @click="rejectListing(l.id)">驳回</button>
+                    <button v-if="l.status === 'pending_review'" class="font-medium text-brand-600 hover:text-brand-700" @click="approveListing(l.id)">通过并发布</button>
+                    <button v-if="l.status === 'pending_review'" class="text-ink-500 hover:text-ink-700" @click="rejectListing(l.id)">驳回</button>
                   </div>
                 </td>
               </tr>
-              <tr v-if="expandedListingId === l.id" class="border-t border-slate-50 bg-slate-50/80">
-                <td colspan="6" class="px-4 py-3">
-                  <div v-if="l.catalogSpec" class="mb-3 grid grid-cols-2 gap-2 text-xs text-slate-600" data-testid="listing-catalog-spec">
+              <tr v-if="expandedListingId === l.id" class="border-t border-ink-100 bg-ink-100/60">
+                <td colspan="6" class="px-4 py-4">
+                  <div v-if="l.catalogSpec" class="grid grid-cols-2 gap-x-8 gap-y-1.5 text-xs text-ink-600" data-testid="listing-catalog-spec">
                     <div>数据粒度：{{ l.catalogSpec.granularity || '—' }}</div>
                     <div>时间范围：{{ l.catalogSpec.timeRange || '—' }}</div>
                     <div>数据行数：{{ l.catalogSpec.rowCount ?? '—' }}</div>
@@ -179,26 +213,27 @@ function adminActivate(orderId: string) {
         </table>
       </div>
 
-      <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div class="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-800">在架入驻商家商品</div>
+      <div class="ui-card overflow-hidden">
+        <div class="border-b border-ink-200 px-4 py-3 text-sm font-semibold text-ink-900">在架入驻商家商品</div>
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 text-left text-xs text-slate-500">
+          <thead class="bg-ink-100 text-left text-xs text-ink-500">
             <tr>
-              <th class="px-4 py-3">商品</th>
-              <th class="px-4 py-3">卖家</th>
-              <th class="px-4 py-3">来源声明</th>
-              <th class="px-4 py-3">状态</th>
-              <th class="px-4 py-3">操作</th>
+              <th class="px-4 py-3 font-medium">商品</th>
+              <th class="px-4 py-3 font-medium">卖家</th>
+              <th class="px-4 py-3 font-medium">来源声明</th>
+              <th class="px-4 py-3 font-medium">状态</th>
+              <th class="px-4 py-3 font-medium">操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="p in sellerProducts" :key="p.id" class="border-t border-slate-100">
-              <td class="px-4 py-3 font-medium">{{ p.name }}</td>
-              <td class="px-4 py-3">{{ p.sellerName }}</td>
-              <td class="px-4 py-3">{{ p.dataProvenance === 'derived' ? '已购衍生' : '自有' }}</td>
-              <td class="px-4 py-3">{{ p.availability }} / {{ p.status }}</td>
-              <td class="px-4 py-3">
-                <button v-if="p.availability === 'published'" class="rounded border border-red-200 px-2 py-1 text-xs text-red-600" @click="delist(p.id)">强制下架</button>
+            <tr v-for="p in sellerProducts" :key="p.id" class="border-t border-ink-100 transition hover:bg-ink-100/60">
+              <td class="px-4 py-3 font-medium text-ink-900">{{ p.name }}</td>
+              <td class="px-4 py-3 text-ink-600">{{ p.sellerName }}</td>
+              <td class="px-4 py-3 text-ink-600">{{ p.dataProvenance === 'derived' ? '已购衍生' : '自有' }}</td>
+              <td class="px-4 py-3 text-ink-600">{{ p.availability }} / {{ p.status }}</td>
+              <td class="px-4 py-3 text-xs">
+                <button v-if="p.availability === 'published'" class="text-danger-600 hover:text-danger-500" @click="delist(p.id)">强制下架</button>
+                <span v-else class="text-ink-400">—</span>
               </td>
             </tr>
           </tbody>
@@ -206,43 +241,44 @@ function adminActivate(orderId: string) {
       </div>
     </section>
 
-    <section v-else class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <section v-else class="ui-card overflow-hidden">
       <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs text-slate-500">
+        <thead class="bg-ink-100 text-left text-xs text-ink-500">
           <tr>
-            <th class="px-4 py-3">订单</th>
-            <th class="px-4 py-3">商品</th>
-            <th class="px-4 py-3">金额</th>
-            <th class="px-4 py-3">状态</th>
-            <th class="px-4 py-3">操作</th>
+            <th class="px-4 py-3 font-medium">订单</th>
+            <th class="px-4 py-3 font-medium">商品</th>
+            <th class="px-4 py-3 font-medium">金额</th>
+            <th class="px-4 py-3 font-medium">状态</th>
+            <th class="px-4 py-3 font-medium">操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="o in sellerOrders" :key="o.id" class="border-t border-slate-100">
+          <tr v-for="o in sellerOrders" :key="o.id" class="border-t border-ink-100 transition hover:bg-ink-100/60">
             <td class="px-4 py-3">
-              <div class="font-medium">{{ o.id }}</div>
-              <div class="text-xs text-slate-400">买家 {{ o.ownerId }} · 卖家 {{ o.sellerId }}</div>
+              <div class="font-medium text-ink-900">{{ o.id }}</div>
+              <div class="text-xs text-ink-500">买家 {{ o.ownerId }} · 卖家 {{ o.sellerId }}</div>
             </td>
-            <td class="px-4 py-3">{{ o.productName }}</td>
-            <td class="px-4 py-3">¥{{ o.amount }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ o.productName }}</td>
+            <td class="px-4 py-3 font-medium text-ink-900">¥{{ o.amount }}</td>
             <td class="px-4 py-3">
-              <span v-if="o.status === 'pending_activation'" class="rounded bg-amber-50 px-2 py-0.5 text-xs text-amber-700">待开通</span>
-              <span v-else-if="o.status === 'pending_payment'" class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">待支付</span>
-              <span v-else-if="o.status === 'entitlement_active'" class="rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">已开通</span>
-              <span v-else class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ o.status }}</span>
+              <span v-if="o.status === 'pending_activation'" class="rounded bg-warning-50 px-2 py-0.5 text-xs text-warning-600">待开通</span>
+              <span v-else-if="o.status === 'pending_payment'" class="rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">待支付</span>
+              <span v-else-if="o.status === 'entitlement_active'" class="rounded bg-success-50 px-2 py-0.5 text-xs text-success-600">已开通</span>
+              <span v-else class="rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">{{ o.status }}</span>
             </td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-3 text-xs">
               <button
                 v-if="o.status === 'pending_payment' || o.status === 'payment_pending_confirmation'"
-                class="rounded bg-orange-500 px-2 py-1 text-xs text-white"
+                class="font-medium text-brand-600 hover:text-brand-700"
                 @click="adminConfirm(o.id)"
               >确认平台到账</button>
               <button
                 v-else-if="o.status === 'pending_activation'"
-                class="rounded bg-orange-500 px-2 py-1 text-xs text-white"
+                class="font-medium text-brand-600 hover:text-brand-700"
                 data-testid="seller-admin-activate"
                 @click="adminActivate(o.id)"
               >开通</button>
+              <span v-else class="text-ink-400">—</span>
             </td>
           </tr>
         </tbody>

@@ -19,11 +19,11 @@ const modules = [
       <div
         v-for="item in modules"
         :key="item.name"
-        class="rounded-xl border border-dashed border-slate-200 bg-white p-4"
+        class="rounded-xl border border-dashed border-ink-200 bg-white p-4"
       >
-        <div class="text-sm font-medium text-slate-800">{{ item.name }}</div>
-        <p class="mt-2 text-xs leading-relaxed text-slate-500">{{ item.desc }}</p>
-        <div class="mt-3 text-[11px] text-slate-400">本期原型占位 · 不可配置</div>
+        <div class="text-sm font-medium text-ink-900">{{ item.name }}</div>
+        <p class="mt-2 text-xs leading-relaxed text-ink-500">{{ item.desc }}</p>
+        <div class="mt-3 text-[11px] text-ink-500">本期原型占位 · 不可配置</div>
       </div>
     </div>
   </div>

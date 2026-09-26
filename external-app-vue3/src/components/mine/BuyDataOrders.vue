@@ -80,12 +80,12 @@ function exportEnterpriseOrders() {
 
 const actionPrimary = 'rounded-full bg-brand-500 px-3 py-1.5 text-[11px] text-white'
 const actionBrand = 'rounded-full border border-brand-500 px-3 py-1.5 text-[11px] text-brand-600'
-const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] text-slate-600'
+const actionBtn = 'rounded-full border border-ink-200 px-3 py-1.5 text-[11px] text-ink-600'
 </script>
 
 <template>
   <section v-if="variant === 'mobile'" class="mt-3 space-y-3" data-testid="my-orders">
-    <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl bg-violet-50 px-3 py-2 text-[11px] text-violet-700" data-testid="enterprise-order-filter-context">
+    <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl bg-[#F5E8FF] px-3 py-2 text-[11px] text-[#722ED1]" data-testid="enterprise-order-filter-context">
       <span>当前仅显示 {{ user.enterprise.name }} 的可见订单</span>
       <button class="font-medium" @click="setSubjectFilter('all')">查看全部</button>
     </div>
@@ -94,16 +94,16 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
         v-for="filter in buyDataStatusFilters"
         :key="filter"
         class="shrink-0 rounded-full border px-3 py-1.5 text-[11px]"
-        :class="orderFilter === filter ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-200 bg-white text-slate-500'"
+        :class="orderFilter === filter ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-200 bg-white text-ink-500'"
         @click="orderFilter = filter"
       >{{ orderFilterLabel(filter) }}</button>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 rounded-xl border border-slate-100 bg-white p-2.5 text-[11px]">
-      <select v-model="typeFilter" aria-label="商品类型筛选" class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-slate-600">
+    <div class="grid grid-cols-2 gap-2 rounded-xl border border-ink-100 bg-white p-2.5 text-[11px]">
+      <select v-model="typeFilter" aria-label="商品类型筛选" class="rounded-lg border border-ink-200 bg-white px-2 py-2 text-ink-600">
         <option v-for="option in buyDataTypeFilterOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
-      <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-slate-600">
+      <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-ink-200 bg-white px-2 py-2 text-ink-600">
         <option value="all">全部成交渠道</option><option value="app">APP 内购买</option><option value="space">可信空间购买</option>
       </select>
     </div>
@@ -117,7 +117,7 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       @click="openOrder(order)"
     >
       <template #badges>
-        <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">{{ buyDataProductTypeLabel(order.productType) }}</span>
+        <span class="rounded-full bg-brand-50 px-2 py-0.5 text-brand-600">{{ buyDataProductTypeLabel(order.productType) }}</span>
       </template>
       <template #title>{{ order.productName }}</template>
       <template #status>
@@ -125,11 +125,11 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       </template>
       <template #notice>
         <div class="flex items-end justify-between gap-3">
-          <div class="min-w-0 text-[11px] text-slate-400">
+          <div class="min-w-0 text-[11px] text-ink-500">
             {{ formatOrderTime(order.createdAt) }}
           </div>
           <div class="shrink-0 text-right">
-            <div v-if="orderAmountCaption(order)" class="text-[10px] text-slate-400">{{ orderAmountCaption(order) }}</div>
+            <div v-if="orderAmountCaption(order)" class="text-[10px] text-ink-500">{{ orderAmountCaption(order) }}</div>
             <div class="text-[13px] font-semibold text-brand-600">{{ order.amountText }}</div>
           </div>
         </div>
@@ -145,25 +145,25 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
   </section>
 
   <section v-else class="space-y-3" data-testid="portal-my-orders">
-    <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-700" data-testid="portal-enterprise-order-filter-context">
+    <div v-if="subjectFilter === 'enterprise'" class="flex items-center justify-between rounded-xl border border-[#F5E8FF] bg-[#F5E8FF] px-4 py-3 text-xs text-[#722ED1]" data-testid="portal-enterprise-order-filter-context">
       <span>当前仅显示 {{ user.enterprise.name }} 的可见订单</span>
       <button class="font-medium" @click="setSubjectFilter('all')">查看全部</button>
     </div>
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex flex-wrap gap-2">
-        <button v-for="filter in buyDataStatusFilters" :key="filter" class="rounded-lg border px-4 py-2 text-xs" :class="orderFilter === filter ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-200 bg-white text-slate-500'" @click="orderFilter = filter">{{ orderFilterLabel(filter) }}</button>
+        <button v-for="filter in buyDataStatusFilters" :key="filter" class="rounded-lg border px-4 py-2 text-xs" :class="orderFilter === filter ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-200 bg-white text-ink-500'" @click="orderFilter = filter">{{ orderFilterLabel(filter) }}</button>
       </div>
-      <button v-if="isAdmin" data-testid="export-enterprise-orders" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs text-slate-600" @click="exportEnterpriseOrders">导出企业订单</button>
+      <button v-if="isAdmin" data-testid="export-enterprise-orders" class="rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-xs text-ink-600" @click="exportEnterpriseOrders">导出企业订单</button>
     </div>
 
-    <div class="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs">
-      <select v-model="typeFilter" aria-label="商品类型筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600">
+    <div class="grid grid-cols-3 gap-3 rounded-xl border border-ink-200 bg-white p-4 text-xs">
+      <select v-model="typeFilter" aria-label="商品类型筛选" class="rounded-lg border border-ink-200 px-3 py-2 text-ink-600">
         <option v-for="option in buyDataTypeFilterOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
-      <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600"><option value="all">全部成交渠道</option><option value="app">APP 内购买</option><option value="space">可信空间购买</option></select>
-      <select v-model="timeFilter" aria-label="下单时间筛选" class="rounded-lg border border-slate-200 px-3 py-2 text-slate-600"><option value="all">全部下单时间</option><option value="30d">近 30 天</option><option value="365d">近 1 年</option></select>
+      <select v-model="channelFilter" aria-label="成交渠道筛选" class="rounded-lg border border-ink-200 px-3 py-2 text-ink-600"><option value="all">全部成交渠道</option><option value="app">APP 内购买</option><option value="space">可信空间购买</option></select>
+      <select v-model="timeFilter" aria-label="下单时间筛选" class="rounded-lg border border-ink-200 px-3 py-2 text-ink-600"><option value="all">全部下单时间</option><option value="30d">近 30 天</option><option value="365d">近 1 年</option></select>
     </div>
-    <div v-if="exportNotice" class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2.5 text-xs text-emerald-700"><span>{{ exportNotice }}</span><button @click="exportNotice = ''">关闭</button></div>
+    <div v-if="exportNotice" class="flex items-center justify-between rounded-lg bg-success-50 px-4 py-2.5 text-xs text-success-600"><span>{{ exportNotice }}</span><button @click="exportNotice = ''">关闭</button></div>
 
     <MineEntityCard
       v-for="order in filteredOrders"
@@ -174,7 +174,7 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       @click="openOrder(order)"
     >
       <template #badges>
-        <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600">{{ buyDataProductTypeLabel(order.productType) }}</span>
+        <span class="rounded-full bg-brand-50 px-2 py-0.5 text-brand-600">{{ buyDataProductTypeLabel(order.productType) }}</span>
       </template>
       <template #title>{{ order.productName }}</template>
       <template #status>
@@ -182,11 +182,11 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
       </template>
       <template #notice>
         <div class="flex items-end justify-between gap-3">
-          <div class="min-w-0 text-xs text-slate-400">
+          <div class="min-w-0 text-xs text-ink-500">
             {{ formatOrderTime(order.createdAt) }}
           </div>
           <div class="shrink-0 text-right">
-            <div v-if="orderAmountCaption(order)" class="text-[11px] text-slate-400">{{ orderAmountCaption(order) }}</div>
+            <div v-if="orderAmountCaption(order)" class="text-[11px] text-ink-500">{{ orderAmountCaption(order) }}</div>
             <div class="text-sm font-semibold text-brand-600">{{ order.amountText }}</div>
           </div>
         </div>
@@ -198,6 +198,6 @@ const actionBtn = 'rounded-full border border-slate-200 px-3 py-1.5 text-[11px] 
         <button :class="actionBtn" @click.stop="openProduct(order)">查看商品</button>
       </template>
     </MineEntityCard>
-    <div v-if="!filteredOrders.length" class="rounded-2xl border border-slate-100 bg-white p-12 text-center text-sm text-slate-400 shadow-card">暂无符合条件的订单</div>
+    <div v-if="!filteredOrders.length" class="rounded-2xl border border-ink-100 bg-white p-12 text-center text-sm text-ink-500 shadow-card">暂无符合条件的订单</div>
   </section>
 </template>

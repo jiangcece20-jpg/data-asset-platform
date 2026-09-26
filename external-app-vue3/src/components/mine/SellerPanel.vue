@@ -40,13 +40,13 @@ function selectTab(next: SellerTab) {
 
 <template>
   <div data-testid="seller-panel">
-    <div class="flex gap-4 overflow-x-auto border-b border-slate-100 px-1 text-[13px]">
+    <div class="flex gap-4 overflow-x-auto border-b border-ink-100 px-1 text-[13px]">
       <button
         v-for="item in tabs"
         :key="item.value"
         :data-testid="`seller-tab-${item.value}`"
         class="shrink-0 border-b-2 px-1 py-2 transition"
-        :class="sellerTab === item.value ? 'border-brand-500 font-medium text-brand-600' : 'border-transparent text-slate-500'"
+        :class="sellerTab === item.value ? 'border-brand-500 font-medium text-brand-600' : 'border-transparent text-ink-500'"
         @click="selectTab(item.value)"
       >{{ item.label }}</button>
     </div>
@@ -54,7 +54,7 @@ function selectTab(next: SellerTab) {
     <SellerApply v-if="sellerTab === 'apply'" embedded :variant="variant" @done="selectTab('listings')" />
 
     <template v-else-if="sellerTab === 'listing'">
-      <div v-if="gateMessage" class="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-3 text-[12px] text-amber-800">
+      <div v-if="gateMessage" class="mt-3 rounded-xl border border-warning-100 bg-warning-50 px-3 py-3 text-[12px] text-warning-600">
         {{ gateMessage }}
         <button class="ml-2 font-medium text-brand-600" @click="selectTab('apply')">去入驻申请</button>
       </div>
@@ -62,7 +62,7 @@ function selectTab(next: SellerTab) {
     </template>
 
     <template v-else-if="sellerTab === 'orders'">
-      <div v-if="gateMessage" class="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-3 text-[12px] text-amber-800">
+      <div v-if="gateMessage" class="mt-3 rounded-xl border border-warning-100 bg-warning-50 px-3 py-3 text-[12px] text-warning-600">
         {{ gateMessage }}
         <button class="ml-2 font-medium text-brand-600" @click="selectTab('apply')">去入驻申请</button>
       </div>
@@ -70,7 +70,7 @@ function selectTab(next: SellerTab) {
     </template>
 
     <template v-else>
-      <div v-if="gateMessage" class="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-3 text-[12px] text-amber-800">
+      <div v-if="gateMessage" class="mt-3 rounded-xl border border-warning-100 bg-warning-50 px-3 py-3 text-[12px] text-warning-600">
         {{ gateMessage }}
         <button class="ml-2 font-medium text-brand-600" @click="selectTab('apply')">去入驻申请</button>
       </div>

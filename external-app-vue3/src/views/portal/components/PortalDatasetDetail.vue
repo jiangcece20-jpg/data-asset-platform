@@ -178,10 +178,10 @@ const booleanBar = computed(() => {
         <div
           v-for="item in datasetItems"
           :key="item.label"
-          class="rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3"
+          class="rounded-lg border border-brand-100 bg-brand-50/60 px-4 py-3"
         >
-          <div class="text-xs text-blue-600/70">{{ item.label }}</div>
-          <div class="mt-1 text-lg font-bold text-blue-900">{{ displayValue(item.value) }}</div>
+          <div class="text-xs text-brand-600/70">{{ item.label }}</div>
+          <div class="mt-1 text-lg font-bold text-brand-700">{{ displayValue(item.value) }}</div>
         </div>
       </div>
 
@@ -190,19 +190,19 @@ const booleanBar = computed(() => {
 
       <!-- 商品说明书 -->
       <div class="space-y-3">
-        <h3 class="text-sm font-semibold text-slate-800">商品说明书</h3>
-        <div class="space-y-3 text-sm leading-relaxed text-slate-600">
+        <h3 class="text-sm font-semibold text-ink-900">商品说明书</h3>
+        <div class="space-y-3 text-sm leading-relaxed text-ink-600">
           <div>
-            <span class="text-slate-400">价值主张：</span>{{ product.valueProposition }}
+            <span class="text-ink-500">价值主张：</span>{{ product.valueProposition }}
           </div>
           <div>
-            <span class="text-slate-400">详细描述：</span>{{ product.description }}
+            <span class="text-ink-500">详细描述：</span>{{ product.description }}
           </div>
           <div>
-            <span class="text-slate-400">质量承诺：</span>{{ product.qualityPromise }}
+            <span class="text-ink-500">质量承诺：</span>{{ product.qualityPromise }}
           </div>
           <div>
-            <span class="text-slate-400">合规声明：</span>{{ product.complianceNote }}
+            <span class="text-ink-500">合规声明：</span>{{ product.complianceNote }}
           </div>
         </div>
       </div>
@@ -210,10 +210,10 @@ const booleanBar = computed(() => {
       <!-- 产品介绍（空间同步富文本） -->
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
-          <h3 class="text-sm font-semibold text-slate-800">产品介绍</h3>
-          <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+          <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
+          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
         </div>
-        <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
     </div>
 
@@ -221,7 +221,7 @@ const booleanBar = computed(() => {
     <div v-else-if="activeTab === 'fields'">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-slate-200 bg-slate-50 text-xs text-slate-400">
+          <tr class="border-b border-ink-200 bg-ink-100 text-xs text-ink-500">
             <th class="px-4 py-3 text-left font-medium">字段名</th>
             <th class="px-4 py-3 text-left font-medium">类型</th>
             <th class="px-4 py-3 text-left font-medium">业务含义</th>
@@ -235,15 +235,15 @@ const booleanBar = computed(() => {
           <tr
             v-for="f in detail.fields"
             :key="f.name"
-            class="border-b border-slate-100 hover:bg-slate-50/60"
+            class="border-b border-ink-100 hover:bg-ink-100/60"
           >
-            <td class="px-4 py-3 font-mono text-xs text-slate-700">{{ f.name }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ f.dataType }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ f.meaning }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ f.description }}</td>
-            <td class="px-4 py-3 text-center">{{ f.primaryKey ? '🔑' : '' }}</td>
-            <td class="px-4 py-3 text-center">{{ f.nullable ? '✓' : '✗' }}</td>
-            <td class="px-4 py-3 text-center text-slate-600">{{ f.sensitivity ?? '—' }}</td>
+            <td class="px-4 py-3 font-mono text-xs text-ink-700">{{ f.name }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ f.dataType }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ f.meaning }}</td>
+            <td class="px-4 py-3 text-ink-600">{{ f.description }}</td>
+            <td class="px-4 py-3 text-center">{{ f.primaryKey ? '主键' : '' }}</td>
+            <td class="px-4 py-3 text-center">{{ f.nullable ? '是' : '否' }}</td>
+            <td class="px-4 py-3 text-center text-ink-600">{{ f.sensitivity ?? '—' }}</td>
           </tr>
         </tbody>
       </table>
@@ -252,12 +252,12 @@ const booleanBar = computed(() => {
     <!-- ==================== Tab 3: 样例数据 ==================== -->
     <div v-else-if="activeTab === 'samples'">
       <template v-if="product.hasSampleData !== false && detail.sampleRows.length > 0">
-        <div class="mb-3 rounded-lg bg-amber-50 px-4 py-2 text-xs text-amber-700">
+        <div class="mb-3 rounded-lg bg-warning-50 px-4 py-2 text-xs text-warning-600">
           脱敏样例 · 生成于 {{ detail.sampleGeneratedAt }} · 仅供评估，不可用于生产
         </div>
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-slate-200 bg-slate-50 text-xs text-slate-400">
+            <tr class="border-b border-ink-200 bg-ink-100 text-xs text-ink-500">
               <th
                 v-for="col in detail.sampleColumns"
                 :key="col"
@@ -269,24 +269,24 @@ const booleanBar = computed(() => {
             <tr
               v-for="(row, idx) in detail.sampleRows"
               :key="idx"
-              class="border-b border-slate-100"
+              class="border-b border-ink-100"
             >
               <td
                 v-for="col in detail.sampleColumns"
                 :key="col"
-                class="px-4 py-2.5 text-slate-600"
+                class="px-4 py-2.5 text-ink-600"
               >{{ row[col] }}</td>
             </tr>
           </tbody>
         </table>
       </template>
-      <div v-else class="py-12 text-center text-sm text-slate-400">当前无样例</div>
+      <div v-else class="py-12 text-center text-sm text-ink-500">当前无样例</div>
     </div>
 
     <!-- ==================== Tab 4: 探查报告 ==================== -->
     <div v-else-if="activeTab === 'profiling'">
       <template v-if="product.availability !== 'published'">
-        <div class="py-12 text-center text-sm text-slate-400">资料准备中</div>
+        <div class="py-12 text-center text-sm text-ink-500">资料准备中</div>
       </template>
       <template v-else>
         <div v-if="dimensions.length" class="flex gap-4">
@@ -298,7 +298,7 @@ const booleanBar = computed(() => {
               class="w-full rounded-lg px-3 py-2 text-left text-sm transition"
               :class="active === dim.key
                 ? 'bg-brand-50 font-medium text-brand-600'
-                : 'text-slate-600 hover:bg-slate-50'"
+                : 'text-ink-600 hover:bg-ink-100'"
               @click="active = dim.key"
             >{{ dim.label }}</button>
           </div>
@@ -308,35 +308,35 @@ const booleanBar = computed(() => {
             <template v-if="currentStat">
               <!-- 类型标签 -->
               <div class="mb-4">
-                <span class="rounded bg-slate-100 px-2.5 py-0.5 text-xs text-slate-500">
+                <span class="rounded bg-ink-100 px-2.5 py-0.5 text-xs text-ink-500">
                   {{ kindLabel[currentStat.kind] }}
                 </span>
               </div>
 
               <!-- 指标卡 3列网格 -->
-              <div class="mb-6 grid grid-cols-3 gap-px bg-slate-100">
+              <div class="mb-6 grid grid-cols-3 gap-px bg-ink-100">
                 <div
                   v-for="(item, idx) in statItems"
                   :key="`${item.label}-${idx}`"
                   class="bg-white px-4 py-3"
                 >
-                  <div class="text-xs text-slate-400">{{ item.label }}</div>
-                  <div class="mt-1 text-sm font-semibold text-slate-900">{{ item.value }}</div>
+                  <div class="text-xs text-ink-500">{{ item.label }}</div>
+                  <div class="mt-1 text-sm font-semibold text-ink-900">{{ item.value }}</div>
                 </div>
               </div>
 
               <!-- 布尔型 TRUE/FALSE 占比条 -->
               <div v-if="showBooleanBar && booleanBar" class="mb-6">
-                <div class="mb-2 text-xs font-medium text-slate-500">TRUE / FALSE 占比</div>
+                <div class="mb-2 text-xs font-medium text-ink-500">TRUE / FALSE 占比</div>
                 <div class="flex h-7 overflow-hidden rounded-full">
                   <div
-                    class="flex items-center justify-center bg-emerald-400 text-xs text-white"
+                    class="flex items-center justify-center bg-success-500 text-xs text-white"
                     :style="{ width: booleanBar.truePercent + '%' }"
                   >
                     <span v-if="booleanBar.truePercent >= 10">{{ booleanBar.truePercent }}%</span>
                   </div>
                   <div
-                    class="flex items-center justify-center bg-slate-300 text-xs text-slate-600"
+                    class="flex items-center justify-center bg-ink-300 text-xs text-ink-600"
                     :style="{ width: booleanBar.falsePercent + '%' }"
                   >
                     <span v-if="booleanBar.falsePercent >= 10">{{ booleanBar.falsePercent }}%</span>
@@ -346,16 +346,16 @@ const booleanBar = computed(() => {
 
               <!-- 数值 / 字符串：纵向列表条 -->
               <div v-if="showListDistribution" class="mb-6">
-                <div class="mb-3 text-xs font-medium text-slate-500">{{ distributionTitle }}</div>
+                <div class="mb-3 text-xs font-medium text-ink-500">{{ distributionTitle }}</div>
                 <div class="space-y-2.5">
                   <div v-for="bucket in distributionData" :key="bucket.label">
                     <div class="mb-1 flex items-baseline justify-between gap-3 text-xs">
-                      <span class="truncate text-slate-700">{{ bucket.label }}</span>
-                      <span class="shrink-0 text-slate-400">
+                      <span class="truncate text-ink-700">{{ bucket.label }}</span>
+                      <span class="shrink-0 text-ink-500">
                         {{ bucket.count.toLocaleString() }} · {{ bucket.percent }}%
                       </span>
                     </div>
-                    <div class="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div class="h-2 overflow-hidden rounded-full bg-ink-100">
                       <div
                         class="h-full rounded-full bg-brand-500"
                         :style="{ width: `${Math.min(Math.max(bucket.percent, 0), 100)}%` }"
@@ -377,27 +377,27 @@ const booleanBar = computed(() => {
               <!-- 异常提示 -->
               <div
                 v-if="currentStat.anomalies"
-                class="mb-4 rounded-lg bg-amber-50 px-4 py-2.5 text-sm text-amber-700"
+                class="mb-4 rounded-lg bg-warning-50 px-4 py-2.5 text-sm text-warning-600"
               >
-                ⚠️ {{ currentStat.anomalies }}
+                {{ currentStat.anomalies }}
               </div>
             </template>
 
-            <div v-else class="py-12 text-center text-sm text-slate-400">
+            <div v-else class="py-12 text-center text-sm text-ink-500">
               该字段暂无探查结果
             </div>
 
             <!-- 底部说明 -->
-            <div class="mt-2 text-xs text-slate-400">
+            <div class="mt-2 text-xs text-ink-500">
               探查结果基于脱敏样本统计，空值率/唯一值率可抽样（默认上限 100 万），仅供评估参考。
             </div>
           </div>
         </div>
-        <div v-else class="py-12 text-center text-sm text-slate-400">
+        <div v-else class="py-12 text-center text-sm text-ink-500">
           暂无可探查字段
         </div>
       </template>
     </div>
   </div>
-  <div v-else class="py-12 text-center text-sm text-slate-400">资料准备中</div>
+  <div v-else class="py-12 text-center text-sm text-ink-500">资料准备中</div>
 </template>

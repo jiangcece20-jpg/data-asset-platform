@@ -24,7 +24,7 @@ const venues = computed(() => productVenueFilters(catalog.discoverable))
       v-model="type"
       data-testid="filter-types"
       aria-label="商品类型"
-      class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] text-slate-700"
+      class="w-full rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-[12px] text-ink-700"
     >
       <option value="">全部类型</option>
       <option v-for="item in types" :key="item" :value="item">{{ typeMeta[item].label }}</option>
@@ -33,7 +33,7 @@ const venues = computed(() => productVenueFilters(catalog.discoverable))
       v-model="venue"
       data-testid="filter-venues"
       aria-label="成交位置"
-      class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] text-slate-700"
+      class="w-full rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-[12px] text-ink-700"
     >
       <option value="">全部位置</option>
       <option v-for="item in venues" :key="item.key" :value="item.key">{{ item.label }}</option>

@@ -65,8 +65,8 @@ const router = createRouter({
     { path: '/admin/permissions', name: 'admin-permissions', component: () => import('@/views/admin/PermissionManagement.vue'), meta: { title: '权限管理' } },
 
     // ---------------- PC 门户 ----------------
-    { path: '/portal', redirect: '/portal/home' },
-    { path: '/portal/home', name: 'portal-home', component: () => import('@/views/portal/PortalHome.vue'), meta: { title: '门户首页' } },
+    { path: '/portal', redirect: '/portal/search' },
+    { path: '/portal/home', redirect: '/portal/search' },
     { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '关键词搜索' } },
     { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/portal/PortalAiChat.vue'), meta: { title: 'AI问答' } },
     { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },
@@ -78,7 +78,7 @@ const router = createRouter({
     { path: '/portal/mine/orders/:source/:id', name: 'portal-order-detail', component: () => import('@/views/shared/OrderDetail.vue'), meta: { title: '订单详情' } },
     { path: '/portal/enterprise', name: 'portal-enterprise', component: () => import('@/views/portal/PortalEnterprise.vue'), meta: { title: '企业中心' } },
    { path: '/portal/bills', name: 'portal-bills', component: () => import('@/views/portal/PortalBills.vue'), meta: { title: 'API账单' } },
-    { path: '/portal/demand', name: 'portal-demand', component: () => import('@/views/portal/PortalDemand.vue'), meta: { title: '需求提报' } }
+    { path: '/portal/demand', redirect: { path: '/portal/mine', query: { menu: 'demands' } } }
   ]
 })
 

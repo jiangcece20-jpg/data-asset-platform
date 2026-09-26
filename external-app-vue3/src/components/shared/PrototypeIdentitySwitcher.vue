@@ -19,20 +19,20 @@ const active = computed(() => {
 
 <template>
   <div data-testid="prototype-identity-switcher" class="flex min-w-0 flex-1 items-center gap-2">
-    <span class="shrink-0 text-[11px] text-violet-600">原型身份</span>
+    <span class="shrink-0 text-[11px] text-[#722ED1]">原型身份</span>
     <div class="flex min-w-0 flex-wrap items-center gap-1">
       <button
         v-for="option in options"
         :key="option.id"
         :data-testid="`prototype-identity-${option.id}`"
         class="rounded-full px-2 py-0.5 text-[11px] transition"
-        :class="active === option.id ? 'bg-violet-600 text-white' : 'bg-white text-violet-700'"
+        :class="active === option.id ? 'bg-[#722ED1] text-white' : 'bg-white text-[#722ED1]'"
         @click="user.switchMockPurchaseIdentity(option.id)"
       >
         {{ option.label }}
         <span class="hidden sm:inline">· {{ option.hint }}</span>
       </button>
     </div>
-    <span class="hidden truncate text-[11px] text-violet-400 lg:inline">先切换再购买，支付方式随身份变化</span>
+    <span class="hidden truncate text-[11px] text-[#722ED1] lg:inline">先切换再购买，支付方式随身份变化</span>
   </div>
 </template>

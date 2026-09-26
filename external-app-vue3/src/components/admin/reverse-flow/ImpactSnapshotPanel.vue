@@ -18,14 +18,14 @@ const categories: Array<{ key: keyof ImpactSnapshot; label: string }> = [
 </script>
 
 <template>
-  <div data-testid="impact-panel" class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-    <div class="mb-2 text-[12px] font-medium text-slate-600">影响快照</div>
+  <div data-testid="impact-panel" class="rounded-lg border border-ink-200 bg-ink-100 p-3">
+    <div class="mb-2 text-[12px] font-medium text-ink-600">影响快照</div>
     <div v-if="impact" class="grid grid-cols-4 gap-2">
       <div v-for="cat in categories" :key="cat.key" class="text-center">
-        <div class="text-[18px] font-bold text-slate-700">{{ (impact[cat.key] as string[])?.length ?? 0 }}</div>
-        <div class="text-[11px] text-slate-400">{{ cat.label }}</div>
+        <div class="text-[18px] font-bold text-ink-700">{{ (impact[cat.key] as string[])?.length ?? 0 }}</div>
+        <div class="text-[11px] text-ink-500">{{ cat.label }}</div>
       </div>
     </div>
-    <div v-else class="py-4 text-center text-[12px] text-slate-400">尚未生成影响快照</div>
+    <div v-else class="py-4 text-center text-[12px] text-ink-500">尚未生成影响快照</div>
   </div>
 </template>

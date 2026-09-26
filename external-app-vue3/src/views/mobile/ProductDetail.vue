@@ -2,7 +2,6 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import ProductChips from '@/components/shared/ProductChips.vue'
 import ProductDetailTabs, { type DetailTab } from '@/components/mobile/product-detail/ProductDetailTabs.vue'
 import ProductPrimaryAction from '@/components/mobile/product-detail/ProductPrimaryAction.vue'
 import DatasetDetail from '@/components/mobile/product-detail/DatasetDetail.vue'
@@ -15,19 +14,19 @@ import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { useOrderStore } from '@/stores/orders'
+import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useSpaceIntentStore } from '@/stores/spaceIntents'
 import { currentPurchaseSubject, startDatasetPayment } from '@/domain/purchaseIdentity'
-import { formatYuan, membershipActionFields } from '@/domain/membership'
+import { membershipActionFields } from '@/domain/membership'
 import { useListingRequestStore } from '@/stores/listingRequests'
 import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
 import { resolveProductActions, resolvePurchaseInProgress, type ProductActionKey } from '@/domain/productAccess'
 import { pricingPresentation } from '@/domain/pricingPresentation'
 import { commerceOffersOf, offerDescription, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { billingRuleNotes, isSpaceSyncedProduct } from '@/domain/productDetailFields'
-import { productTopicTags } from '@/domain/productListChips'
+import { productListChips, productTopicTags, productTrialChips } from '@/domain/productListChips'
 import { USER_INTENT_HINT, SPACE_TRIAL_APPLY_LABEL } from '@/domain/spaceIntent'
 import { productDetailPriceSummary } from '@/domain/productPriceDisplay'
-import { checkoutDualPathFields } from '@/domain/checkoutDualPath'
 import type { ProductType } from '@/types/domain'
 
 const route = useRoute()
@@ -36,6 +35,7 @@ const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
 const orders = useOrderStore()
+const datasetCommerce = useDatasetCommerceStore()
 const spaceIntents = useSpaceIntentStore()
 const listingRequests = useListingRequestStore()
 const trustedSpaceCatalog = useTrustedSpaceCatalogStore()
@@ -44,6 +44,61 @@ const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const title = computed(() => product.value?.name ?? '')
 const topicTags = computed(() => (product.value ? productTopicTags(product.value) : []))
+const listChips = computed(() => (product.value ? productListChips(product.value) : null))
+const trialChips = computed(() => (product.value ? productTrialChips(product.value) : []))
+
+const originLabels: Record<string, string> = {
+  app_content: 'App自有内容',
+  asset_platform: '资产平台',
+  trusted_space: '可信空间',
+  seller_market: '入驻商家',
+  user_created: '个人创建'
+}
+const statusLabels: Record<string, string> = {
+  candidate: '可申请上架',
+  preparing: '准备中',
+  paused: '暂停销售',
+  delisted: '已下架'
+}
+const heroStatusLine = computed(() => {
+  const p = product.value
+  if (!p) return ''
+  // 对齐设计稿：模块入口 | 销售状态（若有）| 支付/交付方式
+  const parts = [p.type === 'dataset' ? '用数' : '看数']
+  const status = statusLabels[p.availability]
+  if (status) parts.push(status)
+  parts.push(p.dealChannel === 'space_purchase' ? '可信空间交付' : 'App支付')
+  return parts.join('  |  ')
+})
+
+interface HeroMetric { value: string; label: string }
+const heroMetrics = computed<HeroMetric[]>(() => {
+  const p = product.value
+  if (!p) return []
+  if (p.type === 'dataset') {
+    const d = p.typeDetail.dataset
+    const cells: Array<HeroMetric | null> = [
+      d.granularity ? { value: d.granularity, label: '数据粒度' } : null,
+      d.timeRange ? { value: d.timeRange, label: '时间范围' } : null,
+      d.rowCount != null ? { value: d.rowCount.toLocaleString(), label: '数据行数' } : null,
+      d.fieldCount != null ? { value: `${d.fieldCount}个`, label: '字段数' } : null
+    ]
+    const filled = cells.filter((c): c is HeroMetric => c !== null)
+    if (filled.length) return filled
+  }
+  // 对齐设计稿：优先取空间同步的短值，避免长句截断
+  const region = p.spaceMeta?.regionCategory || p.coverage
+  const delivery = p.spaceMeta?.deliveryMode || p.deliveryMethod
+  const industry = p.spaceMeta?.industryCategory
+  return [
+    region ? { value: region, label: '地域范围' } : null,
+    p.updateFrequency ? { value: p.updateFrequency, label: '更新频率' } : null,
+    delivery ? { value: delivery, label: '交付方式' } : null,
+    industry
+      ? { value: industry, label: '行业分类' }
+      : { value: originLabels[p.origin] ?? '', label: '来源' }
+  ].filter((c): c is HeroMetric => c !== null && Boolean(c.value)).slice(0, 4)
+})
 const pricingInfo = computed(() => product.value ? pricingPresentation(product.value) : undefined)
 const commerceOffers = computed(() => product.value ? commerceOffersOf(product.value) : [])
 const billingRules = computed(() => billingRuleNotes(product.value))
@@ -69,6 +124,26 @@ const contentUnlocked = computed(() => {
   if (!product.value) return false
   if (product.value.acquisitions.includes('free')) return true
   return owned.value
+})
+
+const datasetEntryUrl = computed(() => {
+  const current = product.value
+  if (!current || current.type !== 'dataset' || current.origin !== 'asset_platform' || !owned.value) return undefined
+  const today = new Date().toISOString().slice(0, 10)
+  const activeEntitlementIds = new Set(
+    entitlements.visibleDatasetEntitlements
+      .filter((item) => item.productId === current.id
+        && item.status === 'active'
+        && item.validFrom.slice(0, 10) <= today
+        && (!item.validTo || item.validTo >= today))
+      .map((item) => item.id)
+  )
+  return datasetCommerce.visibleDeliveries
+    .filter((delivery) => delivery.productId === current.id
+      && delivery.status === 'delivered'
+      && Boolean(delivery.biEntryUrl)
+      && activeEntitlementIds.has(delivery.entitlementId))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]?.biEntryUrl
 })
 
 const listingRequest = computed(() => product.value
@@ -98,34 +173,24 @@ const actions = computed(() => {
     })
   })
   if (current.type === 'dataset' && current.origin === 'asset_platform' && owned.value) {
-    return { ...resolved, primary: { ...resolved.primary, label: '查看我的订单' } }
+    return datasetEntryUrl.value
+      ? { ...resolved, primary: { key: 'view', label: '在用数中使用', href: datasetEntryUrl.value } }
+      : { ...resolved, primary: { key: 'delivery_progress', label: '查看交付进度' } }
   }
   return resolved
 })
 
-const dualPath = computed(() => {
-  const current = product.value
-  if (!current || owned.value || purchaseInProgress.value) return { showDualPath: false as const }
-  const itemPrice = detailPrice.value?.listPrice
-    ?? currentCommerceOffers.value[0]?.price
-    ?? 0
-  return checkoutDualPathFields(current, {
-    identitySubject: purchaseSubject.value,
-    hasEffectiveMembership: entitlements.hasEffectiveMembership,
-    canPurchaseMembership: entitlements.canPurchaseMembership,
-    isSellerMarket: current.origin === 'seller_market',
-    itemPrice
-  })
+const actionHeadline = computed(() => {
+  if (owned.value) return access.value === 'enterprise' ? '团队已拥有' : '权益已生效'
+  if (!detailPrice.value?.listPriceText) return undefined
+  return `${purchaseSubject.value === 'enterprise' ? '企业价' : '个人价'} ${detailPrice.value.listPriceText}`
 })
 
-/** 会员+单品且非会员时：详情底栏直接展示双路径，不再先点「立即购买」再进结算选路径 */
-const showDetailDualPath = computed(() =>
-  Boolean(dualPath.value.showDualPath && actions.value?.primary.key === 'item_purchase')
-)
-
-const dualPathDirectLabel = computed(() => {
-  const price = detailPrice.value?.listPrice ?? currentCommerceOffers.value[0]?.price
-  return price != null ? `直接购买 ${formatYuan(price)}` : '直接购买'
+const actionSupporting = computed(() => {
+  if (owned.value) return '当前账号可用'
+  const memberPrice = detailPrice.value?.memberPriceText
+  if (!memberPrice) return undefined
+  return memberPrice === '会员免费' ? memberPrice : `会员价 ${memberPrice}`
 })
 
 const tabsByType: Record<ProductType, DetailTab[]> = {
@@ -206,9 +271,6 @@ function goItem(options?: { skipDual?: boolean }) {
     query: options?.skipDual ? { skipDual: '1' } : undefined
   })
 }
-function goDirectPurchase() {
-  goItem({ skipDual: true })
-}
 function goDatasetPayment() {
   try {
     const { path } = startDatasetPayment(id.value, false)
@@ -255,6 +317,10 @@ function handleAction(key: ProductActionKey) {
       const phase = purchaseInProgress.value
       if (phase && (phase.phase === 'pending_payment' || phase.phase === 'fulfilling')) {
         goInProgressOrder(phase.orderId)
+        break
+      }
+      if (product.value?.type === 'dataset' && product.value.origin === 'asset_platform') {
+        router.push({ path: '/app/mine', query: { menu: 'orders', orderTab: 'buy' } })
       }
       break
     }
@@ -270,19 +336,38 @@ function handleAction(key: ProductActionKey) {
 </script>
 
 <template>
-  <div v-if="product" class="min-h-full bg-slate-50 pb-28">
-    <MobileHeader :title="title">
-      <button class="text-lg" :class="product.favorite ? 'text-amber-400' : 'text-slate-200'" @click="toggleFav">★</button>
-    </MobileHeader>
+  <div v-if="product" class="min-h-full bg-ink-100 pb-28">
+    <!-- 蓝色 Hero（对齐 App 设计稿：状态行 + 标题 + 半透明标签 + 关键指标卡） -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-[#2B66F5] via-[#3370F7] to-[#5290FF]">
+      <div class="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-white/10"></div>
+      <div class="pointer-events-none absolute -right-6 top-12 h-24 w-24 rounded-full border-[10px] border-white/10"></div>
 
-    <!-- 精简 Hero：徽标 + 名称 + 一句话 -->
-    <div class="px-4 pt-3">
-      <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
-        <ProductChips :product="product" show-trial />
-        <div class="mt-2 text-[17px] font-semibold text-slate-900">{{ title }}</div>
-        <div class="mt-1 text-[13px] text-slate-500">{{ product.recommendText || product.subtitle }}</div>
-        <div v-if="topicTags.length" class="mt-2 flex flex-wrap gap-1.5">
-          <span v-for="tag in topicTags" :key="tag" class="tag-chip">{{ tag }}</span>
+      <MobileHeader title="详情" tone="light" />
+
+      <div class="px-4 pb-3">
+        <div class="text-[11px] leading-4 text-white/70">{{ heroStatusLine }}</div>
+        <div class="mt-1 text-[21px] font-bold leading-7 text-white">{{ title }}</div>
+
+        <!-- 标签行：半透明白胶囊，单行横滑（对齐设计稿） -->
+        <div v-if="listChips" data-testid="product-chips" class="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span class="shrink-0 rounded-md border border-white/40 bg-white/15 px-2 py-0.5 text-[11px] font-medium leading-4 text-white">{{ listChips.typeLabel }}</span>
+          <span v-if="listChips.venue" class="shrink-0 rounded-md border border-white/40 bg-white/15 px-2 py-0.5 text-[11px] font-medium leading-4 text-white">{{ listChips.venue.name }}</span>
+          <span v-if="listChips.ops" class="shrink-0 rounded-md border border-white/40 bg-white/15 px-2 py-0.5 text-[11px] font-medium leading-4 text-white">{{ listChips.ops.label }}</span>
+          <span v-for="chip in trialChips" :key="chip" class="shrink-0 rounded-md border border-white/40 bg-white/15 px-2 py-0.5 text-[11px] font-medium leading-4 text-white">{{ chip }}</span>
+          <span v-for="tag in topicTags" :key="tag" class="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-[11px] leading-4 text-white/80">{{ tag }}</span>
+        </div>
+
+        <!-- 关键指标四宫格 -->
+        <div v-if="heroMetrics.length" class="mt-3 grid overflow-hidden rounded-2xl bg-white py-3 shadow-card" :style="{ gridTemplateColumns: `repeat(${Math.min(heroMetrics.length, 4)}, minmax(0, 1fr))` }">
+          <div
+            v-for="(metric, idx) in heroMetrics.slice(0, 4)"
+            :key="metric.label"
+            class="min-w-0 px-2 text-center"
+            :class="idx > 0 ? 'border-l border-ink-100' : ''"
+          >
+            <div class="truncate text-[17px] font-bold leading-6 text-ink-900">{{ metric.value }}</div>
+            <div class="mt-0.5 truncate text-[11px] leading-4 text-ink-400">{{ metric.label }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -292,11 +377,11 @@ function handleAction(key: ProductActionKey) {
       <ServiceStatusNotice :availability="product.availability" :service-status="product.serviceStatus" :has-access="owned" />
     </div>
 
-    <!-- 内容优先：标题后直接进入样例、接口、阅读或看板预览。 -->
-    <ProductDetailTabs v-model="activeTab" :tabs="currentTabs" class="mt-3" />
+    <!-- 内容优先：蓝头下直接进入样例、接口、阅读或看板预览。 -->
+    <ProductDetailTabs v-model="activeTab" :tabs="currentTabs" />
 
-    <!-- Tab 内容 -->
-    <div class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
+    <!-- Tab 内容（与上方 Tab 白卡连体） -->
+    <div class="mx-4 rounded-b-2xl bg-white p-4 shadow-card">
       <!-- dataset 类型：表格+分类分级放在最前面 -->
       <DatasetDetail v-if="product.type === 'dataset'" :product="product" :active-tab="activeTab as any" />
 
@@ -305,14 +390,14 @@ function handleAction(key: ProductActionKey) {
         v-if="isOverviewTab"
         class="space-y-4"
         :class="product.type === 'dataset'
-          ? 'mt-4 border-t border-slate-100 pt-4'
+          ? 'mt-4 border-t border-ink-100 pt-4'
           : product.type === 'api'
             ? ''
-            : 'mb-4 border-b border-slate-100 pb-4'"
+            : 'mb-4 border-b border-ink-100 pb-4'"
       >
         <!-- 看板关键指标（其余类型的关键指标在各自 tab 内） -->
         <div v-if="product.type === 'dashboard'" data-testid="dashboard-overview-info">
-          <div class="mb-2 text-[13px] font-semibold text-slate-800">看板信息</div>
+          <div class="mb-2 text-[13px] font-semibold text-ink-900">看板信息</div>
           <DashboardDetail :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
         </div>
 
@@ -320,20 +405,20 @@ function handleAction(key: ProductActionKey) {
         <ProductInfoSections :product="product" variant="mobile" data-testid="product-basic-info" />
 
         <div class="space-y-2 text-[13px] leading-relaxed" data-testid="product-manual">
-          <div class="text-[13px] font-semibold text-slate-800">商品说明书</div>
-          <div><span class="text-slate-400">价值主张：</span><span class="text-slate-700">{{ product.valueProposition }}</span></div>
-          <div><span class="text-slate-400">详细描述：</span><span class="text-slate-700">{{ product.description }}</span></div>
-          <div><span class="text-slate-400">质量/服务承诺：</span><span class="text-slate-700">{{ product.qualityPromise }}</span></div>
-          <div><span class="text-slate-400">合规声明：</span><span class="text-slate-700">{{ product.complianceNote }}</span></div>
+          <div class="text-[13px] font-semibold text-ink-900">商品说明书</div>
+          <div><span class="text-ink-400">价值主张：</span><span class="text-ink-700">{{ product.valueProposition }}</span></div>
+          <div><span class="text-ink-400">详细描述：</span><span class="text-ink-700">{{ product.description }}</span></div>
+          <div><span class="text-ink-400">质量/服务承诺：</span><span class="text-ink-700">{{ product.qualityPromise }}</span></div>
+          <div><span class="text-ink-400">合规声明：</span><span class="text-ink-700">{{ product.complianceNote }}</span></div>
         </div>
 
         <!-- 产品介绍（空间同步富文本） -->
         <div v-if="product.spaceMeta?.productIntroduction" class="space-y-1.5">
           <div class="flex items-center gap-2">
-            <span class="text-[13px] font-semibold text-slate-800">产品介绍</span>
-            <span class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-600">来自可信空间</span>
+            <span class="text-[13px] font-semibold text-ink-900">产品介绍</span>
+            <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
           </div>
-          <p class="whitespace-pre-line text-[13px] leading-relaxed text-slate-600">{{ product.spaceMeta.productIntroduction }}</p>
+          <p class="whitespace-pre-line text-[13px] leading-relaxed text-ink-500">{{ product.spaceMeta.productIntroduction }}</p>
         </div>
       </div>
 
@@ -346,75 +431,82 @@ function handleAction(key: ProductActionKey) {
         @unlock="handleUnlock"
       />
       <DashboardDetail v-else-if="product.type === 'dashboard' && activeTab !== 'overview'" :product="product" :active-tab="activeTab as any" :unlocked="contentUnlocked" />
-      <div v-else-if="product.type !== 'dataset' && product.type !== 'dashboard'" class="py-8 text-center text-[13px] text-slate-400">资料准备中</div>
+      <div v-else-if="product.type !== 'dataset' && product.type !== 'dashboard'" class="py-8 text-center text-[13px] text-ink-400">资料准备中</div>
     </div>
 
    <!-- 交易承接：用户看过内容后再了解报价、方案与购买资格。 -->
     <div
       v-if="detailPrice && !owned"
-      class="mx-4 mt-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 shadow-card"
+      class="mx-4 mt-3 rounded-2xl bg-white p-4 shadow-card"
       data-testid="product-price-summary"
     >
       <div class="flex flex-wrap items-end gap-6">
         <div v-if="detailPrice.listPriceText">
-          <div class="text-[11px] text-slate-500">价格</div>
-          <div class="text-[22px] font-semibold text-slate-900">{{ detailPrice.listPriceText }}</div>
+          <div class="text-[11px] text-ink-400">价格</div>
+          <div class="text-[22px] font-bold text-danger-500">{{ detailPrice.listPriceText }}</div>
         </div>
         <div v-if="detailPrice.memberPriceText">
-          <div class="text-[11px] text-slate-500">会员价</div>
-          <div class="text-[22px] font-semibold text-brand-600">{{ detailPrice.memberPriceText }}</div>
+          <div class="text-[11px] text-ink-400">会员价</div>
+          <div class="text-[22px] font-bold text-danger-500">{{ detailPrice.memberPriceText }}</div>
         </div>
       </div>
-      <div v-if="detailPrice.purchaseNote" class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ detailPrice.purchaseNote }}</div>
+      <div v-if="detailPrice.purchaseNote" class="mt-2 text-[11px] leading-relaxed text-ink-400">{{ detailPrice.purchaseNote }}</div>
     </div>
 
-    <div v-if="pricingInfo && !owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="pricing-method">
+    <div v-if="pricingInfo && !owned" class="mx-4 mt-3 rounded-2xl bg-white p-4 shadow-card" data-testid="pricing-method">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <div class="text-[11px] text-slate-400">报价方式</div>
-          <div class="mt-0.5 text-[14px] font-semibold text-slate-800">{{ pricingInfo.label }}</div>
+          <div class="text-[11px] text-ink-400">报价方式</div>
+          <div class="mt-0.5 text-[14px] font-semibold text-ink-900">{{ pricingInfo.label }}</div>
         </div>
-        <span class="rounded-full bg-blue-50 px-2 py-1 text-[10px] text-blue-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
+        <span class="rounded-full bg-brand-50 px-2 py-1 text-[10px] text-brand-600">{{ product.dealChannel === 'space_purchase' ? '空间定价' : 'APP 定价' }}</span>
       </div>
-      <div class="mt-2 text-[11px] leading-relaxed text-slate-500">{{ pricingInfo.note }}</div>
-      <div v-if="billingRules.length" class="mt-2 space-y-1 border-t border-slate-50 pt-2" data-testid="space-billing-rules">
-        <div class="text-[10px] text-slate-400">计费规则 · 来自可信空间</div>
-        <div v-for="rule in billingRules" :key="rule" class="text-[11px] leading-relaxed text-slate-500">💡 {{ rule }}</div>
+      <div class="mt-2 text-[11px] leading-relaxed text-ink-500">{{ pricingInfo.note }}</div>
+      <div v-if="billingRules.length" class="mt-2 space-y-1 border-t border-ink-100 pt-2" data-testid="space-billing-rules">
+        <div class="text-[10px] text-ink-400">计费规则 · 来自可信空间</div>
+        <div v-for="rule in billingRules" :key="rule" class="flex gap-1 text-[11px] leading-relaxed text-ink-500">
+          <svg class="mt-0.5 h-3 w-3 shrink-0 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2h6c0-.8.3-1.3 1-2A6 6 0 0 0 12 3z"/></svg>
+          {{ rule }}
+        </div>
       </div>
     </div>
 
-    <div v-if="(product.dealChannel === 'space_purchase' ? commerceOffers.length : currentCommerceOffers.length) && !owned && !detailPrice" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card" data-testid="commerce-offers">
-      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-slate-800">{{ product.dealChannel === 'space_purchase' ? '价格方案' : '购买价格' }}</span><span class="text-[10px] text-slate-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : `固定购买周期 ${salePeriodMonthsOf(product)} 个月` }}</span></div>
-      <div v-for="offer in (product.dealChannel === 'space_purchase' ? commerceOffers : currentCommerceOffers)" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-slate-50 py-2 first:border-t-0">
-        <div><div class="text-[12px] font-medium text-slate-700">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-slate-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }}</div></div>
-        <div class="text-[13px] font-semibold text-brand-600">¥{{ offer.price.toLocaleString() }}</div>
+    <div v-if="(product.dealChannel === 'space_purchase' ? commerceOffers.length : currentCommerceOffers.length) && !owned && !detailPrice" class="mx-4 mt-3 rounded-2xl bg-white p-4 shadow-card" data-testid="commerce-offers">
+      <div class="mb-2 flex items-center justify-between"><span class="text-[13px] font-semibold text-ink-900">{{ product.dealChannel === 'space_purchase' ? '价格方案' : '购买价格' }}</span><span class="text-[10px] text-ink-400">{{ product.dealChannel === 'space_purchase' ? '来自可信空间同步' : `固定购买周期 ${salePeriodMonthsOf(product)} 个月` }}</span></div>
+      <div v-for="offer in (product.dealChannel === 'space_purchase' ? commerceOffers : currentCommerceOffers)" :key="offer.id" class="flex items-center justify-between gap-3 border-t border-ink-100 py-2.5 first:border-t-0">
+        <div><div class="text-[13px] font-medium text-ink-800">{{ offer.name }}</div><div class="mt-0.5 text-[10px] leading-relaxed text-ink-400">{{ offer.subject === 'enterprise' ? '企业' : '个人' }} · {{ product.dealChannel === 'space_purchase' ? offerDescription(offer) : `订单锁定 ${salePeriodMonthsOf(product)} 个月购买周期` }}</div></div>
+        <div class="shrink-0 text-[15px] font-bold text-danger-500">¥{{ offer.price.toLocaleString() }}</div>
       </div>
     </div>
 
     <div
       v-if="product.dealChannel === 'space_purchase' && !owned"
-      class="mx-4 mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-4"
+      class="mx-4 mt-3 rounded-2xl bg-brand-50 p-4"
       data-testid="trusted-space-purchase-eligibility"
     >
-      <div class="text-[13px] font-semibold text-slate-800">{{ SPACE_TRIAL_APPLY_LABEL }}</div>
-      <div class="mt-1 text-[11px] leading-relaxed text-slate-600">{{ USER_INTENT_HINT }}</div>
+      <div class="text-[13px] font-semibold text-brand-700">{{ SPACE_TRIAL_APPLY_LABEL }}</div>
+      <div class="mt-1 text-[11px] leading-relaxed text-brand-700/80">{{ USER_INTENT_HINT }}</div>
     </div>
 
     <!-- 已拥有权益 -->
-    <div v-if="owned" class="mx-4 mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-      <div class="text-[13px] font-semibold text-emerald-700">
-        ✅ {{ product.type === 'dataset' && product.origin === 'asset_platform' ? '已获得数据权益' : access === 'member' ? '会员权益已覆盖' : access === 'item' ? '已单独购买' : '企业席位已授权' }}
+    <div v-if="owned" class="mx-4 mt-3 rounded-2xl bg-success-50 p-4" data-testid="product-entitlement-summary">
+      <div class="flex items-center gap-1.5 text-[13px] font-semibold text-success-600">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        {{ product.type === 'dataset' && product.origin === 'asset_platform' ? '数据权益已生效' : access === 'member' ? '会员权益已生效' : access === 'item' ? '已单独购买' : '团队已拥有' }}
       </div>
-      <div class="mt-1 text-[12px] text-emerald-600">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的订单”查看交付状态并进入用数模块' : '可直接查看完整内容 / 在线看板 / 调用测试' }}</div>
+      <div class="mt-1 text-[12px] text-success-600/90">{{ product.type === 'dataset' && product.origin === 'asset_platform' ? (datasetEntryUrl ? '当前账号可直接进入用数模块使用' : '交付处理中，可查看交付进度') : '当前账号可使用该商品权益' }}</div>
     </div>
 
     <!-- API 用量明细 -->
-    <div v-if="product.type === 'api' && owned" class="mx-4 mt-3 rounded-2xl border border-slate-100 bg-white p-4">
-      <div class="text-[13px] font-semibold text-slate-800">📊 用量明细</div>
+    <div v-if="product.type === 'api' && owned" class="mx-4 mt-3 rounded-2xl bg-white p-4 shadow-card">
+      <div class="flex items-center gap-1.5 text-[13px] font-semibold text-ink-900">
+        <svg class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16" /><path d="M8 16v-4M12 16V8M16 16v-6" /></svg>
+        用量明细
+      </div>
       <div class="mt-2 flex items-center justify-between text-[12px]">
         <div>
-          <span class="text-slate-400">本月调用：</span>
-          <span class="text-slate-700">-- 次</span>
+          <span class="text-ink-400">本月调用：</span>
+          <span class="text-ink-700">-- 次</span>
         </div>
         <button
           class="rounded-full bg-brand-50 px-3 py-1.5 text-[12px] text-brand-600"
@@ -423,42 +515,16 @@ function handleAction(key: ProductActionKey) {
       </div>
     </div>
 
-    <!-- 底部固定操作区：会员+单品未开通会员时直接展示双路径 -->
-    <div
-      v-if="showDetailDualPath"
-      class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-slate-100 bg-white p-3"
-      data-testid="product-dual-path"
-    >
-      <button
-        data-testid="product-direct-purchase"
-        class="w-full rounded-full border border-slate-300 bg-white py-3 text-[14px] font-medium text-slate-700"
-        @click="goDirectPurchase"
-      >
-        {{ dualPathDirectLabel }}
-      </button>
-      <div class="relative">
-        <button
-          data-testid="product-become-member"
-          class="w-full rounded-full bg-emerald-500 py-3 text-[14px] font-medium text-white"
-          @click="goMember"
-        >
-          {{ dualPath.memberButtonLabel ?? '成为会员' }}
-        </button>
-        <span
-          v-if="dualPath.savingsLabel"
-          class="absolute -top-2 right-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-medium text-amber-950 shadow-sm"
-          data-testid="product-member-savings"
-        >
-          {{ dualPath.savingsLabel }}
-        </span>
-      </div>
-    </div>
     <ProductPrimaryAction
-      v-else-if="actions"
+      v-if="actions"
       :primary="actions.primary"
       :secondary="actions.secondary"
+      :headline="actionHeadline"
+      :supporting="actionSupporting"
+      :favorite="product.favorite"
       @action="handleAction"
+      @toggle-favorite="toggleFav"
     />
   </div>
-  <div v-else class="p-6 text-center text-sm text-slate-400">商品不存在</div>
+  <div v-else class="p-6 text-center text-sm text-ink-400">商品不存在</div>
 </template>
