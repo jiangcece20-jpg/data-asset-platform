@@ -46,6 +46,17 @@ export default {
           500: '#F53F3F',
           600: '#CB272D'
         },
+        // 科技/AI 强调色：蓝紫系（与 App 端 AI 找数机器人渐变同源）
+        violet: {
+          50: '#F4F1FF',
+          100: '#E6DEFF',
+          200: '#CBBEFF',
+          300: '#A88FFB',
+          400: '#9170F8',
+          500: '#7B5CF6',
+          600: '#6039E8',
+          700: '#4A2BB8'
+        },
         // VIP 营销色（克制使用）
         vip: {
           gold: '#B8860B',
@@ -55,6 +66,7 @@ export default {
       boxShadow: {
         card: '0 2px 8px rgba(29, 33, 41, 0.06)',
         'card-hover': '0 4px 16px rgba(22, 93, 255, 0.10)',
+        'card-hover-violet': '0 4px 16px rgba(123, 92, 246, 0.14)',
         float: '0 8px 32px rgba(29, 33, 41, 0.12)'
       },
       fontFamily: {

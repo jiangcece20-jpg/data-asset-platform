@@ -87,7 +87,7 @@ export function productPriceSummary(product: Product): ProductPriceSummary {
       kind: 'money',
       text: purchaseMoney(cheapest.price),
       suffix: `${periodSuffix(periodSource.billingPeriodMonths)} 起`,
-      hint: memberOnly ? '会员专享价' : pool.length < offers.length ? '企业版价格另询' : undefined
+      hint: memberOnly ? '会员专享价' : undefined
     }
   }
 

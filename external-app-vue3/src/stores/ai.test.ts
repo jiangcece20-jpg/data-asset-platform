@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAiStore, guideQuestions } from './ai'
+import { useAiStore, guideQuestions, guideScenarios } from './ai'
 import { useCatalogStore } from './catalog'
 import { useEntitlementStore } from './entitlements'
 import { seedProducts } from '@/data/products'
@@ -120,7 +120,7 @@ describe('AI Store — chat functionality', () => {
   })
 
   describe('mixed content generation', () => {
-    it('produces product-card + route-badge for qaBank match (no summary text)', () => {
+    it('produces structured answer + table + product-card for qaBank match', () => {
       const ai = useAiStore()
       ai.sendQuestion('货运价格趋势如何')
       ai.flushResponse()
@@ -128,10 +128,18 @@ describe('AI Store — chat functionality', () => {
       const blockTypes = aiMsg.blocks.map((b) => b.type)
       expect(blockTypes).toContain('product-card')
       expect(blockTypes).toContain('route-badge')
-      expect(blockTypes).not.toContain('text')
-      expect(blockTypes).not.toContain('metric')
-      expect(blockTypes).not.toContain('step')
-      expect(blockTypes).not.toContain('source')
+      expect(blockTypes).toContain('text')
+      expect(blockTypes).toContain('metric')
+      expect(blockTypes).toContain('table')
+    })
+
+    it('attaches process steps to the ai message', () => {
+      const ai = useAiStore()
+      ai.sendQuestion('货运价格趋势如何')
+      ai.flushResponse()
+      const aiMsg = ai.chatMessages[1]
+      expect(aiMsg.steps?.length).toBeGreaterThan(0)
+      expect(aiMsg.steps?.[0].label).toBe('解析问题意图')
     })
 
     it('uses short route labels without role wording', () => {
@@ -142,13 +150,25 @@ describe('AI Store — chat functionality', () => {
       expect(badge && badge.type === 'route-badge' && badge.label).toBe('平台内')
     })
 
-    it('shows only product cards for metric_query on platform route', () => {
+    it('shows metric blocks and table for metric_query', () => {
       const ai = useAiStore()
       ai.sendQuestion('货运价格指数是多少')
       ai.flushResponse()
       const aiMsg = ai.chatMessages[1]
-      expect(aiMsg.blocks.filter((b) => b.type === 'metric').length).toBe(0)
+      expect(aiMsg.blocks.filter((b) => b.type === 'metric').length).toBeGreaterThan(0)
+      expect(aiMsg.blocks.some((b) => b.type === 'table')).toBe(true)
       expect(aiMsg.blocks.some((b) => b.type === 'product-card')).toBe(true)
+    })
+
+    it('returns a compare block for compare intent', () => {
+      const ai = useAiStore()
+      ai.sendQuestion('对比两款资质核验 API')
+      ai.flushResponse()
+      const aiMsg = ai.chatMessages[1]
+      expect(aiMsg.intent).toBe('compare')
+      const cmp = aiMsg.blocks.find((b) => b.type === 'product-compare')
+      expect(cmp).toBeTruthy()
+      expect(cmp && cmp.type === 'product-compare' && cmp.productIds).toHaveLength(2)
     })
 
     it('falls back to product recommendations when qaBank misses', () => {
@@ -181,6 +201,26 @@ describe('AI Store — chat functionality', () => {
     })
   })
 
+  describe('regenerateLast', () => {
+    it('replaces the last ai message and re-enters typing', () => {
+      const ai = useAiStore()
+      ai.sendQuestion('货运价格趋势如何')
+      ai.flushResponse()
+      expect(ai.regenerateLast()).toBe(true)
+      expect(ai.chatTyping).toBe(true)
+      expect(ai.chatMessages.filter((m) => m.role === 'ai')).toHaveLength(0)
+      ai.flushResponse()
+      expect(ai.chatMessages.filter((m) => m.role === 'ai')).toHaveLength(1)
+    })
+
+    it('returns false when the last message is not ai', () => {
+      const ai = useAiStore()
+      ai.sendQuestion('测试')
+      expect(ai.regenerateLast()).toBe(false)
+      expect(ai.chatTyping).toBe(true)
+    })
+  })
+
   describe('backward compatibility', () => {
     it('ask() still works for old AnswerSession flow', () => {
       const ai = useAiStore()
@@ -201,9 +241,11 @@ describe('AI Store — chat functionality', () => {
   })
 
   describe('exported constants', () => {
-    it('guideQuestions covers the eight data-finding scenarios', () => {
-      expect(guideQuestions).toHaveLength(8)
-      expect(guideQuestions[0]).toMatchObject({ icon: '📈', text: '货运价格趋势如何', intent: 'answer' })
+    it('guideScenarios cover find/market/compare and flatten to guideQuestions', () => {
+      expect(guideScenarios.map((s) => s.key)).toEqual(['find', 'market', 'compare'])
+      expect(guideQuestions.length).toBe(7)
+      expect(guideQuestions[0]).toMatchObject({ icon: '🪪', text: '司机资格核验 API', intent: 'search' })
+      expect(guideQuestions.some((g) => g.intent === 'compare')).toBe(true)
     })
   })
 })

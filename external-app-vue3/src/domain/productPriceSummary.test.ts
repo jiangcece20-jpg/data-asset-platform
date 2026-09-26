@@ -55,7 +55,7 @@ describe('productPriceSummary', () => {
     expect(s.kind).toBe('money')
     expect(s.text).toBe('¥99')
     expect(s.suffix).toContain('起')
-    expect(s.hint).toBe('企业版价格另询')
+    expect(s.hint).toBeUndefined()
   })
 
   it('shows yearly suffix for continuous subscription offer', () => {
