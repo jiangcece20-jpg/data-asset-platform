@@ -35,15 +35,15 @@ const hasPriceList = computed(() => space.value && user.context.loggedIn && Bool
       <h2 class="text-base font-semibold text-ink-900">{{ space ? '申请试用' : '获取商品' }}</h2>
       <div
         v-if="!owned && !hasPriceList && priceSummary.kind !== 'none'"
-        class="mt-3 flex items-baseline gap-1.5 rounded-lg border border-ink-200 bg-white px-4 py-3"
+        class="mt-3 flex items-baseline gap-1.5 rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-3"
         data-testid="purchase-price-summary"
       >
         <template v-if="priceSummary.kind === 'money'">
-          <span class="text-2xl font-bold leading-none text-danger-500">{{ priceSummary.text }}</span>
+          <span class="text-2xl font-bold leading-none text-violet-600">{{ priceSummary.text }}</span>
           <span class="text-xs text-ink-500">{{ priceSummary.suffix }}</span>
         </template>
-        <span v-else-if="priceSummary.kind === 'free'" class="text-xl font-bold text-success-600">免费</span>
-        <span v-else class="text-xl font-bold text-ink-900">待报价</span>
+        <span v-else-if="priceSummary.kind === 'free'" class="text-xl font-bold text-violet-600">免费</span>
+        <span v-else class="text-xl font-bold text-ink-500">待报价</span>
         <span v-if="priceSummary.hint" class="ml-auto text-right text-xs leading-4 text-ink-500">{{ priceSummary.hint }}</span>
       </div>
       <div v-if="space" class="mt-3 rounded-lg bg-ink-100 p-3 text-xs leading-5 text-ink-600" data-testid="trusted-space-purchase-eligibility">
@@ -71,13 +71,13 @@ const hasPriceList = computed(() => space.value && user.context.loggedIn && Bool
           :data-testid="index === 0 ? 'product-primary-action' : 'product-secondary-action'"
           class="min-h-11 w-full whitespace-normal break-words rounded-md border px-3 py-2.5 text-sm font-medium leading-6 transition disabled:cursor-not-allowed disabled:opacity-50"
           :class="index === 0
-            ? 'border-brand-500 bg-brand-500 text-white hover:bg-brand-600'
-            : 'border-brand-200 bg-brand-50 text-brand-600 hover:border-brand-500 hover:bg-brand-50'"
+            ? 'border-violet-600 bg-gradient-to-r from-violet-600 to-violet-500 text-white hover:from-violet-700 hover:to-violet-600'
+            : 'border-violet-200 bg-violet-50 text-violet-600 hover:border-violet-400 hover:bg-violet-100'"
           :disabled="action.disabled || busy"
           @click="emit('action', action)"
         >{{ busy ? '处理中…' : action.label }}</button>
       </div>
-      <div v-if="owned && user.context.loggedIn" class="mt-4 rounded-md bg-success-50 px-3 py-2.5 text-xs leading-5 text-success-600">
+      <div v-if="owned && user.context.loggedIn" class="mt-4 rounded-md bg-violet-50 px-3 py-2.5 text-xs leading-5 text-violet-600">
         <div class="font-medium">{{ access === 'member' ? '会员权益已覆盖' : '已获得商品权益' }}</div>
         <div>{{ product.type === 'dataset' && product.origin === 'asset_platform' ? '可在“我的订单”查看交付并进入用数模块' : '可直接查看完整内容' }}</div>
       </div>
@@ -86,6 +86,6 @@ const hasPriceList = computed(() => space.value && user.context.loggedIn && Bool
         <div class="flex gap-2"><dt class="shrink-0">上架时间</dt><dd>{{ listedAtOf(product) }}</dd></div>
       </dl>
     </div>
-    <button v-if="product.type === 'api' && owned && user.context.loggedIn" class="w-full rounded-md border border-ink-300 bg-white p-3 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="router.push('/portal/bills')">查看 API 账单</button>
+    <button v-if="product.type === 'api' && owned && user.context.loggedIn" class="w-full rounded-md border border-ink-300 bg-white p-3 text-sm text-ink-600 transition hover:border-violet-300 hover:text-violet-600" @click="router.push('/portal/bills')">查看 API 账单</button>
   </div>
 </template>

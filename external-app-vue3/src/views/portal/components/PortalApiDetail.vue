@@ -88,7 +88,7 @@ function simulateFail() {
       <div v-if="product.spaceMeta?.productIntroduction" class="rounded-xl border border-ink-200 bg-white p-5">
         <div class="mb-2 flex items-center gap-2">
           <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
-          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
+          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
         </div>
         <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
@@ -100,7 +100,7 @@ function simulateFail() {
       <div v-if="product.spaceMeta?.apiDescription" class="rounded-xl border border-ink-200 bg-white p-5">
         <div class="mb-2 flex items-center gap-2">
           <h3 class="text-sm font-semibold text-ink-900">接口描述</h3>
-          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
+          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
         </div>
         <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.apiDescription }}</p>
       </div>
@@ -228,7 +228,7 @@ function simulateFail() {
     <!-- =================== Tab 3: sandbox =================== -->
     <div v-if="activeTab === 'sandbox'" class="space-y-4">
       <!-- Warning banner -->
-      <div class="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-700">
+      <div class="rounded-lg bg-violet-50 px-4 py-3 text-sm text-violet-700">
         固定脱敏沙箱样例，不调用真实服务、不消耗正式额度
       </div>
 
@@ -242,14 +242,14 @@ function simulateFail() {
               <input
                 v-model="paramValues[paramName]"
                 type="text"
-                class="mt-1 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 focus:border-brand-500 focus:outline-none"
+                class="mt-1 w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 focus:border-violet-500 focus:outline-none"
                 :placeholder="`请输入 ${paramName}`"
               />
             </div>
           </div>
           <div class="mt-4 flex gap-2">
             <button
-              class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+              class="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="sandboxLoading"
               @click="sendSandbox"
             >发送请求</button>

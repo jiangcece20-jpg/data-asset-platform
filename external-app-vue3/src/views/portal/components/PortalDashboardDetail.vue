@@ -87,7 +87,7 @@ function displayValue(value: string | number | null | undefined): string {
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
           <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
-          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
+          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
         </div>
         <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
@@ -153,7 +153,7 @@ function displayValue(value: string | number | null | undefined): string {
       </div>
       <div
         v-if="product.entitlementPolicy?.kind === 'term'"
-        class="rounded-lg bg-warning-50 p-3 text-sm text-warning-600"
+        class="rounded-lg bg-violet-50 p-3 text-sm text-violet-600"
       >
         单品购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
       </div>

@@ -100,7 +100,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
 
       <div
         v-if="product.entitlementPolicy?.kind === 'report_version'"
-        class="rounded-lg bg-warning-50 p-3 text-xs leading-relaxed text-warning-600"
+        class="rounded-lg bg-violet-50 p-3 text-xs leading-relaxed text-violet-600"
       >
         单品购买永久绑定当前版本 {{ product.entitlementPolicy.version }}；后续独立版本需另行购买。
       </div>
@@ -117,7 +117,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
           <span class="text-sm font-semibold text-ink-900">产品介绍</span>
-          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
+          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
         </div>
         <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
@@ -135,7 +135,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
           <span class="block truncate text-sm font-semibold text-ink-900">{{ row.title }}</span>
           <span v-if="row.page" class="mt-0.5 block text-xs text-ink-500">第 {{ row.page }} 页</span>
         </span>
-        <span class="shrink-0 text-sm font-medium" :class="row.readable ? 'text-brand-500' : 'text-ink-500'">
+        <span class="shrink-0 text-sm font-medium" :class="row.readable ? 'text-violet-500' : 'text-ink-500'">
           {{ row.readable ? '可阅读' : '会员/单篇' }}
         </span>
       </div>
@@ -159,13 +159,13 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
             :key="block.id"
             class="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-colors"
             :class="activeBlockId === block.id
-              ? 'bg-brand-50 font-medium text-brand-600'
+              ? 'bg-violet-50 font-medium text-violet-600'
               : 'text-ink-500 hover:bg-ink-100'"
             @click="scrollToBlock(block.id)"
           >
             <span class="shrink-0 tabular-nums text-ink-300">{{ String(idx + 1).padStart(2, '0') }}</span>
             <span class="min-w-0 flex-1 truncate">{{ block.title }}</span>
-            <span v-if="block.open" class="shrink-0"><svg class="inline h-3.5 w-3.5 text-success-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span v-if="block.open" class="shrink-0"><svg class="inline h-3.5 w-3.5 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </button>
         </div>
       </div>
@@ -190,7 +190,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
               <span
                 v-for="(h, i) in BAR_HEIGHTS"
                 :key="i"
-                class="flex-1 rounded-sm bg-brand-500"
+                class="flex-1 rounded-sm bg-violet-500"
                 :style="{ height: `${h}%` }"
               />
             </div>
@@ -202,7 +202,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
               完整正文与精确图表已打码，仅展示章节轮廓。
             </p>
             <button
-              class="mt-3 rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-brand-500 hover:bg-brand-50"
+              class="mt-3 rounded-lg border border-ink-200 px-4 py-2 text-sm font-medium text-violet-500 hover:bg-violet-50"
               @click="emit('unlock')"
             >
               阅读{{ block.title }}

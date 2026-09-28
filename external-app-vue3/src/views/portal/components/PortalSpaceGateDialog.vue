@@ -22,7 +22,7 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
         </p>
         <div class="mt-5 space-y-2">
           <button
-            class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
+            class="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white hover:bg-violet-700"
             @click="emit('login')"
           >立即登录</button>
           <button
@@ -41,11 +41,11 @@ const emit = defineEmits<{ login: []; continueBrowse: []; goAuth: []; close: [] 
         </p>
         <div class="mt-5 space-y-2">
           <button
-            class="w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
+            class="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white hover:bg-violet-700"
             @click="emit('continueBrowse')"
           >继续前往浏览</button>
           <button
-            class="w-full rounded-lg border border-brand-300 py-2.5 text-sm font-medium text-brand-600 hover:bg-brand-50"
+            class="w-full rounded-lg border border-violet-300 py-2.5 text-sm font-medium text-violet-600 hover:bg-violet-50"
             @click="emit('goAuth')"
           >去企业认证</button>
           <button

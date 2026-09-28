@@ -178,10 +178,10 @@ const booleanBar = computed(() => {
         <div
           v-for="item in datasetItems"
           :key="item.label"
-          class="rounded-lg border border-brand-100 bg-brand-50/60 px-4 py-3"
+          class="rounded-lg border border-violet-100 bg-violet-50/60 px-4 py-3"
         >
-          <div class="text-xs text-brand-600/70">{{ item.label }}</div>
-          <div class="mt-1 text-lg font-bold text-brand-700">{{ displayValue(item.value) }}</div>
+          <div class="text-xs text-violet-600/70">{{ item.label }}</div>
+          <div class="mt-1 text-lg font-bold text-violet-700">{{ displayValue(item.value) }}</div>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ const booleanBar = computed(() => {
       <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
         <div class="flex items-center gap-2">
           <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
-          <span class="rounded bg-brand-50 px-1.5 py-0.5 text-[10px] text-brand-600">来自可信空间</span>
+          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
         </div>
         <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
@@ -297,7 +297,7 @@ const booleanBar = computed(() => {
               :key="dim.key"
               class="w-full rounded-lg px-3 py-2 text-left text-sm transition"
               :class="active === dim.key
-                ? 'bg-brand-50 font-medium text-brand-600'
+                ? 'bg-violet-50 font-medium text-violet-600'
                 : 'text-ink-600 hover:bg-ink-100'"
               @click="active = dim.key"
             >{{ dim.label }}</button>
@@ -330,7 +330,7 @@ const booleanBar = computed(() => {
                 <div class="mb-2 text-xs font-medium text-ink-500">TRUE / FALSE 占比</div>
                 <div class="flex h-7 overflow-hidden rounded-full">
                   <div
-                    class="flex items-center justify-center bg-success-500 text-xs text-white"
+                    class="flex items-center justify-center bg-violet-500 text-xs text-white"
                     :style="{ width: booleanBar.truePercent + '%' }"
                   >
                     <span v-if="booleanBar.truePercent >= 10">{{ booleanBar.truePercent }}%</span>
@@ -357,7 +357,7 @@ const booleanBar = computed(() => {
                     </div>
                     <div class="h-2 overflow-hidden rounded-full bg-ink-100">
                       <div
-                        class="h-full rounded-full bg-brand-500"
+                        class="h-full rounded-full bg-violet-500"
                         :style="{ width: `${Math.min(Math.max(bucket.percent, 0), 100)}%` }"
                       />
                     </div>

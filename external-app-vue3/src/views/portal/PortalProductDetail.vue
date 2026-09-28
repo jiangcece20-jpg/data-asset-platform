@@ -148,51 +148,54 @@ function confirmLogin() {
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <!-- 左栏：商品头部 + Tab 导航 + Tab 内容 -->
       <div class="min-w-0 space-y-4">
-        <!-- 商品头部：浅蓝柔和底，蓝色仅作点缀 -->
-        <section class="rounded-xl border border-brand-100 bg-[#F2F7FF] px-7 py-6">
+        <!-- 商品头部：紫系通体渐变，与搜索页同源 -->
+        <section
+          class="relative overflow-hidden rounded-lg border border-violet-100 bg-gradient-to-br from-[#F3F1FF] via-white to-[#FAF3FF] px-7 py-6"
+        >
+          <div class="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-violet-300/20 blur-3xl"></div>
           <button
             type="button"
-            class="inline-flex items-center gap-1 text-xs text-brand-600 transition hover:text-brand-700"
+            class="relative inline-flex items-center gap-1 text-xs text-violet-600 transition hover:text-violet-700"
             @click="router.push('/portal/search')"
           >
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
             返回找数
           </button>
-          <div class="mt-3 flex items-start gap-4">
+          <div class="relative mt-3 flex items-start gap-4">
             <ProductTypeIcon :type="product.type" :size="52" />
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <span
                   v-for="(tag, index) in heroTags"
                   :key="tag"
-                  class="inline-flex items-center rounded px-2 py-0.5 text-xs"
+                  class="inline-flex items-center rounded-md px-2 py-0.5 text-xs"
                   :class="index === 0
-                    ? 'border border-brand-200 bg-white font-medium text-brand-600'
-                    : 'border border-ink-300 bg-white text-ink-600'"
+                    ? 'border border-violet-200 bg-white font-medium text-violet-600'
+                    : 'border border-ink-200 bg-white text-ink-600'"
                 >{{ tag }}</span>
               </div>
               <h1 class="mt-2 pr-10 text-[22px] font-bold leading-8 text-ink-900">{{ title }}</h1>
               <p v-if="product.recommendText || product.subtitle" class="mt-1 max-w-3xl truncate text-sm text-ink-600">{{ product.recommendText || product.subtitle }}</p>
               <div v-if="priceSummary && priceSummary.kind !== 'none'" class="mt-2 flex items-baseline gap-1.5" data-testid="product-header-price">
                 <template v-if="priceSummary.kind === 'money'">
-                  <span class="text-xl font-bold leading-none text-danger-500">{{ priceSummary.text }}</span>
+                  <span class="text-xl font-bold leading-none text-violet-600">{{ priceSummary.text }}</span>
                   <span class="text-xs text-ink-500">{{ priceSummary.suffix }}</span>
                 </template>
-                <span v-else-if="priceSummary.kind === 'free'" class="text-base font-bold text-success-600">免费</span>
-                <span v-else class="rounded bg-warning-50 px-1.5 py-0.5 text-xs font-medium text-warning-600">待报价</span>
+                <span v-else-if="priceSummary.kind === 'free'" class="text-base font-bold text-violet-600">免费</span>
+                <span v-else class="rounded-md bg-ink-100 px-1.5 py-0.5 text-xs font-medium text-ink-600">待报价</span>
                 <span v-if="priceSummary.hint" class="text-xs text-ink-500">{{ priceSummary.hint }}</span>
               </div>
               <div v-if="topicTags.length" class="mt-2.5 flex flex-wrap gap-1.5">
                 <span
                   v-for="tag in topicTags.slice(0, 6)"
                   :key="tag"
-                  class="rounded bg-white px-2 py-0.5 text-xs text-ink-500"
+                  class="rounded-md bg-white/80 px-2 py-0.5 text-xs text-ink-500 ring-1 ring-ink-100"
                 >{{ tag }}</span>
               </div>
             </div>
             <button
               type="button"
-              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white border border-ink-300 transition hover:border-brand-300"
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white border border-ink-200 transition hover:border-violet-300 hover:text-violet-600"
               :title="product.favorite ? '取消收藏' : '收藏'"
               @click="toggleFav"
             >
@@ -255,7 +258,7 @@ function confirmLogin() {
         <p class="mt-3 text-sm text-ink-600">{{ user.context.name }} · {{ user.context.phone }}</p>
         <div class="mt-6 flex justify-end gap-3">
           <button class="rounded-md border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:bg-ink-100" @click="loginOpen = false">取消</button>
-          <button data-testid="purchase-login-confirm" class="rounded-md bg-brand-500 px-4 py-2 text-sm text-white transition hover:bg-brand-600" @click="confirmLogin">登录</button>
+          <button data-testid="purchase-login-confirm" class="rounded-md bg-violet-600 px-4 py-2 text-sm text-white transition hover:bg-violet-700" @click="confirmLogin">登录</button>
         </div>
       </section>
     </div>
