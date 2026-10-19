@@ -78,6 +78,8 @@ export interface SellerListingApplication {
   price: number
   /** 企业购买价格 */
   enterprisePrice: number
+  /** 成交后的更新服务周期，单位：月 */
+  servicePeriodMonths?: number
   dataProvenance: 'owned' | 'derived'
   complianceSummary: string
   /** 卖家填写的详情页说明书；审核通过后写入商品 */
@@ -87,6 +89,14 @@ export interface SellerListingApplication {
   /** @deprecated 入驻商家不再要求自定义截图 */
   customShots?: CustomSellingShot[]
   status: SellerListingStatus
+  /** 与审批独立；旧样例未迁移时由 status 兼容读取。 */
+  listingStatus?: 'unlisted' | 'published' | 'delisted'
+  reviewStatus?: 'pending_review' | 'approved' | 'rejected' | 'change_pending' | 'change_rejected'
+  restoreReview?: { status: 'pending_review' | 'approved' | 'rejected'; actor: 'operator' | 'seller'; requestedAt: string; note?: string; reviewedAt?: string }
+  delistNote?: string
+  pendingTerms?: { enterprisePrice: number; servicePeriodMonths: number; updateFrequency: string; coverage: string }
+  listedByName?: string
+  lastOperatorName?: string
   reviewNote?: string
   createdAt: string
   updatedAt: string

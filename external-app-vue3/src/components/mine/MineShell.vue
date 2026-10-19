@@ -11,7 +11,6 @@ import {
   parseMineQuery,
   mineQueryPatch,
   type MineMenu,
-  type OrderTab,
   type SellerTab,
   type MineSubject
 } from '@/domain/mineQuery'
@@ -56,10 +55,6 @@ watch(
 
 function selectMenu(next: MineMenu) {
   void router.replace({ query: mineQueryPatch({ menu: next }, route.query) })
-}
-
-function selectOrderTab(next: OrderTab) {
-  void router.replace({ query: mineQueryPatch({ orderTab: next }, route.query) })
 }
 
 function selectSellerTab(next: SellerTab) {
@@ -148,12 +143,10 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
       <OrdersPanel
         v-if="state.menu === 'orders'"
         class="px-4"
-        :order-tab="state.orderTab"
         variant="mobile"
         :subject-filter="subjectFilter"
         :pay="pay"
         :open-bills="openBills"
-        @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
       />
       <DemandsPanel
@@ -212,12 +205,10 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
       <h1 class="mb-5 text-xl font-semibold text-ink-900">{{ menuLabel }}</h1>
       <OrdersPanel
         v-if="state.menu === 'orders'"
-        :order-tab="state.orderTab"
         variant="portal"
         :subject-filter="subjectFilter"
         :pay="pay"
         :open-bills="openBills"
-        @update:order-tab="selectOrderTab"
         @update:subject-filter="setSubjectFilter"
       />
       <DemandsPanel

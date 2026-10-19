@@ -109,6 +109,8 @@ export type FieldProfiling =
   | BooleanFieldProfiling
 
 export interface DatasetDetail {
+  /** 公开资源概况保留空白，不从字段清单推算统计值。 */
+  blankOverview?: boolean
   /** 数据粒度（运营配置，非必填；空则前台不展示） */
   granularity?: string
   /** 时间范围（运营配置，非必填；空则前台不展示） */
@@ -123,6 +125,8 @@ export interface DatasetDetail {
    */
   fieldCount?: number | null
   classification: string
+  /** 源数据实际更新时间；未返回时不得用同步或商品编辑时间替代。 */
+  dataUpdatedAt?: string
   qualityUpdatedAt: string
   fields: DatasetField[]
   sampleColumns: string[]
@@ -276,6 +280,8 @@ export interface DashboardDetail {
   // 数据源绑定：BI 看板嵌入地址，及在资产/BI 平台的看板编号
   sourceUrl?: string
   boundAssetId?: string
+  mobileEntryPath?: string
+  pcEntryPath?: string
   /** 关联看板同步的收费内容结构；运营只勾选，不增删。 */
   paywallCatalog?: DashboardPaywallModule[]
   /** 要打码的模块 / 字段 / 按钮；未勾选表示购买前可见。 */
@@ -462,12 +468,16 @@ export interface SpaceSyncMeta {
 }
 
 export interface Product {
+  manualDelistedBy?: 'operator' | 'seller'
+  lastListingChange?: { mode: 'manual' | 'system'; action: 'publish' | 'delist'; at: string }
   id: string
   resourceId: string
   name: string
   subtitle: string
   type: ProductType
   origin: ProductOrigin
+  /** 用数同步的公开数据集；上架后按会员免费直用，不建商品订单。 */
+  publicDataset?: boolean
   dealChannel: DealChannel
   availability: AvailabilityStatus
   acquisitions: AcquisitionOption[]
@@ -659,6 +669,14 @@ export interface Order {
   status: AppOrderStatus
   createdAt: string
   paidAt?: string
+  /** 零元订单完成时间，与付款和交付时间独立。 */
+  completedAt?: string
+  closedAt?: string
+  /** 实际终止原因类别，区分客户取消和系统关闭，不改变原交易事实。 */
+  terminationKind?: 'cancelled' | 'closed'
+  /** 创建订单时锁定的数据更新时间；后续商品更新不回写历史订单。 */
+  dataVersionUpdatedAt?: string
+  updateFrequencyAtPurchase?: string
   contractStatus?: 'quoting' | 'contract_signed' | 'payment_confirmed' | 'not_required'
   note?: string
   processNote?: string
@@ -730,6 +748,9 @@ export type DemandSource =
   | 'post_delist_alt'
 
 export interface DemandLead {
+  processedAt?: string
+  processedBy?: string
+  internalNote?: string
   id: string
   question: string
   filters: string[]

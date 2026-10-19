@@ -20,11 +20,11 @@ async function mountView() {
 describe('CommerceCenter', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('shows one concise pricing table with the four supported price types', async () => {
+  it('shows current enterprise and member pricing without a personal sale column', async () => {
     const { wrapper } = await mountView()
 
-    expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('个人单品')
-    expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('企业单品')
+    expect(wrapper.get('[data-testid="product-pricing-table"]').text()).not.toContain('个人单品')
+    expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('企业购买')
     expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('普通会员')
     expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('高级会员')
     expect(wrapper.get('[data-testid="product-pricing-table"]').text()).toContain('可售卖周期')

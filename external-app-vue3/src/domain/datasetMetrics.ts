@@ -23,11 +23,20 @@ export function datasetKeyMetrics(detail?: DatasetDetail | null): DatasetMetricI
       ? undefined
       : detail.fieldCount != null && !Number.isNaN(detail.fieldCount)
         ? detail.fieldCount
-        : detail.fields?.length
+        : !detail.blankOverview && detail.fields?.length
           ? detail.fields.length
           : undefined
-  if (fieldCount != null && fieldCount > 0) {
+  if (fieldCount != null && (fieldCount > 0 || (detail.blankOverview && fieldCount === 0))) {
     items.push({ label: '字段数', value: `${fieldCount} 个` })
   }
   return items
+}
+
+/** 详情页固定四项概况；未维护的指标也保留位置。 */
+export function datasetOverviewMetrics(detail?: DatasetDetail | null): DatasetMetricItem[] {
+  const configured = new Map(datasetKeyMetrics(detail).map((item) => [item.label, item.value]))
+  return (['数据粒度', '时间范围', '数据行数', '字段数'] as const).map((label) => ({
+    label,
+    value: configured.get(label) ?? (detail?.blankOverview ? '' : '—')
+  }))
 }

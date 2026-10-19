@@ -4,32 +4,18 @@ import type { Product, PreviewMode } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
 import ReportPreviewGallery from '@/components/shared/ReportPreviewGallery.vue'
-
-export interface InfoItem {
-  label: string
-  value?: string | number | null
-  full?: boolean
-}
+import { dashboardOverviewFields } from '@/domain/productDetailFields'
 
 const props = defineProps<{
   product: Product
   activeTab: string
   unlocked: boolean
+  expired?: boolean
 }>()
 
 const detail = computed(() => props.product.typeDetail.dashboard)
 
-const dashboardItems = computed<InfoItem[]>(() => {
-  const d = detail.value
-  if (!d) return []
-  return [
-    { label: '时间范围', value: d.timeRange },
-    { label: '更新周期', value: d.updateCycle },
-    { label: '指标数量', value: d.metrics.length ? `${d.metrics.length} 个` : '—' },
-    { label: '图表面板', value: d.panels.length ? `${d.panels.length} 个` : '—' },
-    { label: '导出规则', value: d.exportRule, full: true }
-  ]
-})
+const dashboardItems = computed(() => dashboardOverviewFields(detail.value))
 
 function gateMode(mode: PreviewMode, unlocked: boolean): 'visible' | 'masked' | 'locked' {
   if (mode === 'visible' || unlocked) return 'visible'
@@ -42,11 +28,6 @@ function chartIcon(chartType: 'line' | 'bar' | 'number'): string {
   return '指标卡'
 }
 
-function displayValue(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '—'
-  if (typeof value === 'number') return value.toLocaleString()
-  return value
-}
 </script>
 
 <template>
@@ -54,32 +35,35 @@ function displayValue(value: string | number | null | undefined): string {
     <!-- Tab: overview 基本信息 -->
     <div v-if="activeTab === 'overview'" class="space-y-5">
       <!-- 关键指标（看板专属） -->
-      <div>
+      <div data-testid="dashboard-overview-info">
         <h3 class="mb-3 text-sm font-semibold text-ink-900">看板信息</h3>
-        <div class="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-ink-100 bg-ink-100">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div
             v-for="(item, i) in dashboardItems"
             :key="`dash-${item.label}-${i}`"
-            class="bg-white p-3"
-            :class="item.full ? 'col-span-3' : ''"
+            class="min-w-0 rounded-md border border-ink-200 bg-white p-3"
           >
             <div class="text-xs text-ink-500">{{ item.label }}</div>
-            <div class="mt-1 text-sm font-semibold text-ink-900">{{ displayValue(item.value) }}</div>
+            <div class="mt-1 break-words text-sm font-semibold text-ink-900">{{ item.value }}</div>
           </div>
         </div>
       </div>
 
-      <!-- 资源信息 + 合规与授权 + 提供方 -->
-      <ProductInfoSections :product="product" />
+      <ProductInfoSections :product="product" :compact-dashboard="product.origin === 'app_content'" />
 
       <!-- 商品说明书 -->
-      <div class="rounded-lg border border-ink-200 p-4">
+      <div class="rounded-lg border border-ink-200 p-4" data-testid="dashboard-manual">
         <h3 class="mb-3 text-sm font-semibold text-ink-900">商品说明书</h3>
-        <div class="space-y-2 text-sm leading-relaxed text-ink-600">
-          <div><span class="text-ink-500">价值主张：</span>{{ product.valueProposition }}</div>
-          <div><span class="text-ink-500">详细描述：</span>{{ product.description }}</div>
-          <div><span class="text-ink-500">质量承诺：</span>{{ product.qualityPromise }}</div>
-          <div><span class="text-ink-500">合规声明：</span>{{ product.complianceNote }}</div>
+        <div class="divide-y divide-dashed divide-ink-100 text-sm leading-relaxed">
+          <div v-for="item in [
+            { label: '价值主张', value: product.valueProposition },
+            { label: '详细描述', value: product.description },
+            { label: '质量承诺', value: product.qualityPromise },
+            { label: '合规声明', value: product.complianceNote }
+          ]" :key="item.label" data-testid="dashboard-manual-item" class="py-3 first:pt-0 last:pb-0">
+            <div class="text-xs text-ink-500">{{ item.label }}</div>
+            <div class="mt-1 whitespace-pre-line text-ink-700">{{ item.value || '—' }}</div>
+          </div>
         </div>
       </div>
 
@@ -93,7 +77,9 @@ function displayValue(value: string | number | null | undefined): string {
       </div>
     </div>
 
-    <!-- Tab: preview 看板预览（2 列） -->
+    <div v-else-if="activeTab === 'preview' && expired && product.price.model !== 'member_free' && !product.acquisitions.includes('free')" data-testid="dashboard-expired-gate" class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">完整看板不可查看</div>
+
+    <!-- 看板预览 -->
     <div v-else-if="activeTab === 'preview'" class="grid grid-cols-2 gap-4">
       <ReportPreviewGallery
         :preview-images="detail.previewImages"
@@ -155,7 +141,7 @@ function displayValue(value: string | number | null | undefined): string {
         v-if="product.entitlementPolicy?.kind === 'term'"
         class="rounded-lg bg-violet-50 p-3 text-sm text-violet-600"
       >
-        单品购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
+        企业购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
       </div>
     </div>
   </div>

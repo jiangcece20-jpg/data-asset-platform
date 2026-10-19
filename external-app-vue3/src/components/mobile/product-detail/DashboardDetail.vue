@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import type { Product } from '@/types/domain'
 import ContentGate from './ContentGate.vue'
-import InfoGrid, { type InfoItem } from './InfoGrid.vue'
+import InfoGrid from './InfoGrid.vue'
+import { dashboardOverviewFields } from '@/domain/productDetailFields'
 import ProductContentPeek from '@/components/ProductContentPeek.vue'
 import ReportPreviewGallery from '@/components/shared/ReportPreviewGallery.vue'
 
@@ -10,27 +11,20 @@ const props = defineProps<{
   product: Product
   activeTab: 'overview' | 'preview' | 'metrics' | 'updates'
   unlocked: boolean
+  expired?: boolean
 }>()
 
 const detail = computed(() => props.product.typeDetail.dashboard)
 
-const basicItems = computed<InfoItem[]>(() => {
-  const d = detail.value
-  if (!d) return []
-  return [
-    { label: '时间范围', value: d.timeRange },
-    { label: '更新周期', value: d.updateCycle },
-    { label: '指标数量', value: d.metrics.length ? `${d.metrics.length} 个` : '—' },
-    { label: '图表面板', value: d.panels.length ? `${d.panels.length} 个` : '—' },
-    { label: '导出规则', value: d.exportRule, full: true }
-  ]
-})
+const basicItems = computed(() => dashboardOverviewFields(detail.value))
 </script>
 
 <template>
   <div v-if="detail">
     <!-- 基本信息 -->
     <InfoGrid v-if="activeTab === 'overview'" :items="basicItems" />
+
+    <div v-else-if="activeTab === 'preview' && expired && product.price.model !== 'member_free' && !product.acquisitions.includes('free')" data-testid="dashboard-expired-gate" class="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">完整看板不可查看</div>
 
     <!-- 看板预览 -->
     <div v-else-if="activeTab === 'preview'" class="space-y-3">
@@ -64,7 +58,7 @@ const basicItems = computed<InfoItem[]>(() => {
       <div><span class="text-ink-400">更新周期：</span>{{ detail.updateCycle }}</div>
       <div><span class="text-ink-400">导出规则：</span>{{ detail.exportRule }}</div>
       <div v-if="product.entitlementPolicy?.kind === 'term'" class="rounded-lg bg-warning-50 p-3 text-[12px] text-warning-600">
-        单品购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
+        企业购买后有效 {{ product.entitlementPolicy.months }} 个月，期间持续获得更新。
       </div>
     </div>
   </div>

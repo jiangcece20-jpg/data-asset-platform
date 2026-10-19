@@ -19,7 +19,7 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     candidate: { label: '候选资产', tone: 'slate' },
     preparing: { label: '上架准备中', tone: 'amber' },
     published: { label: '已上架', tone: 'green' },
-    paused: { label: '暂停销售', tone: 'amber' },
+    paused: { label: '已下架', tone: 'slate' },
     delisted: { label: '已下架', tone: 'slate' }
   },
   product: {
@@ -28,7 +28,7 @@ const dictionaries: Record<string, Record<string, Meta>> = {
     rejected: { label: '已驳回', tone: 'red' },
     pending_publish: { label: '待发布', tone: 'blue' },
     published: { label: '已发布', tone: 'green' },
-    paused: { label: '暂停销售', tone: 'amber' },
+    paused: { label: '已下架', tone: 'slate' },
     delisted: { label: '已下架', tone: 'slate' }
   },
   appOrder: {

@@ -12,10 +12,15 @@ import {
   explainProductMatch,
   formatMatchExplain
 } from '@/domain/discoverRouting'
-import { typeMeta } from '@/utils/productMeta'
+import { typeMeta, originMeta as originLabels } from '@/utils/productMeta'
 import type { ProductOrigin, ProductType } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 import { productVenueFilters } from '@/domain/productListChips'
+import { hasExpiredEnterpriseProductEntitlement } from '@/domain/v102Trade'
+import { isDiscoverProductUsable } from '@/domain/discoverUsability'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useUserStore } from '@/stores/user'
+import { commerceOffersOf } from '@/domain/commerceOffers'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +30,9 @@ const query = ref(String(route.query.q || ''))
 const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
 const activeVenue = ref(String(route.query.venue || ''))
 const activeOrigin = ref<ProductOrigin | ''>((route.query.origin as ProductOrigin) || '')
+const entitlements = useEntitlementStore()
+const user = useUserStore()
+const usableOnly = ref(route.query.usable === '1')
 
 watch(
   () => route.query.q,
@@ -42,6 +50,12 @@ watch(
   () => route.query.origin,
   (o) => (activeOrigin.value = (o as ProductOrigin) || '')
 )
+watch(() => route.query.usable, (value) => (usableOnly.value = value === '1'))
+watch(usableOnly, (value) => {
+  if (value !== (route.query.usable === '1')) {
+    void router.replace({ query: { ...route.query, usable: value ? '1' : undefined, directory: undefined } })
+  }
+})
 watch(activeVenue, () => {
   if (activeVenue.value) activeOrigin.value = ''
 })
@@ -50,13 +64,25 @@ const venueLabel = computed(() =>
   productVenueFilters(catalog.discoverable).find((item) => item.key === activeVenue.value)?.label
 )
 
-const results = computed(() =>
-  catalog.search(query.value, {
+const results = computed(() => {
+  const selfOperatedOrigin = activeOrigin.value === 'asset_platform' || activeOrigin.value === 'app_content'
+  const list = catalog.search(query.value, {
     type: activeType.value || undefined,
-    origin: activeOrigin.value || undefined,
+    origin: selfOperatedOrigin ? undefined : activeOrigin.value || undefined,
     venue: activeVenue.value || undefined
-  })
-)
+  }).filter((product) => !selfOperatedOrigin || product.origin === 'asset_platform' || product.origin === 'app_content')
+    .filter((product) => !usableOnly.value || isDiscoverProductUsable(product, {
+      enterpriseAuthenticated: user.isEnterpriseAuthenticated,
+      accessLevel: entitlements.accessLevel(product),
+      serviceExpired: hasExpiredEnterpriseProductEntitlement(entitlements.list, product.id, user.context.currentEnterpriseId)
+    }))
+  if (route.query.sort === 'latest') return list.sort((a, b) => (b.listedAt || '').localeCompare(a.listedAt || ''))
+  if (route.query.sort === 'priceHigh' || route.query.sort === 'priceLow') {
+    const direction = route.query.sort === 'priceHigh' ? -1 : 1
+    return list.sort((a, b) => direction * (Math.min(...commerceOffersOf(a).map((offer) => offer.price)) - Math.min(...commerceOffersOf(b).map((offer) => offer.price))))
+  }
+  return list
+})
 
 const rankedHits = computed(() => buildRetrievalHits(results.value, query.value))
 
@@ -70,7 +96,7 @@ function matchExplainFor(productId: string) {
 
 const internalViews = computed(() => catalog.searchInternalViews(query.value))
 
-const hasInternalViews = computed(() => internalViews.value.length > 0)
+const hasInternalViews = computed(() => !usableOnly.value && internalViews.value.length > 0)
 
 function openExternalView(view: Resource) {
   const url = view.typeDetail.userView?.externalUrl
@@ -85,8 +111,9 @@ function matchReason(): string {
   const parts: string[] = []
   if (query.value) parts.push(`关键词“${query.value}”`)
   if (activeType.value) parts.push(typeMeta[activeType.value].label)
+  if (usableOnly.value) parts.push('我可使用')
   if (venueLabel.value) parts.push(venueLabel.value)
-  else if (activeOrigin.value === 'seller_market') parts.push('入驻商家')
+  else if (activeOrigin.value) parts.push(originLabels[activeOrigin.value])
   return parts.length ? parts.join(' · ') : '综合排序'
 }
 
@@ -116,6 +143,13 @@ function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
 
     <div class="mt-3 px-4">
       <ProductSearchFilters v-model:type="activeType" v-model:venue="activeVenue" />
+      <div v-if="activeOrigin" class="mt-2 flex items-center gap-2 text-xs text-slate-500">
+        来源：{{ originLabels[activeOrigin] }}
+        <button aria-label="清除来源筛选" class="px-2 py-1" @click="activeOrigin = ''">×</button>
+      </div>
+      <label class="mt-3 flex items-center gap-2 text-sm text-slate-600">
+        <input v-model="usableOnly" type="checkbox" data-testid="mobile-usable-filter" />我可使用
+      </label>
     </div>
 
     <div class="mt-3 px-4 text-[11px] text-slate-400">
@@ -172,7 +206,10 @@ function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
       </div>
     </div>
 
-    <EmptyState v-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或用 AI 问答做汇总与对比">
+    <EmptyState v-if="!results.length && usableOnly" title="没有符合当前条件的可用商品" desc="调整关键词或筛选条件后重试">
+      <button class="w-full rounded-lg border border-slate-200 py-2 text-sm" @click="usableOnly = false">查看全部商品</button>
+    </EmptyState>
+    <EmptyState v-else-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或用 AI 问答做汇总与对比">
       <button
         class="w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white"
         data-testid="upgrade-ai-cta"

@@ -12,7 +12,7 @@ import type {
 } from '@/types/domain'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
 import TimeDistributionChart from '@/components/shared/TimeDistributionChart.vue'
-import { datasetKeyMetrics } from '@/domain/datasetMetrics'
+import { datasetOverviewMetrics } from '@/domain/datasetMetrics'
 import type { TimeGrain } from '@/domain/timeDistribution'
 
 export interface InfoItem {
@@ -28,12 +28,11 @@ const props = defineProps<{
 
 const detail = computed<DatasetDetail | undefined>(() => props.product.typeDetail.dataset)
 
-/** 仅已配置的关键指标；空值不展示 */
-const datasetItems = computed(() => datasetKeyMetrics(detail.value))
+const datasetItems = computed(() => datasetOverviewMetrics(detail.value))
 
 // ---- 空值标准化 ----
 function displayValue(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return '—'
+  if (v === null || v === undefined || v === '') return detail.value?.blankOverview ? '' : '—'
   if (typeof v === 'number') return v.toLocaleString()
   return v
 }
@@ -171,49 +170,35 @@ const booleanBar = computed(() => {
     <div v-if="activeTab === 'basic'" class="space-y-6">
       <!-- 数据集关键指标：仅展示已配置项 -->
       <div
-        v-if="datasetItems.length"
-        class="grid gap-3"
-        :class="datasetItems.length >= 4 ? 'grid-cols-4' : datasetItems.length === 3 ? 'grid-cols-3' : datasetItems.length === 2 ? 'grid-cols-2' : 'grid-cols-1'"
+        data-testid="dataset-overview-metrics"
+        class="grid grid-cols-2 gap-3 lg:grid-cols-4"
       >
         <div
           v-for="item in datasetItems"
           :key="item.label"
-          class="rounded-lg border border-violet-100 bg-violet-50/60 px-4 py-3"
+          class="rounded-md border border-ink-100 bg-white px-4 py-3"
         >
-          <div class="text-xs text-violet-600/70">{{ item.label }}</div>
-          <div class="mt-1 text-lg font-bold text-violet-700">{{ displayValue(item.value) }}</div>
+          <div class="text-xs text-ink-400">{{ item.label }}</div>
+          <div class="mt-1 text-lg font-semibold text-ink-900">{{ displayValue(item.value) }}</div>
         </div>
       </div>
 
-      <!-- 资源信息 + 合规与授权 + 提供方 -->
-      <ProductInfoSections :product="product" />
+      <ProductInfoSections :product="product" compact-dataset />
 
       <!-- 商品说明书 -->
       <div class="space-y-3">
         <h3 class="text-sm font-semibold text-ink-900">商品说明书</h3>
-        <div class="space-y-3 text-sm leading-relaxed text-ink-600">
-          <div>
-            <span class="text-ink-500">价值主张：</span>{{ product.valueProposition }}
-          </div>
-          <div>
-            <span class="text-ink-500">详细描述：</span>{{ product.description }}
-          </div>
-          <div>
-            <span class="text-ink-500">质量承诺：</span>{{ product.qualityPromise }}
-          </div>
-          <div>
-            <span class="text-ink-500">合规声明：</span>{{ product.complianceNote }}
+        <div class="divide-y divide-dashed divide-ink-100 text-sm leading-relaxed text-ink-600">
+          <div v-for="item in [
+            { label: '价值主张', value: product.valueProposition },
+            { label: '详细描述', value: product.description },
+            { label: '质量承诺', value: product.qualityPromise },
+            { label: '合规声明', value: product.complianceNote }
+          ]" :key="item.label" class="py-3 first:pt-0 last:pb-0">
+            <div class="mb-1 text-xs text-ink-500">{{ item.label }}</div>
+            <div class="whitespace-pre-line text-ink-700">{{ item.value || '—' }}</div>
           </div>
         </div>
-      </div>
-
-      <!-- 产品介绍（空间同步富文本） -->
-      <div v-if="product.spaceMeta?.productIntroduction" class="space-y-2">
-        <div class="flex items-center gap-2">
-          <h3 class="text-sm font-semibold text-ink-900">产品介绍</h3>
-          <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600">来自可信空间</span>
-        </div>
-        <p class="whitespace-pre-line text-sm leading-relaxed text-ink-600">{{ product.spaceMeta.productIntroduction }}</p>
       </div>
     </div>
 

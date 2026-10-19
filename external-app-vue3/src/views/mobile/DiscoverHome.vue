@@ -1,18 +1,28 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import ChatInterface from '@/components/mobile/ChatInterface.vue'
+import AiConversationHistory from '@/components/shared/AiConversationHistory.vue'
+import { IconHistory, IconPlus } from '@arco-design/web-vue/es/icon'
 import { useCatalogStore } from '@/stores/catalog'
 import { useAiStore, guideQuestions } from '@/stores/ai'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useUserStore } from '@/stores/user'
 import { discoverShowcaseProducts } from '@/domain/discoverShowcase'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 import { productListChips } from '@/domain/productListChips'
+import { hasExpiredEnterpriseProductEntitlement } from '@/domain/v102Trade'
+import { isDiscoverProductUsable } from '@/domain/discoverUsability'
 import type { Product, ProductOrigin, ProductType } from '@/types/domain'
 
 const router = useRouter()
 const catalog = useCatalogStore()
 const ai = useAiStore()
+const entitlements = useEntitlementStore()
+const user = useUserStore()
+const historyOpen = ref(false)
+watch(() => user.context.currentMemberId, (ownerId) => ai.activateOwner(ownerId), { immediate: true })
 
 const query = ref('')
 const activeMode = ref<'ai' | 'keyword'>('keyword')
@@ -40,7 +50,7 @@ const sort = ref<SortKey>('recommend')
 
 const originOptions: Array<{ key: ProductOrigin | ''; label: string }> = [
   { key: '', label: '全部' },
-  { key: 'app_content', label: 'App自有内容' },
+  { key: 'app_content', label: '自营产品' },
   { key: 'asset_platform', label: '资产平台' },
   { key: 'trusted_space', label: '可信空间' },
   { key: 'seller_market', label: '入驻商家' }
@@ -56,13 +66,14 @@ const spaceOptions = computed(() => {
   return names
 })
 const spaceFilter = ref('')
+const usableOnly = ref(false)
 
 const filterOpen = ref(false)
 // 抽屉草稿：打开时拷贝，确定后应用
-const draft = ref({ sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value })
+const draft = ref({ sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value })
 
 const activeFilterCount = computed(
-  () => (sort.value !== 'recommend' ? 1 : 0) + (originFilter.value ? 1 : 0) + (spaceFilter.value ? 1 : 0)
+  () => (sort.value !== 'recommend' ? 1 : 0) + (originFilter.value ? 1 : 0) + (spaceFilter.value ? 1 : 0) + (usableOnly.value ? 1 : 0)
 )
 
 function minPriceOf(p: Product): number {
@@ -79,6 +90,11 @@ const filtered = computed(() => {
       const venue = productListChips(p).venue
       if (venue?.kind !== 'space' || venue.name !== spaceFilter.value) return false
     }
+    if (usableOnly.value && !isDiscoverProductUsable(p, {
+      enterpriseAuthenticated: user.isEnterpriseAuthenticated,
+      accessLevel: entitlements.accessLevel(p),
+      serviceExpired: hasExpiredEnterpriseProductEntitlement(entitlements.list, p.id, user.context.currentEnterpriseId)
+    })) return false
     return true
   })
   if (sort.value === 'latest') {
@@ -94,7 +110,7 @@ const filtered = computed(() => {
 // 默认态分组：样例在前 + 全部商品
 const showcaseIds = computed(() => new Set(recommended.value.map((p) => p.id)))
 const isGrouped = computed(
-  () => !activeType.value && !originFilter.value && !spaceFilter.value && sort.value === 'recommend'
+  () => !activeType.value && !originFilter.value && !spaceFilter.value && !usableOnly.value && sort.value === 'recommend'
 )
 const showcaseList = computed(() => filtered.value.filter((p) => showcaseIds.value.has(p.id)))
 const restList = computed(() => filtered.value.filter((p) => !showcaseIds.value.has(p.id)))
@@ -104,7 +120,7 @@ function selectType(key: ProductType | '') {
 }
 
 function openFilter() {
-  draft.value = { sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value }
+  draft.value = { sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value }
   filterOpen.value = true
 }
 function applyFilter() {
@@ -112,16 +128,21 @@ function applyFilter() {
   activeType.value = draft.value.type
   originFilter.value = draft.value.origin
   spaceFilter.value = draft.value.space
+  usableOnly.value = draft.value.usable
   filterOpen.value = false
 }
 function resetFilter() {
-  draft.value = { sort: 'recommend', type: '', origin: '', space: '' }
+  draft.value = { sort: 'recommend', type: '', origin: '', space: '', usable: false }
 }
 
 function submitKeyword(q?: string) {
   const question = (q ?? query.value).trim()
   if (!question) return
-  router.push({ path: '/app/search', query: { q: question, entry: 'keyword' } })
+  router.push({ path: '/app/search', query: {
+    q: question, entry: 'keyword', usable: usableOnly.value ? '1' : undefined,
+    type: activeType.value || undefined, origin: originFilter.value || undefined,
+    venue: spaceFilter.value ? `space:${spaceFilter.value}` : undefined, sort: sort.value
+  } })
 }
 
 const lastQuestion = computed(() => {
@@ -146,7 +167,17 @@ function handleAiFollowUp(text: string) {
 }
 
 function handleAiReset() {
-  ai.resetChat()
+  ai.startNewConversation()
+}
+
+function openAiHistory(id: string) {
+  ai.openConversation(id)
+  historyOpen.value = false
+}
+
+function newAiFromHistory() {
+  ai.startNewConversation()
+  historyOpen.value = false
 }
 
 function handleDowngradeKeyword() {
@@ -220,13 +251,25 @@ function handleDowngradeKeyword() {
           </button>
         </div>
         <button
-          class="flex shrink-0 items-center gap-1 py-2 text-[15px]"
+          data-testid="discover-usable-filter"
+          class="flex h-9 shrink-0 items-center gap-1 rounded-xl border px-2.5 text-[13px] transition"
+          :class="usableOnly ? 'border-brand-300 bg-brand-50 font-medium text-brand-600' : 'border-ink-200 bg-white text-ink-600'"
+          :aria-pressed="usableOnly"
+          @click="usableOnly = !usableOnly"
+        >
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="usableOnly" d="m5 12 4 4L19 6" /><circle v-else cx="12" cy="12" r="7" /></svg>
+          我可使用
+        </button>
+        <button
+          data-testid="discover-filter-button"
+          class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white"
           :class="activeFilterCount ? 'font-medium text-brand-600' : 'text-ink-600'"
+          aria-label="筛选"
+          title="筛选"
           @click="openFilter"
         >
-          筛选
-          <span v-if="activeFilterCount" class="flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">{{ activeFilterCount }}</span>
-          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z" /></svg>
+          <span v-if="activeFilterCount" class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">{{ activeFilterCount }}</span>
         </button>
       </div>
     </div>
@@ -238,7 +281,7 @@ function handleDowngradeKeyword() {
         <template v-if="isGrouped">
           <div class="mb-1.5 flex items-center justify-between px-1">
             <div class="text-[12px] font-medium text-ink-400">数据来源样例</div>
-            <span class="text-[11px] text-ink-400">本平台、可信空间与入驻商家</span>
+            <span class="text-[11px] text-ink-400">自营产品、可信空间与入驻商家</span>
           </div>
           <div class="space-y-2.5">
             <ProductCard v-for="p in showcaseList" :key="p.id" :product="p" />
@@ -261,13 +304,20 @@ function handleDowngradeKeyword() {
 
       <div v-else class="rounded-2xl border border-dashed border-ink-200 bg-white py-12 text-center">
         <svg class="mx-auto h-9 w-9 text-ink-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5" /><path d="m20 20-3.8-3.8" /></svg>
-        <div class="mt-2 text-[13px] text-ink-500">没有符合筛选条件的商品</div>
-        <button class="mt-4 rounded-full bg-brand-500 px-6 py-2 text-[13px] font-medium text-white" @click="activeType = ''; originFilter = ''; spaceFilter = ''; sort = 'recommend'">清空筛选</button>
+        <div class="mt-2 text-[13px] text-ink-500">{{ usableOnly ? '当前企业暂无可直接使用的商品' : '没有符合筛选条件的商品' }}</div>
+        <button class="mt-4 rounded-full bg-brand-500 px-6 py-2 text-[13px] font-medium text-white" @click="activeType = ''; originFilter = ''; spaceFilter = ''; usableOnly = false; sort = 'recommend'">清空筛选</button>
       </div>
     </div>
 
     <!-- AI 模式：对话式界面 -->
     <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-2 pt-1" data-testid="discover-ai-panel">
+      <div class="mb-2 flex shrink-0 items-center justify-between px-1 text-sm font-medium text-ink-800">
+        <span>AI 问答</span>
+        <div class="flex items-center gap-1">
+          <button data-testid="discover-ai-history" class="flex h-9 w-9 items-center justify-center rounded-md text-ink-600" aria-label="历史对话" title="历史对话" @click="historyOpen = true"><IconHistory /></button>
+          <button data-testid="discover-ai-new" :disabled="ai.chatTyping" class="flex h-9 w-9 items-center justify-center rounded-md text-ink-600 disabled:opacity-50" aria-label="新对话" title="新对话" @click="handleAiReset"><IconPlus /></button>
+        </div>
+      </div>
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-card">
         <ChatInterface
           embedded
@@ -285,6 +335,7 @@ function handleDowngradeKeyword() {
         />
       </div>
     </div>
+    <AiConversationHistory :open="historyOpen" :conversations="ai.conversationList" :active-id="ai.activeConversationId" :busy="ai.chatTyping" @close="historyOpen = false" @new="newAiFromHistory" @select="openAiHistory" />
 
     <!-- 筛选抽屉（对齐设计稿：排序/类型/来源/空间 + 重置/确定） -->
     <teleport to="body">

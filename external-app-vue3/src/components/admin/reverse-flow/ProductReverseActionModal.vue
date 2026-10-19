@@ -18,12 +18,12 @@ const emit = defineEmits<{
 
 const reasonsByAction: Record<ProductReverseAction, ReverseReasonCode[]> = {
   pause: ['commercial_adjustment', 'quality_issue'],
-  delist: ['commercial_adjustment', 'upstream_stop'],
+  delist: ['commercial_adjustment', 'upstream_stop', 'quality_issue', 'compliance_risk'],
   recall: ['quality_issue', 'compliance_risk'],
 }
 
 const actionLabels: Record<ProductReverseAction, string> = {
-  pause: '暂停销售',
+  pause: '下架',
   delist: '下架',
   recall: '召回',
 }
@@ -44,7 +44,7 @@ const availabilityLabels: Record<string, string> = {
   candidate: '筹备中',
   preparing: '准备中',
   published: '已发布',
-  paused: '暂停销售',
+  paused: '已下架',
   delisted: '已下架',
 }
 
@@ -62,7 +62,7 @@ const entitlementTreatmentLabels: Record<string, string> = {
   migrate_or_refund: '进入迁移或退款处置',
 }
 
-const action = ref<ProductReverseAction>('pause')
+const action = ref<ProductReverseAction>('delist')
 const reason = ref<ReverseReasonCode>('commercial_adjustment')
 const reasonDetail = ref('')
 const owner = ref('')
@@ -144,7 +144,7 @@ function close() {
         <div class="mb-2 text-[13px] font-medium text-ink-600">操作类型</div>
         <div class="flex gap-2">
           <button
-            v-for="a in (['pause', 'delist', 'recall'] as ProductReverseAction[])"
+            v-for="a in (['delist', 'recall'] as ProductReverseAction[])"
             :key="a"
             data-testid="action-btn"
             :data-value="a"

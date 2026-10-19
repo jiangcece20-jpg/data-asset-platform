@@ -55,11 +55,11 @@ describe('salesStateOf', () => {
 
   it('maps availability to sales labels', () => {
     expect(salesStateOf(product('published'))).toBe('published')
-    expect(salesStateOf(product('paused'))).toBe('paused')
+    expect(salesStateOf(product('paused'))).toBe('delisted')
     expect(salesStateOf(product('delisted'))).toBe('delisted')
     expect(salesStateOf(product('preparing'))).toBe('draft')
     expect(salesStateOf(product('candidate'))).toBe('draft')
-    expect(SALES_STATE_LABELS.paused).toBe('暂停新购')
+    expect(Object.values(SALES_STATE_LABELS)).not.toContain('暂停新购')
   })
 })
 

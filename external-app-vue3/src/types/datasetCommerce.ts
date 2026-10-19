@@ -21,6 +21,8 @@ export type BiDeliveryStatus = 'pending' | 'provisioning' | 'delivered' | 'faile
 
 /** 找数买数仅保留 BI 数据集实例的最小投影，不接管 BI 内部报表和权限模型。 */
 export interface BiDatasetDelivery {
+  /** 本次交付版本的源数据更新时间，与刷新完成时间独立。 */
+  dataVersionUpdatedAt?: string
   id: string
   orderId: string
   entitlementId: string

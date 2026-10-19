@@ -4,7 +4,7 @@ import type { Product } from '@/types/domain'
 import InfoGrid, { type InfoItem } from './InfoGrid.vue'
 import ScrollTable, { type ScrollColumn } from './ScrollTable.vue'
 import FieldProfilingPanel from './FieldProfilingPanel.vue'
-import { datasetKeyMetrics } from '@/domain/datasetMetrics'
+import { datasetOverviewMetrics } from '@/domain/datasetMetrics'
 
 const props = defineProps<{ product: Product; activeTab: 'basic' | 'fields' | 'samples' | 'profiling' }>()
 
@@ -36,25 +36,16 @@ const sampleColumns = computed<ScrollColumn[]>(() =>
   (detail.value?.sampleColumns ?? []).map((col) => ({ key: col, label: col }))
 )
 
-/** 仅已配置的关键指标；空值不展示（质量/样本时间等同理过滤） */
-const datasetItems = computed<InfoItem[]>(() => {
-  const d = detail.value
-  if (!d) return []
-  const items: InfoItem[] = datasetKeyMetrics(d).map((item) => ({ label: item.label, value: item.value }))
-  if (d.qualityUpdatedAt?.trim()) items.push({ label: '质量更新时间', value: d.qualityUpdatedAt })
-  if (d.sampleGeneratedAt?.trim()) items.push({ label: '样本生成时间', value: d.sampleGeneratedAt })
-  return items
-})
+const datasetItems = computed<InfoItem[]>(() => datasetOverviewMetrics(detail.value))
 </script>
 
 <template>
   <div v-if="detail">
     <!-- 关键指标（数据集专属，仅已配置项） -->
     <template v-if="activeTab === 'basic'">
-      <template v-if="datasetItems.length">
-        <div class="mb-2 text-[13px] font-semibold text-ink-900">关键指标</div>
-        <InfoGrid :items="datasetItems" />
-      </template>
+      <div data-testid="dataset-overview-metrics">
+        <InfoGrid :items="datasetItems" :keep-empty="detail.blankOverview" />
+      </div>
     </template>
 
     <!-- 字段信息：横向滑动，首列字段名吸附 -->

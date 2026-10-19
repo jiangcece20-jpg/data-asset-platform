@@ -2,6 +2,9 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAiStore, guideScenarios } from '@/stores/ai'
+import { useUserStore } from '@/stores/user'
+import AiConversationHistory from '@/components/shared/AiConversationHistory.vue'
+import { IconHistory, IconPlus } from '@arco-design/web-vue/es/icon'
 import { useCatalogStore } from '@/stores/catalog'
 import { typeMeta } from '@/utils/productMeta'
 import type { Product } from '@/types/domain'
@@ -12,7 +15,11 @@ import type { ChatMessage, GuideScenario } from '@/types/aiChat'
 const route = useRoute()
 const router = useRouter()
 const ai = useAiStore()
+const user = useUserStore()
 const catalog = useCatalogStore()
+const historyOpen = ref(false)
+
+watch(() => user.context.currentMemberId, (ownerId) => ai.activateOwner(ownerId), { immediate: true })
 
 const fromKeywordEmpty = computed(() => route.query.from === 'keyword_empty')
 const hasMessages = computed(() => ai.chatMessages.length > 0)
@@ -54,10 +61,23 @@ function handleSelectFollowUp(text: string) {
 }
 
 function handleReset() {
-  ai.resetChat()
+  ai.startNewConversation()
+  input.value = ''
   if (route.query.q) {
     router.replace({ path: '/portal/ai-chat', query: { entry: 'ai' } })
   }
+}
+
+function openHistoryConversation(id: string) {
+  ai.openConversation(id)
+  historyOpen.value = false
+  input.value = ''
+  if (route.query.q) void router.replace({ path: '/portal/ai-chat', query: { entry: 'ai' } })
+}
+
+function newFromHistory() {
+  handleReset()
+  historyOpen.value = false
 }
 
 function handleDowngrade() {
@@ -74,7 +94,11 @@ function handleDowngrade() {
 function bootstrapFromQuery() {
   const q = route.query.q
   if (typeof q !== 'string' || !q.trim()) return
-  if (ai.chatMessages.length) return
+  const firstUser = ai.chatMessages.find((message) => message.role === 'user')
+  const firstText = firstUser?.blocks.find((block) => block.type === 'text')
+  if (firstText?.type === 'text' && firstText.content === q.trim()) return
+  if (ai.chatTyping) return
+  if (ai.chatMessages.length) ai.startNewConversation()
   handleSend(q.trim())
 }
 
@@ -83,9 +107,7 @@ onMounted(bootstrapFromQuery)
 watch(
   () => route.query.q,
   (q, prev) => {
-    if (typeof q === 'string' && q.trim() && q !== prev && !ai.chatMessages.length) {
-      handleSend(q.trim())
-    }
+    if (q !== prev) bootstrapFromQuery()
   }
 )
 
@@ -290,6 +312,7 @@ function isLastAi(msg: ChatMessage): boolean {
           </div>
         </div>
         <div class="flex shrink-0 items-center gap-2">
+          <button data-testid="ai-history-open" class="flex h-8 w-8 items-center justify-center rounded-md text-ink-600 hover:bg-white/70" aria-label="历史对话" title="历史对话" @click="historyOpen = true"><IconHistory /></button>
           <button
             data-testid="downgrade-keyword"
             class="h-8 rounded-lg border border-ink-200 bg-white/70 px-3 text-[13px] text-ink-600 transition hover:border-violet-200 hover:text-violet-600"
@@ -298,12 +321,12 @@ function isLastAi(msg: ChatMessage): boolean {
             关键词搜索
           </button>
           <button
-            v-if="hasMessages"
-            data-testid="reset-chat"
-            class="h-8 rounded-lg px-3 text-[13px] text-ink-500 transition hover:bg-white/70 hover:text-ink-900"
+            data-testid="new-chat"
+            :disabled="ai.chatTyping"
+            class="flex h-8 items-center gap-1 rounded-md px-3 text-[13px] text-ink-600 transition hover:bg-white/70 disabled:opacity-50"
             @click="handleReset"
           >
-            清空对话
+            <IconPlus />新对话
           </button>
         </div>
       </header>
@@ -354,14 +377,14 @@ function isLastAi(msg: ChatMessage): boolean {
       <div v-else class="space-y-6">
         <div v-for="msg in ai.chatMessages" :key="msg.id">
           <!-- 用户消息：蓝紫渐变气泡 -->
-          <div v-if="msg.role === 'user'" :data-testid="msg.role === 'ai' ? 'ai-message' : 'user-message'" class="flex justify-end">
+          <div v-if="msg.role === 'user'" data-testid="user-message" class="flex justify-end">
             <div class="max-w-[78%] rounded-2xl rounded-tr-sm bg-gradient-to-br from-[#3B6FF7] to-[#7B5CF6] px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-[0_2px_10px_rgba(59,111,247,0.25)]">
               {{ msg.blocks.map((b) => (b.type === 'text' ? b.content : '')).join('') }}
             </div>
           </div>
 
           <!-- AI 消息：头像 + 白卡 -->
-          <div v-else :data-testid="msg.role === 'ai' ? 'ai-message' : 'user-message'" class="flex gap-3">
+          <div v-else data-testid="ai-message" class="flex gap-3">
             <div class="relative h-8 w-8 shrink-0">
               <div class="absolute inset-0 rounded-full bg-violet-400/25 blur-md"></div>
               <svg class="relative h-8 w-8" viewBox="0 0 44 44" fill="none">
@@ -630,6 +653,7 @@ function isLastAi(msg: ChatMessage): boolean {
           <span>Enter 发送 · Shift + Enter 换行</span>
         </div>
       </div>
+      <AiConversationHistory :open="historyOpen" :conversations="ai.conversationList" :active-id="ai.activeConversationId" :busy="ai.chatTyping" @close="historyOpen = false" @new="newFromHistory" @select="openHistoryConversation" />
     </div>
   </div>
 </template>

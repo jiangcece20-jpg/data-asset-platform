@@ -23,7 +23,7 @@ describe('ServiceStatusNotice', () => {
 
   it('shows terminated message with highest priority even when paused', () => {
     const wrapper = mountNotice({ availability: 'paused', serviceStatus: 'terminated', hasAccess: true })
-    expect(wrapper.text()).toContain('已停止服务')
+    expect(wrapper.text()).toContain('服务不可用')
     expect(wrapper.text()).not.toContain('暂停新购')
   })
 
@@ -35,19 +35,19 @@ describe('ServiceStatusNotice', () => {
 
   it('shows degraded message when service is degraded', () => {
     const wrapper = mountNotice({ availability: 'paused', serviceStatus: 'degraded', hasAccess: true })
-    expect(wrapper.text()).toContain('服务降级')
-    expect(wrapper.text()).toContain('补偿')
+    expect(wrapper.text()).toContain('后续更新异常')
+    expect(wrapper.text()).not.toContain('补偿')
   })
 
   it('shows paused-owned message when paused, normal service, and has access', () => {
     const wrapper = mountNotice({ availability: 'paused', serviceStatus: 'normal', hasAccess: true })
-    expect(wrapper.text()).toContain('暂停新购')
-    expect(wrapper.text()).toContain('有效权益不受影响')
+    expect(wrapper.text()).toContain('已下架')
+    expect(wrapper.text()).not.toContain('暂停新购')
   })
 
   it('shows paused-unowned message when paused, normal service, and no access', () => {
     const wrapper = mountNotice({ availability: 'paused', serviceStatus: 'normal', hasAccess: false })
-    expect(wrapper.text()).toContain('暂停新购')
+    expect(wrapper.text()).toContain('已下架')
     expect(wrapper.text()).not.toContain('有效权益')
   })
 

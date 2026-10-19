@@ -30,11 +30,12 @@ describe('SpaceIntentForm', () => {
   })
 
   it('submits an unclaimed intent and shows 已提交', async () => {
+    useUserStore().completeEnterpriseAuth()
     const wrapper = await mountForm()
     await wrapper.get('[data-testid="contact-name"]').setValue('陈静')
     await wrapper.get('[data-testid="contact-phone"]').setValue('13800000000')
     await wrapper.get('[data-testid="scenario"]').setValue('司机核验')
-    expect(wrapper.get('[data-testid="requested-enterprise"]').text()).toBe('个人')
+    expect(wrapper.get('[data-testid="requested-enterprise"]').text()).toBe('万联供应链管理有限公司')
     await wrapper.get('[data-testid="submit-intent"]').trigger('click')
     await flushPromises()
 
@@ -43,10 +44,16 @@ describe('SpaceIntentForm', () => {
     expect(store.list[0]).toMatchObject({
       productId: 'prod-qualification-api',
       opsStatus: 'unclaimed',
-      requestedEnterpriseName: '个人',
-      enterpriseId: undefined
+      requestedEnterpriseName: '万联供应链管理有限公司',
+      enterpriseId: 'ent-wanlian-logistics'
     })
     expect(wrapper.text()).toContain('已提交')
+  })
+
+  it('does not expose the submit action to a trial member on a direct route', async () => {
+    const wrapper = await mountForm()
+    expect(wrapper.text()).toContain('试用会员不能购买或申请。')
+    expect(wrapper.find('[data-testid="submit-intent"]').exists()).toBe(false)
   })
 
   it('shows 请先登录 and does not submit when logged out', async () => {
@@ -75,6 +82,7 @@ describe('SpaceIntentForm', () => {
   })
 
   it('blocks a second portal trial submit and stays on the form', async () => {
+    useUserStore().completeEnterpriseAuth()
     useSpaceIntentStore().submit({
       productId: 'prod-qualification-api',
       contactName: '陈静',

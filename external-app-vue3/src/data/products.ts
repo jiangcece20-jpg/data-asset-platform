@@ -32,7 +32,7 @@ export const seedProducts: Product[] = [
     tags: ['热门', '会员免费'],
     description: '覆盖全国主要城市对的公路货运价格指数，支持按线路、车型、时间维度下钻分析价格走势。',
     valueProposition: '帮助物流企业和货主实时掌握运价波动，辅助采购与报价决策。',
-    deliveryMethod: 'APP 在线看板，支持导出会员专享',
+    deliveryMethod: '在线看板',
     memberIncluded: true,
     memberBenefits: [
       { tier: 'standard', mode: 'free' },
@@ -55,7 +55,7 @@ export const seedProducts: Product[] = [
           { id: 'panel-region', title: '区域热力图', chartType: 'bar', preview: 'masked', summary: '各省份运价对比' },
           { id: 'panel-detail', title: '线路明细', chartType: 'number', preview: 'masked', summary: 'TOP 20 线路单价' }
         ],
-        exportRule: '会员可导出近 12 个月数据，单品购买不支持导出'
+        exportRule: '仅支持在线看板，不提供数据导出'
       }
     }
   },
@@ -510,40 +510,36 @@ export const seedProducts: Product[] = [
   {
     id: 'prod-personal-waybill-dataset',
     resourceId: 'res-prod-personal-waybill-dataset',
-    name: '个人运单活跃数据集',
-    subtitle: '个人可购的运单活跃与线路热度样例数据集',
+    name: '城市运单活跃数据集',
+    subtitle: '企业可购的运单活跃与线路热度样例数据集',
     type: 'dataset',
     origin: 'app_content',
     dealChannel: 'app_payment',
     availability: 'published',
-    acquisitions: ['member', 'item_purchase'],
+    acquisitions: ['item_purchase'],
     entitlementPolicy: { kind: 'term', months: 12 },
-    scenarios: ['个人研究', '线路热度分析', '运单趋势试用'],
+    scenarios: ['线路热度分析', '运单趋势试用'],
     provider: 'APP 自营内容',
     coverage: '全国主要干线 · 按城市对聚合',
     updateFrequency: '每月更新',
     qualityPromise: '脱敏聚合样例，字段级质量校验',
     complianceNote: '不含个人身份信息，仅展示脱敏后的运单活跃统计',
-    price: { model: 'member_free', itemPrice: 99, unit: '元/12个月' },
+    price: { model: 'item_only', itemPrice: 990, unit: '元/12个月' },
     salePeriodMonths: 12,
     datasetOffers: [
       { id: 'offer-waybill-personal', name: '个人单品', subject: 'personal', price: 99, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: true, deliveryMode: 'snapshot', recommended: true },
       { id: 'offer-waybill-enterprise', name: '企业单品', subject: 'enterprise', price: 990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' }
     ],
     status: 'published',
-    tags: ['热门', '个人数据集'],
-    description: '按城市对与车型汇总的运单量、活跃线路与准点率样例，适合个人研究者与小团队快速了解线路热度。',
+    tags: ['热门', '企业数据集'],
+    description: '按城市对与车型汇总的运单量、活跃线路与准点率样例，适合企业分析线路热度。',
     valueProposition: '低门槛试用 APP 内数据集购买与用数交付流程。',
     deliveryMethod: 'APP 内支付后可在详情查看样例，并交付至用数模块',
-    memberIncluded: true,
-    memberBenefits: [
-      { tier: 'standard', mode: 'free' },
-      { tier: 'premium', mode: 'discount', discount: 0.8 }
-    ],
+    memberIncluded: false,
     listedAt: '2026-07-15',
     updatedAt: '2026-07-28',
     serviceStatus: 'normal',
-    recommendText: '个人研究者首选 · 99 元试用线路热度',
+    recommendText: '企业线路热度分析',
     sortWeight: 88,
     recommendSlot: true,
     hasSampleData: true,
@@ -1219,7 +1215,7 @@ export const seedProducts: Product[] = [
     id: 'prod-warehouse-turnover-risk',
     resourceId: 'res-prod-warehouse-turnover-risk',
     name: '仓储周转效率数据集',
-    subtitle: '检测到资产结构高风险变更，已暂停新购',
+    subtitle: '结构变更影响新交付，商品已下架',
     type: 'dataset',
     origin: 'asset_platform',
     dealChannel: 'app_payment',
@@ -1239,7 +1235,7 @@ export const seedProducts: Product[] = [
     ],
     assetSnapshot: { resourceId: 'asset-warehouse-turnover', assetVersion: 'v2.4.0', syncedAt: '2026-07-28 18:20', lastCheckedAt: '2026-07-31 08:00', changeRisk: 'high', changeSummary: '关键字段 turnover_days 类型发生变化，等待运营确认版本迁移。' },
     status: 'paused',
-    tags: ['资产平台', '变更监控', '暂停新购'],
+    tags: ['资产平台', '变更监控', '已下架'],
     description: '仓储园区周转效率指标数据集。',
     valueProposition: '用于仓储运营效率横向对标。',
     deliveryMethod: '用数模块数据交付',
@@ -1252,7 +1248,7 @@ export const seedProducts: Product[] = [
         granularity: '园区 × 周', timeRange: '近 18 个月', rowCount: 9360, classification: '企业运营聚合数据（L2）', qualityUpdatedAt: '2026-07-28',
         fields: [{ name: 'park_code', dataType: 'string', meaning: '园区编码', description: '脱敏园区编码', primaryKey: true, nullable: false }],
         sampleColumns: ['park_code'], sampleRows: [{ park_code: 'PARK-031' }], sampleGeneratedAt: '2026-07-28',
-        profiling: { completeness: '99.1%', uniqueness: '100%', nullRate: '0.9%', distribution: '全国分布', anomalies: '结构变更待复核', conclusion: '暂停新购，保留最近有效版本', updatedAt: '2026-07-31' }
+        profiling: { completeness: '99.1%', uniqueness: '100%', nullRate: '0.9%', distribution: '全国分布', anomalies: '结构变更待复核', conclusion: '已下架，历史有效版本按实际权益保留', updatedAt: '2026-07-31' }
       }
     }
   },
@@ -1308,6 +1304,63 @@ export const seedProducts: Product[] = [
         }
       }
     }
+  },
+  // ── V1.0.2 公开与非公开数据集验收样例 ──────────────────────
+  {
+    id: 'prod-public-freight-dataset',
+    resourceId: 'res-prod-public-freight-dataset',
+    name: '全国货运公开数据集',
+    subtitle: '从用数同步并上架的公开数据集',
+    type: 'dataset',
+    origin: 'asset_platform',
+    publicDataset: true,
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['member'],
+    scenarios: ['货运趋势分析'],
+    provider: '万联灵析',
+    coverage: '',
+    updateFrequency: '每日更新',
+    qualityPromise: '按源端公开数据同步',
+    complianceNote: '公开数据集，按用数源端公开属性展示',
+    price: { model: 'member_free' },
+    status: 'published',
+    tags: ['公开数据集', '会员免费'],
+    description: '公开货运统计数据，由用数模块同步为资源后上架。',
+    valueProposition: '企业会员可直接进入用数查看，无需商品订单。',
+    deliveryMethod: '用数模块直用',
+    memberIncluded: true,
+    updatedAt: '2026-10-09',
+    serviceStatus: 'normal',
+    typeDetail: { dataset: { ...sellerRouteDatasetDetail, blankOverview: true, granularity: '', rowCount: undefined, fieldCount: null } }
+  },
+  {
+    id: 'prod-private-zero-dataset',
+    resourceId: 'res-prod-private-zero-dataset',
+    name: '企业货运指标体验数据集',
+    subtitle: '非公开数据集，零元订单交付',
+    type: 'dataset',
+    origin: 'asset_platform',
+    dealChannel: 'app_payment',
+    availability: 'published',
+    acquisitions: ['item_purchase'],
+    scenarios: ['指标体验'],
+    provider: '平台自营',
+    coverage: '全国',
+    updateFrequency: '一次性',
+    qualityPromise: '成交时交付当前版本',
+    complianceNote: '非公开数据，须通过企业订单获得权益',
+    price: { model: 'item_only', itemPrice: 0 },
+    datasetOffers: [{ id: 'offer-private-zero-enterprise', name: '企业购买', subject: 'enterprise', price: 0, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' }],
+    status: 'published',
+    tags: ['非公开', '¥0订单'],
+    description: '供企业验证采购与交付流程的非公开数据集。',
+    valueProposition: '零元下单后自动交付当前数据版本。',
+    deliveryMethod: '企业订单完成后交付用数',
+    memberIncluded: false,
+    updatedAt: '2026-10-09',
+    serviceStatus: 'normal',
+    typeDetail: { dataset: sellerWarehouseDatasetDetail }
   },
   // ── 入驻商家数据集 ──────────────────────────────────────────
   {

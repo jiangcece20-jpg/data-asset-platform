@@ -1,11 +1,12 @@
 import type { Product, ProductType } from '@/types/domain'
 import { typeMeta } from '@/utils/productMeta'
+import { isSpaceSyncedProduct } from './productDetailFields'
 
 /** 列表页三槽：类型 + 成交位置 + 运营标签。事实不当标签存，芯片由字段派生。 */
 export type ProductListVenue = { kind: 'space' | 'seller'; name: string }
 
 export type ProductListOps =
-  | { kind: 'status'; label: '可申请上架' | '准备中' | '暂停销售' | '已下架' }
+  | { kind: 'status'; label: '可申请上架' | '准备中' | '已下架' }
   | { kind: 'campaign'; label: '合规首选' | '个人数据集' | '热门' }
 
 export interface ProductListChips {
@@ -45,7 +46,7 @@ export function productListChips(product: Product): ProductListChips {
 }
 
 export function productTrialChips(product: Product): string[] {
-  if (product.type === 'dataset' && product.hasSampleData) return ['有样例']
+  if (product.type === 'dataset' && product.hasSampleData && !isSpaceSyncedProduct(product)) return ['有样例']
   if (product.type === 'api' && product.hasTrialApi) return ['有试用接口']
   return []
 }
@@ -75,7 +76,7 @@ export function productVenueFilters(products: Product[]): ProductVenueFilter[] {
     if (venue.kind === 'seller' && !sellers.includes(venue.name)) sellers.push(venue.name)
   }
   return [
-    ...(hasPlatform ? [{ key: PLATFORM_VENUE_KEY, label: '本平台' }] : []),
+    ...(hasPlatform ? [{ key: PLATFORM_VENUE_KEY, label: '自营产品' }] : []),
     ...spaces.map((name) => ({ key: `space:${name}`, label: name })),
     ...sellers.map((name) => ({ key: `seller:${name}`, label: name })),
     ...(sellers.length ? [{ key: 'seller', label: '入驻商家' }] : [])
@@ -121,7 +122,7 @@ function venueOf(product: Product): ProductListVenue | null {
 function opsOf(product: Product): ProductListOps | null {
   if (product.availability === 'candidate') return { kind: 'status', label: '可申请上架' }
   if (product.availability === 'preparing') return { kind: 'status', label: '准备中' }
-  if (product.availability === 'paused') return { kind: 'status', label: '暂停销售' }
+  if (product.availability === 'paused') return { kind: 'status', label: '已下架' }
   if (product.availability === 'delisted') return { kind: 'status', label: '已下架' }
   if (product.tags.includes('合规首选')) return { kind: 'campaign', label: '合规首选' }
   if (product.tags.includes('个人数据集')) return { kind: 'campaign', label: '个人数据集' }

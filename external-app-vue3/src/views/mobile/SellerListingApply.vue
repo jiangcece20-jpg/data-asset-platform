@@ -9,8 +9,7 @@ import {
   parseListingScenarios,
   type SellerListingCatalogSpec
 } from '@/domain/sellerListingSpec'
-import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
-import { coerceUpdateFrequency } from '@/domain/updateFrequency'
+import { MERCHANT_UPDATE_FREQUENCIES, coerceUpdateFrequency, isMerchantUpdateFrequency } from '@/domain/updateFrequency'
 
 const props = defineProps<{
   embedded?: boolean
@@ -26,8 +25,8 @@ const catalog = useCatalogStore()
 const artifactId = ref(seller.listableArtifacts[0]?.id || '')
 const title = ref('')
 const subtitle = ref('')
-const price = ref(99)
 const enterprisePrice = ref(990)
+const servicePeriodMonths = ref(12)
 const error = ref('')
 const submitting = ref(false)
 const rowCountText = ref('')
@@ -61,12 +60,13 @@ function emptySpec(): SellerListingCatalogSpec {
 }
 
 function applySpec(next: SellerListingCatalogSpec) {
+  const frequency = coerceUpdateFrequency(next.updateFrequency)
   spec.value = {
     ...next,
     fields: next.fields.map((field) => ({ ...field })),
     sampleColumns: [...next.sampleColumns],
     sampleRows: next.sampleRows.map((row) => ({ ...row })),
-    updateFrequency: coerceUpdateFrequency(next.updateFrequency)
+    updateFrequency: isMerchantUpdateFrequency(frequency) ? frequency : ''
   }
   rowCountText.value = next.rowCount != null ? String(next.rowCount) : ''
   fieldCountText.value = next.fieldCount != null ? String(next.fieldCount) : (next.fields.length ? String(next.fields.length) : '')
@@ -120,8 +120,8 @@ function submit() {
       artifactId: artifactId.value,
       title: title.value.trim(),
       subtitle: subtitle.value.trim(),
-      price: Number(price.value),
       enterprisePrice: Number(enterprisePrice.value),
+      servicePeriodMonths: Number(servicePeriodMonths.value),
       complianceSummary: catalogSpec.complianceNote,
       catalogSpec
     })
@@ -166,14 +166,24 @@ function submit() {
           <input v-model="subtitle" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
         </label>
         <div class="grid grid-cols-2 gap-2">
-          <label class="block text-[12px] text-slate-500">个人购买价格（元）
-            <input v-model.number="price" data-testid="seller-listing-personal-price" type="number" min="1" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
-          </label>
           <label class="block text-[12px] text-slate-500">企业购买价格（元）
             <input v-model.number="enterprisePrice" data-testid="seller-listing-enterprise-price" type="number" min="1" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
           </label>
+          <label class="block text-[12px] text-slate-500">服务周期（月）
+            <input v-model.number="servicePeriodMonths" data-testid="seller-listing-service-period" type="number" min="1" step="1" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
+          </label>
         </div>
-        <p class="text-[11px] leading-relaxed text-slate-400">买家按当前身份支付对应标价，不享受会员价。款项打到平台，平台按合同与卖家结算。</p>
+        <label class="block text-[12px] text-slate-500">更新频率
+          <select
+            v-model="spec.updateFrequency"
+            data-testid="seller-listing-update-frequency"
+            class="mt-1 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-[13px]"
+          >
+            <option value="">请选择更新频率</option>
+            <option v-for="frequency in MERCHANT_UPDATE_FREQUENCIES" :key="frequency" :value="frequency">{{ frequency }}</option>
+          </select>
+        </label>
+        <p class="text-[11px] leading-relaxed text-slate-400">仅企业会员可购买。成交时交付当前版本；定时更新在服务周期内自动交付，不自动续费。</p>
       </div>
 
       <div class="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-card">
@@ -200,17 +210,10 @@ function submit() {
         <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-500">
           <div class="rounded-lg bg-slate-50 px-3 py-2">入驻卖家<br><span class="text-[12px] text-slate-800">{{ seller.myProfile?.displayName || '当前卖家' }}</span></div>
           <div class="rounded-lg bg-slate-50 px-3 py-2">数据来源声明<br><span class="text-[12px] text-slate-800">{{ artifact?.dataProvenance === 'derived' ? '已购衍生（受源许可约束）' : '自有数据' }}</span></div>
-          <div class="col-span-2 rounded-lg bg-slate-50 px-3 py-2">交付方式<br><span class="text-[12px] text-slate-800">平台收款后由运营开通数据集查看与样例</span></div>
+          <div class="col-span-2 rounded-lg bg-slate-50 px-3 py-2">交付方式<br><span class="text-[12px] text-slate-800">订单完成后自动交付当前版本，按约定频率交付后续成功更新</span></div>
         </div>
         <label class="block text-[12px] text-slate-500">地域范围
           <input v-model="spec.coverage" data-testid="seller-listing-coverage" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />
-        </label>
-        <label class="block text-[12px] text-slate-500">更新频率
-          <UpdateFrequencySelect
-            v-model="spec.updateFrequency"
-            data-testid="seller-listing-update-frequency"
-            class="mt-1 px-3 py-2 text-[13px]"
-          />
         </label>
         <label class="block text-[12px] text-slate-500">应用场景（顿号分隔）
           <input v-model="scenariosText" data-testid="seller-listing-scenarios" placeholder="如：仓储运营" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px]" />

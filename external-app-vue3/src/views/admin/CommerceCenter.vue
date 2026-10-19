@@ -16,8 +16,8 @@ const entitlements = useEntitlementStore()
 
 const products = computed(() => catalog.products.filter((product) => product.dealChannel === 'app_payment'))
 
-function itemPrice(product: Product, subject: 'personal' | 'enterprise') {
-  const offers = commerceOffersOf(product).filter((offer) => offer.subject === subject)
+function itemPrice(product: Product) {
+  const offers = commerceOffersOf(product).filter((offer) => offer.subject === 'enterprise')
   const offer = offers.find((item) => item.serviceMode === 'one_time') ?? offers[0]
   return offer ? `¥${offer.price.toLocaleString()}` : '—'
 }
@@ -31,7 +31,7 @@ function memberPrice(product: Product, tier: MemberTier) {
 
 function salesStatus(product: Product) {
   if (product.availability === 'published') return { label: '销售中', className: 'text-success-600' }
-  if (product.availability === 'paused') return { label: '暂停销售', className: 'text-warning-600' }
+  if (product.availability === 'paused') return { label: '已下架', className: 'text-ink-500' }
   if (product.availability === 'delisted') return { label: '已下架', className: 'text-ink-500' }
   return { label: '未上架', className: 'text-ink-500' }
 }
@@ -92,8 +92,7 @@ function editProduct(product: Product) {
         <thead class="bg-ink-100 text-xs text-ink-500">
           <tr>
             <th class="px-5 py-2.5 font-medium">商品</th>
-            <th class="px-3 py-2.5 font-medium">个人单品</th>
-            <th class="px-3 py-2.5 font-medium">企业单品</th>
+            <th class="px-3 py-2.5 font-medium">企业购买</th>
             <th class="px-3 py-2.5 font-medium">普通会员</th>
             <th class="px-3 py-2.5 font-medium">高级会员</th>
             <th class="px-3 py-2.5 font-medium">可售卖周期</th>
@@ -111,8 +110,7 @@ function editProduct(product: Product) {
                 {{ product.name }}
               </button>
             </td>
-            <td class="px-3 py-3 text-ink-600">{{ itemPrice(product, 'personal') }}</td>
-            <td class="px-3 py-3 text-ink-600">{{ itemPrice(product, 'enterprise') }}</td>
+            <td class="px-3 py-3 text-ink-600">{{ itemPrice(product) }}</td>
             <td class="px-3 py-3 text-ink-600">{{ memberPrice(product, 'standard') }}</td>
             <td class="px-3 py-3 text-ink-600">{{ memberPrice(product, 'premium') }}</td>
             <td class="px-3 py-3 text-ink-600">{{ salePeriodMonthsOf(product) }} 个月</td>

@@ -9,7 +9,7 @@ describe('ProductSummaryCard space chips', () => {
     const product = seedProducts.find((p) => p.id === 'prod-enterprise-activity')!
     const wrapper = mount(ProductSummaryCard, { props: { product, title: product.name } })
     expect(wrapper.text()).toContain(OWNED_SPACE_NAME)
-    expect(wrapper.text()).toContain('有样例')
+    expect(wrapper.text()).not.toContain('有样例')
     expect(wrapper.text()).not.toContain('自有')
     expect(wrapper.text()).not.toContain('互联')
   })

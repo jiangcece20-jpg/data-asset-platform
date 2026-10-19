@@ -38,6 +38,11 @@ function order(partial: Partial<Order> & Pick<Order, 'id' | 'status'>): Order {
 }
 
 describe('resolveProductActions', () => {
+  it('does not show an APP API purchase action to a trial member', () => {
+    expect(resolveProductActions({ ...base, type: 'api', acquisitions: ['item_purchase'] }).primary).toEqual({
+      key: 'unavailable', label: '暂不可开通', disabled: true
+    })
+  })
   it('uses purchase CTA on list cards when both member and item paths exist', () => {
     expect(resolveProductListActionHint({
       ...base,
@@ -233,17 +238,17 @@ describe('resolveProductActions', () => {
     }).primary).toEqual({ key: 'continue_payment', label: '继续支付' })
   })
 
-  it('shows fulfilling labels by order status', () => {
+  it('opens the order for fulfillment without implying a separate progress page', () => {
     expect(resolveProductActions({
       ...base,
       acquisitions: ['item_purchase'],
       purchaseInProgress: { phase: 'fulfilling', orderId: 'ord-1', status: 'paid' }
-    }).primary).toEqual({ key: 'delivery_progress', label: '查看交付进度' })
+    }).primary).toEqual({ key: 'delivery_progress', label: '查看订单' })
     expect(resolveProductActions({
       ...base,
       acquisitions: ['item_purchase'],
       purchaseInProgress: { phase: 'fulfilling', orderId: 'ord-1', status: 'pending_activation' }
-    }).primary.label).toBe('待开通')
+    }).primary.label).toBe('查看订单')
   })
 
   it('shows intent progress instead of submit-intent while space intent is open', () => {
@@ -254,7 +259,20 @@ describe('resolveProductActions', () => {
     expect(resolveProductActions({
       ...base,
       purchaseInProgress: { phase: 'space_intent', intentId: 'intent-1', userStatus: 'processing' }
-    }).primary.label).toBe('意向处理中')
+    }).primary.label).toBe('查看订单')
+  })
+})
+
+describe('resolvePurchaseInProgress', () => {
+  it('reuses an open trusted-space intent across members of the same enterprise', () => {
+    const intents: SpaceIntentOrder[] = [{
+      id: 'intent-1', productId: 'prod-x', productType: 'dataset', ownerMemberId: 'mem-1',
+      enterpriseId: 'ent-1', contactName: 'A', contactPhone: '1', scenario: 'x',
+      opsStatus: 'processing', createdAt: '2026-10-01', updatedAt: '2026-10-01'
+    }]
+    expect(resolvePurchaseInProgress({
+      productId: 'prod-x', orders: [], intents, ownerMemberId: 'mem-2', enterpriseId: 'ent-1'
+    })).toMatchObject({ phase: 'space_intent', intentId: 'intent-1' })
   })
 })
 
@@ -300,12 +318,18 @@ describe('resolvePurchaseInProgress', () => {
     })).toEqual({ phase: 'space_intent', intentId: 'intent-1', userStatus: 'processing' })
   })
 
-  it('marks seller-managed pending_payment as not canPay', () => {
+  it('keeps a seller contract awaiting confirmation read-only', () => {
     expect(resolvePurchaseInProgress({
       productId: 'prod-x',
       ownerMemberId: 'mem-1',
-      orders: [order({ id: 'ord-s', status: 'pending_payment', sellerId: 'seller-1' })],
+      orders: [order({ id: 'ord-s', status: 'pending_payment', sellerId: 'seller-1', paymentMethod: 'enterprise_contract' })],
       intents: []
     })).toEqual({ phase: 'pending_payment', orderId: 'ord-s', canPay: false })
   })
+})
+
+it('allows online payment on the original seller order', () => {
+  expect(resolvePurchaseInProgress({ productId: 'prod-x', ownerMemberId: 'mem-1', intents: [],
+    orders: [order({ id: 'seller-online', status: 'pending_payment', sellerId: 'seller-1', paymentMethod: 'personal_online' })]
+  })).toEqual({ phase: 'pending_payment', orderId: 'seller-online', canPay: true })
 })

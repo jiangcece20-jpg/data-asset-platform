@@ -31,8 +31,9 @@ describe('mineQuery', () => {
     expect(parseMineQuery({ tab: 'orders' }).menu).toBe('orders')
   })
 
-  it('maps legacy orderTab=intent to buy (intents merged into buy list)', () => {
-    expect(parseMineQuery({ menu: 'orders', orderTab: 'intent' }).orderTab).toBe('buy')
+  it.each(['intent', 'vip', 'buy', 'unknown'])('maps orderTab=%s to the only buy orders list', (orderTab) => {
+    expect(parseMineQuery({ menu: 'orders', orderTab }).orderTab).toBe('buy')
+    expect(mineQueryPatch({ menu: 'orders' }, { orderTab }).orderTab).toBe('buy')
   })
 
   it('prefers explicit menu/orderTab/dataTab over legacy tab', () => {

@@ -10,6 +10,7 @@ import { useOrderStore } from './orders'
 import { useSpaceIntentStore } from './spaceIntents'
 import { genId, now } from '@/utils/id'
 import { salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { shanghaiDate } from '@/utils/businessDate'
 
 export const usePortalPurchaseStore = defineStore('portalPurchase', () => {
   const user = useUserStore()
@@ -26,11 +27,12 @@ export const usePortalPurchaseStore = defineStore('portalPurchase', () => {
 
   function hasItem(product: Product) {
     const ids = groupIds(product)
-    const today = now().slice(0, 10)
+    const today = shanghaiDate()
     return entitlements.list.some((item) => item.type !== 'member'
       && item.source === subject.value && item.ownerId === ownerId.value
       && item.productId != null && ids.has(item.productId)
-      && item.status === 'active' && item.validFrom.slice(0, 10) <= today && (!item.validTo || item.validTo >= today)
+      && item.status === 'active' && item.validFrom.slice(0, 10) <= today
+      && (!(item.updateValidTo || item.validTo) || (item.updateValidTo || item.validTo)! >= today)
       && (!item.orderId || !orders.list.some((order) => order.id === item.orderId && ['refunded', 'payment_failed', 'payment_cancelled', 'closed'].includes(order.status))))
   }
 
@@ -68,7 +70,7 @@ export const usePortalPurchaseStore = defineStore('portalPurchase', () => {
         entitlements.list.push({
           id: genId('ent-free'), type: 'dataset', source: subject.value, ownerId: ownerId.value,
           enterpriseId: subject.value === 'enterprise' ? ownerId.value : undefined,
-          productId: target.id, status: 'active', validFrom: now(), validTo: end.toISOString().slice(0, 10),
+          productId: target.id, status: 'active', validFrom: now(), validTo: shanghaiDate(end),
           accessScope: subject.value === 'enterprise' ? 'enterprise_wide' : 'personal',
           assignedMemberIds: [user.context.currentMemberId], allowDownload: true
         })

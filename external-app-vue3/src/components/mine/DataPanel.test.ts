@@ -61,8 +61,8 @@ describe('DataPanel', () => {
     expect(section.text()).toContain('资产版本')
   })
 
-  it('preserves portal entitlement and renew testids for variant=portal', async () => {
-    const { wrapper, router } = await mountDataPanel({ variant: 'portal' })
+  it('keeps portal entitlement history without a renewal action', async () => {
+    const { wrapper } = await mountDataPanel({ variant: 'portal' })
     const card = wrapper.find('[data-testid="portal-dataset-entitlement"]')
     expect(card.exists()).toBe(true)
     expect(card.text()).toContain('仓储周转效率数据集')
@@ -71,12 +71,9 @@ describe('DataPanel', () => {
     const { order } = commerce.createOrder('prod-truck-trajectory', 'personal', 'offer-truck-personal-updates', 36)
     commerce.pay(order.id)
 
-    const { wrapper: portalWrapper, router: portalRouter } = await mountDataPanel({ variant: 'portal' })
-    const renewButton = portalWrapper.find('[data-testid="portal-renew-dataset"]')
-    expect(renewButton.exists()).toBe(true)
-    await renewButton.trigger('click')
-    await flushPromises()
-    expect(portalRouter.currentRoute.value.path).toContain('/portal/payment/dataset/')
-    expect(router).toBeTruthy()
+    const { wrapper: portalWrapper } = await mountDataPanel({ variant: 'portal' })
+    expect(portalWrapper.find('[data-testid="portal-renew-dataset"]').exists()).toBe(false)
+    expect(portalWrapper.text()).not.toContain('续订')
+    expect(portalWrapper.text()).toContain('到期后停止更新，已交付数据仍可查看、下载。')
   })
 })

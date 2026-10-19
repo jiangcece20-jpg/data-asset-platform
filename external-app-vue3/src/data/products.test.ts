@@ -16,8 +16,12 @@ describe('four-type product catalog', () => {
     }
     for (const product of seedProducts.filter((item) => item.type === 'dataset' && item.origin === 'asset_platform' && item.availability !== 'candidate')) {
       expect(product.dealChannel).toBe('app_payment')
+      if (product.publicDataset) {
+        expect(product.acquisitions).toContain('member')
+        expect(product.datasetOffers).toBeUndefined()
+        continue
+      }
       expect(product.acquisitions).toContain('item_purchase')
-      expect(product.datasetOffers?.some((offer) => offer.subject === 'personal')).toBe(true)
       expect(product.datasetOffers?.some((offer) => offer.subject === 'enterprise')).toBe(true)
     }
   })

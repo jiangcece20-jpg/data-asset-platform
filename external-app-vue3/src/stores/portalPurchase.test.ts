@@ -10,7 +10,7 @@ import { useDatasetCommerceStore } from './datasetCommerce'
 import { startDatasetPayment } from '@/domain/purchaseIdentity'
 import { commerceOffersOf } from '@/domain/commerceOffers'
 
-describe('PC purchase V1.0.0', () => {
+describe('PC purchase', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     useEntitlementStore().list = []
@@ -21,22 +21,25 @@ describe('PC purchase V1.0.0', () => {
   const report = () => useCatalogStore().byId('prod-logistics-monthly')!
 
   it.each([
-    [false, false, 'free', ['开通会员｜会员价 ¥0']],
-    [false, true, 'free', ['会员价｜¥0']],
-    [true, false, 'free', ['单品购买｜¥199.99', '开通会员｜会员价 ¥0']],
-    [true, true, 'free', ['单品购买｜¥199.99', '会员价｜¥0']],
-    [false, false, 'discount', ['开通会员｜会员价 ¥119.99']],
-    [false, true, 'discount', ['会员价｜¥119.99']],
-    [true, false, 'discount', ['单品购买｜¥199.99', '开通会员｜会员价 ¥119.99']],
-    [true, true, 'discount', ['单品购买｜¥199.99', '会员价｜¥119.99']]
-  ] as const)('renders item=%s member=%s benefit=%s', (item, member, benefit, labels) => {
+    [false, false, 'free', ['subscribe']],
+    [false, true, 'free', ['member']],
+    [true, false, 'free', ['item', 'subscribe']],
+    [true, true, 'free', ['item', 'member']],
+    [false, false, 'discount', ['subscribe']],
+    [false, true, 'discount', ['member']],
+    [true, false, 'discount', ['item', 'subscribe']],
+    [true, true, 'discount', ['item', 'member']]
+  ] as const)('renders enterprise item=%s member=%s benefit=%s', (item, member, benefit, keys) => {
+    useUserStore().completeEnterpriseAuth()
     const p = report()
     p.acquisitions = item ? ['item_purchase', 'member'] : ['member']
     p.commerceOffers = undefined
     p.price.itemPrice = 199.99
     p.memberBenefits = [{ tier: 'standard', mode: benefit, discount: 0.6 }]
-    if (member) useEntitlementStore().grantMember()
-    expect(usePortalPurchaseStore().actions(p).map((action) => action.label)).toEqual(labels)
+    if (member) useEntitlementStore().grantTeamMember()
+    const actions = usePortalPurchaseStore().actions(p)
+    expect(actions.map((action) => action.key)).toEqual(keys)
+    if (item) expect(actions[0]?.label).toContain('企业购买')
   })
 
   it('charges the selected item/member price for reports including member-only offers', () => {
@@ -54,17 +57,23 @@ describe('PC purchase V1.0.0', () => {
   })
 
   it('creates and fulfills a zero-price dataset order', () => {
+    useUserStore().completeEnterpriseAuth()
     const p = dataset()
     p.acquisitions = ['item_purchase']
-    const personal = p.datasetOffers!.filter((offer) => offer.subject === 'personal')
-    personal.forEach((offer) => { offer.price = 0 })
+    const enterprise = p.datasetOffers!.filter((offer) => offer.subject === 'enterprise')
+    const previousPrices = enterprise.map((offer) => offer.price)
+    enterprise.forEach((offer) => { offer.price = 0 })
     p.commerceOffers = undefined
-    expect(usePortalPurchaseStore().actions(p)[0]!.label).toBe('单品购买｜¥0')
-    const { order } = startDatasetPayment(p.id, true, 'item')
-    expect(order.amount).toBe(0)
-    useDatasetCommerceStore().pay(order.id)
-    expect(order.entitlementId).toBeTruthy()
-    expect(useDatasetCommerceStore().deliveries.some((delivery) => delivery.orderId === order.id && delivery.status === 'delivered')).toBe(true)
+    try {
+      expect(usePortalPurchaseStore().actions(p)[0]!.label).toBe('企业购买｜¥0')
+      const { order } = startDatasetPayment(p.id, true, 'item')
+      expect(order.amount).toBe(0)
+      useDatasetCommerceStore().pay(order.id)
+      expect(order.entitlementId).toBeTruthy()
+      expect(useDatasetCommerceStore().deliveries.some((delivery) => delivery.orderId === order.id && delivery.status === 'delivered')).toBe(true)
+    } finally {
+      enterprise.forEach((offer, index) => { offer.price = previousPrices[index] })
+    }
   })
 
   it('uses member dataset price and lets ordinary enterprise members buy without approval', () => {
@@ -107,6 +116,25 @@ describe('PC purchase V1.0.0', () => {
     expect(purchase.blockingReason(p, 'item')).toBe('您有进行中的订单，请勿重复下单')
     order.status = 'payment_cancelled'
     expect(purchase.blockingReason(p, 'item')).toBeUndefined()
+  })
+
+  it('allows a new purchase after a seller dataset update service expires', () => {
+    const user = useUserStore()
+    user.completeEnterpriseAuth()
+    const p = useCatalogStore().byId('prod-seller-route-board')!
+    const entitlement = useEntitlementStore().grantSellerDataset({
+      product: p,
+      orderId: 'order-expired-seller-store',
+      ownerType: 'enterprise',
+      ownerId: user.context.currentEnterpriseId!,
+      operatorMemberId: user.context.currentMemberId,
+      offerId: p.commerceOffers![0].id,
+      selectedTermMonths: 12
+    })
+    entitlement.validTo = undefined
+    entitlement.updateValidTo = '2026-09-30'
+
+    expect(usePortalPurchaseStore().blockingReason(p, 'item')).toBeUndefined()
   })
 
   it('blocks enterprise trial duplicates across operators and allows closed applications', () => {

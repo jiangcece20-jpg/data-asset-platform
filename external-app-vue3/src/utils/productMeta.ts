@@ -13,8 +13,8 @@ export const dealChannelMeta: Record<DealChannel, { label: string; tone: string 
 }
 
 export const originMeta = {
-  asset_platform: '资产平台',
-  app_content: 'APP 自有内容',
+  asset_platform: '自营产品',
+  app_content: '自营产品',
   trusted_space: '可信空间',
   user_created: '用户创建',
   seller_market: '入驻商家'

@@ -1,7 +1,7 @@
 import type { LocationQuery, LocationQueryValue } from 'vue-router'
 
 export type MineMenu = 'orders' | 'demands' | 'vip' | 'messages' | 'favorites' | 'profile' | 'seller'
-export type OrderTab = 'vip' | 'buy' | 'intent'
+export type OrderTab = 'buy'
 export type DataTab = 'purchased' | 'produced'
 export type SellerTab = 'apply' | 'listing' | 'orders' | 'listings'
 export type MineSubject = 'personal' | 'enterprise'
@@ -15,7 +15,6 @@ export interface MineQueryState {
 }
 
 const MENUS: MineMenu[] = ['orders', 'demands', 'vip', 'messages', 'favorites', 'profile', 'seller']
-const ORDER_TABS: OrderTab[] = ['vip', 'buy', 'intent']
 const DATA_TABS: DataTab[] = ['purchased', 'produced']
 const SELLER_TABS: SellerTab[] = ['apply', 'listing', 'orders', 'listings']
 
@@ -26,12 +25,6 @@ function first(value: LocationQueryValue | LocationQueryValue[] | undefined): st
 
 function asMenu(value: string): MineMenu | undefined {
   return MENUS.includes(value as MineMenu) ? (value as MineMenu) : undefined
-}
-
-function asOrderTab(value: string): OrderTab | undefined {
-  // 意向单已并入买数列表；旧链接 orderTab=intent 落到买数
-  if (value === 'intent') return 'buy'
-  return ORDER_TABS.includes(value as OrderTab) ? (value as OrderTab) : undefined
 }
 
 function asDataTab(value: string): DataTab | undefined {
@@ -51,7 +44,8 @@ export function parseMineQuery(query: LocationQuery): MineQueryState {
     else menu = 'orders'
   }
 
-  const orderTab = asOrderTab(first(query.orderTab)) ?? 'buy'
+  // 我的订单只保留买数；兼容旧 VIP、意向单链接。
+  const orderTab: OrderTab = 'buy'
   const dataTab = asDataTab(first(query.dataTab)) ?? 'purchased'
   const sellerTab = asSellerTab(first(query.sellerTab)) ?? 'listings'
   const subjectRaw = first(query.subject)

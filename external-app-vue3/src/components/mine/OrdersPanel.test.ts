@@ -24,7 +24,6 @@ function mountOrdersPanel(props: Partial<InstanceType<typeof OrdersPanel>['$prop
   const openBills = vi.fn()
   const wrapper = mount(OrdersPanel, {
     props: {
-      orderTab: 'buy',
       variant: 'mobile',
       subjectFilter: 'all',
       pay,
@@ -42,30 +41,23 @@ describe('OrdersPanel', () => {
     useSpaceIntentStore().list = []
   })
 
-  it('switches between buy content and placeholders', async () => {
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy', variant: 'mobile' })
-    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
-
-    await wrapper.get('[data-testid="order-tab-vip"]').trigger('click')
-    expect(wrapper.emitted('update:orderTab')?.[0]).toEqual(['vip'])
-  })
-
-  it('renders VIP and buy tabs only — no separate intent tab', async () => {
-    const { wrapper } = mountOrdersPanel()
-    expect(wrapper.find('[data-testid="order-tab-vip"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="order-tab-intent"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
+  it.each(['mobile', 'portal'] as const)('shows buy orders directly without order category tabs on %s', (variant) => {
+    const { wrapper } = mountOrdersPanel({ variant })
+    expect(wrapper.find(`[data-testid="${variant === 'portal' ? 'portal-my-orders' : 'my-orders'}"]`).exists()).toBe(true)
+    expect(wrapper.find('[data-testid^="order-tab-"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="mine-placeholder"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('VIP')
   })
 
   it('lists space intents inside buy orders with their actual status', async () => {
+    useUserStore().completeEnterpriseAuth()
     useSpaceIntentStore().submit({
       productId: 'prod-qualification-api',
       contactName: '陈静',
       contactPhone: '13800000000',
       scenario: '核验'
     })
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    const { wrapper } = mountOrdersPanel({})
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('待领取')
     expect(wrapper.text()).toContain('道路运输从业人员资格核验 API')
@@ -84,38 +76,21 @@ describe('OrdersPanel', () => {
     })
     store.claim(intent.id, user.enterprise.id)
     store.effect(intent.id, '已完成开通')
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    const { wrapper } = mountOrdersPanel({})
     expect(wrapper.find(`[data-testid="order-card-intent-${intent.id}"]`).exists()).toBe(true)
     expect(wrapper.text()).toContain('已支付')
     expect(wrapper.text()).not.toContain('权益生效')
   })
 
-  it('gives the active tab a distinguishing selected class', () => {
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
-    const selected = wrapper.get('[data-testid="order-tab-buy"]')
-    const unselectedVip = wrapper.get('[data-testid="order-tab-vip"]')
-
-    expect(selected.classes()).toContain('border-brand-500')
-    expect(selected.classes()).toContain('text-brand-600')
-    expect(unselectedVip.classes()).not.toContain('border-brand-500')
-  })
-
-  it('shows VIP placeholder when orderTab is vip', () => {
-    const { wrapper } = mountOrdersPanel({ orderTab: 'vip' })
-    expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('VIP')
-    expect(wrapper.find('[data-testid="mine-placeholder"]').text()).toContain('该模块由其它产品负责')
-  })
-
   it('does not keep a 看数 tab', () => {
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy' })
+    const { wrapper } = mountOrdersPanel({})
     expect(wrapper.text()).not.toContain('看数')
     expect(wrapper.find('[data-testid="order-tab-view"]').exists()).toBe(false)
   })
 
   it('keeps enterprise context without a subject picker or bills entry', async () => {
     useUserStore().completeEnterpriseAuth()
-    const { wrapper } = mountOrdersPanel({ orderTab: 'buy', subjectFilter: 'enterprise' })
+    const { wrapper } = mountOrdersPanel({ subjectFilter: 'enterprise' })
 
     expect(wrapper.find('[data-testid="api-bills-order-entry"]').exists()).toBe(false)
     expect(wrapper.find('[aria-label="商品类型筛选"]').exists()).toBe(true)

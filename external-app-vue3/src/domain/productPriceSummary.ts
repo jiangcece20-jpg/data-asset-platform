@@ -1,6 +1,7 @@
 import type { CommerceOffer, Product } from '@/types/domain'
 import { commerceOffersOf, datasetOfferToCommerce } from './commerceOffers'
 import { purchaseMoney } from './portalPurchase'
+import { resolveV102Trade } from './v102Trade'
 
 export type PriceSummaryKind = 'free' | 'money' | 'quote' | 'none'
 
@@ -36,6 +37,14 @@ export function productPriceSummary(product: Product): ProductPriceSummary {
   }
   if (product.availability === 'candidate' || product.availability === 'preparing') {
     return { kind: 'none', text: '暂未定价' }
+  }
+
+  if (product.type !== 'api' && product.dealChannel === 'app_payment') {
+    const trade = resolveV102Trade(product, { isTeam: true, hasMembership: true, hasAccess: false })
+    if (trade.plan === 'member_free' || trade.plan === 'public_free') {
+      return { kind: 'free', text: '会员免费' }
+    }
+    return { kind: 'money', text: trade.price, suffix: trade.priceUnit, hint: trade.badge }
   }
 
   if (product.dealChannel === 'space_purchase') {

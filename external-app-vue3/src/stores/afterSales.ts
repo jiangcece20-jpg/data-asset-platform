@@ -154,7 +154,7 @@ export const useAfterSalesStore = defineStore('afterSales', {
         orders.applyCharge(orderId, orders.list.find((o) => o.id === orderId)?.amount ?? 0, genId('idem'))
         orders.grantEntitlementForOrder(orderId, true)
       } else if (action === 'close_and_allow_retry') {
-        orders.cancelOrder(orderId)
+        orders.cancelOrder(orderId, `支付对账关闭：${scenario}`, actor)
       }
       this._audit('order', orderId, 'reconcile_payment', actor, `对账决策：${action}`)
       return { action }

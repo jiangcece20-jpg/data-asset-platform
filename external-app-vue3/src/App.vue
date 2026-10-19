@@ -5,9 +5,15 @@ import PhoneShell from '@/layouts/PhoneShell.vue'
 import AdminShell from '@/layouts/AdminShell.vue'
 import PortalShell from '@/layouts/PortalShell.vue'
 import PrototypeIdentitySwitcher from '@/components/shared/PrototypeIdentitySwitcher.vue'
+import { useUserStore } from '@/stores/user'
+import { useEntitlementStore } from '@/stores/entitlements'
 
 const route = useRoute()
 const router = useRouter()
+const user = useUserStore()
+const entitlements = useEntitlementStore()
+user.switchMockPurchaseIdentity('enterprise_member')
+if (!entitlements.hasTeamMembership) entitlements.grantTeamMember()
 
 const mode = computed(() => {
   if (route.path.startsWith('/admin')) return 'admin'

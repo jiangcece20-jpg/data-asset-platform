@@ -10,6 +10,7 @@ import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { memberDiscountedAmount, membershipPlanForSubject } from '@/domain/membership'
 import { purchasePrice, type PurchasePricePath } from '@/domain/portalPurchase'
+import { useAdminOrderHistoryStore } from './adminOrderHistory'
 
 const MAX_GRANT_ATTEMPTS = 3
 
@@ -307,9 +308,17 @@ export const useOrderStore = defineStore('orders', {
       const order = this.list.find((o) => o.id === orderId)
       if (order) order.contractStatus = 'contract_signed'
     },
-    cancelOrder(orderId: string) {
+    cancelOrder(orderId: string, reason: string, actor?: string) {
+      if (!reason?.trim()) throw new Error('关闭订单必须填写原因')
       const order = this.list.find((o) => o.id === orderId)
-      if (order) order.status = 'payment_cancelled'
+      if (order && order.status !== 'payment_cancelled') {
+        const history = useAdminOrderHistoryStore()
+        history.captureLegacy(order)
+        order.status = 'payment_cancelled'
+        order.cancelReason = reason.trim()
+        order.closedAt = now()
+        history.record(order, 'closed', reason, actor)
+      }
     },
     manualConfirmPayment(orderId: string, processNote: string) {
       const order = this.list.find((item) => item.id === orderId)
@@ -318,6 +327,8 @@ export const useOrderStore = defineStore('orders', {
       if (!processNote.trim()) throw new Error('人工确认支付成功必须填写处理说明')
       const product = useCatalogStore().byId(order.productId)
       if (!product) throw new Error('商品不存在')
+      const history = useAdminOrderHistoryStore()
+      history.captureLegacy(order)
       const entitlements = useEntitlementStore()
       if (product.type === 'dataset') {
         const offer = product.datasetOffers?.find((item) => item.id === order.datasetOfferId) ?? product.datasetOffers?.[0]
@@ -353,6 +364,8 @@ export const useOrderStore = defineStore('orders', {
       order.entitlementGranted = true
       order.processNote = processNote.trim()
       if (order.contractStatus) order.contractStatus = 'payment_confirmed'
+      history.record(order, 'manual_payment', order.processNote)
+      history.record(order, 'entitlement_active', '支付确认后权益生效', 'system')
       return order
     },
     manualCancel(orderId: string, reason: string) {
@@ -360,9 +373,29 @@ export const useOrderStore = defineStore('orders', {
       if (!order) throw new Error('订单不存在')
       if (order.status !== 'pending_payment') throw new Error('仅待支付订单可取消')
       if (!reason.trim()) throw new Error('取消订单必须填写原因')
+      const history = useAdminOrderHistoryStore()
+      history.captureLegacy(order)
       order.status = 'cancelled'
       order.cancelReason = reason.trim()
+      order.closedAt = now()
+      order.terminationKind = 'cancelled'
+      history.record(order, 'cancelled', order.cancelReason)
       return order
+    },
+    closeOnlinePendingForProducts(productIds: string[], reason: string) {
+      if (!reason.trim()) throw new Error('关闭订单必须填写原因')
+      const affected = new Set(productIds)
+      for (const order of this.list) {
+        if (!affected.has(order.productId) || order.status !== 'pending_payment') continue
+        if (order.paymentMethod === 'enterprise_contract' || order.paymentMethod === 'enterprise_bank_transfer') continue
+        const history = useAdminOrderHistoryStore()
+        history.captureLegacy(order)
+        order.status = 'cancelled'
+        order.cancelReason = reason
+        order.closedAt = now()
+        order.terminationKind = 'closed'
+        history.record(order, 'closed', reason)
+      }
     },
     refundOrder(orderId: string) {
       const order = this.list.find((o) => o.id === orderId)

@@ -42,11 +42,11 @@ interface ExecuteProductReverseInput extends PreviewProductReverseInput {
 }
 
 const NOTICE_CONTENTS: Record<string, string> = {
-  'pause/commercial_adjustment': '您购买的商品因商业调整暂停销售，历史权益不受影响。',
-  'pause/quality_issue': '您购买的商品因质量问题暂停销售，我们正在处理中。',
+  'pause/commercial_adjustment': '您购买的商品已下架，历史数据按实际权益保留。',
+  'pause/quality_issue': '您购买的商品因质量问题已下架，存量数据按实际可用能力处理。',
   'recall/quality_issue': '您购买的商品因质量问题被召回，权益已冻结，请关注后续处置。',
   'recall/compliance_risk': '您购买的商品因合规风险被召回，权益已冻结，请关注后续处置。',
-  'delist/upstream_stop': '您购买的商品因供应方停供已下架，我们将为您的权益进行迁移或退款处理。',
+  'delist/upstream_stop': '您购买的商品因供应方停供已下架，历史数据按实际权益保留；后续服务请联系运营核实。',
   'delist/commercial_adjustment': '您购买的商品因商业调整已下架，历史权益不受影响。',
 }
 
@@ -208,8 +208,8 @@ export const useProductReverseStore = defineStore('productReverse', {
       }
 
       // Step 4: Update availability and service state
-      catalog.updateAvailability(input.productId, policy.availability)
-      catalog.updateServiceStatus(input.productId, policy.service)
+      if (catalog.byId(input.productId)?.availability !== 'delisted') catalog.delistProduct(input.productId)
+      if (input.action === 'recall') catalog.updateServiceStatus(input.productId, policy.service)
 
       // Step 5: Clear recommendation/catalog promotion
       catalog.clearRecommendation(input.productId)
@@ -261,16 +261,17 @@ export const useProductReverseStore = defineStore('productReverse', {
 
       // Check service is normal
       if (product.serviceStatus !== 'normal') {
-        throw new Error('服务状态异常，不能恢复销售')
+        throw new Error('服务状态异常，不能重新上架')
       }
 
       // Check no open S1/S2 work orders
       const openOrders = woStore.openForProduct(productId)
       if (openOrders.some((w) => w.severity === 'S1' || w.severity === 'S2')) {
-        throw new Error('存在未关闭的 S1/S2 逆向工单，不能恢复销售')
+        throw new Error('存在未关闭的 S1/S2 逆向工单，不能重新上架')
       }
 
-      catalog.updateAvailability(productId, 'published')
+      if (product.origin === 'seller_market') throw new Error('商家商品须申请恢复并通过审批')
+      catalog.publishProduct(productId)
       catalog.clearSalesReview(productId)
 
       this.auditEntries.push({
@@ -278,7 +279,7 @@ export const useProductReverseStore = defineStore('productReverse', {
         productId,
         action: 'resume_sales',
         actor,
-        detail: '恢复销售',
+        detail: '重新上架原商品',
         createdAt: now(),
       })
     },

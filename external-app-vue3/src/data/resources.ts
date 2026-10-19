@@ -11,9 +11,17 @@ function migrateProductToResource(product: Product): Resource {
   return {
     id: `res-${product.id}`,
     resourceName: product.name,
+    description: product.description || product.subtitle,
+    publicDatasetMetadata: product.publicDataset ? {
+      provider: product.provider, coverage: product.coverage, updateFrequency: product.updateFrequency,
+      scenarios: product.scenarios, valueProposition: product.valueProposition,
+      qualityPromise: product.qualityPromise, complianceNote: product.complianceNote
+    } : undefined,
     type: product.type,
     origin: product.origin,
     typeDetail: { ...product.typeDetail },
+    sourcePublicDataset: product.publicDataset,
+    sourceDatasetAvailable: product.publicDataset ? product.availability === 'published' : undefined,
     assetStatus: product.origin === 'asset_platform'
       ? (product.availability === 'delisted' ? 'delisted' : product.availability === 'paused' ? 'paused' : 'published')
       : undefined,

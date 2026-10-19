@@ -310,6 +310,7 @@ export const seedOrders: Order[] = [
     status: 'entitlement_active',
     entitlementGranted: true,
     createdAt: '2026-07-29T09:30:00.000Z',
+    dataVersionUpdatedAt: '2026-07-28T08:00:00.000Z',
     paidAt: '2026-07-29T15:20:00.000Z'
   },
   {

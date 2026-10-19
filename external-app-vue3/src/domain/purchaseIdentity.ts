@@ -48,8 +48,9 @@ export function datasetPaymentPath(orderId: string, portal: boolean): string {
 /** 按当前登录身份创建数据集订单，并返回支付页路径。 */
 export function startDatasetPayment(productId: string, portal: boolean, pricePath?: PurchasePricePath) {
   const user = useUserStore()
+  if (!hasEnterprisePurchaseIdentity(user)) throw new Error('请先完成企业认证')
   const commerce = useDatasetCommerceStore()
-  const { order, approvalRequest } = commerce.createOrder(productId, currentPurchaseSubject(user), undefined, undefined, pricePath)
+  const { order, approvalRequest } = commerce.createOrder(productId, 'enterprise', undefined, undefined, pricePath)
   return {
     order,
     approvalRequest,

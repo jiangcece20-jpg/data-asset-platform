@@ -1,19 +1,18 @@
+import { canContinueOrderPayment } from './productAccess'
 import type { AppOrderStatus, Order, PaymentMethod, ProductType } from '@/types/domain'
 import type { SpaceIntentOpsStatus, SpaceIntentOrder } from '@/types/spaceIntent'
 import type { SpaceOrderDisplayStatus, SpaceOrderMirror } from '@/types/trustedSpace'
 import { USER_STATUS_LABELS, userStatusOf } from '@/domain/spaceIntent'
 
-export type NormalOrderStatus = 'pending_payment' | 'paid' | 'cancelled'
-export type MyOrderFilter = 'all' | SpaceIntentOpsStatus | NormalOrderStatus
+export type NormalOrderStatus = 'pending_payment' | 'paid' | 'cancelled' | 'closed' | 'refunded' | 'entitled' | 'processing'
+export type MyOrderFilter = 'all' | 'pending' | SpaceIntentOpsStatus | NormalOrderStatus
 
-export interface RenewalInfo {
-  /** 续订入口路径 */
-  renewalPath: string
+export interface ExpiryInfo {
   /** 距到期天数：正数为即将到期，0 为当天到期，负数为已过期 */
   daysUntilExpiry: number
   /** 到期日期文本 */
   expiryDate: string
-  /** 续订状态 */
+  /** 到期状态 */
   status: 'expiring' | 'expired'
 }
 
@@ -34,6 +33,25 @@ export interface MyOrderCard {
   amountText: string
   createdAt: string
   paidAt?: string
+  isZeroAmount?: boolean
+  completedAt?: string
+  firstDeliveredAt?: string
+  firstDeliveredDataUpdatedAt?: string
+  deliveryStatus?: string
+  serviceStatus?: string
+  productDelisted?: boolean
+  canUseDashboard?: boolean
+  canOpenDashboard?: boolean
+  dashboardPath?: string
+  canUseDataset?: boolean
+  entitlementEffectiveAt?: string
+  dataVersionUpdatedAt?: string
+  updateFrequency?: string
+  servicePeriodMonths?: number
+  serviceStart?: string
+  serviceEnd?: string
+  closedAt?: string
+  cancelReason?: string
   paymentLabel: string
   progressSummary: string
   entitlementId?: string
@@ -47,8 +65,8 @@ export interface MyOrderCard {
   spaceIntentId?: string
   /** 到期日期展示；会员免费商品为会员到期日 */
   expiryText?: string
-  /** 续订提示信息（仅持续更新且含有效期的数据集展示） */
-  renewalInfo?: RenewalInfo
+  /** 服务到期提示信息 */
+  expiryInfo?: ExpiryInfo
   /** 订单备注，如卖家待开通说明 */
   note?: string
 }
@@ -63,22 +81,22 @@ export const productTypeLabels: Record<ProductType, string> = {
 export const buyDataTypeFilterOptions: Array<{ value: 'all' | ProductType; label: string }> = [
   { value: 'all', label: '全部类型' },
   { value: 'dataset', label: '数据集' },
-  { value: 'api', label: 'API' },
+  { value: 'api', label: 'API服务' },
   { value: 'report', label: '行业报告' },
   { value: 'dashboard', label: '自有看板' }
 ]
 
-export const buyDataStatusFilters: MyOrderFilter[] = ['all', 'pending_payment', 'paid', 'cancelled', 'closed']
+export const buyDataStatusFilters: MyOrderFilter[] = ['all', 'pending', 'paid', 'cancelled', 'closed']
 
 export const buyDataTypeFilterLabels: Record<'all' | ProductType, string> = {
   all: '全部类型',
   dataset: '数据集',
-  api: 'API',
+  api: 'API服务',
   report: '行业报告',
   dashboard: '自有看板'
 }
 
-export type BuyDataStatusChip = 'all' | 'pending_payment' | 'paid' | 'cancelled' | 'closed'
+export type BuyDataStatusChip = MyOrderFilter
 export type BuyDataTypeFilter = 'all' | ProductType
 
 const paymentLabels: Record<PaymentMethod, string> = {
@@ -90,35 +108,40 @@ const paymentLabels: Record<PaymentMethod, string> = {
 
 export function formatOrderTime(value?: string): string {
   if (!value) return '—'
-  return value.replace('T', ' ').replace('.000Z', '').slice(0, 16)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date)
 }
 
 export function orderFilterLabel(filter: MyOrderFilter): string {
   return ({
     all: '全部',
+    pending: '待处理',
     unclaimed: '待领取',
     processing: '处理中',
-    entitled: '已支付',
+    entitled: '已开通',
     closed: '已关闭',
-    pending_payment: '待付款',
+    pending_payment: '待支付',
     paid: '已支付',
-    cancelled: '已取消'
+    cancelled: '已取消',
+    refunded: '已退款'
   } as const)[filter]
 }
 
-export function orderListStatusLabel(order: Pick<MyOrderCard, 'filter'>): string {
-  if (order.filter === 'unclaimed') return '待领取'
-  if (order.filter === 'processing') return '处理中'
-  if (order.filter === 'pending_payment') return '待付款'
-  if (order.filter === 'cancelled') return '已取消'
-  if (order.filter === 'closed') return '已关闭'
-  return '已支付'
+export function orderListStatusLabel(order: Pick<MyOrderCard, 'filter'> & Partial<Pick<MyOrderCard, 'status' | 'source'>>): string {
+  const labels: Partial<Record<MyOrderCard['status'], string>> = {
+    intent: '申请处理中', pending_approval: '待审批', payment_pending_confirmation: '待确认到账',
+    pending_activation: '待开通', payment_failed: '支付失败', approval_rejected: '审批未通过',
+    accepted: '已受理', delivering: '交付中', failed: '处理失败', unknown_processing: '状态同步中'
+  }
+  return (order.status && labels[order.status]) || orderFilterLabel(order.filter)
 }
 
 export function orderListStatusClass(order: Pick<MyOrderCard, 'filter'>): string {
   if (order.filter === 'unclaimed' || order.filter === 'pending_payment') return 'bg-amber-50 text-amber-700'
-  if (order.filter === 'processing') return 'bg-blue-50 text-blue-600'
-  if (order.filter === 'cancelled' || order.filter === 'closed') return 'bg-slate-100 text-slate-600'
+  if (order.filter === 'processing' || order.filter === 'pending') return 'bg-blue-50 text-blue-600'
+  if (order.filter === 'cancelled' || order.filter === 'closed' || order.filter === 'refunded') return 'bg-slate-100 text-slate-600'
   return 'bg-emerald-50 text-emerald-600'
 }
 
@@ -127,14 +150,17 @@ export function matchesBuyDataStatusFilter(
   filter: MyOrderFilter
 ): boolean {
   if (filter === 'all') return true
+  if (filter === 'pending') return ['pending', 'unclaimed', 'processing', 'pending_payment'].includes(order.filter)
   if (filter === 'paid') return order.filter === 'paid' || order.filter === 'entitled'
-  if (filter === 'unclaimed' || filter === 'processing' || filter === 'entitled') return false
+  if (filter === 'closed') return order.filter === 'closed' || order.filter === 'refunded'
   return order.filter === filter
 }
 
-export function orderAmountCaption(order: Pick<MyOrderCard, 'filter' | 'amountText'>): string | undefined {
+export function orderAmountCaption(order: Pick<MyOrderCard, 'filter' | 'amountText'> & Partial<Pick<MyOrderCard, 'isZeroAmount'>>): string | undefined {
   if (!order.amountText || order.amountText === '—') return undefined
+  if (order.isZeroAmount) return '订单金额'
   if (order.filter === 'paid' || order.filter === 'entitled') return '实付款'
+  if (order.filter === 'refunded') return '原订单金额'
   return '应付款'
 }
 
@@ -192,14 +218,21 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
     ownerLabel: order.ownerType === 'enterprise' ? enterpriseName : '个人',
     operatorMemberId: order.operatorMemberId,
     channelLabel: isSpaceIntent ? '平台成交 · 线下付款' : isSellerOrder ? '入驻商家 · 平台成交' : 'APP 内购买',
-    status: normalOrderStatusOf(order.status),
+    status: order.status,
     statusDict: 'appOrder',
-    filter: appOrderFilter(order.status),
+    filter: order.terminationKind ?? (order.closedAt && ['cancelled', 'payment_cancelled'].includes(order.status) ? 'closed' : appOrderFilter(order.status)),
     planSummary,
     amountText: `¥${order.amount.toLocaleString()}`,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
-    paymentLabel: order.paymentMethod
+    completedAt: order.completedAt,
+    isZeroAmount: order.amount === 0 && isDataset,
+    dataVersionUpdatedAt: order.dataVersionUpdatedAt,
+    updateFrequency: order.updateFrequencyAtPurchase,
+    servicePeriodMonths: order.selectedTermMonths,
+    closedAt: order.closedAt,
+    cancelReason: order.cancelReason,
+    paymentLabel: order.amount === 0 && isDataset ? '无需付款' : order.paymentMethod
       ? paymentLabels[order.paymentMethod]
       : isSellerOrder && order.status === 'pending_activation'
         ? '待运营开通'
@@ -208,10 +241,12 @@ export function appOrderCard(order: Order, enterpriseName: string): MyOrderCard 
         : order.status === 'pending_payment'
           ? '待选择'
           : '—',
-    progressSummary: appProgress(order.status, isDataset, isSellerOrder, isSpaceIntent),
+    progressSummary: order.amount === 0 && isDataset && order.status === 'entitlement_active'
+      ? '零元订单已完成，无需付款；交付状态见下方。'
+      : appProgress(order.status, isDataset, isSellerOrder, isSpaceIntent),
     entitlementId: order.entitlementId,
-    canPay: order.status === 'pending_payment' && !isSpaceIntent && !isSellerOrder,
-    paymentPath: isDataset && !isSpaceIntent && !isSellerOrder ? `/app/payment/dataset/${order.id}` : undefined,
+    canPay: canContinueOrderPayment(order),
+    paymentPath: isDataset && canContinueOrderPayment(order) ? `/app/payment/dataset/${order.id}` : undefined,
     spaceIntentId: order.spaceIntentId,
     note: order.note
   }
@@ -245,8 +280,12 @@ export function spaceOrderCard(order: SpaceOrderMirror, productType: ProductType
 }
 
 export function normalOrderStatusOf(status: AppOrderStatus): NormalOrderStatus {
-  if (['approval_rejected', 'payment_cancelled', 'payment_failed', 'refunded', 'cancelled'].includes(status)) return 'cancelled'
-  if (['pending_approval', 'pending_payment', 'payment_pending_confirmation'].includes(status)) return 'pending_payment'
+  if (status === 'refunded') return 'refunded'
+  if (status === 'approval_rejected') return 'closed'
+  if (['payment_cancelled', 'cancelled'].includes(status)) return 'cancelled'
+  if (status === 'pending_payment') return 'pending_payment'
+  if (['pending_approval', 'payment_pending_confirmation', 'payment_failed', 'intent'].includes(status)) return 'processing'
+  if (status === 'entitlement_active') return 'entitled'
   return 'paid'
 }
 
@@ -256,8 +295,9 @@ function appOrderFilter(status: AppOrderStatus): MyOrderFilter {
 
 function spaceOrderFilter(status: SpaceOrderDisplayStatus): MyOrderFilter {
   if (status === 'pending_payment') return 'pending_payment'
-  if (['accepted', 'paid', 'delivering', 'unknown_processing'].includes(status)) return 'processing'
-  if (status === 'delivered') return 'paid'
+  if (['paid', 'delivering'].includes(status)) return 'paid'
+  if (['accepted', 'unknown_processing', 'failed'].includes(status)) return 'processing'
+  if (status === 'delivered') return 'entitled'
   return 'cancelled'
 }
 

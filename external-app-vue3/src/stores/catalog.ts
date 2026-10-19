@@ -2,8 +2,10 @@ import { defineStore } from 'pinia'
 import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
-import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail, ReportDetail } from '@/types/domain'
-import type { Resource, ListResourceForm, ResourceTypeDetail } from '@/types/resource'
+import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail, ReportDetail, DatasetField } from '@/types/domain'
+import type { Resource, ListResourceForm, ResourceTypeDetail, PublicDatasetMetadata } from '@/types/resource'
+import { PUBLIC_DATASET_PROVIDER, PUBLIC_DATASET_UPDATE_FREQUENCY, applyPublicDatasetOverrides, isPublicDatasetProduct, publicDatasetDisplay, publicDatasetIssues, publicDatasetPresentation, publicDatasetRestoreIssues } from '@/domain/publicDataset'
+import type { PublicDatasetDisplay } from '@/types/resource'
 import type { ServiceStatus } from '@/types/reverseFlow'
 import type { TrustedProductSnapshot } from '@/types/trustedSpace'
 import { genId, now } from '@/utils/id'
@@ -11,14 +13,36 @@ import { matchesOpsFilter, matchesVenueFilter } from '@/domain/productListChips'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
 import { groupMembers, isPackagedProduct, packCandidates, type ProductPackCandidate } from '@/domain/productGroup'
 import type { ResourcePricingDraft } from '@/types/resource'
+import { useOrderStore } from './orders'
+import { publicUseDatasetResourceSample } from '@/data/publicUseDatasets'
+import { truncateProductName } from '@/domain/resourceManagement'
+import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
+
+function recordListingChange(product: Product, mode: 'manual' | 'system', action: 'publish' | 'delist') {
+  product.lastListingChange = { mode, action, at: now() }
+}
+
+function assertManualListingGroup(products: Product[]) {
+  if (products.some(p => p.origin === 'trusted_space') && products.some(p => p.origin !== 'trusted_space')) {
+    throw new Error('不同上下架规则的商品不能联动操作')
+  }
+}
 
 function cloneTypeDetail(detail: ResourceTypeDetail): ResourceTypeDetail {
   return JSON.parse(JSON.stringify(detail)) as ResourceTypeDetail
 }
 
+function assertLocalSalesControl(products: Product[], allowInitialPublication = false) {
+  if (products.some(product => product.origin === 'trusted_space' && !(
+    allowInitialPublication && product.availability === 'preparing' && ['draft', 'pending_approval'].includes(product.status)
+  ))) throw new Error('可信空间商品销售状态由源端同步，不支持本地操作')
+}
+
 function cloneProducts(): Product[] {
   return [...seedProducts, ...mockProducts].map((p) => ({
     ...p,
+    availability: p.availability === 'paused' ? 'delisted' : p.availability,
+    status: p.status === 'paused' ? 'delisted' : p.status,
     updateFrequency: coerceUpdateFrequency(p.updateFrequency),
     scenarios: [...(p.scenarios || [])],
     tags: [...(p.tags || [])],
@@ -29,9 +53,11 @@ function cloneProducts(): Product[] {
 }
 
 function cloneResources(): Resource[] {
-  return [...seedResources, ...unlistedResources, ...userViewResources].map((r) => ({
+  return [...seedResources, ...unlistedResources, ...userViewResources, publicUseDatasetResourceSample()].map((r) => ({
     ...r,
     pricingDraft: r.pricingDraft ? JSON.parse(JSON.stringify(r.pricingDraft)) : undefined,
+    publicDatasetMetadata: r.publicDatasetMetadata ? JSON.parse(JSON.stringify(r.publicDatasetMetadata)) : undefined,
+    publicDatasetOverrides: r.publicDatasetOverrides ? { ...r.publicDatasetOverrides } : undefined,
     typeDetail: cloneTypeDetail(r.typeDetail)
   }))
 }
@@ -72,6 +98,18 @@ function applyPaywallSnapshot(product: Product, source: Product) {
       }))
     }
   }
+}
+
+export interface PublicUseDatasetSnapshot {
+  resourceId: string
+  name: string
+  isPublic: boolean
+  available: boolean
+  updatedAt: string
+  fields: DatasetField[]
+  description?: string
+  metadata?: Partial<PublicDatasetMetadata>
+  detail?: Partial<NonNullable<ResourceTypeDetail['dataset']>>
 }
 
 export const useCatalogStore = defineStore('catalog', {
@@ -120,9 +158,141 @@ export const useCatalogStore = defineStore('catalog', {
     }
   },
   actions: {
+    registerSelfDashboardResource(input: { name: string; boundAssetId: string; description: string; updateCycle: string }) {
+      const name = input.name.trim()
+      const boundAssetId = input.boundAssetId.trim()
+      if (!name || !input.description.trim()) throw new Error('请填写看板名称和简介')
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$/.test(boundAssetId)) throw new Error('请填写有效的来源看板 ID')
+      if (this.resources.some((resource) => resource.typeDetail.dashboard?.boundAssetId === boundAssetId)) throw new Error('看板已登记')
+      const stamp = now()
+      const resource: Resource = {
+        id: genId('res-dashboard'), resourceName: name, description: input.description.trim(),
+        type: 'dashboard', origin: 'app_content', createdAt: stamp, updatedAt: stamp,
+        typeDetail: { dashboard: {
+          timeRange: '', updateCycle: input.updateCycle.trim(), metrics: [], panels: [], exportRule: '',
+          boundAssetId,
+          mobileEntryPath: `/app/bi/dashboard/${boundAssetId}`,
+          pcEntryPath: `/portal/bi/dashboard/${boundAssetId}`
+        } }
+      }
+      this.resources.unshift(resource)
+      return resource
+    },
+    syncUsePublicDatasets(snapshots: PublicUseDatasetSnapshot[]) {
+      for (const snapshot of snapshots) {
+        const resource = this.resources.find((item) => item.id === snapshot.resourceId)
+        const detail = resource?.typeDetail.dataset ?? {
+          classification: '公开数据', qualityUpdatedAt: snapshot.updatedAt, fields: [], sampleColumns: [], sampleRows: [], sampleGeneratedAt: snapshot.updatedAt,
+          profiling: { completeness: '—', uniqueness: '—', nullRate: '—', distribution: '—', anomalies: '—', conclusion: '—', updatedAt: snapshot.updatedAt }
+        }
+        const nextDetail = {
+          ...detail, ...snapshot.detail, blankOverview: true,
+          granularity: '', rowCount: undefined, fieldCount: null,
+          timeRange: '',
+          qualityUpdatedAt: snapshot.updatedAt, dataUpdatedAt: snapshot.updatedAt, fields: snapshot.fields
+        }
+        const metadata = {
+          ...snapshot.metadata, provider: PUBLIC_DATASET_PROVIDER, coverage: '',
+          updateFrequency: PUBLIC_DATASET_UPDATE_FREQUENCY
+        }
+        if (resource) {
+          resource.resourceName = snapshot.name
+          resource.typeDetail.dataset = nextDetail
+          resource.sourcePublicDataset = snapshot.isPublic
+          resource.sourceDatasetAvailable = snapshot.available
+          resource.assetStatus = snapshot.available ? 'published' : 'delisted'
+          resource.commercializable = snapshot.isPublic && snapshot.available
+          resource.lastSyncedAt = now()
+          resource.updatedAt = snapshot.updatedAt
+          resource.description = snapshot.description || ''
+          resource.publicDatasetMetadata = metadata
+          resource.publicSyncError = undefined
+        } else {
+          this.resources.push({
+            id: snapshot.resourceId, resourceName: snapshot.name, type: 'dataset', origin: 'asset_platform',
+            typeDetail: { dataset: nextDetail }, sourcePublicDataset: snapshot.isPublic,
+            sourceDatasetAvailable: snapshot.available, assetStatus: snapshot.available ? 'published' : 'delisted',
+            commercializable: snapshot.isPublic && snapshot.available, lastSyncedAt: now(),
+            createdAt: snapshot.updatedAt, updatedAt: snapshot.updatedAt,
+            description: snapshot.description, publicDatasetMetadata: metadata
+          })
+        }
+        const syncedResource = this.resourceById(snapshot.resourceId)!
+        applyPublicDatasetOverrides(syncedResource)
+        const product = this.products.find((item) => item.resourceId === snapshot.resourceId)
+        if (!product) continue
+        product.typeDetail.dataset = nextDetail
+        product.name = snapshot.name
+        if (syncedResource.publicDatasetMetadata) Object.assign(product, publicDatasetPresentation(syncedResource))
+        const sourceAvailable = snapshot.isPublic && snapshot.available
+        if (isPublicDatasetProduct(product, syncedResource) && !product.manualDelistedBy && syncedResource.publicDelistReason !== 'manual') {
+          // 只有从已发布状态转入的源端下架，才有资格自动恢复。
+          if (!sourceAvailable && product.status === 'published' && ['published', 'paused'].includes(product.availability)) {
+            syncedResource.publicDelistReason = 'source'
+            product.availability = 'delisted'
+            product.status = 'delisted'
+            recordListingChange(product, 'system', 'delist')
+            ;(syncedResource.publicStateHistory ??= []).push({ at: now(), state: 'delisted', reason: '源端取消公开或数据不可用' })
+          } else if (sourceAvailable && product.availability === 'delisted' && product.status === 'delisted' && syncedResource.publicDelistReason === 'source') {
+            syncedResource.publicDelistReason = undefined
+            product.availability = 'published'
+            product.status = 'published'
+            recordListingChange(product, 'system', 'publish')
+            ;(syncedResource.publicStateHistory ??= []).push({ at: now(), state: 'published', reason: '源端恢复公开且可用' })
+          }
+        }
+        product.publicDataset = snapshot.isPublic
+        if (syncedResource.publicDatasetMetadata) {
+          product.price = { model: 'member_free' }
+          product.acquisitions = ['member']
+          product.memberIncluded = true
+          product.memberBenefits = []
+          product.datasetOffers = undefined
+          product.commerceOffers = undefined
+        }
+        product.updatedAt = snapshot.updatedAt
+      }
+    },
+    updatePublicDatasetDetails(resourceId: string, values: PublicDatasetDisplay) {
+      const resource = this.resourceById(resourceId)
+      if (!resource?.publicDatasetMetadata || resource.type !== 'dataset') throw new Error('公开数据集资源不存在')
+      if (!values.productName.trim()) throw new Error('请填写商品名称')
+      for (const value of [values.rowCount, values.fieldCount]) {
+        if (value != null && (!Number.isSafeInteger(value) || value < 0)) throw new Error('数据行数和字段数须为非负整数')
+      }
+      const current = publicDatasetDisplay(resource)
+      const changes = Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== current[key as keyof PublicDatasetDisplay]))
+      resource.publicDatasetOverrides = { ...resource.publicDatasetOverrides, ...changes }
+      applyPublicDatasetOverrides(resource)
+      const product = this.productForResource(resourceId)
+      if (product) Object.assign(product, publicDatasetPresentation(resource))
+    },
+    recordPublicDatasetSyncFailure(resourceId: string, message: string) {
+      const resource = this.resourceById(resourceId)
+      if (resource) resource.publicSyncError = message
+    },
+    generatePublicDatasetProduct(resourceId: string) {
+      const existing = this.productForResource(resourceId)
+      if (existing) return existing
+      const resource = this.resourceById(resourceId)
+      if (!resource) throw new Error('资源不存在')
+      const issues = publicDatasetIssues(resource)
+      if (issues.length) throw new Error(issues.join('；'))
+      const product = this.listResource(resourceId, {
+        name: resource.resourceName, subtitle: resource.description || '', price: { model: 'member_free' },
+        acquisitions: ['member'], scenarios: resource.publicDatasetMetadata?.scenarios || [], tags: ['公开数据集']
+      })
+      Object.assign(product, publicDatasetPresentation(resource))
+      product.status = 'published'
+      product.availability = 'published'
+      resource.publicStateHistory = [{ at: now(), state: 'published', reason: '运营确认生成并上架' }]
+      recordListingChange(product, 'manual', 'publish')
+      return product
+    },
     updateResourcePricingDraft(resourceId: string, draft: ResourcePricingDraft) {
       const resource = this.resources.find((item) => item.id === resourceId)
       if (!resource) throw new Error('资源不存在')
+      if (resource.type === 'dataset' && resource.publicDatasetMetadata) throw new Error('公开数据集固定为会员免费，不可修改价格方案')
       resource.pricingDraft = JSON.parse(JSON.stringify(draft))
       if (draft.paywall || draft.paywallCatalog) {
         const dashboard = resource.typeDetail.dashboard
@@ -215,9 +385,10 @@ export const useCatalogStore = defineStore('catalog', {
         subtitle: form.subtitle,
         type: resource.type as Product['type'],
         origin: resource.origin,
+        publicDataset: resource.sourcePublicDataset === true,
         dealChannel: resource.type === 'api' || resource.origin === 'trusted_space' ? 'space_purchase' : 'app_payment',
         availability: 'preparing',
-        acquisitions: form.acquisitions,
+        acquisitions: resource.sourcePublicDataset ? ['member'] : form.acquisitions,
         scenarios: form.scenarios,
         provider:
           resource.origin === 'asset_platform'
@@ -231,11 +402,10 @@ export const useCatalogStore = defineStore('catalog', {
         updateFrequency: '',
         qualityPromise: '',
         complianceNote: '',
-        price: form.price,
+        price: resource.sourcePublicDataset ? { model: 'member_free' } : form.price,
         salePeriodMonths: 12,
-        datasetOffers: resource.type === 'dataset' ? [
-          { id: genId('offer-personal'), name: '个人单品', subject: 'personal', price: form.price.itemPrice ?? 100, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'personal', allowDownload: false, deliveryMode: 'snapshot' },
-          { id: genId('offer-enterprise'), name: '企业单品', subject: 'enterprise', price: (form.price.itemPrice ?? 100) * 10, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: false, deliveryMode: 'snapshot' }
+        datasetOffers: resource.type === 'dataset' && !resource.sourcePublicDataset ? [
+          { id: genId('offer-enterprise'), name: '企业购买', subject: 'enterprise', price: form.price.itemPrice ?? 0, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', licenseKind: 'snapshot', accessScope: 'enterprise_wide', allowDownload: true, deliveryMode: 'snapshot' }
         ] : undefined,
         assetSnapshot: resource.origin === 'asset_platform' ? {
           resourceId: resource.id,
@@ -247,17 +417,25 @@ export const useCatalogStore = defineStore('catalog', {
         } : undefined,
         status: 'draft',
         tags: form.tags,
-        description: '',
+        description: resource.description || '',
         valueProposition: '',
         deliveryMethod: '',
-        memberIncluded: false,
+        memberIncluded: resource.sourcePublicDataset === true,
         listedAt: now(),
         updatedAt: now(),
         typeDetail: cloneTypeDetail(resource.typeDetail),
         serviceStatus: 'normal'
       }
       this.products.push(product)
-      this.applyResourceDraftToProduct(resource, product)
+      if (resource.sourcePublicDataset) {
+        Object.assign(product, publicDatasetPresentation(resource))
+        product.name = truncateProductName(resource.productNameDraft ?? (form.name.trim() || resource.resourceName))
+        product.price = { model: 'member_free' }
+        product.acquisitions = ['member']
+        product.memberIncluded = true
+      } else {
+        this.applyResourceDraftToProduct(resource, product)
+      }
       return product
     },
     applyResourceDraftToProduct(resource: Resource, product: Product) {
@@ -313,39 +491,67 @@ export const useCatalogStore = defineStore('catalog', {
       product.availability = 'published'
       product.listedAt = now()
       product.updatedAt = now()
+      recordListingChange(product, 'manual', 'publish')
       return product
     },
     publishProduct(productId: string) {
       const product = this.products.find((item) => item.id === productId)
       if (!product) throw new Error('商品不存在')
       if (product.availability === 'published') throw new Error('商品已上架')
-      if (product.availability === 'paused') throw new Error('请先恢复销售')
+      assertManualListingGroup(groupMembers(this.products, productId))
+      for (const member of groupMembers(this.products, productId)) {
+        if (member.origin === 'trusted_space' && member.availability === 'delisted') {
+          const snapshot = useTrustedSpaceCatalogStore().byProductId(member.id)
+          if (snapshot?.syncState !== 'current' || snapshot.saleStatus !== 'published') {
+            throw new Error('须确认可信源端已上架且同步正常后才能上架')
+          }
+        }
+        const resource = this.resourceById(member.resourceId)
+        if (isPublicDatasetProduct(member, resource)) {
+          const issues = publicDatasetRestoreIssues(resource)
+          if (issues.length) throw new Error(issues.join('；'))
+        }
+      }
+      if (product.publicDataset === false && this.resources.find((item) => item.id === product.resourceId)?.sourcePublicDataset === false && product.price.model === 'member_free') {
+        throw new Error('公开状态已取消，须先配置非公开企业订单方案')
+      }
       product.status = 'published'
       product.availability = 'published'
       product.listedAt = now()
       product.updatedAt = now()
       this.syncGroupAvailability(productId, 'published', 'published')
+      for (const member of groupMembers(this.products, productId)) {
+        member.manualDelistedBy = undefined
+        recordListingChange(member, 'manual', 'publish')
+        const resource = this.resourceById(member.resourceId)
+        if (isPublicDatasetProduct(member, resource) && resource.publicDelistReason) {
+          resource.publicDelistReason = undefined
+          ;(resource.publicStateHistory ??= []).push({ at: now(), state: 'published', reason: '运营手动恢复上架' })
+        }
+      }
       return product
     },
-    pauseProduct(productId: string) {
-      const product = this.products.find((item) => item.id === productId)
-      if (!product || product.availability !== 'published') throw new Error('仅已上架商品可暂停新购')
-      this.syncGroupAvailability(productId, 'paused', 'published')
-      return product
-    },
-    resumeProduct(productId: string) {
-      const product = this.products.find((item) => item.id === productId)
-      if (!product || product.availability !== 'paused') throw new Error('仅暂停新购的商品可恢复销售')
-      this.syncGroupAvailability(productId, 'published', 'published')
-      return product
-    },
-    delistProduct(productId: string) {
+    delistProduct(productId: string, actor: 'operator' | 'seller' = 'operator') {
       const p = this.products.find((x) => x.id === productId)
       if (!p) return
       if (p.availability !== 'published' && p.availability !== 'paused') {
-        throw new Error('仅已上架或暂停新购的商品可下架')
+        throw new Error('仅已上架商品可下架')
       }
+      assertManualListingGroup(groupMembers(this.products, productId))
+      useOrderStore().closeOnlinePendingForProducts(
+        groupMembers(this.products, productId).map((member) => member.id),
+        '商品已下架，待支付订单已关闭'
+      )
       this.syncGroupAvailability(productId, 'delisted', 'delisted')
+      for (const member of groupMembers(this.products, productId)) {
+        member.manualDelistedBy = actor
+        recordListingChange(member, 'manual', 'delist')
+        const resource = this.resourceById(member.resourceId)
+        if (isPublicDatasetProduct(member, resource)) {
+          resource.publicDelistReason = 'manual'
+          ;(resource.publicStateHistory ??= []).push({ at: now(), state: 'delisted', reason: '运营手动下架' })
+        }
+      }
     },
     syncGroupAvailability(productId: string, availability: AvailabilityStatus, status: ProductStatus) {
       for (const member of groupMembers(this.products, productId)) {
@@ -414,14 +620,14 @@ export const useCatalogStore = defineStore('catalog', {
     updateStatus(productId: string, status: ProductStatus) {
       const p = this.products.find((x) => x.id === productId)
       if (p) {
-        p.status = status
+        p.status = status === 'paused' ? 'delisted' : status
         p.updatedAt = now()
       }
     },
     updateAvailability(productId: string, availability: AvailabilityStatus) {
       const p = this.products.find((x) => x.id === productId)
       if (p) {
-        p.availability = availability
+        p.availability = availability === 'paused' ? 'delisted' : availability
         p.updatedAt = now()
       }
     },
@@ -446,6 +652,13 @@ export const useCatalogStore = defineStore('catalog', {
       const idx = this.products.findIndex((x) => x.id === productId)
       if (idx >= 0) {
         this.products[idx] = { ...this.products[idx], ...patch, updatedAt: now() }
+        const resource = this.resources.find((item) => item.id === this.products[idx].resourceId)
+        if (resource?.type === 'dataset' && resource.publicDatasetMetadata) {
+          Object.assign(this.products[idx], {
+            price: { model: 'member_free' }, acquisitions: ['member'], memberIncluded: true,
+            memberBenefits: [], datasetOffers: undefined, commerceOffers: undefined
+          })
+        }
         if (options?.syncGroup !== false && this.products[idx].productGroupId) {
           this.syncProductGroupFromSource(productId)
         }
@@ -595,13 +808,22 @@ export const useCatalogStore = defineStore('catalog', {
     applyTrustedSnapshot(snapshot: TrustedProductSnapshot) {
       const product = this.products.find((item) => item.id === snapshot.appProductId)
       if (!product || product.dealChannel !== 'space_purchase') return
-      product.name = snapshot.name
+      const resource = this.resourceById(product.resourceId || '')
+      product.name = truncateProductName(resource?.productNameDraft ?? snapshot.name)
       product.provider = snapshot.provider
       product.price = { ...snapshot.price }
       if (snapshot.datasetOffers) product.datasetOffers = snapshot.datasetOffers.map((offer) => ({ ...offer }))
-      if (snapshot.saleStatus === 'published') product.availability = 'published'
-      if (snapshot.saleStatus === 'paused') product.availability = 'paused'
-      if (snapshot.saleStatus === 'delisted') product.availability = 'delisted'
+      // 同步资料不清除人工下架决定，也不发布尚未完成首次上架的草稿。
+      if (!product.manualDelistedBy && !['draft', 'pending_approval'].includes(product.status)
+        && snapshot.syncState === 'current' && snapshot.saleStatus !== 'unknown') {
+        const previous = product.availability
+        const saleStatus = snapshot.saleStatus === 'paused' ? 'delisted' : snapshot.saleStatus
+        product.availability = saleStatus
+        product.status = saleStatus === 'delisted' ? 'delisted' : 'published'
+        if (previous !== saleStatus && (saleStatus === 'delisted' || previous === 'delisted')) {
+          recordListingChange(product, 'system', saleStatus === 'delisted' ? 'delist' : 'publish')
+        }
+      }
       product.spaceProductNo = snapshot.spaceProductNo
       product.spaceSyncedAt = snapshot.syncedAt
       // 空间基本信息同步（覆盖本地对应字段）

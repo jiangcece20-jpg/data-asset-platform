@@ -48,7 +48,7 @@ describe('IntegrationGovernance page', () => {
     const wrapper = mount(IntegrationGovernance, { global: { plugins: [router] } })
     expect(wrapper.find('[data-testid="asset-monitoring-overview"]').text()).toContain('一期架构预留')
     expect(wrapper.findAll('[data-testid="asset-monitor-record"]')).toHaveLength(3)
-    expect(wrapper.text()).toContain('已暂停新购')
+    expect(wrapper.text()).toContain('商品已下架')
   })
 
   it('records an audit disposition without claiming the space fact was repaired', async () => {

@@ -10,6 +10,8 @@ import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
 import { seedBiDatasetDeliveries } from '@/data/datasetCommerce'
 import { commerceOffersOf, datasetOfferToCommerce, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { purchasePrice, type PurchasePricePath } from '@/domain/portalPurchase'
+import { isPurchasedDataset } from '@/domain/datasetEntry'
+import { shanghaiDate } from '@/utils/businessDate'
 
 function plusMonthsFrom(dateStr: string, months: number): string {
   const d = new Date(dateStr)
@@ -23,7 +25,7 @@ function requireDatasetProduct(productId: string): Product {
     throw new Error('仅支持资产平台来源的 APP 自营数据集购买')
   }
   if (product.status !== 'published' || product.availability !== 'published' || product.assetSnapshot?.changeRisk === 'high') {
-    throw new Error('该数据集当前暂停新购')
+    throw new Error('该数据集当前不可购买，请核对上下架状态及交付条件')
   }
   return product
 }
@@ -53,6 +55,21 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
     deliveries: seedBiDatasetDeliveries.map((item) => ({ ...item })) as BiDatasetDelivery[]
   }),
   getters: {
+    canUsePurchasedDataset() {
+      return (product: Product): boolean => {
+        const user = useUserStore()
+        const member = user.currentEnterpriseMember
+        if (!isPurchasedDataset(product) || !user.context.loggedIn || !user.isEnterpriseAuthenticated || !member) return false
+        if (product.serviceStatus === 'terminated' || product.serviceStatus === 'suspended') return false
+        const today = shanghaiDate()
+        // Update expiry stops updates; only actual access expiry/revocation stops retained data access.
+        return useEntitlementStore().list.some(item => item.type === 'dataset' && item.source === 'enterprise'
+          && item.productId === product.id && item.ownerId === user.context.currentEnterpriseId
+          && item.enterpriseId === user.context.currentEnterpriseId && item.status === 'active'
+          && item.validFrom.slice(0, 10) <= today && (!item.validTo || item.validTo.slice(0, 10) >= today)
+          && (item.accessScope === 'enterprise_wide' || member.role === 'admin' || item.assignedMemberIds?.includes(member.id)))
+      }
+    },
     pendingEnterpriseApprovals(state): DatasetPurchaseApprovalRequest[] {
       const user = useUserStore()
       if (user.currentEnterpriseMember?.role !== 'admin') return []
@@ -70,6 +87,38 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
     }
   },
   actions: {
+    fulfillSellerOrder(orderId: string) {
+      const order = useOrderStore().list.find((item) => item.id === orderId)
+      if (!order?.sellerId || !['paid', 'pending_activation', 'entitlement_active'].includes(order.status)) {
+        throw new Error('仅已收款商家订单可交付')
+      }
+      const existing = this.deliveries.find((item) => item.orderId === orderId)
+      if (existing) return this.provision(existing.id)
+      const product = useCatalogStore().byId(order.productId)
+      if (!product || product.type !== 'dataset' || product.origin !== 'seller_market') throw new Error('商家数据集不存在')
+      const offer = commerceOffersOf(product).find((item) => item.id === order.commerceOfferId)
+      if (!offer) throw new Error('商家销售方案不存在')
+      const entitlements = useEntitlementStore()
+      const entitlement = entitlements.list.find((item) => item.orderId === orderId)
+        ?? entitlements.grantSellerDataset({
+          product, orderId, ownerType: order.ownerType, ownerId: order.ownerId,
+          operatorMemberId: order.operatorMemberId || (order.ownerType === 'personal' ? order.ownerId : ''),
+          offerId: offer.id, selectedTermMonths: order.selectedTermMonths
+        })
+      entitlement.status = 'pending'
+      const delivery: BiDatasetDelivery = {
+        id: genId('bi-delivery'), orderId, entitlementId: entitlement.id, productId: product.id,
+        ownerType: order.ownerType, ownerId: order.ownerId,
+        operatorMemberId: order.operatorMemberId || (order.ownerType === 'personal' ? order.ownerId : ''),
+        dataVersionUpdatedAt: order.dataVersionUpdatedAt,
+        status: 'pending', attemptCount: 0, createdAt: now(), updatedAt: now()
+      }
+      this.deliveries.push(delivery)
+      order.entitlementId = entitlement.id
+      order.biDeliveryId = delivery.id
+      order.entitlementPendingManual = false
+      return this.provision(delivery.id)
+    },
     createOrder(productId: string, subject: 'personal' | 'enterprise', _offerId?: string, _selectedTermMonths?: number, pricePath?: PurchasePricePath) {
       const product = requireDatasetProduct(productId)
       const offer = fixedOffer(product, subject, !!pricePath)
@@ -89,7 +138,18 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
         const isAdmin = user.currentEnterpriseMember.role === 'admin'
         if (!pricePath && !isAdmin && !user.enterprise.purchasePolicy.memberPurchaseAllowed) throw new Error('企业策略不允许普通成员发起采购')
         ownerId = user.context.currentEnterpriseId
-        if (!pricePath && !isAdmin && user.enterprise.purchasePolicy.memberPurchaseApprovalRequired) status = 'pending_approval'
+        if (amount > 0 && !pricePath && !isAdmin && user.enterprise.purchasePolicy.memberPurchaseApprovalRequired) status = 'pending_approval'
+      }
+
+      const existingOrder = orders.list.find((item) => item.productId === product.id
+        && item.ownerType === subject
+        && item.ownerId === ownerId
+        && ['pending_payment', 'pending_approval', 'payment_pending_confirmation', 'paid', 'pending_activation'].includes(item.status))
+      if (existingOrder) {
+        return {
+          order: existingOrder,
+          approvalRequest: this.approvalRequests.find((item) => item.orderId === existingOrder.id && item.status === 'pending')
+        }
       }
 
       const order: Order = {
@@ -109,9 +169,13 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
         amount,
         status,
         createdAt: now(),
+        dataVersionUpdatedAt: product.typeDetail.dataset?.dataUpdatedAt,
+        updateFrequencyAtPurchase: product.updateFrequency,
         contractStatus: 'not_required'
       }
       orders.list.push(order)
+
+      if (amount === 0) this.pay(order.id)
 
       if (status === 'pending_approval') {
         approvalRequest = {
@@ -175,13 +239,37 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
         if (order.entitlementId) return order
         throw new Error('订单当前不可支付')
       }
+      if (order.sellerId) {
+        const product = useCatalogStore().byId(order.productId)
+        if (!product || product.origin !== 'seller_market' || product.status !== 'published'
+          || product.availability !== 'published' || ['suspended', 'terminated'].includes(product.serviceStatus)) {
+          throw new Error('该商品当前不可购买，请返回详情核对在售状态')
+        }
+        if (!order.paymentMethod || !paymentMethodsBySubject[order.ownerType].includes(order.paymentMethod)) {
+          throw new Error('支付方式与购买主体不匹配')
+        }
+        if (['enterprise_contract', 'enterprise_bank_transfer'].includes(order.paymentMethod)) {
+          order.status = 'payment_pending_confirmation'
+          return order
+        }
+        orders.applyCharge(order.id, order.amount, `dataset-charge-${order.id}`)
+        order.status = 'paid'
+        order.paidAt ||= now()
+        this.fulfillSellerOrder(order.id)
+        return order
+      }
      const product = requireDatasetProduct(order.productId)
      const offer = requireOffer(product, order.ownerType, order.datasetOfferId)
      if (!order.paymentMethod || !paymentMethodsBySubject[order.ownerType].includes(order.paymentMethod)) {
        throw new Error('支付方式与购买主体不匹配')
      }
 
-     orders.applyCharge(order.id, order.amount, `dataset-charge-${order.id}`)
+     if (order.amount === 0) {
+       order.status = 'paid'
+       order.completedAt = now()
+     } else {
+       orders.applyCharge(order.id, order.amount, `dataset-charge-${order.id}`)
+     }
      // 公对公转账和合同支付走线下确认：提交后进入付款确认中，等运营确认到账
      const isOffline = order.paymentMethod === 'enterprise_bank_transfer' || order.paymentMethod === 'enterprise_contract'
      if (isOffline) {
@@ -271,11 +359,17 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
     provision(deliveryId: string) {
       const delivery = this.deliveries.find((item) => item.id === deliveryId)
       if (!delivery) throw new Error('用数模块交付任务不存在')
-      const product = requireDatasetProduct(delivery.productId)
+      if (delivery.status === 'delivered') return delivery
+      const catalogProduct = useCatalogStore().byId(delivery.productId)
+      // 已收款商家订单在下架后仍须履约，交付不再使用新购的在售条件。
+      const product = catalogProduct?.origin === 'seller_market' && catalogProduct.type === 'dataset'
+        ? catalogProduct : requireDatasetProduct(delivery.productId)
       const order = useOrderStore().list.find((item) => item.id === delivery.orderId)
       const entitlement = useEntitlementStore().list.find((item) => item.id === delivery.entitlementId)
       const offer = product.datasetOffers?.find((item) => item.id === entitlement?.datasetOfferId)
-      if (!order || !entitlement || !offer) throw new Error('用数模块交付上下文不完整')
+      const sellerOffer = product.origin === 'seller_market'
+        ? commerceOffersOf(product).find((item) => item.id === entitlement?.commerceOfferId) : undefined
+      if (!order || !entitlement || (!offer && !sellerOffer)) throw new Error('用数模块交付上下文不完整')
       delivery.status = 'provisioning'
       delivery.attemptCount += 1
       delivery.failureReason = undefined
@@ -288,11 +382,11 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
           ownerType: delivery.ownerType,
           ownerId: delivery.ownerId,
           operatorMemberId: delivery.operatorMemberId,
-          licenseKind: offer.licenseKind,
-          accessScope: offer.accessScope,
-          termMonths: order.selectedTermMonths || offer.termMonths,
-          seats: offer.seats,
-          allowDownload: offer.allowDownload
+          licenseKind: offer?.licenseKind ?? (sellerOffer?.serviceMode === 'continuous' ? 'subscription' : 'snapshot'),
+          accessScope: offer?.accessScope ?? sellerOffer?.accessScope ?? (delivery.ownerType === 'enterprise' ? 'enterprise_wide' : 'personal'),
+          termMonths: order.selectedTermMonths || offer?.termMonths,
+          seats: offer?.seats,
+          allowDownload: offer?.allowDownload ?? sellerOffer?.allowDownload ?? false
         })
        delivery.datasetInstanceId = result.datasetInstanceId
        delivery.biEntryUrl = result.biEntryUrl
@@ -304,12 +398,16 @@ export const useDatasetCommerceStore = defineStore('datasetCommerce', {
         useEntitlementStore().activateDataset(entitlement.id, delivery.id)
         order.status = 'entitlement_active'
         order.entitlementGranted = true
+        order.entitlementPendingManual = false
+        order.completedAt = result.deliveredAt
+        if (sellerOffer) order.note = '付款完成，已交付当前数据版本；后续按商品约定更新'
       } catch (error) {
         delivery.status = 'failed'
         delivery.failureReason = error instanceof Error ? error.message : '用数模块交付失败'
         delivery.updatedAt = now()
         order.status = 'paid'
         order.entitlementGranted = false
+        if (sellerOffer) order.note = '平台已收款，数据交付处理中'
       }
       return delivery
     },

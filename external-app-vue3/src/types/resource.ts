@@ -45,6 +45,9 @@ export interface ResourceTypeDetail {
 export interface Resource {
   id: string
   resourceName: string
+  /** 建品前保存的商品名称，与资源原名独立。 */
+  productNameDraft?: string
+  description?: string
   type: ResourceType
   origin: ResourceOrigin
   typeDetail: ResourceTypeDetail
@@ -52,6 +55,17 @@ export interface Resource {
   enterpriseId?: string
   createdAt: string
   updatedAt: string
+  /** 用数模块公开状态的最近同步值；公开并不等于已上架为商品。 */
+  sourcePublicDataset?: boolean
+  sourceDatasetAvailable?: boolean
+  /** 用数公开数据集的展示资料；由源端同步维护。 */
+  publicDatasetMetadata?: PublicDatasetMetadata
+  /** 仅保存运营修改过的展示字段，后续同步不得覆盖。 */
+  publicDatasetOverrides?: Partial<PublicDatasetDisplay>
+  publicSyncError?: string
+  /** 人工下架保留至人工恢复；仅源端造成的下架可随同步自动恢复。 */
+  publicDelistReason?: 'manual' | 'source'
+  publicStateHistory?: Array<{ at: string; state: 'published' | 'delisted'; reason: string }>
   /** 资产平台同步信息；非资产平台来源可缺省。 */
   assetStatus?: 'published' | 'paused' | 'delisted'
   commercializable?: boolean
@@ -62,6 +76,28 @@ export interface Resource {
   changeSummary?: string
   /** 未上架资源的定价与打码草稿；上架时写入商品。 */
   pricingDraft?: ResourcePricingDraft
+}
+
+export interface PublicDatasetMetadata {
+  provider: string
+  coverage: string
+  updateFrequency: string
+  scenarios?: string[]
+  valueProposition?: string
+  qualityPromise?: string
+  complianceNote?: string
+}
+
+export interface PublicDatasetDisplay {
+  productName: string
+  resourceName: string
+  description: string
+  coverage: string
+  updateFrequency: string
+  granularity: string
+  timeRange: string
+  rowCount: number | undefined
+  fieldCount: number | null
 }
 
 export interface ResourcePricingDraftItemOffer {

@@ -10,9 +10,10 @@ describe('spaceIntents store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     useSpaceIntentStore().list = []
+    useUserStore().completeEnterpriseAuth()
   })
 
-  it('allows a personal user to submit an intent', () => {
+  it('submits an intent for the current enterprise', () => {
     const store = useSpaceIntentStore()
     const intent = store.submit({
       productId: 'prod-qualification-api',
@@ -22,7 +23,45 @@ describe('spaceIntents store', () => {
     })
     expect(intent.opsStatus).toBe('unclaimed')
     expect(userStatusOf(intent.opsStatus)).toBe('unclaimed')
-    expect(intent.ownerMemberId).toBe(useUserStore().context.currentMemberId)
+    expect(intent.enterpriseId).toBe(useUserStore().context.currentEnterpriseId)
+  })
+
+  it('records the complete intent lifecycle for the operations detail', () => {
+    const user = useUserStore()
+    const store = useSpaceIntentStore()
+    const intent = store.submit({
+      productId: 'prod-qualification-api',
+      contactName: '陈静',
+      contactPhone: '13800000000',
+      scenario: '司机核验'
+    })
+
+    store.claim(intent.id, user.enterprise.id)
+    store.effect(intent.id, '空间侧已完成开通')
+
+    expect(intent.operations?.map((event) => event.action)).toEqual(['submitted', 'claimed', 'entitled'])
+    expect(intent.operations?.map((event) => event.label)).toEqual(['意向单创建', '运营领取', '权益生效'])
+    expect(intent.operations?.at(-1)).toMatchObject({
+      actor: '陈静（mem-1）',
+      note: '空间侧已完成开通'
+    })
+  })
+
+  it('returns the existing open intent instead of creating a duplicate', () => {
+    const store = useSpaceIntentStore()
+    const payload = { productId: 'prod-qualification-api', contactName: '陈静', contactPhone: '13800000000', scenario: '核验' }
+    const first = store.submit(payload)
+    useUserStore().switchMockEnterpriseMember('mem-2')
+    const second = store.submit(payload)
+    expect(second.id).toBe(first.id)
+    expect(store.list).toHaveLength(1)
+  })
+
+  it('rejects a trial identity at the mutation boundary', () => {
+    useUserStore().clearEnterpriseContext()
+    expect(() => useSpaceIntentStore().submit({
+      productId: 'prod-qualification-api', contactName: '陈静', contactPhone: '13800000000', scenario: '核验'
+    })).toThrow('试用会员不能购买或申请')
   })
 
   it('does not create an order when claimed', () => {

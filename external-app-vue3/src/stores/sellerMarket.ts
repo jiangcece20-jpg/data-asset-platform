@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { CommerceOffer, Product } from '@/types/domain'
+import type { CommerceOffer, Order, Product } from '@/types/domain'
 import type {
   ListableArtifact,
   SellerAccessStatus,
@@ -11,9 +11,10 @@ import { genId, now } from '@/utils/id'
 import { useCatalogStore } from './catalog'
 import { useOrderStore } from './orders'
 import { useUserStore } from './user'
-import { useEntitlementStore } from './entitlements'
+import { useDatasetCommerceStore } from './datasetCommerce'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
+import { assertMerchantUpdateFrequency } from '@/domain/updateFrequency'
 import { sellerDatasetDetailByArtifact } from '@/data/sellerDatasets'
 import {
   assertSellerListingSpec,
@@ -22,35 +23,53 @@ import {
   type SellerListingCatalogSpec
 } from '@/domain/sellerListingSpec'
 
-export function assertSellerListingPrices(personalPrice: number, enterprisePrice: number) {
-  if (!Number.isFinite(personalPrice) || personalPrice < 1) throw new Error('请填写个人购买价格')
+export function sellerListingSaleLabel(value: string | SellerListingApplication) {
+  const status = typeof value === 'string' ? value : value.listingStatus ?? value.status
+  if (status === 'published') return '上架'
+  if (status === 'paused' || status === 'delisted') return '已下架'
+  return '未上架'
+}
+
+export function sellerListingReviewLabel(listing: SellerListingApplication) {
+  if (listing.restoreReview?.status === 'pending_review') return '恢复上架审批中'
+  if (listing.restoreReview?.status === 'rejected') return '恢复上架被驳回'
+  if (listing.status === 'need_supplement') return '驳回'
+  const status = listing.reviewStatus ?? listing.status
+  if (status === 'draft') return '草稿'
+  if (status === 'rejected' || status === 'change_rejected') return '驳回'
+  if (['approved', 'published', 'paused', 'delisted'].includes(status)) return '已通过'
+  if (status === 'change_pending' && listing.pendingTerms) {
+    const terms = listing.pendingTerms
+    const priceChanged = terms.enterprisePrice !== listing.enterprisePrice
+    const detailsChanged = terms.servicePeriodMonths !== (listing.servicePeriodMonths ?? 12)
+      || terms.updateFrequency !== listing.catalogSpec?.updateFrequency
+      || terms.coverage !== listing.catalogSpec?.coverage
+    if (priceChanged && detailsChanged) return '多项变更审核中'
+    if (priceChanged) return '价格变更审核中'
+    if (detailsChanged) return '资料变更审核中'
+  }
+  return '审核中'
+}
+
+export function assertSellerListingPrices(enterprisePrice: number) {
   if (!Number.isFinite(enterprisePrice) || enterprisePrice < 1) throw new Error('请填写企业购买价格')
 }
 
-export function sellerItemOffers(productId: string, personalPrice: number, enterprisePrice: number): CommerceOffer[] {
+export function sellerItemOffers(productId: string, enterprisePrice: number, updateFrequency: string, servicePeriodMonths: number): CommerceOffer[] {
+  assertMerchantUpdateFrequency(updateFrequency)
   return [
     {
-      id: `offer-${productId}-personal`,
-      name: '个人单品',
-      subject: 'personal',
-      price: personalPrice,
-      currency: 'CNY',
-      serviceMode: 'one_time',
-      contentKind: 'snapshot',
-      accessScope: 'personal',
-      allowDownload: false,
-      recommended: true
-    },
-    {
       id: `offer-${productId}-enterprise`,
-      name: '企业单品',
+      name: '企业购买',
       subject: 'enterprise',
       price: enterprisePrice,
       currency: 'CNY',
-      serviceMode: 'one_time',
-      contentKind: 'snapshot',
+      serviceMode: 'continuous',
+      contentKind: 'continuous_updates',
+      billingPeriodMonths: servicePeriodMonths,
+      maxTermMonths: servicePeriodMonths,
       accessScope: 'enterprise_wide',
-      allowDownload: false
+      allowDownload: true
     }
   ]
 }
@@ -170,6 +189,9 @@ const seedListings: SellerListingApplication[] = [
     complianceSummary: '无个人信息对外售卖；自有数据',
     catalogSpec: listingCatalogSpecFromArtifact(seedArtifacts.find((item) => item.id === 'artifact-driver-score')!),
     status: 'pending_review',
+    reviewStatus: 'pending_review',
+    listedByName: '陈静',
+    lastOperatorName: '陈静',
     createdAt: '2026-08-08 09:10',
     updatedAt: '2026-08-08 09:10'
   }
@@ -268,14 +290,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         catalog.products
           .filter((p) => p.sellerId === sellerId && p.origin === 'seller_market' && p.availability === 'published')
           .forEach((p) => {
-            p.availability = 'paused'
-            p.status = 'paused'
-          })
-        this.listings
-          .filter((l) => l.sellerId === sellerId && l.status === 'published')
-          .forEach((l) => {
-            l.status = 'paused'
-            l.updatedAt = now()
+            this.forceDelist(p.id, note || '商家准入暂停', '平台运营', 'operator')
           })
       }
     },
@@ -283,8 +298,8 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       artifactId: string
       title: string
       subtitle: string
-      price: number
       enterprisePrice: number
+      servicePeriodMonths: number
       complianceSummary: string
       catalogSpec: SellerListingCatalogSpec
     }) {
@@ -292,8 +307,10 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       if (!me || me.status !== 'approved') throw new Error('仅已准入卖家可提交上架')
       const artifact = this.artifacts.find((a) => a.id === input.artifactId)
       if (!artifact) throw new Error('可上架对象不存在')
-      assertSellerListingPrices(input.price, input.enterprisePrice)
+      assertSellerListingPrices(input.enterprisePrice)
+      if (!Number.isInteger(input.servicePeriodMonths) || input.servicePeriodMonths < 1) throw new Error('请填写服务周期')
       const catalogSpec = assertSellerListingSpec(input.catalogSpec)
+      assertMerchantUpdateFrequency(catalogSpec.updateFrequency)
       const dup = this.listings.find(
         (l) =>
           l.sellerId === me.id &&
@@ -311,12 +328,17 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         artifactVersion: artifact.version,
         title: input.title,
         subtitle: input.subtitle,
-        price: input.price,
+        price: input.enterprisePrice,
         enterprisePrice: input.enterprisePrice,
+        servicePeriodMonths: input.servicePeriodMonths,
         dataProvenance: artifact.dataProvenance,
         complianceSummary: catalogSpec.complianceNote || input.complianceSummary,
         catalogSpec,
         status: 'pending_review',
+        listingStatus: 'unlisted',
+        reviewStatus: 'pending_review',
+        listedByName: me.displayName,
+        lastOperatorName: me.displayName,
         createdAt: stamp,
         updatedAt: stamp
       }
@@ -326,10 +348,13 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
     decideListing(listingId: string, decision: Extract<SellerListingStatus, 'published' | 'rejected' | 'need_supplement'>, note = '') {
       const listing = this.listings.find((l) => l.id === listingId)
       if (!listing) return
-      listing.reviewNote = note
-      listing.updatedAt = now()
+      if (listing.productId) throw new Error('已发布商品请使用变更或恢复审批')
       if (decision !== 'published') {
+        listing.reviewNote = note
+        listing.updatedAt = now()
+        listing.lastOperatorName = '平台运营'
         listing.status = decision
+        listing.reviewStatus = decision === 'rejected' ? 'rejected' : 'pending_review'
         return listing
       }
       const catalog = useCatalogStore()
@@ -340,6 +365,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       const catalogSpec = listing.catalogSpec
         ? assertSellerListingSpec(listing.catalogSpec)
         : listingCatalogSpecFromArtifact(artifact || { ...this.artifacts[0], id: listing.artifactId })
+      assertMerchantUpdateFrequency(catalogSpec.updateFrequency)
       const datasetDetail = datasetDetailFromListingSpec(
         artifact || { id: listing.artifactId, name: listing.title, type: 'dataset', version: listing.artifactVersion, sourceModule: 'bi-workbench', dataProvenance: listing.dataProvenance, licenseSummary: listing.complianceSummary, updatedAt: listing.updatedAt, datasetDetail: sellerDatasetDetailByArtifact(listing.artifactId) },
         catalogSpec
@@ -355,7 +381,8 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         dealChannel: 'app_payment',
         availability: 'published',
         acquisitions: ['item_purchase'],
-        entitlementPolicy: { kind: 'term', months: 12 },
+        entitlementPolicy: { kind: 'term', months: listing.servicePeriodMonths || 12 },
+        salePeriodMonths: listing.servicePeriodMonths || 12,
         scenarios: catalogSpec.scenarios,
         provider: `入驻商家 · ${listing.sellerName}`,
         sellerId: listing.sellerId,
@@ -366,13 +393,13 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         updateFrequency: catalogSpec.updateFrequency,
         qualityPromise: catalogSpec.qualityPromise,
         complianceNote: catalogSpec.complianceNote,
-        price: { model: 'item_only', itemPrice: listing.price, unit: '元' },
-        commerceOffers: sellerItemOffers(productId, listing.price, listing.enterprisePrice),
+        price: { model: 'item_only', itemPrice: listing.enterprisePrice, unit: '元' },
+        commerceOffers: sellerItemOffers(productId, listing.enterprisePrice, catalogSpec.updateFrequency, listing.servicePeriodMonths || 12),
         status: 'published',
         tags: ['入驻商家', ...catalogSpec.scenarios.slice(0, 2)],
         description: catalogSpec.description,
         valueProposition: catalogSpec.valueProposition,
-        deliveryMethod: '平台收款后由运营开通数据集查看与样例',
+        deliveryMethod: '订单完成后自动交付当前版本；定时更新在服务周期内自动交付',
         memberIncluded: false,
         hasSampleData: hasSamples,
         listedAt: now().slice(0, 10),
@@ -398,10 +425,12 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       } else {
         existing.availability = 'published'
         existing.status = 'published'
-        existing.price = { model: 'item_only', itemPrice: listing.price, unit: '元' }
-        existing.commerceOffers = sellerItemOffers(productId, listing.price, listing.enterprisePrice)
+        existing.price = { model: 'item_only', itemPrice: listing.enterprisePrice, unit: '元' }
+        existing.commerceOffers = sellerItemOffers(productId, listing.enterprisePrice, catalogSpec.updateFrequency, listing.servicePeriodMonths || 12)
+        existing.salePeriodMonths = listing.servicePeriodMonths || 12
+        existing.entitlementPolicy = { kind: 'term', months: listing.servicePeriodMonths || 12 }
         existing.settlementModeDefault = 'platform_collect'
-        existing.deliveryMethod = '平台收款后由运营开通数据集查看与样例'
+        existing.deliveryMethod = '订单完成后自动交付当前版本；定时更新在服务周期内自动交付'
         existing.memberIncluded = false
         existing.sellingShots = undefined
         existing.customSellingShots = undefined
@@ -416,29 +445,187 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         existing.typeDetail = { dataset: datasetDetail }
       }
       listing.productId = productId
+      product.manualDelistedBy = undefined
+      product.lastListingChange = { mode: 'manual', action: 'publish', at: now() }
+      listing.reviewNote = note
+      listing.updatedAt = now()
+      listing.lastOperatorName = '平台运营'
       listing.status = 'published'
+      listing.listingStatus = 'published'
+      listing.reviewStatus = 'approved'
       listing.publishedAt = now()
       return listing
     },
-    forceDelist(productId: string, note = '') {
+    saveListingDisplay(listingId: string, input: {
+      title: string
+      subtitle: string
+      description: string
+      fieldDescriptions?: Record<string, string>
+      sampleRows?: Array<Record<string, string | number | boolean>>
+    }) {
+      const listing = this.listings.find((item) => item.id === listingId)
+      if (!listing || listing.sellerId !== this.myProfile?.id || sellerListingSaleLabel(listing) !== '上架') throw new Error('仅可修改自己的在架商品')
+      const product = listing.productId && useCatalogStore().byId(listing.productId)
+      if (!product || !listing.catalogSpec) throw new Error('商品资料不存在')
+      if (!input.title.trim() || !input.description.trim()) throw new Error('请填写商品名称和内容说明')
+      const fields = listing.catalogSpec.fields.map((field) => ({
+        ...field,
+        description: input.fieldDescriptions?.[field.name]?.trim() ?? field.description
+      }))
+      if (input.sampleRows?.some((row) => Object.keys(row).some((key) => !listing.catalogSpec!.sampleColumns.includes(key)))) {
+        throw new Error('样例字段须与当前表结构一致')
+      }
+      listing.title = input.title.trim()
+      listing.subtitle = input.subtitle.trim()
+      listing.catalogSpec = {
+        ...listing.catalogSpec,
+        description: input.description.trim(),
+        fields,
+        sampleRows: input.sampleRows ?? listing.catalogSpec.sampleRows
+      }
+      listing.updatedAt = now()
+      listing.lastOperatorName = this.myProfile.displayName
+      product.name = listing.title
+      product.subtitle = listing.subtitle
+      product.description = listing.catalogSpec.description
+      product.typeDetail.dataset = product.typeDetail.dataset
+        ? { ...product.typeDetail.dataset, fields, sampleRows: listing.catalogSpec.sampleRows }
+        : undefined
+      product.updatedAt = listing.updatedAt
+      return listing
+    },
+    submitListingTerms(listingId: string, input: { enterprisePrice: number; servicePeriodMonths: number; updateFrequency: string; coverage: string }) {
+      const listing = this.listings.find((item) => item.id === listingId)
+      if (!listing || listing.sellerId !== this.myProfile?.id || sellerListingSaleLabel(listing) !== '上架') throw new Error('仅可修改自己的在架商品')
+      if (listing.reviewStatus === 'change_pending') throw new Error('变更审核中，不能再次提交')
+      assertSellerListingPrices(input.enterprisePrice)
+      if (!Number.isInteger(input.servicePeriodMonths) || input.servicePeriodMonths < 1) throw new Error('请填写服务周期')
+      assertMerchantUpdateFrequency(input.updateFrequency)
+      if (!input.coverage.trim()) throw new Error('请填写数据范围')
+      listing.pendingTerms = { ...input, coverage: input.coverage.trim() }
+      listing.reviewStatus = 'change_pending'
+      listing.reviewNote = ''
+      listing.updatedAt = now()
+      listing.lastOperatorName = this.myProfile.displayName
+      return listing
+    },
+    reviewListingTerms(listingId: string, approved: boolean, note: string) {
+      const listing = this.listings.find((item) => item.id === listingId)
+      if (!listing || listing.reviewStatus !== 'change_pending' || !listing.pendingTerms) throw new Error('没有待审变更')
+      if (!approved && !note.trim()) throw new Error('驳回必须填写原因')
+      if (approved) assertMerchantUpdateFrequency(listing.pendingTerms.updateFrequency)
+      listing.reviewNote = note.trim()
+      listing.updatedAt = now()
+      listing.lastOperatorName = '平台运营'
+      if (!approved) {
+        listing.reviewStatus = 'change_rejected'
+        return listing
+      }
+      const product = listing.productId && useCatalogStore().byId(listing.productId)
+      if (!product || !listing.catalogSpec) throw new Error('商品资料不存在')
+      const terms = listing.pendingTerms
+      listing.enterprisePrice = terms.enterprisePrice
+      listing.price = terms.enterprisePrice
+      listing.servicePeriodMonths = terms.servicePeriodMonths
+      listing.catalogSpec = { ...listing.catalogSpec, updateFrequency: terms.updateFrequency, coverage: terms.coverage }
+      product.price = { ...product.price, itemPrice: terms.enterprisePrice }
+      product.commerceOffers = sellerItemOffers(product.id, terms.enterprisePrice, terms.updateFrequency, terms.servicePeriodMonths)
+      product.salePeriodMonths = terms.servicePeriodMonths
+      product.entitlementPolicy = { kind: 'term', months: terms.servicePeriodMonths }
+      product.updateFrequency = terms.updateFrequency
+      product.coverage = terms.coverage
+      product.updatedAt = listing.updatedAt
+      listing.reviewStatus = 'approved'
+      listing.pendingTerms = undefined
+      return listing
+    },
+    forceDelist(productId: string, note = '', operatorName = '平台运营', actor: 'operator' | 'seller' = 'operator') {
       const catalog = useCatalogStore()
       const product = catalog.byId(productId)
       if (!product || product.origin !== 'seller_market') return
-      product.availability = 'delisted'
-      product.status = 'delisted'
+      if (actor === 'seller' && product.sellerId !== this.myProfile?.id) throw new Error('只能操作本店商品')
+      if (product.availability === 'published' || product.availability === 'paused') catalog.delistProduct(productId, actor)
       const listing = this.listings.find((l) => l.productId === productId)
       if (listing) {
         listing.status = 'delisted'
-        listing.reviewNote = note || listing.reviewNote
+        listing.listingStatus = 'delisted'
+        listing.delistNote = note
+        listing.lastOperatorName = operatorName
         listing.updatedAt = now()
       }
     },
-    /** 买家下单：打款到平台后进入待开通，由运营手动开通。企业合同采购先待确认到账。 */
+    restoreListing(productId: string, actor: 'operator' | 'seller' = 'operator') {
+      const catalog = useCatalogStore()
+      const product = catalog.byId(productId)
+      let listing = this.listings.find(item => item.productId === productId)
+      if (!product || product.origin !== 'seller_market' || product.availability !== 'delisted') throw new Error('仅已下架商家商品可恢复')
+      if (actor === 'seller' && (product.sellerId !== this.myProfile?.id || product.manualDelistedBy !== 'seller')) {
+        throw new Error('仅可恢复本店主动下架商品，平台下架须由平台恢复')
+      }
+      const profile = this.profiles.find(item => item.id === product.sellerId)
+      if (profile?.status !== 'approved') throw new Error('商家准入未通过，不能恢复上架')
+      // Older prototype products have catalog facts but no associated application row.
+      if (!listing) {
+        const artifact = this.artifacts.find(item => item.name === product.name)
+        if (!artifact) throw new Error('商品上架记录不存在，请核实原关联')
+        listing = {
+          id: genId('listing'), sellerId: product.sellerId!, sellerName: profile.displayName,
+          artifactId: artifact.id, artifactVersion: artifact.version, productId,
+          title: product.name, subtitle: product.subtitle,
+          price: product.price.itemPrice ?? 0,
+          enterprisePrice: commerceOffersOf(product).find(offer => offer.subject === 'enterprise')?.price ?? product.price.itemPrice ?? 0,
+          servicePeriodMonths: salePeriodMonthsOf(product), dataProvenance: artifact.dataProvenance,
+          complianceSummary: product.complianceNote || '',
+          catalogSpec: listingCatalogSpecFromArtifact({ ...artifact, datasetDetail: product.typeDetail.dataset || artifact.datasetDetail }),
+          status: 'delisted', listingStatus: 'delisted',
+          createdAt: product.listedAt || '', updatedAt: now()
+        }
+        this.listings.unshift(listing)
+      }
+      if (listing.restoreReview?.status === 'pending_review') throw new Error('恢复申请审批中，不能重复提交')
+      if (listing?.reviewStatus === 'change_pending') throw new Error('请先完成商品变更审核')
+      listing.listingStatus = 'delisted'
+      listing.restoreReview = { status: 'pending_review', actor, requestedAt: now() }
+      listing.lastOperatorName = actor === 'seller' ? this.myProfile!.displayName : '平台运营'
+      listing.updatedAt = now()
+    },
+    reviewListingRestore(listingId: string, approved: boolean, note: string) {
+      const listing = this.listings.find(item => item.id === listingId)
+      if (!listing?.restoreReview || listing.restoreReview.status !== 'pending_review') throw new Error('没有待审恢复申请')
+      if (!approved && !note.trim()) throw new Error('驳回必须填写原因')
+      const catalog = useCatalogStore()
+      const product = listing.productId && catalog.byId(listing.productId)
+      if (!product || product.availability !== 'delisted') throw new Error('商品已不处于下架状态，请重新核实')
+      if (!approved) {
+        listing.restoreReview = { ...listing.restoreReview, status: 'rejected', note: note.trim(), reviewedAt: now() }
+        listing.lastOperatorName = '平台运营'
+        listing.updatedAt = now()
+        return
+      }
+      const profile = this.profiles.find(item => item.id === listing.sellerId)
+      if (profile?.status !== 'approved') throw new Error('商家准入未通过，不能恢复上架')
+      if (listing.reviewStatus === 'change_pending') throw new Error('请先完成商品变更审核')
+      if (!listing.catalogSpec) throw new Error('商品资料不完整，不能恢复上架')
+      assertSellerListingPrices(listing.enterprisePrice)
+      assertSellerListingSpec(listing.catalogSpec)
+      assertMerchantUpdateFrequency(listing.catalogSpec.updateFrequency)
+      catalog.publishProduct(product.id)
+      listing.status = 'published'
+      listing.listingStatus = 'published'
+      listing.restoreReview = { ...listing.restoreReview, status: 'approved', note: note.trim(), reviewedAt: now() }
+      listing.lastOperatorName = '平台运营'
+      listing.updatedAt = now()
+    },
+    /** 新交易付款即交付，已有历史订单不在初始化时改写。 */
     purchaseSellerProduct(productId: string, offerId: string, paymentMode: 'online' | 'contract' = 'online') {
       const catalog = useCatalogStore()
       const product = catalog.byId(productId)
       if (!product || product.origin !== 'seller_market' || product.dealChannel !== 'app_payment') {
         throw new Error('仅支持入驻商家商品购买')
+      }
+      if (product.status !== 'published' || product.availability !== 'published'
+        || !product.acquisitions.includes('item_purchase') || ['suspended', 'terminated'].includes(product.serviceStatus)) {
+        throw new Error('该商品当前不可购买，请返回详情核对在售状态')
       }
       if (!product.sellerId) throw new Error('商品缺少卖家信息')
       const user = useUserStore()
@@ -452,7 +639,7 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
       const ownerType = subject
       const ownerId = subject === 'personal' ? user.context.currentMemberId : user.context.currentEnterpriseId!
       const stamp = now()
-      const order = {
+      const order: Order = {
         id: genId('order'),
         channel: 'app' as const,
         ownerType,
@@ -462,9 +649,9 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
         productName: product.name,
         productType: product.type,
         amount: offer.price,
-        status: isContract ? 'pending_payment' as const : 'pending_activation' as const,
+        status: isContract ? 'pending_payment' : 'paid',
         entitlementGranted: false,
-        entitlementPendingManual: !isContract,
+        entitlementPendingManual: false,
         commerceOfferId: offer.id,
         serviceMode: offer.serviceMode,
         selectedTermMonths: salePeriodMonthsOf(product),
@@ -476,54 +663,46 @@ export const useSellerMarketStore = defineStore('sellerMarket', {
             ? 'enterprise_contract' as const
             : 'enterprise_balance' as const,
         createdAt: stamp,
+        dataVersionUpdatedAt: product.typeDetail.dataset?.dataUpdatedAt,
+        updateFrequencyAtPurchase: product.updateFrequency,
         paidAt: isContract ? undefined : stamp,
         note: isContract
-          ? '企业合同采购，待平台确认到账后进入待开通'
-          : '平台已收款，待运营开通数据集；按合同与卖家结算'
+          ? '企业合同采购，待平台确认到账后自动交付当前数据版本'
+          : '平台已收款，正在交付当前数据版本'
       }
       useOrderStore().list.push(order)
+      if (!isContract) useDatasetCommerceStore().fulfillSellerOrder(order.id)
       return order
     },
-    /** 运营确认合同采购到账后进入待开通，仍不发权 */
+    /** 合同确认到账后自动交付，重复确认沿用原交付。 */
     adminConfirmSellerPayment(orderId: string) {
       const orders = useOrderStore()
       const order = orders.list.find((o) => o.id === orderId)
       if (!order || !order.sellerId) throw new Error('订单不存在或非入驻商家订单')
+      if (order.biDeliveryId && ['paid', 'entitlement_active'].includes(order.status)) {
+        useDatasetCommerceStore().fulfillSellerOrder(order.id)
+        return order
+      }
       if (order.status !== 'pending_payment' && order.status !== 'payment_pending_confirmation') {
         throw new Error('当前状态不可确认到账')
       }
       const stamp = now()
-      order.status = 'pending_activation'
+      order.status = 'paid'
       order.entitlementGranted = false
-      order.entitlementPendingManual = true
+      order.entitlementPendingManual = false
       order.paidAt = stamp
       order.settlementMode = 'platform_collect'
-      order.note = '平台已确认到账，待运营开通数据集；按合同与卖家结算'
+      order.note = '平台已确认到账，正在交付当前数据版本'
+      useDatasetCommerceStore().fulfillSellerOrder(order.id)
       return order
     },
-    /** 运营手动开通入驻商家数据集权益 */
+    /** 兼容历史待开通订单；新交易在付款时即执行同一交付流程。 */
     adminActivateSellerOrder(orderId: string) {
       const orders = useOrderStore()
       const order = orders.list.find((o) => o.id === orderId)
       if (!order || !order.sellerId) throw new Error('订单不存在或非入驻商家订单')
-      if (order.status !== 'pending_activation') throw new Error('仅待开通订单可由运营开通')
-      const catalog = useCatalogStore()
-      const product = catalog.byId(order.productId)
-      if (!product) throw new Error('商品不存在')
-      const entitlement = useEntitlementStore().grantSellerDataset({
-        product,
-        orderId: order.id,
-        ownerType: order.ownerType,
-        ownerId: order.ownerId,
-        operatorMemberId: order.operatorMemberId || (order.ownerType === 'personal' ? order.ownerId : ''),
-        offerId: order.commerceOfferId || '',
-        selectedTermMonths: order.selectedTermMonths
-      })
-      order.status = 'entitlement_active'
-      order.entitlementGranted = true
-      order.entitlementPendingManual = false
-      order.entitlementId = entitlement.id
-      order.note = '运营已开通数据集查看；平台按合同与卖家结算'
+      if (order.status !== 'pending_activation' && !order.biDeliveryId) throw new Error('仅已收款待交付订单可开通')
+      useDatasetCommerceStore().fulfillSellerOrder(order.id)
       return order
     }
   }

@@ -1,4 +1,4 @@
-import type { Product, ProductType, SpaceSyncMeta } from '@/types/domain'
+import type { DashboardDetail, Product, ProductType, SpaceSyncMeta } from '@/types/domain'
 import { originMeta, listedAtOf } from '@/utils/productMeta'
 
 /**
@@ -113,6 +113,109 @@ export function resourceInfoFields(
     push(items, field('最后监测', product.assetSnapshot.lastCheckedAt))
   }
   return items
+}
+
+/** 数据集商品详情只展示与当前交付直接相关的资源属性。 */
+export function datasetResourceInfoFields(product: Product): DetailFieldItem[] {
+  const m = resolveSpaceMeta(product)
+  const values: Array<[string, string | number | null | undefined]> = [
+    ['提供方', m?.providerName || product.provider],
+    ['地域范围', m?.regionCategory || product.coverage],
+    ['更新频率', product.updateFrequency],
+    ['交付方式', m?.deliveryMode || product.deliveryMethod],
+    ['来源', originMeta[product.origin]],
+    ['上架时间', listedAtOf(product)],
+    ['应用场景', m?.applicationScenario || product.scenarios?.join('、')]
+  ]
+  if (product.typeDetail.dataset?.blankOverview) {
+    values.push(['数据更新时间', product.typeDetail.dataset.qualityUpdatedAt])
+  }
+  return values.map(([label, value]) =>
+    label === '地域范围' && product.typeDetail.dataset?.blankOverview
+      ? { label, value: value == null ? '' : String(value) }
+      : field(label, value, { keepEmpty: true })!
+  )
+}
+
+/** 自有看板基本信息在前台与资源管理中共用同一组字段。 */
+export function dashboardOverviewFields(detail?: DashboardDetail): DetailFieldItem[] {
+  if (!detail) return []
+  return [
+    field('时间范围', detail.timeRange, { keepEmpty: true })!,
+    field('更新周期', detail.updateCycle, { keepEmpty: true })!,
+    field('指标数量', `${detail.metrics.length} 个`)!,
+    field('导出规则', detail.exportRule, { keepEmpty: true })!
+  ]
+}
+
+export function dashboardResourceInfoFields(product: Product): DetailFieldItem[] {
+  const values: Array<[string, string | null | undefined]> = [
+    ['提供方', product.provider],
+    ['地域范围', product.coverage],
+    ['更新频率', product.updateFrequency],
+    ['交付方式', product.deliveryMethod],
+    ['来源', originMeta[product.origin]],
+    ['上架时间', listedAtOf(product)],
+    ['应用场景', product.scenarios?.join('、')]
+  ]
+  return values.map(([label, value]) => field(label, value, { keepEmpty: true })!)
+}
+
+/** API 基本信息按资源来源逐项展示；可信空间缺失字段不补造分类等同步值。 */
+export function apiResourceInfoFields(product: Product): DetailFieldItem[] {
+  const m = product.spaceMeta
+  const synced = isSpaceSyncedProduct(product)
+  const values: Array<[string, string | number | null | undefined]> = [
+    ['行业分类', m?.industryCategory],
+    ['地域范围', m?.regionCategory],
+    ['覆盖时间范围', m?.coverageTimeRange],
+    ['更新频率', product.updateFrequency],
+    ['交付方式', m?.deliveryMode || (!synced ? product.deliveryMethod : undefined)],
+    ['来源', originMeta[product.origin]],
+    ['上架时间', listedAtOf(product)],
+    ['应用场景', m?.applicationScenario || (!synced ? product.scenarios?.join('、') : undefined)]
+  ]
+  return values.map(([label, value]) => field(label, value, { keepEmpty: true, synced: synced && label !== '来源' && label !== '上架时间' })!)
+}
+
+export function apiComplianceFields(product: Product): DetailFieldItem[] {
+  const m = product.spaceMeta
+  const synced = isSpaceSyncedProduct(product)
+  const restrictions = m?.usageRestrictions?.length
+    ? `${m.usageRestrictions.join('、')}${m.restrictionNote ? `；其他说明：${m.restrictionNote}` : ''}`
+    : m?.restrictionNote
+  const values: Array<[string, string | null | undefined]> = [
+    ['数据主体', m?.dataSubject],
+    ['是否涉及个人信息', m?.personalInfo == null ? null : m.personalInfo ? '是' : '否'],
+    ['授权使用', m?.authorizedUse == null ? null : m.authorizedUse ? '是' : '否'],
+    ['分类标准', m?.classificationStandard],
+    ['分级', m?.classificationLevel == null ? null : `${m.classificationLevel} 级`],
+    ['分类', m?.classificationPath],
+    ['使用限制', restrictions]
+  ]
+  return values.map(([label, value]) => field(label, value, { keepEmpty: true, synced })!)
+}
+
+export function apiProviderFields(product: Product): DetailFieldItem[] {
+  const m = product.spaceMeta
+  const synced = isSpaceSyncedProduct(product)
+  const values: Array<[string, string | null | undefined]> = [
+    ['提供方', m?.providerName || (!synced ? product.provider : undefined)],
+    ['主体类型', m?.providerEntityType],
+    ['主体信息', m?.providerEntityInfo],
+    ['简介', m?.providerBrief]
+  ]
+  return values.map(([label, value]) => field(label, value, { keepEmpty: true, synced })!)
+}
+
+export function apiSupportingFiles(product: Product): DetailFieldItem[] {
+  const m = product.spaceMeta
+  const links: Array<[string, string | undefined]> = [
+    ['交付方式说明', m?.deliveryNoteUrl],
+    ['合规声明文件', m?.complianceDeclarationUrl],
+    ['数据来源声明', m?.dataSourceDeclarationUrl]
+  ]
+  return links.filter(([, url]) => Boolean(url)).map(([label, href]) => ({ label, value: '下载', href, synced: isSpaceSyncedProduct(product) }))
 }
 
 /** 块 3「合规与授权」：数据属性 + 使用限制 + 分类分级，均为空间同步只读 */

@@ -66,6 +66,13 @@ const FULFILLING_ORDER_STATUSES: AppOrderStatus[] = [
 /**
  * 从订单与意向单推导「购买中」相位。优先最近一笔未完成 APP 订单，再看未转单的空间意向。
  */
+export function canContinueOrderPayment(order: Order): boolean {
+  const offline = ['enterprise_contract', 'enterprise_bank_transfer'].includes(order.paymentMethod || '')
+  // Legacy submitted contracts remain pending_payment; an unsubmitted dataset checkout can still resume.
+  const awaitingConfirmation = offline && (order.contractStatus === 'payment_confirmed' || !order.datasetOfferId)
+  return order.status === 'pending_payment' && !order.spaceIntentId && !order.paidAt && !awaitingConfirmation
+}
+
 export function resolvePurchaseInProgress(input: {
   productId: string
   orders: Order[]
@@ -88,7 +95,7 @@ export function resolvePurchaseInProgress(input: {
   const order = openOrders[0]
   if (order) {
     if (order.status === 'pending_payment') {
-      const canPay = !order.spaceIntentId && !order.sellerId
+      const canPay = canContinueOrderPayment(order)
       return { phase: 'pending_payment', orderId: order.id, canPay }
     }
     return { phase: 'fulfilling', orderId: order.id, status: order.status }
@@ -97,7 +104,9 @@ export function resolvePurchaseInProgress(input: {
   const intent = intents
     .filter((item) =>
       item.productId === productId
-      && item.ownerMemberId === ownerMemberId
+      && (enterpriseId
+        ? item.enterpriseId === enterpriseId
+        : !item.enterpriseId && item.ownerMemberId === ownerMemberId)
       && (item.opsStatus === 'unclaimed' || item.opsStatus === 'processing')
     )
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
@@ -136,7 +145,13 @@ export function resolveProductActions(context: ProductActionContext): {
   }
   if (context.availability === 'preparing') return { primary: { key: 'listing_progress', label: '查看上架进度' } }
   if (context.availability === 'paused' || context.availability === 'delisted') {
-    return { primary: { key: 'unavailable', label: context.availability === 'paused' ? '暂停销售' : '已下架', disabled: true } }
+    const label = context.acquisitions.includes('space_purchase') ? SPACE_TRIAL_APPLY_LABEL
+      : context.acquisitions.includes('free') ? context.type === 'dataset' ? '前往用数' : '前往看数'
+        : context.origin === 'seller_market' ? '购买数据集' : '立即购买'
+    return { primary: { key: 'unavailable', label, disabled: true } }
+  }
+  if (context.type === 'api' && !context.enterpriseAuthenticated) {
+    return { primary: { key: 'unavailable', label: '暂不可开通', disabled: true } }
   }
   if (context.acquisitions.includes('space_purchase')) {
     return { primary: { key: 'submit_space_intent', label: SPACE_TRIAL_APPLY_LABEL } }
@@ -166,16 +181,12 @@ function resolveInProgressAction(phase: PurchaseInProgress | null | undefined): 
     return { primary: { key: 'continue_payment', label: '继续支付' } }
   }
   if (phase.phase === 'fulfilling') {
-    const label =
-      phase.status === 'pending_activation' ? '待开通'
-        : phase.status === 'payment_pending_confirmation' ? '付款确认中'
-          : '查看交付进度'
-    return { primary: { key: 'delivery_progress', label } }
+    return { primary: { key: 'delivery_progress', label: '查看订单' } }
   }
   return {
     primary: {
       key: 'intent_progress',
-      label: phase.userStatus === 'unclaimed' ? '查看订单' : '意向处理中'
+      label: '查看订单'
     }
   }
 }
@@ -239,7 +250,7 @@ const listActionLabelByKey: Record<ProductActionKey, string> = {
   item_purchase: '购买',
   dataset_purchase: '购买数据集',
   continue_payment: '继续支付',
-  delivery_progress: '查看交付进度',
+  delivery_progress: '查看订单',
   intent_progress: '查看订单',
   unavailable: '暂不可购'
 }

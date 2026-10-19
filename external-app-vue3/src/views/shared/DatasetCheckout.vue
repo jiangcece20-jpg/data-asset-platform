@@ -31,8 +31,7 @@ function start() {
   starting.value = true
   try {
     const { path } = startDatasetPayment(product.value.id, isPortal.value)
-    const query = route.query.renew ? { renew: String(route.query.renew) } : undefined
-    router.replace({ path, query })
+    router.replace(path)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '提交采购失败'
     starting.value = false
@@ -51,7 +50,7 @@ function goEnterpriseAuth() {
       <div class="rounded-xl border border-slate-200 bg-white p-5">
         <h1 class="text-lg font-semibold text-slate-900">{{ product.name }}</h1>
         <p class="mt-1 text-sm text-slate-500">{{ product.subtitle }}</p>
-        <PurchaseIdentityBanner class="mt-4" :type-label="identity.typeLabel" :name="identity.name" note="购买主体跟随当前登录身份，支付页不再选择个人或企业。" />
+        <PurchaseIdentityBanner class="mt-4" :type-label="identity.typeLabel" :name="identity.name" note="企业购买，订单及权益归属当前企业。" />
         <div v-if="starting && !error" class="mt-4 text-sm text-slate-500">正在进入支付页…</div>
         <div v-if="error" data-testid="dataset-checkout-error" class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{{ error }}</div>
         <button v-if="error && error.includes('企业认证')" class="mt-4 w-full rounded-lg bg-brand-500 py-3 text-sm font-medium text-white" @click="goEnterpriseAuth">先完成企业认证</button>

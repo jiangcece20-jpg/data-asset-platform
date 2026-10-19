@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { productPriceSummary } from './productPriceSummary'
 import { useCatalogStore } from '@/stores/catalog'
+import { seedProducts } from '@/data/products'
 import type { Product } from '@/types/domain'
 
 function baseProduct(over: Partial<Product>): Product {
@@ -22,7 +23,7 @@ function baseProduct(over: Partial<Product>): Product {
     updateFrequency: '月度',
     qualityPromise: '',
     complianceNote: '',
-    price: { model: 'fixed', itemPrice: 99 },
+    price: { model: 'item_only', itemPrice: 99 },
     tags: [],
     description: '',
     valueProposition: '',
@@ -40,37 +41,35 @@ describe('productPriceSummary', () => {
   })
 
   it('shows free for free-only products', () => {
-    const s = productPriceSummary(baseProduct({ acquisitions: ['free'] }))
-    expect(s).toMatchObject({ kind: 'free', text: '免费' })
+    const s = productPriceSummary(baseProduct({ type: 'dashboard', acquisitions: ['free'] }))
+    expect(s).toMatchObject({ kind: 'free', text: '会员免费' })
   })
 
-  it('shows personal starting price with 起 suffix', () => {
+  it('shows the enterprise price without a personal starting price', () => {
     const s = productPriceSummary(baseProduct({
-      price: { model: 'fixed', itemPrice: 99 },
+      price: { model: 'item_only', itemPrice: 99 },
       commerceOffers: [
         { id: 'a', name: '个人单品', subject: 'personal', price: 99, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'personal' },
         { id: 'b', name: '企业单品', subject: 'enterprise', price: 990, currency: 'CNY', serviceMode: 'one_time', contentKind: 'snapshot', accessScope: 'enterprise_wide' }
       ]
     }))
     expect(s.kind).toBe('money')
-    expect(s.text).toBe('¥99')
-    expect(s.suffix).toContain('起')
-    expect(s.hint).toBeUndefined()
+    expect(s.text).toBe('¥990')
+    expect(s.suffix).toBeUndefined()
+    expect(s.hint).toBe('企业购买')
   })
 
-  it('shows yearly suffix for continuous subscription offer', () => {
-    const s = productPriceSummary(baseProduct({
-      commerceOffers: [
-        { id: 'a', name: '年付', subject: 'personal', price: 299, currency: 'CNY', serviceMode: 'continuous', contentKind: 'continuous_updates', accessScope: 'personal', billingPeriodMonths: 12 }
-      ]
-    }))
-    expect(s.suffix).toContain('/年')
+  it('shows a seller dataset service period', () => {
+    const seller = seedProducts.find((item) => item.id === 'prod-seller-route-board')!
+    const s = productPriceSummary(seller)
+    expect(s.text).toBe('¥1,990')
+    expect(s.suffix).toBe('/ 12个月')
   })
 
   it('shows quote for space products without offers', () => {
     const s = productPriceSummary(baseProduct({
       dealChannel: 'space_purchase',
-      acquisitions: ['trial']
+      acquisitions: ['space_purchase']
     }))
     expect(s).toMatchObject({ kind: 'quote', text: '待报价' })
   })

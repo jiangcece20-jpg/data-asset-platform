@@ -75,6 +75,15 @@ export const useDemandStore = defineStore('demand', {
     }
   },
   actions: {
+    processLead(id: string, status: Extract<DemandStatus, 'recommended' | 'custom_required' | 'not_supported'>, feedback: string, note: string, actor: string) {
+      const lead = this.byId(id)
+      if (!lead || lead.status !== 'new') return false
+      this.updateStatus(id, status, feedback)
+      lead.internalNote = note
+      lead.processedBy = actor
+      lead.processedAt = now()
+      return true
+    },
     submit(payload: DemandSubmitPayload) {
       const user = useUserStore()
       const { ownerId, source, contactName, contact, ...rest } = payload

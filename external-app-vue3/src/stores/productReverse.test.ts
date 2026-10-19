@@ -54,7 +54,7 @@ describe('useProductReverseStore', () => {
     useSpaceOrderStore().mirrors = [spaceMirror({ spaceOrderId: 'space-1' })]
 
     const preview = useProductReverseStore().previewProductReverse(
-      previewInput('prod-qualification-api', 'pause', 'commercial_adjustment'),
+      previewInput('prod-qualification-api', 'delist', 'commercial_adjustment'),
     )
 
     expect(preview.impact.inFlightOrderIds).toContain('space-1')
@@ -66,14 +66,14 @@ describe('useProductReverseStore', () => {
     const catalog = useCatalogStore()
     const entitlements = useEntitlementStore()
 
-    const preview = store.previewProductReverse(previewInput(report.id, 'pause', 'commercial_adjustment'))
+    const preview = store.previewProductReverse(previewInput(report.id, 'delist', 'commercial_adjustment'))
     expect(preview.policy.createsWorkOrder).toBe(true)
 
-    const result = store.executeProductReverse(execInput(report.id, 'pause', 'commercial_adjustment', preview))
+    const result = store.executeProductReverse(execInput(report.id, 'delist', 'commercial_adjustment', preview))
     expect(result.workOrderId).toBeTruthy()
 
     const product = catalog.byId(report.id)!
-    expect(product.availability).toBe('paused')
+    expect(product.availability).toBe('delisted')
     expect(product.serviceStatus).toBe('normal')
 
     // Historical entitlement remains active
@@ -90,7 +90,7 @@ describe('useProductReverseStore', () => {
     const result = store.executeProductReverse(execInput(report.id, 'recall', 'compliance_risk', preview))
 
     const product = catalog.byId(report.id)!
-    expect(product.availability).toBe('paused')
+    expect(product.availability).toBe('delisted')
     expect(product.serviceStatus).toBe('suspended')
 
     const ent = entitlements.list.find((e) => e.productId === report.id)
@@ -98,7 +98,7 @@ describe('useProductReverseStore', () => {
     expect(ent?.reverseWorkOrderId).toBe(result.workOrderId)
   })
 
-  it('upstream delist terminates service and marks affected entitlements migrating', () => {
+  it('upstream delisting does not automatically terminate actual use or migrate rights', () => {
     const store = useProductReverseStore()
     const catalog = useCatalogStore()
     const entitlements = useEntitlementStore()
@@ -108,26 +108,26 @@ describe('useProductReverseStore', () => {
 
     const product = catalog.byId(report.id)!
     expect(product.availability).toBe('delisted')
-    expect(product.serviceStatus).toBe('terminated')
+    expect(product.serviceStatus).toBe('normal')
 
     const ent = entitlements.list.find((e) => e.productId === report.id)
-    expect(ent?.status).toBe('migrating')
-    expect(ent?.reverseWorkOrderId).toBe(result.workOrderId)
+    expect(ent?.status).toBe('active')
+    expect(ent?.reverseWorkOrderId).toBeUndefined()
   })
 
   it('pausing an unowned free product does not create an unnecessary work order', () => {
     const store = useProductReverseStore()
     const catalog = useCatalogStore()
 
-    const preview = store.previewProductReverse(previewInput(freeDashboard.id, 'pause', 'commercial_adjustment'))
+    const preview = store.previewProductReverse(previewInput(freeDashboard.id, 'delist', 'commercial_adjustment'))
     expect(preview.policy.createsWorkOrder).toBe(false)
     expect(preview.impact.customerIds).toHaveLength(0)
 
-    const result = store.executeProductReverse(execInput(freeDashboard.id, 'pause', 'commercial_adjustment', preview))
+    const result = store.executeProductReverse(execInput(freeDashboard.id, 'delist', 'commercial_adjustment', preview))
     expect(result.workOrderId).toBeUndefined()
 
     const product = catalog.byId(freeDashboard.id)!
-    expect(product.availability).toBe('paused')
+    expect(product.availability).toBe('delisted')
     expect(product.serviceStatus).toBe('normal')
   })
 
@@ -187,8 +187,8 @@ describe('useProductReverseStore', () => {
     expect(catalog.recommendSlotProducts.some((p) => p.id === paidDashboard.id)).toBe(true)
 
     // Pause it (no customers affected for this product since no seed entitlement)
-    const preview = store.previewProductReverse(previewInput(paidDashboard.id, 'pause', 'commercial_adjustment'))
-    store.executeProductReverse(execInput(paidDashboard.id, 'pause', 'commercial_adjustment', preview))
+    const preview = store.previewProductReverse(previewInput(paidDashboard.id, 'delist', 'commercial_adjustment'))
+    store.executeProductReverse(execInput(paidDashboard.id, 'delist', 'commercial_adjustment', preview))
 
     // '热门' tag should be removed
     expect(catalog.byId(paidDashboard.id)?.tags).not.toContain('热门')
@@ -206,9 +206,9 @@ describe('useProductReverseStore', () => {
     const catalog = useCatalogStore()
 
     const reviewAt = new Date().toISOString()
-    const preview = store.previewProductReverse(previewInput(freeDashboard.id, 'pause', 'commercial_adjustment'))
+    const preview = store.previewProductReverse(previewInput(freeDashboard.id, 'delist', 'commercial_adjustment'))
     store.executeProductReverse({
-      ...execInput(freeDashboard.id, 'pause', 'commercial_adjustment', preview, 'operator-a', 'operator-b'),
+      ...execInput(freeDashboard.id, 'delist', 'commercial_adjustment', preview, 'operator-a', 'operator-b'),
       reviewAt,
     })
 
@@ -237,11 +237,11 @@ describe('useProductReverseStore', () => {
       status: 'active',
     })
 
-    const preview = store.previewProductReverse(previewInput(report.id, 'pause', 'commercial_adjustment'))
+    const preview = store.previewProductReverse(previewInput(report.id, 'delist', 'commercial_adjustment'))
     // Preview policy severity is S3
     expect(preview.policy.severity).toBe('S3')
 
-    const result = store.executeProductReverse(execInput(report.id, 'pause', 'commercial_adjustment', preview))
+    const result = store.executeProductReverse(execInput(report.id, 'delist', 'commercial_adjustment', preview))
     // Work order severity should be escalated to S2
     const wo = woStore.byId(result.workOrderId!)
     expect(wo?.severity).toBe('S2')
@@ -254,8 +254,8 @@ describe('useProductReverseStore', () => {
     // Product should be discoverable before
     expect(catalog.discoverable.some((p) => p.id === report.id)).toBe(true)
 
-    const preview = store.previewProductReverse(previewInput(report.id, 'pause', 'commercial_adjustment'))
-    store.executeProductReverse(execInput(report.id, 'pause', 'commercial_adjustment', preview))
+    const preview = store.previewProductReverse(previewInput(report.id, 'delist', 'commercial_adjustment'))
+    store.executeProductReverse(execInput(report.id, 'delist', 'commercial_adjustment', preview))
 
     // Not discoverable after pause
     expect(catalog.discoverable.some((p) => p.id === report.id)).toBe(false)

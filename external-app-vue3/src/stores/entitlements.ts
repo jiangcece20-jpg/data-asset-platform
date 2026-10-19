@@ -3,10 +3,11 @@ import { seedEntitlements } from '@/data/seed'
 import type { Entitlement, MemberTier, MembershipKind, Product } from '@/types/domain'
 import { genId, now } from '@/utils/id'
 import { productMemberBenefit } from '@/domain/membership'
-import { salePeriodMonthsOf } from '@/domain/commerceOffers'
+import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import { currentPurchaseSubject } from '@/domain/purchaseIdentity'
 import { useUserStore } from './user'
 import { useCatalogStore } from './catalog'
+import { shanghaiDate } from '@/utils/businessDate'
 
 function plusMonths(months: number): string {
   const d = new Date()
@@ -19,7 +20,7 @@ function isActive(entitlement: Entitlement, today: string): boolean {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+  return shanghaiDate()
 }
 
 function membershipKindOf(entitlement: Entitlement): MembershipKind {
@@ -330,6 +331,10 @@ export const useEntitlementStore = defineStore('entitlements', {
     }) {
       const months = options.selectedTermMonths || salePeriodMonthsOf(options.product)
       const termEnd = plusMonths(months)
+      const offer = commerceOffersOf(options.product).find((item) => item.id === options.offerId)
+      const keepsDeliveredVersion = options.product.origin === 'seller_market'
+        && options.product.commerceOffers?.length === 1
+        && options.product.commerceOffers[0].subject === 'enterprise'
       const entitlement: Entitlement = {
         id: genId('ent-seller'),
         source: options.ownerType,
@@ -339,13 +344,13 @@ export const useEntitlementStore = defineStore('entitlements', {
         productId: options.product.id,
         orderId: options.orderId,
         commerceOfferId: options.offerId,
-        serviceMode: 'one_time',
+        serviceMode: offer?.serviceMode || 'one_time',
         selectedTermMonths: options.selectedTermMonths,
         accessScope: options.ownerType === 'enterprise' ? 'enterprise_wide' : 'personal',
         assignedMemberIds: [options.operatorMemberId],
-        allowDownload: false,
+        allowDownload: offer?.allowDownload ?? false,
         validFrom: now(),
-        validTo: termEnd,
+        validTo: keepsDeliveredVersion ? undefined : termEnd,
         updateValidTo: termEnd,
         status: 'active'
       }

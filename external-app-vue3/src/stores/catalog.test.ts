@@ -1,6 +1,10 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useCatalogStore } from '@/stores/catalog'
+import { useOrderStore } from '@/stores/orders'
+import type { Order } from '@/types/domain'
+import { useTrustedSpaceCatalogStore } from './trustedSpaceCatalog'
+import { seedTrustedProductSnapshots } from '@/data/trustedSpace'
 
 describe('catalog store — resource extensions', () => {
   beforeEach(() => {
@@ -165,14 +169,14 @@ describe('catalog store — resource extensions', () => {
     expect(catalog.discoverable.some((p) => p.id === published.id)).toBe(true)
   })
 
-  it('pauseProduct blocks discoverable and resumeProduct restores it', () => {
+  it('delisting blocks discovery and republication restores it without a pause state', () => {
     const catalog = useCatalogStore()
     const product = catalog.products.find((p) => p.availability === 'published')!
-    catalog.pauseProduct(product.id)
-    expect(catalog.byId(product.id)?.availability).toBe('paused')
-    expect(catalog.byId(product.id)?.status).toBe('published')
+    catalog.delistProduct(product.id)
+    expect(catalog.byId(product.id)?.availability).toBe('delisted')
+    expect(catalog.byId(product.id)?.status).toBe('delisted')
     expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(false)
-    catalog.resumeProduct(product.id)
+    catalog.publishProduct(product.id)
     expect(catalog.byId(product.id)?.availability).toBe('published')
     expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(true)
   })
@@ -189,11 +193,124 @@ describe('catalog store — resource extensions', () => {
     expect(catalog.discoverable.some((p) => p.id === product.id)).toBe(true)
   })
 
-  it('pauseProduct throws unless the product is published', () => {
+  it('closes online unpaid orders when a product is delisted, but preserves paid and offline orders', () => {
+    const catalog = useCatalogStore()
+    const product = catalog.byId('prod-freight-index')!
+    const base = { channel: 'app' as const, ownerType: 'enterprise' as const, ownerId: 'ent-1', productId: product.id, productName: product.name, amount: 100, createdAt: '2026-10-09 10:00' }
+    useOrderStore().list = [
+      { ...base, id: 'online', status: 'pending_payment', paymentMethod: 'enterprise_balance' },
+      { ...base, id: 'offline', status: 'pending_payment', paymentMethod: 'enterprise_contract' },
+      { ...base, id: 'paid', status: 'paid', paidAt: '2026-10-09 10:01' }
+    ] as Order[]
+    catalog.delistProduct(product.id)
+    expect(useOrderStore().list.find((item) => item.id === 'online')).toMatchObject({ status: 'cancelled', cancelReason: '商品已下架，待支付订单已关闭' })
+    expect(useOrderStore().list.find((item) => item.id === 'offline')?.status).toBe('pending_payment')
+    expect(useOrderStore().list.find((item) => item.id === 'paid')?.status).toBe('paid')
+    catalog.publishProduct(product.id)
+    expect(useOrderStore().list.find((item) => item.id === 'online')?.status).toBe('cancelled')
+  })
+
+  it('allows manual seller restoration but requires a confirmed source for trusted restoration', () => {
+    const catalog = useCatalogStore()
+    for (const origin of ['seller_market', 'trusted_space'] as const) {
+      const product = catalog.products.find((item) => item.origin === origin)!
+      product.availability = 'delisted'
+      if (origin === 'trusted_space') expect(() => catalog.publishProduct(product.id)).toThrow('须确认可信源端')
+      else {
+        catalog.publishProduct(product.id)
+        expect(product.lastListingChange).toMatchObject({ mode: 'manual', action: 'publish' })
+      }
+    }
+  })
+
+  it.each(['api', 'dataset'] as const)('preserves manual holds for trusted %s through source delist and restoration', (type) => {
+    const catalog = useCatalogStore()
+    const trusted = useTrustedSpaceCatalogStore()
+    const source = seedTrustedProductSnapshots.find(item => item.type === type)!
+    trusted.upsertSnapshot(source)
+    const product = catalog.byId(source.appProductId)!
+    expect((catalog as any).pauseProduct).toBeUndefined()
+    catalog.delistProduct(product.id)
+    expect(product.manualDelistedBy).toBe('operator')
+    trusted.upsertSnapshot({ ...source, version: source.version + 1, saleStatus: 'paused' })
+    expect(product.availability).toBe('delisted')
+    expect(() => catalog.publishProduct(product.id)).toThrow('须确认可信源端')
+    trusted.upsertSnapshot({ ...source, version: source.version + 2, saleStatus: 'delisted' })
+    expect(() => catalog.publishProduct(product.id)).toThrow('须确认可信源端')
+    expect(product.availability).toBe('delisted')
+    trusted.upsertSnapshot({ ...source, version: source.version + 3, saleStatus: 'published' })
+    expect(product.availability).toBe('delisted')
+    expect(product.lastListingChange).toMatchObject({ mode: 'manual', action: 'delist' })
+    expect(trusted.purchaseCheck(product.id, 'authenticated', 'active')).toEqual({ allowed: false, reason: 'product_not_for_sale' })
+    catalog.publishProduct(product.id)
+    expect(product.availability).toBe('published')
+    expect(product.manualDelistedBy).toBeUndefined()
+    trusted.upsertSnapshot({ ...source, version: source.version + 4, saleStatus: 'delisted' })
+    expect(product.lastListingChange).toMatchObject({ mode: 'system', action: 'delist' })
+    trusted.upsertSnapshot({ ...source, version: source.version + 5, saleStatus: 'published' })
+    expect(product.availability).toBe('published')
+    expect(product.lastListingChange).toMatchObject({ mode: 'system', action: 'publish' })
+  })
+
+  it('does not let a grouped local product change trusted sales state', () => {
+    const catalog = useCatalogStore()
+    const local = catalog.byId('prod-freight-index')!
+    const trusted = catalog.byId('prod-qualification-api')!
+    trusted.productGroupId = local.productGroupId
+    expect((catalog as any).pauseProduct).toBeUndefined()
+    expect(() => catalog.delistProduct(local.id)).toThrow('不同上下架规则')
+    expect(local.availability).toBe('published')
+    expect(trusted.availability).toBe('published')
+    expect((catalog as any).resumeProduct).toBeUndefined()
+    local.availability = 'delisted'
+    expect(() => catalog.publishProduct(local.id)).toThrow('不同上下架规则')
+    expect(local.availability).toBe('delisted')
+    expect(trusted.availability).toBe('published')
+  })
+
+  it('syncs public use-data datasets as resources without auto-listing products', () => {
+    const catalog = useCatalogStore()
+    catalog.syncUsePublicDatasets([{
+      resourceId: 'res-use-public-city-flow', name: '城市货运公开数据集', isPublic: true, available: true,
+      updatedAt: '2026-10-09', fields: [{ name: 'city', dataType: 'string', meaning: '城市', description: '城市名称', primaryKey: true, nullable: false }]
+    }])
+    const resource = catalog.resourceById('res-use-public-city-flow')
+    expect(resource?.sourcePublicDataset).toBe(true)
+    expect(resource?.typeDetail.dataset?.qualityUpdatedAt).toBe('2026-10-09')
+    expect(catalog.productForResource('res-use-public-city-flow')).toBeUndefined()
+    const product = catalog.listResource('res-use-public-city-flow', {
+      name: '城市货运公开数据集', subtitle: '公开数据', price: { model: 'member_free' },
+      acquisitions: ['member'], scenarios: ['城市货运'], tags: ['公开数据集']
+    })
+    expect(product.publicDataset).toBe(true)
+    expect(product.datasetOffers).toBeUndefined()
+    expect(() => catalog.publishProduct(product.id)).toThrow('缺少简介')
+    expect(product).toMatchObject({ status: 'draft', availability: 'preparing' })
+    resource!.description = '全国城市货运量公开统计'
+    catalog.publishProduct(product.id)
+    catalog.syncUsePublicDatasets([{ resourceId: 'res-use-public-city-flow', name: '城市货运公开数据集', isPublic: false, available: true, updatedAt: '2026-10-10', fields: [] }])
+    expect(product.availability).toBe('delisted')
+    expect(catalog.discoverable.some((item) => item.id === product.id)).toBe(false)
+    expect(() => catalog.publishProduct(product.id)).toThrow('公开状态已取消')
+  })
+
+  it('registers a self-operated dashboard resource with distinct controlled App and PC destinations', () => {
+    const catalog = useCatalogStore()
+    const resource = catalog.registerSelfDashboardResource({ name: '华东运力看板', boundAssetId: 'bi-east-fleet-001', description: '区域运力与时效', updateCycle: '每日' })
+    expect(resource.typeDetail.dashboard).toMatchObject({
+      boundAssetId: 'bi-east-fleet-001',
+      mobileEntryPath: '/app/bi/dashboard/bi-east-fleet-001',
+      pcEntryPath: '/portal/bi/dashboard/bi-east-fleet-001'
+    })
+    expect(catalog.productForResource(resource.id)).toBeUndefined()
+    expect(() => catalog.registerSelfDashboardResource({ name: '重复', boundAssetId: 'bi-east-fleet-001', description: '重复看板', updateCycle: '每日' })).toThrow('看板已登记')
+  })
+
+  it('does not offer the removed pause operation for delisted products', () => {
     const catalog = useCatalogStore()
     const product = catalog.products.find((p) => p.availability === 'published')!
     catalog.delistProduct(product.id)
-    expect(() => catalog.pauseProduct(product.id)).toThrow('仅已上架商品可暂停新购')
+    expect((catalog as any).pauseProduct).toBeUndefined()
   })
 
   it('setProfilingFields updates an unlisted dataset without creating a product', () => {

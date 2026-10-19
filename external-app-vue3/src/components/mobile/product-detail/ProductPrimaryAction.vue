@@ -4,8 +4,6 @@ import type { ProductAction, ProductActionKey } from '@/domain/productAccess'
 const props = defineProps<{
   primary: ProductAction
   secondary?: ProductAction
-  headline?: string
-  supporting?: string
   favorite?: boolean
 }>()
 const emit = defineEmits<{
@@ -23,7 +21,7 @@ function secondaryClick() {
 </script>
 
 <template>
-  <div class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-ink-100 bg-white/95 p-3 backdrop-blur">
+  <div data-testid="product-action-area" class="fixed bottom-0 left-1/2 w-full max-w-[390px] -translate-x-1/2 space-y-2 border-t border-ink-100 bg-white/95 p-3 backdrop-blur">
     <div class="flex items-center gap-3">
       <!-- 收藏（设计稿：底栏左侧竖排星标） -->
       <button
@@ -36,25 +34,17 @@ function secondaryClick() {
         <span class="text-[10px] leading-3" :class="favorite ? 'text-brand-600' : 'text-ink-400'">{{ favorite ? '已收藏' : '收藏' }}</span>
       </button>
 
-      <div v-if="headline" class="min-w-0 flex-1 pl-1">
-        <div data-testid="product-action-headline" class="truncate text-[14px] font-semibold text-ink-900">{{ headline }}</div>
-        <div v-if="supporting" data-testid="product-action-supporting" class="mt-0.5 truncate text-[11px] text-danger-500">{{ supporting }}</div>
-      </div>
       <a
         v-if="primary.href && !primary.disabled"
         data-testid="product-primary-action"
         :href="primary.href"
-        class="rounded-full bg-brand-500 px-6 py-3 text-center text-[15px] font-medium text-white"
-        :class="headline ? 'min-w-[150px]' : 'flex-1'"
+        class="min-w-0 flex-1 rounded-full bg-brand-500 px-6 py-3 text-center text-[15px] font-medium text-white"
       >{{ primary.label }}</a>
       <button
         v-else
         data-testid="product-primary-action"
-        class="rounded-full py-3 text-[15px] font-medium text-white"
-        :class="[
-          primary.disabled ? 'bg-ink-300' : 'bg-brand-500',
-          headline ? 'min-w-[150px] px-6' : 'flex-1'
-        ]"
+        class="min-w-0 flex-1 rounded-full px-6 py-3 text-[15px] font-medium text-white"
+        :class="primary.disabled ? 'bg-ink-300' : 'bg-brand-500'"
         :disabled="primary.disabled"
         @click="primaryClick"
       >

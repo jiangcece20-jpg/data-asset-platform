@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { seedSpaceIntents } from '@/data/seed'
 import { nextOpsStatus } from '@/domain/spaceIntent'
-import type { SpaceIntentOrder } from '@/types/spaceIntent'
+import type { SpaceIntentOperation, SpaceIntentOperationAction, SpaceIntentOrder } from '@/types/spaceIntent'
 import { genId, now } from '@/utils/id'
 import { useCatalogStore } from './catalog'
 import { useEntitlementStore } from './entitlements'
@@ -17,6 +17,43 @@ export interface SpaceIntentSubmitPayload {
 }
 
 const OPEN_OPS: SpaceIntentOrder['opsStatus'][] = ['unclaimed', 'processing']
+
+const operationLabels: Record<SpaceIntentOperationAction, string> = {
+  submitted: '意向单创建',
+  claimed: '运营领取',
+  entitled: '权益生效',
+  closed: '意向单关闭'
+}
+
+function currentActor(): string {
+  const context = useUserStore().context
+  return `${context.name}（${context.currentMemberId}）`
+}
+
+function ensureOperations(intent: SpaceIntentOrder): SpaceIntentOperation[] {
+  if (!intent.operations) {
+    intent.operations = [{
+      id: `legacy-${intent.id}-submitted`,
+      action: 'submitted',
+      label: operationLabels.submitted,
+      actor: '未记录（历史数据）',
+      note: intent.scenario,
+      createdAt: intent.createdAt
+    }]
+  }
+  return intent.operations
+}
+
+function appendOperation(intent: SpaceIntentOrder, action: SpaceIntentOperationAction, note: string, createdAt: string) {
+  ensureOperations(intent).push({
+    id: genId('intentop'),
+    action,
+    label: operationLabels[action],
+    actor: currentActor(),
+    note,
+    createdAt
+  })
+}
 
 export const useSpaceIntentStore = defineStore('spaceIntents', {
   state: () => ({
@@ -49,18 +86,36 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
       if (product.dealChannel !== 'space_purchase' || (product.type !== 'dataset' && product.type !== 'api')) {
         throw new Error('仅空间购买的数据集与 API 可提交意向单')
       }
+      if (product.status !== 'published' || product.availability !== 'published') throw new Error('商品已下架，暂不可申请')
+      const user = useUserStore()
+      const enterpriseId = user.context.currentEnterpriseId
+      if (!user.isEnterpriseAuthenticated || !enterpriseId || !user.currentEnterpriseMember) {
+        throw new Error('试用会员不能购买或申请。')
+      }
+      const existing = this.list.find((item) => item.productId === product.id
+        && item.enterpriseId === enterpriseId
+        && OPEN_OPS.includes(item.opsStatus))
+      if (existing) return existing
       const stamp = now()
       const intent: SpaceIntentOrder = {
         id: genId('intent'),
         productId: product.id,
         productType: product.type,
-        ownerMemberId: useUserStore().context.currentMemberId,
+        ownerMemberId: user.context.currentMemberId,
         contactName: payload.contactName,
         contactPhone: payload.contactPhone,
         scenario: payload.scenario,
         requestedEnterpriseName: payload.requestedEnterpriseName,
-        enterpriseId: payload.enterpriseId,
+        enterpriseId,
         opsStatus: 'unclaimed',
+        operations: [{
+          id: genId('intentop'),
+          action: 'submitted',
+          label: operationLabels.submitted,
+          actor: currentActor(),
+          note: payload.scenario,
+          createdAt: stamp
+        }],
         createdAt: stamp,
         updatedAt: stamp
       }
@@ -72,7 +127,9 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
       if (intent.opsStatus !== 'unclaimed') throw new Error('仅待领取可领取')
       intent.opsStatus = nextOpsStatus(intent.opsStatus, 'claim')
       if (enterpriseId) intent.enterpriseId = enterpriseId
-      intent.updatedAt = now()
+      const stamp = now()
+      intent.updatedAt = stamp
+      appendOperation(intent, 'claimed', '运营已领取并开始处理', stamp)
       return intent
     },
     effect(id: string, processNote: string) {
@@ -103,7 +160,9 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
       }
       intent.opsStatus = nextOpsStatus(intent.opsStatus, 'effect')
       intent.processNote = processNote.trim()
-      intent.updatedAt = now()
+      const stamp = now()
+      intent.updatedAt = stamp
+      appendOperation(intent, 'entitled', intent.processNote, stamp)
       return intent
     },
     close(id: string, reason: string) {
@@ -111,7 +170,9 @@ export const useSpaceIntentStore = defineStore('spaceIntents', {
       if (!reason.trim()) throw new Error('关闭意向单必须填写原因')
       intent.opsStatus = nextOpsStatus(intent.opsStatus, 'close')
       intent.closeReason = reason.trim()
-      intent.updatedAt = now()
+      const stamp = now()
+      intent.updatedAt = stamp
+      appendOperation(intent, 'closed', intent.closeReason, stamp)
       return intent
     }
   }

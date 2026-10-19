@@ -40,12 +40,12 @@ describe('productListChips', () => {
     expect(chips.ops).toEqual({ kind: 'campaign', label: '热门' })
   })
 
-  it('shows 个人数据集 campaign badge for APP personal dataset listings', () => {
+  it('shows the campaign badge without a personal-purchase label', () => {
     const chips = productListChips(product('prod-personal-waybill-dataset'))
 
     expect(chips.typeLabel).toBe('数据集')
     expect(chips.venue).toBeNull()
-    expect(chips.ops).toEqual({ kind: 'campaign', label: '个人数据集' })
+    expect(chips.ops).toEqual({ kind: 'campaign', label: '热门' })
   })
 
   it('uses seller name as venue for marketplace listings', () => {
@@ -59,7 +59,7 @@ describe('productListChips', () => {
   it('prefers abnormal status over campaign badges', () => {
     const chips = productListChips(product('prod-warehouse-turnover-risk'))
 
-    expect(chips.ops).toEqual({ kind: 'status', label: '暂停销售' })
+    expect(chips.ops).toEqual({ kind: 'status', label: '已下架' })
   })
 
   it('shows 可申请上架 for candidate assets', () => {
@@ -73,7 +73,7 @@ describe('productListChips', () => {
 describe('productTrialChips', () => {
   it('keeps sample/trial chips off the list model and only on detail helpers', () => {
     expect(productTrialChips(product('prod-qualification-api'))).toEqual(['有试用接口'])
-    expect(productTrialChips(product('prod-enterprise-activity'))).toEqual(['有样例'])
+    expect(productTrialChips(product('prod-enterprise-activity'))).toEqual([])
     expect(productTrialChips(product('prod-freight-index'))).toEqual([])
     expect(productTrialChips(product('prod-space-port-throughput'))).toEqual([])
   })
@@ -91,16 +91,16 @@ describe('productTopicTags', () => {
 describe('search filters follow the same three slots', () => {
   const published = seedProducts.filter((item) => item.availability === 'published' && item.status === 'published')
 
-  it('lists 本平台, space names and seller names as venue options', () => {
+  it('lists 自营产品, space names and seller names as venue options', () => {
     const venues = productVenueFilters(published)
-    expect(venues.map((item) => item.label)).toEqual(expect.arrayContaining(['本平台', OWNED_SPACE_NAME, '某省数据空间', '陈静', '入驻商家']))
+    expect(venues.map((item) => item.label)).toEqual(expect.arrayContaining(['自营产品', OWNED_SPACE_NAME, '某省数据空间', '陈静', '入驻商家']))
     expect(venues.map((item) => item.label).join()).not.toContain('自有')
     expect(venues.map((item) => item.label).join()).not.toContain('互联')
     expect(venues.map((item) => item.label)).not.toContain('APP 支付')
     expect(venues.map((item) => item.label)).not.toContain('可信空间购买')
   })
 
-  it('matches 本平台 only when the list venue slot is empty', () => {
+  it('matches 自营产品 only when the list venue slot is empty', () => {
     expect(matchesVenueFilter(product('prod-freight-index'), PLATFORM_VENUE_KEY)).toBe(true)
     expect(matchesVenueFilter(product('prod-qualification-api'), PLATFORM_VENUE_KEY)).toBe(false)
     expect(matchesVenueFilter(product('prod-seller-route-board'), `seller:陈静`)).toBe(true)
@@ -108,10 +108,11 @@ describe('search filters follow the same three slots', () => {
   })
 
   it('exposes campaign ops filters and matches the same ops chip', () => {
-    expect(productOpsFilters(published)).toEqual(expect.arrayContaining(['合规首选', '热门', '个人数据集']))
+    expect(productOpsFilters(published)).toEqual(expect.arrayContaining(['合规首选', '热门']))
+    expect(productOpsFilters(published)).not.toContain('个人数据集')
     expect(matchesOpsFilter(product('prod-qualification-api'), '合规首选')).toBe(true)
     expect(matchesOpsFilter(product('prod-qualification-api'), '热门')).toBe(false)
     expect(matchesOpsFilter(product('prod-freight-index'), '热门')).toBe(true)
-    expect(matchesOpsFilter(product('prod-personal-waybill-dataset'), '个人数据集')).toBe(true)
+    expect(matchesOpsFilter(product('prod-personal-waybill-dataset'), '热门')).toBe(true)
   })
 })

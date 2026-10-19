@@ -9,10 +9,10 @@ const FIXED_TIME = new Date('2026-07-17T10:00:00.000Z')
 function makePreview(overrides: Partial<ProductReversePreview> = {}): ProductReversePreview {
   return {
     productId: 'prod-test',
-    action: 'pause',
+    action: 'delist',
     reason: 'commercial_adjustment',
     policy: {
-      availability: 'paused',
+      availability: 'delisted',
       service: 'normal',
       entitlement: 'keep',
       severity: 'S3',
@@ -55,27 +55,21 @@ describe('ProductReverseActionModal', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('exposes pause, delist, and recall actions', () => {
+  it('does not expose the removed pause operation', () => {
     const wrapper = mountModal()
     const actionButtons = wrapper.findAll('[data-testid="action-btn"]')
     const actions = actionButtons.map((b) => b.attributes('data-value'))
-    expect(actions).toEqual(['pause', 'delist', 'recall'])
+    expect(actions).toEqual(['delist', 'recall'])
   })
 
   it('shows exact reason choices for each action', async () => {
     const wrapper = mountModal()
 
-    // pause = commercial/quality
-    wrapper.find('[data-testid="action-btn"][data-value="pause"]').trigger('click')
-    await wrapper.vm.$nextTick()
-    let reasons = wrapper.findAll('[data-testid="reason-option"]').map((o) => o.attributes('data-value'))
-    expect(reasons).toEqual(['commercial_adjustment', 'quality_issue'])
-
-    // delist = commercial/upstream_stop
+    // All sales restrictions use delisting; recall concerns actual usage rights.
     wrapper.find('[data-testid="action-btn"][data-value="delist"]').trigger('click')
     await wrapper.vm.$nextTick()
-    reasons = wrapper.findAll('[data-testid="reason-option"]').map((o) => o.attributes('data-value'))
-    expect(reasons).toEqual(['commercial_adjustment', 'upstream_stop'])
+    let reasons = wrapper.findAll('[data-testid="reason-option"]').map((o) => o.attributes('data-value'))
+    expect(reasons).toEqual(['commercial_adjustment', 'upstream_stop', 'quality_issue', 'compliance_risk'])
 
     // recall = quality/compliance
     wrapper.find('[data-testid="action-btn"][data-value="recall"]').trigger('click')
@@ -96,7 +90,7 @@ describe('ProductReverseActionModal', () => {
     expect(wrapper.find('[data-testid="confirm-btn"]').attributes('disabled')).toBeUndefined()
 
     // Change action
-    wrapper.find('[data-testid="action-btn"][data-value="delist"]').trigger('click')
+    wrapper.find('[data-testid="action-btn"][data-value="recall"]').trigger('click')
     await wrapper.vm.$nextTick()
     expect(wrapper.find('[data-testid="confirm-btn"]').attributes('disabled')).toBeDefined()
   })
@@ -118,7 +112,7 @@ describe('ProductReverseActionModal', () => {
   it('renders the exact policy outcome', () => {
     const wrapper = mountModal({ preview: makePreview() })
     const policy = wrapper.find('[data-testid="policy-outcome"]')
-    expect(policy.text()).toContain('暂停销售') // availability: paused
+    expect(policy.text()).toContain('已下架')
     expect(policy.text()).toContain('正常') // service: normal
     expect(policy.text()).toContain('保留现有权益') // entitlement: keep
     expect(policy.text()).toContain('S3') // severity

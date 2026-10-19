@@ -1,4 +1,5 @@
 export const UPDATE_FREQUENCIES = [
+  '一次性',
   '实时更新',
   '每日更新',
   '每周更新',
@@ -9,6 +10,20 @@ export const UPDATE_FREQUENCIES = [
 
 export type UpdateFrequency = (typeof UPDATE_FREQUENCIES)[number]
 
+export type MerchantUpdateFrequency = Exclude<UpdateFrequency, '一次性'>
+
+export const MERCHANT_UPDATE_FREQUENCIES = UPDATE_FREQUENCIES.filter(
+  (frequency): frequency is MerchantUpdateFrequency => frequency !== '一次性'
+)
+
+export function isMerchantUpdateFrequency(value: string): value is MerchantUpdateFrequency {
+  return (MERCHANT_UPDATE_FREQUENCIES as readonly string[]).includes(value)
+}
+
+export function assertMerchantUpdateFrequency(value: string): asserts value is MerchantUpdateFrequency {
+  if (!isMerchantUpdateFrequency(value)) throw new Error('商家仅支持持续更新，请选择更新频率')
+}
+
 export function isUpdateFrequency(value: string): value is UpdateFrequency {
   return (UPDATE_FREQUENCIES as readonly string[]).includes(value)
 }
@@ -18,6 +33,7 @@ export function coerceUpdateFrequency(raw: string | undefined | null): UpdateFre
   const text = (raw ?? '').trim()
   if (!text || text === '待定') return ''
   if (isUpdateFrequency(text)) return text
+  if (/一次性|不更新/.test(text)) return '一次性'
   if (/实时/.test(text)) return '实时更新'
   if (/每季度|季度/.test(text)) return '每季度更新'
   if (/每月|月更|月度/.test(text)) return '每月更新'

@@ -4,6 +4,7 @@ import { commerceOffersOf } from '@/domain/commerceOffers'
 import { formatYuan, productMemberBenefit, productMemberDiscountFactor } from '@/domain/membership'
 import { roundPrice1 } from '@/domain/itemPricing'
 import { discountToZhe } from '@/domain/memberBenefits'
+import { resolveV102Trade } from './v102Trade'
 
 export interface ProductPriceLines {
   itemLine?: string
@@ -42,6 +43,10 @@ function memberPriceLine(product: Product, itemPrice?: number, hasRange = false)
 
 /** 列表卡片：只展示当前身份可理解的最低价摘要，不含交易按钮。 */
 export function productPriceLines(product: Product, subject: PurchaseIdentitySubject): ProductPriceLines {
+  if (product.type !== 'api' && product.dealChannel === 'app_payment') {
+    const trade = resolveV102Trade(product, { isTeam: true, hasMembership: true, hasAccess: false })
+    return { singleLine: `${trade.price}${trade.priceUnit ? ` ${trade.priceUnit}` : ''}` }
+  }
   if (product.acquisitions.includes('free')) {
     return { singleLine: '免费' }
   }

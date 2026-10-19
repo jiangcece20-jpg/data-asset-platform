@@ -2,7 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
-import type { AcquisitionOption, CommerceContentKind, CommerceOffer, DatasetDetail, DatasetOffer, MemberTier, ProductType } from '@/types/domain'
+import { useTrustedSpaceCatalogStore } from '@/stores/trustedSpaceCatalog'
+import type { AcquisitionOption, CommerceContentKind, CommerceOffer, DashboardDetail, DatasetDetail, DatasetOffer, MemberTier, ProductType } from '@/types/domain'
 import { listedAtOf } from '@/utils/productMeta'
 import { commerceOffersOf, salePeriodMonthsOf } from '@/domain/commerceOffers'
 import {
@@ -14,12 +15,17 @@ import {
   resolveMemberBenefits
 } from '@/domain/memberBenefits'
 import ProductInfoSections from '@/components/shared/ProductInfoSections.vue'
+import ApiSupportingFiles from '@/components/shared/ApiSupportingFiles.vue'
+import DetailFieldGrid from '@/components/shared/DetailFieldGrid.vue'
+import { apiResourceInfoFields, dashboardOverviewFields, dashboardResourceInfoFields } from '@/domain/productDetailFields'
 import UpdateFrequencySelect from '@/components/shared/UpdateFrequencySelect.vue'
 import DashboardPaywallEditor from '@/components/admin/DashboardPaywallEditor.vue'
 import ProductAssociateModal from '@/components/admin/ProductAssociateModal.vue'
 import ProductGroupField from '@/components/admin/ProductGroupField.vue'
 import ReportPreviewImagesEditor from '@/components/admin/ReportPreviewImagesEditor.vue'
 import { coerceUpdateFrequency } from '@/domain/updateFrequency'
+import { datasetOverviewMetrics } from '@/domain/datasetMetrics'
+import { PRODUCT_NAME_MAX, truncateProductName, resourceManagementOrigin } from '@/domain/resourceManagement'
 import {
   canConfigureDashboardPaywall,
   canConfigureResourceDraftPaywall,
@@ -38,6 +44,7 @@ import {
   buildResourcePricingDraft,
   paywallFromResource
 } from '@/domain/resourcePricingDraft'
+import { publicDatasetDisplay, publicDatasetRestoreIssues } from '@/domain/publicDataset'
 import {
   listingBlockReason,
   salesStateOf,
@@ -62,10 +69,15 @@ import {
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
+const trustedCatalog = useTrustedSpaceCatalogStore()
 
 const resourceId = computed(() => route.params.id as string)
-const resource = computed(() => catalog.resourceById(resourceId.value))
-const product = computed(() => catalog.productForResource(resourceId.value))
+const resource = computed(() => {
+  const item = catalog.resourceById(resourceId.value)
+  return item && resourceManagementOrigin(item.origin) ? item : undefined
+})
+const product = computed(() => resource.value ? catalog.productForResource(resourceId.value) : undefined)
+const datasetOverview = computed(() => datasetOverviewMetrics(product.value?.typeDetail.dataset ?? resource.value?.typeDetail.dataset))
 
 const typeLabels: Record<string, string> = {
   dataset: '数据集',
@@ -76,10 +88,10 @@ const typeLabels: Record<string, string> = {
 }
 
 const originLabels: Record<string, string> = {
-  asset_platform: '资产平台',
-  app_content: 'APP内容',
+  asset_platform: '自营产品',
+  app_content: '自营产品',
   trusted_space: '可信空间',
-  user_created: '用户创建',
+  user_created: '自营产品',
   seller_market: '入驻商家'
 }
 
@@ -107,8 +119,24 @@ const tabError = computed(() => {
   return tabs
 })
 const salesState = computed(() => salesStateOf(product.value))
+const isTrustedResource = computed(() => resource.value?.origin === 'trusted_space')
+const trustedSnapshot = computed(() => isTrustedResource.value && product.value ? trustedCatalog.byProductId(product.value.id) : undefined)
+const trustedRestoreBlocked = computed(() => isTrustedResource.value && (trustedSnapshot.value?.syncState !== 'current' || trustedSnapshot.value.saleStatus !== 'published'))
+const trustedSalesLabel = computed(() => {
+  const state = trustedSnapshot.value?.saleStatus ?? (product.value?.spaceSyncedAt ? product.value.availability : undefined)
+  return state === 'paused' ? '不可售' : state === 'published' || state === 'delisted'
+    ? SALES_STATE_LABELS[state] : state === 'unknown' ? '状态未知' : '待同步'
+})
+const publicSourceResource = computed(() => {
+  const res = resource.value
+  return res?.type === 'dataset' && res.origin === 'asset_platform' && res.sourcePublicDataset !== undefined ? res : undefined
+})
+const isSyncedPublicDataset = computed(() => Boolean(resource.value?.publicDatasetMetadata && resource.value.type === 'dataset'))
+const publicRestoreIssues = computed(() => publicSourceResource.value ? publicDatasetRestoreIssues(publicSourceResource.value) : [])
 const listingBlocked = computed(() => (resource.value ? listingBlockReason(resource.value) : undefined))
-const canSave = computed(() => editable.value)
+const canSave = computed(
+  () => editable.value && !(isSyncedPublicDataset.value && !product.value)
+)
 const showPublish = computed(
   () => !listingBlocked.value && (salesState.value === 'unlisted' || salesState.value === 'draft')
 )
@@ -125,7 +153,7 @@ const productForm = reactive({
   /** 普通/高级会员：同级免费与折扣互斥 */
   standardMemberMode: 'none' as 'none' | 'free' | 'discount',
   standardMemberZhe: 6,
-  /** 叠会员折前的参照价，默认同步个人单品售价 */
+  /** 叠会员折前的参照价，默认同步企业购买售价 */
   standardMemberOriginalPrice: 0,
   premiumMemberMode: 'none' as 'none' | 'free' | 'discount',
   premiumMemberZhe: 6,
@@ -143,6 +171,7 @@ const productForm = reactive({
   recommendSlot: false
 })
 const productSaved = ref(false)
+watch(() => productForm.name, value => { productForm.name = truncateProductName(value) })
 type DashboardMetricForm = {
   name: string
   definition: string
@@ -237,11 +266,11 @@ function syncItemOfferPrice(offer: ItemOfferForm) {
   if (originalPriceOk(offer.originalPrice) && itemDiscountZheOk(offer.discountZhe)) {
     offer.price = itemSalePrice(offer.originalPrice, offer.discountZhe)
   }
-  if (offer.subject === 'personal') syncMemberOriginalPrices()
+  if (offer.subject === 'enterprise') syncMemberOriginalPrices()
 }
 
-function personalItemSalePrice(): number | undefined {
-  const offer = itemOfferForm.personal
+function enterpriseItemSalePrice(): number | undefined {
+  const offer = itemOfferForm.enterprise
   if (!offer.enabled || !originalPriceOk(offer.originalPrice) || !itemDiscountZheOk(offer.discountZhe)) {
     return undefined
   }
@@ -249,7 +278,7 @@ function personalItemSalePrice(): number | undefined {
 }
 
 function syncMemberOriginalPrices() {
-  const sale = personalItemSalePrice()
+  const sale = enterpriseItemSalePrice()
   if (sale == null) return
   if (productForm.standardMemberMode !== 'none') productForm.standardMemberOriginalPrice = sale
   if (productForm.premiumMemberMode !== 'none') productForm.premiumMemberOriginalPrice = sale
@@ -259,7 +288,7 @@ function memberTierPricePreview(tier: MemberTier): string {
   const mode = tier === 'standard' ? productForm.standardMemberMode : productForm.premiumMemberMode
   if (mode === 'none') return '—'
   const original = tier === 'standard' ? productForm.standardMemberOriginalPrice : productForm.premiumMemberOriginalPrice
-  const base = originalPriceOk(original) ? original : personalItemSalePrice()
+  const base = originalPriceOk(original) ? original : enterpriseItemSalePrice()
   if (base == null) return '—'
   if (mode === 'free') return `会员免费（参照 ¥${base.toLocaleString()}）`
   const zhe = tier === 'standard' ? productForm.standardMemberZhe : productForm.premiumMemberZhe
@@ -323,19 +352,19 @@ function currentPublishForm(): PublishForm {
   return {
     name: productForm.name,
     dealChannel: dealChannel.value,
-    isFree: productForm.isFree,
+    isFree: isSyncedPublicDataset.value || productForm.isFree,
     salePeriodMonths: Number(productForm.salePeriodMonths),
-    personalEnabled: itemOfferForm.personal.enabled,
+    personalEnabled: false,
     personalPrice: itemSalePrice(Number(itemOfferForm.personal.originalPrice), Number(itemOfferForm.personal.discountZhe)),
     personalOriginalPrice: Number(itemOfferForm.personal.originalPrice),
     personalDiscountZhe: Number(itemOfferForm.personal.discountZhe),
-    enterpriseEnabled: itemOfferForm.enterprise.enabled,
+    enterpriseEnabled: !isSyncedPublicDataset.value && itemOfferForm.enterprise.enabled,
     enterprisePrice: itemSalePrice(Number(itemOfferForm.enterprise.originalPrice), Number(itemOfferForm.enterprise.discountZhe)),
     enterpriseOriginalPrice: Number(itemOfferForm.enterprise.originalPrice),
     enterpriseDiscountZhe: Number(itemOfferForm.enterprise.discountZhe),
-    standardMemberMode: productForm.standardMemberMode,
+    standardMemberMode: isSyncedPublicDataset.value ? 'none' : productForm.standardMemberMode,
     standardMemberZhe: Number(productForm.standardMemberZhe),
-    premiumMemberMode: productForm.premiumMemberMode,
+    premiumMemberMode: isSyncedPublicDataset.value ? 'none' : productForm.premiumMemberMode,
     premiumMemberZhe: Number(productForm.premiumMemberZhe),
     hasSpacePrice: Boolean(
       product.value?.datasetOffers?.length || product.value?.typeDetail.api?.pricingPlans?.length
@@ -351,12 +380,15 @@ function currentPublishForm(): PublishForm {
 function syncFormFromStore() {
   const p = product.value
   if (!p) {
-    productForm.name = resource.value?.resourceName ?? ''
+    const res = resource.value
+    const publicDisplay = res?.publicDatasetMetadata ? publicDatasetDisplay(res) : undefined
+    const publicMetadata = res?.publicDatasetMetadata
+    productForm.name = truncateProductName(publicDisplay?.productName ?? res?.productNameDraft ?? res?.resourceName ?? '')
     productForm.subtitle = ''
-    productForm.description = ''
-    productForm.valueProposition = ''
-    productForm.scenarios = ''
-    productForm.isFree = false
+    productForm.description = publicDisplay?.description ?? ''
+    productForm.valueProposition = publicMetadata?.valueProposition ?? ''
+    productForm.scenarios = publicMetadata?.scenarios?.join('、') ?? ''
+    productForm.isFree = Boolean(res?.publicDatasetMetadata)
     productForm.salePeriodMonths = 12
     productForm.standardMemberMode = 'none'
     productForm.standardMemberZhe = 6
@@ -364,12 +396,12 @@ function syncFormFromStore() {
     productForm.premiumMemberMode = 'none'
     productForm.premiumMemberZhe = 6
     productForm.premiumMemberOriginalPrice = 0
-    productForm.coverage = ''
-    productForm.updateFrequency = ''
-    productForm.deliveryMethod = ''
-    productForm.provider = ''
-    productForm.qualityPromise = ''
-    productForm.complianceNote = ''
+    productForm.coverage = publicDisplay?.coverage ?? ''
+    productForm.updateFrequency = publicDisplay?.updateFrequency ?? ''
+    productForm.deliveryMethod = res?.publicDatasetMetadata ? '用数模块在线使用' : ''
+    productForm.provider = publicMetadata?.provider ?? ''
+    productForm.qualityPromise = publicMetadata?.qualityPromise ?? ''
+    productForm.complianceNote = publicMetadata?.complianceNote ?? ''
     productForm.recommendText = ''
     productForm.tags = ''
     productForm.sortWeight = 50
@@ -386,10 +418,10 @@ function syncFormFromStore() {
     itemOfferForm.enterprise.discountZhe = ITEM_DISCOUNT_ZHE_DEFAULT
     itemOfferForm.enterprise.price = 0
     itemOfferForm.enterprise.allowDownload = false
-    datasetForm.granularity = ''
-    datasetForm.timeRange = ''
-    datasetForm.rowCount = ''
-    datasetForm.fieldCount = ''
+    datasetForm.granularity = publicDisplay?.granularity ?? ''
+    datasetForm.timeRange = publicDisplay?.timeRange ?? ''
+    datasetForm.rowCount = publicDisplay?.rowCount == null ? '' : String(publicDisplay.rowCount)
+    datasetForm.fieldCount = publicDisplay?.fieldCount == null ? '' : String(publicDisplay.fieldCount)
     dashboardForm.timeRange = ''
     dashboardForm.updateCycle = ''
     dashboardForm.exportRule = ''
@@ -424,6 +456,7 @@ function syncFormFromStore() {
       premiumMemberZhe: productForm.premiumMemberZhe,
       premiumMemberOriginalPrice: productForm.premiumMemberOriginalPrice
     })
+    if (isSyncedPublicDataset.value) productForm.isFree = true
     const resDashboard = resource.value?.typeDetail.dashboard
     if (resDashboard) {
       dashboardForm.timeRange = resDashboard.timeRange ?? ''
@@ -445,12 +478,12 @@ function syncFormFromStore() {
   }
 
   // 商品信息
-  productForm.name = p.name
+  productForm.name = truncateProductName(p.name)
   productForm.subtitle = p.subtitle
   productForm.description = p.description
   productForm.valueProposition = p.valueProposition
   productForm.scenarios = (p.scenarios || []).join('、')
-  productForm.isFree = p.acquisitions.includes('free')
+  productForm.isFree = resource.value?.sourcePublicDataset === true || p.publicDataset === true || p.acquisitions.includes('free')
   productForm.salePeriodMonths = salePeriodMonthsOf(p)
   const benefits = resolveMemberBenefits(p)
   const standard = benefits.find((item) => item.tier === 'standard')
@@ -463,9 +496,10 @@ function syncFormFromStore() {
   const offers = commerceOffersOf(p)
   syncItemOffer(itemOfferForm.personal, offers, p.price.itemPrice ?? 0)
   syncItemOffer(itemOfferForm.enterprise, offers, (p.price.itemPrice ?? 0) * 10)
+  if (isSyncedPublicDataset.value) productForm.isFree = true
   syncMemberOriginalPrices()
   productForm.coverage = p.coverage
-  productForm.updateFrequency = coerceUpdateFrequency(p.updateFrequency)
+  productForm.updateFrequency = p.type === 'dataset' ? coerceUpdateFrequency(p.updateFrequency) : p.updateFrequency
   productForm.deliveryMethod = p.deliveryMethod
   productForm.provider = p.provider
   productForm.qualityPromise = p.qualityPromise
@@ -559,14 +593,45 @@ watch(resourceId, () => {
 // 保存动作
 // ---------------------------------------------------------------------------
 
+function savePublicResourceFields(res: NonNullable<typeof resource.value>) {
+  if (!isSyncedPublicDataset.value || !res.publicDatasetMetadata) return
+  const current = publicDatasetDisplay(res)
+  catalog.updatePublicDatasetDetails(res.id, {
+    ...current,
+    productName: truncateProductName(productForm.name.trim()),
+    description: productForm.description.trim(),
+    coverage: productForm.coverage.trim(),
+    updateFrequency: current.updateFrequency,
+    granularity: datasetForm.granularity.trim(),
+    timeRange: datasetForm.timeRange.trim(),
+    rowCount: parseOptionalCount(datasetForm.rowCount),
+    fieldCount: datasetForm.fieldCount.trim() ? parseOptionalCount(datasetForm.fieldCount) ?? null : null
+  })
+  res.publicDatasetMetadata.provider = '万联灵析'
+  res.publicDatasetMetadata.updateFrequency = '每天更新'
+  res.publicDatasetMetadata.scenarios = productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean)
+  res.publicDatasetMetadata.valueProposition = productForm.valueProposition.trim()
+  res.publicDatasetMetadata.qualityPromise = productForm.qualityPromise.trim()
+  res.publicDatasetMetadata.complianceNote = productForm.complianceNote.trim()
+}
+
 function saveResourceDraft() {
   const res = resource.value
-  if (!res || res.type === 'user_view' || product.value) return
+  if (!res || res.type === 'user_view') return
+  res.productNameDraft = truncateProductName(productForm.name.trim())
+  savePublicResourceFields(res)
+  if (product.value) return
+  if (isSyncedPublicDataset.value) {
+    res.pricingDraft = undefined
+    productSaved.value = true
+    setTimeout(() => { productSaved.value = false }, 3000)
+    return
+  }
   const memberBenefits = productForm.isFree ? [] : buildMemberBenefitsFromForm()
-  const hasItemOffer = itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+  const hasItemOffer = itemOfferForm.enterprise.enabled
   const legacyMember = deriveLegacyMemberFields(
     memberBenefits,
-    { model: productForm.isFree ? 'free' : 'item_only', itemPrice: itemOfferForm.personal.price || 100 },
+    { model: productForm.isFree ? 'free' : 'item_only', itemPrice: itemOfferForm.enterprise.price || 100 },
     productForm.isFree,
     hasItemOffer
   )
@@ -575,7 +640,7 @@ function saveResourceDraft() {
     buildResourcePricingDraft({
       isFree: productForm.isFree,
       salePeriodMonths: Math.max(1, Number(productForm.salePeriodMonths) || 12),
-      personalOffer: { ...itemOfferForm.personal },
+      personalOffer: { ...itemOfferForm.personal, enabled: false },
       enterpriseOffer: { ...itemOfferForm.enterprise },
       standardMemberMode: productForm.standardMemberMode,
       standardMemberZhe: productForm.standardMemberZhe,
@@ -602,19 +667,22 @@ function ensureListedProduct() {
     publishErrors.value = [{ field: 'listing', message: blocked }]
     return undefined
   }
-  saveResourceDraft()
+  if (isSyncedPublicDataset.value) {
+    savePublicResourceFields(res)
+    res.pricingDraft = undefined
+  } else saveResourceDraft()
   return catalog.listResource(res.id, {
     name: productForm.name.trim(),
     subtitle: productForm.subtitle,
-    price: {
+    price: isSyncedPublicDataset.value ? { model: 'member_free' } : {
       model: productForm.isFree ? 'free' : 'item_only',
-      itemPrice: itemOfferForm.personal.price || 100,
+      itemPrice: itemOfferForm.enterprise.price || 100,
       unit: '元/次'
     },
-    acquisitions: buildAcquisitions(
+    acquisitions: isSyncedPublicDataset.value ? ['member'] : buildAcquisitions(
       productForm.isFree,
       productForm.standardMemberMode !== 'none' || productForm.premiumMemberMode !== 'none',
-      itemOfferForm.personal.enabled || itemOfferForm.enterprise.enabled
+      itemOfferForm.enterprise.enabled
     ),
     scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean)
@@ -636,12 +704,14 @@ function saveProduct() {
     return
   }
   let p = product.value
+  savePublicResourceFields(res)
+  if (productForm.name.trim() !== p.name) res.productNameDraft = truncateProductName(productForm.name.trim())
   const appOffers = p.dealChannel === 'app_payment' && !productForm.isFree
-    ? [itemOfferForm.personal, itemOfferForm.enterprise]
+    ? [itemOfferForm.enterprise]
         .filter((offer) => offer.enabled)
         .map((offer) => normalizeItemOffer(p.type, offer))
     : []
-  const datasetOffers = p.type === 'dataset' && p.dealChannel === 'app_payment'
+  const datasetOffers = isSyncedPublicDataset.value ? undefined : p.type === 'dataset' && p.dealChannel === 'app_payment'
     ? appOffers.map((offer): DatasetOffer => ({
         ...offer,
         licenseKind: 'snapshot',
@@ -650,8 +720,8 @@ function saveProduct() {
         deliveryMode: 'snapshot'
       }))
     : p.datasetOffers
-  const personalStartingPrice = appOffers
-    .filter((offer) => offer.subject === 'personal')
+  const enterpriseStartingPrice = appOffers
+    .filter((offer) => offer.subject === 'enterprise')
     .reduce((min, offer) => Math.min(min, offer.price), Number.POSITIVE_INFINITY)
   const memberBenefits = productForm.isFree ? [] : buildMemberBenefitsFromForm()
   const hasItemOffer = appOffers.length > 0
@@ -659,34 +729,34 @@ function saveProduct() {
     memberBenefits,
     {
       ...p.price,
-      itemPrice: Number.isFinite(personalStartingPrice) ? personalStartingPrice : p.price.itemPrice
+      itemPrice: Number.isFinite(enterpriseStartingPrice) ? enterpriseStartingPrice : p.price.itemPrice
     },
     productForm.isFree,
     hasItemOffer
   )
   catalog.updateProduct(p.id, {
-    name: productForm.name,
+    name: truncateProductName(productForm.name.trim()),
     subtitle: productForm.subtitle,
     description: productForm.description,
     valueProposition: productForm.valueProposition,
     scenarios: productForm.scenarios.split(/[、,，]/).map((s) => s.trim()).filter(Boolean),
     coverage: productForm.coverage,
-    updateFrequency: coerceUpdateFrequency(productForm.updateFrequency),
+    updateFrequency: res.type === 'dataset' ? coerceUpdateFrequency(productForm.updateFrequency) : productForm.updateFrequency.trim(),
     deliveryMethod: productForm.deliveryMethod,
     provider: productForm.provider,
     qualityPromise: productForm.qualityPromise,
     complianceNote: productForm.complianceNote,
-    memberIncluded: legacyMember.memberIncluded,
-    memberBenefits,
-    acquisitions: buildAcquisitions(productForm.isFree, memberBenefits.length > 0, hasItemOffer),
-    price: legacyMember.price,
+    memberIncluded: isSyncedPublicDataset.value ? true : legacyMember.memberIncluded,
+    memberBenefits: isSyncedPublicDataset.value ? [] : memberBenefits,
+    acquisitions: isSyncedPublicDataset.value ? ['member'] : buildAcquisitions(productForm.isFree, memberBenefits.length > 0, hasItemOffer),
+    price: isSyncedPublicDataset.value ? { model: 'member_free' } : legacyMember.price,
     salePeriodMonths: Math.max(1, Number(productForm.salePeriodMonths) || 12),
     // 运营增强字段
     recommendText: productForm.recommendText,
     tags: productForm.tags.split(/[、,，]/).map((t) => t.trim()).filter(Boolean),
     sortWeight: Number(productForm.sortWeight),
     recommendSlot: productForm.recommendSlot,
-    commerceOffers: p.dealChannel === 'app_payment' && p.type !== 'dataset' ? appOffers : p.commerceOffers,
+    commerceOffers: isSyncedPublicDataset.value ? undefined : p.dealChannel === 'app_payment' && p.type !== 'dataset' ? appOffers : p.commerceOffers,
     datasetOffers
   }, { syncGroup: true })
   if (p.type === 'dashboard') persistDashboardConfig()
@@ -787,7 +857,7 @@ function normalizeItemOffer(type: ProductType, form: ItemOfferForm): CommerceOff
   syncItemOfferPrice(form)
   return {
     id: form.id,
-    name: form.subject === 'personal' ? '个人单品' : '企业单品',
+    name: form.subject === 'personal' ? '历史个人方案' : '企业购买',
     subject: form.subject,
     price: Number(form.price),
     originalPrice: Number(form.originalPrice),
@@ -811,6 +881,7 @@ function removeDashboardMetric(index: number) {
 
 function buildDashboardDetailFromForm(current?: DashboardDetail): DashboardDetail {
   return {
+    ...current,
     timeRange: dashboardForm.timeRange.trim(),
     updateCycle: dashboardForm.updateCycle.trim(),
     exportRule: dashboardForm.exportRule.trim(),
@@ -886,6 +957,14 @@ function saveReportConfig() {
 }
 
 function confirmPublish() {
+  publishErrors.value = []
+  if (isSyncedPublicDataset.value && resource.value) {
+    const issues = publicDatasetRestoreIssues(resource.value)
+    if (issues.length) {
+      publishErrors.value = [{ field: 'listing', message: issues.join('；') }]
+      return
+    }
+  }
   const errors = validatePublish(currentPublishForm())
   if (errors.length) {
     publishErrors.value = errors
@@ -895,7 +974,9 @@ function confirmPublish() {
   }
   const message = salesState.value === 'delisted'
     ? '重新上架后将出现在前台，确认？'
-    : '上架后将出现在前台搜索和购买，确认上架？'
+    : isSyncedPublicDataset.value
+      ? '上架后企业会员可直接前往用数，无需下单，确认上架？'
+      : '上架后将出现在前台搜索和购买，确认上架？'
   if (!window.confirm(message)) return
   if (!product.value) {
     const created = ensureListedProduct()
@@ -903,19 +984,11 @@ function confirmPublish() {
   }
   saveProduct()
   if (!product.value) return
-  catalog.publishProduct(product.value.id)
-}
-
-function confirmPause() {
-  if (!product.value) return
-  if (!window.confirm('暂停新购后前台不能下单，已购不受影响，确认？')) return
-  catalog.pauseProduct(product.value.id)
-}
-
-function confirmResume() {
-  if (!product.value) return
-  if (!window.confirm('恢复后前台可继续购买，确认？')) return
-  catalog.resumeProduct(product.value.id)
+  try {
+    catalog.publishProduct(product.value.id)
+  } catch (error) {
+    publishErrors.value = [{ field: 'listing', message: error instanceof Error ? error.message : '上架失败，请重试' }]
+  }
 }
 
 function confirmDelist() {
@@ -973,7 +1046,7 @@ function removePackedAssociate(targetProductId: string) {
   <div v-if="resource">
     <div class="mb-6 flex items-center gap-3">
       <button class="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-100" @click="goBack">← 返回</button>
-      <h1 class="text-xl font-semibold text-ink-900">{{ resource.resourceName }}</h1>
+      <h1 class="min-w-0 break-words text-xl font-semibold text-ink-900">{{ resource.resourceName }}</h1>
       <span class="rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">{{ typeLabels[resource.type] }}</span>
       <span class="rounded bg-brand-50 px-2 py-0.5 text-xs text-brand-600">{{ originLabels[resource.origin] }}</span>
     </div>
@@ -985,25 +1058,58 @@ function removePackedAssociate(targetProductId: string) {
         <div><span class="text-ink-500">资源名称：</span>{{ resource.resourceName }}</div>
         <div><span class="text-ink-500">资源 ID：</span><code class="text-xs">{{ resource.id }}</code></div>
         <div><span class="text-ink-500">类型：</span>{{ typeLabels[resource.type] }}</div>
-        <div><span class="text-ink-500">来源：</span>{{ originLabels[resource.origin] }}</div>
+        <div v-if="resource.type !== 'dashboard' || resource.origin !== 'app_content'"><span class="text-ink-500">来源：</span>{{ originLabels[resource.origin] }}</div>
         <div v-if="resource.createdBy"><span class="text-ink-500">创建者：</span>{{ resource.createdBy }}</div>
-        <div><span class="text-ink-500">上架时间：</span>{{ product ? listedAtOf(product) : '未上架' }}</div>
+        <div v-if="resource.type !== 'dashboard' || resource.origin !== 'app_content'"><span class="text-ink-500">上架时间：</span>{{ product ? listedAtOf(product) : '未上架' }}</div>
+      </div>
+      <div v-if="resource.type === 'api' && product" data-testid="admin-api-resource-attributes" class="mt-4 border-t border-ink-100 pt-4">
+        <div class="mb-2 text-xs font-medium text-ink-500">API 资源属性</div>
+        <DetailFieldGrid :items="apiResourceInfoFields(product)" :columns="2" />
+      </div>
+      <div v-if="resource.type === 'dataset'" data-testid="admin-dataset-overview" class="mt-4 grid grid-cols-2 gap-3 border-t border-ink-100 pt-4 lg:grid-cols-4">
+        <div v-for="item in datasetOverview" :key="item.label" class="rounded-md border border-ink-100 px-3 py-2">
+          <div class="text-xs text-ink-400">{{ item.label }}</div>
+          <div class="mt-1 text-base font-semibold text-ink-900">{{ typeof item.value === 'number' ? item.value.toLocaleString() : item.value }}</div>
+        </div>
+      </div>
+      <div v-if="resource.type === 'dashboard' && resource.origin === 'app_content' && resource.typeDetail.dashboard" data-testid="admin-dashboard-overview" class="mt-4 border-t border-ink-100 pt-4">
+        <div class="mb-2 text-xs font-medium text-ink-500">看板信息</div>
+        <div class="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-ink-100 bg-ink-100 lg:grid-cols-4">
+          <div v-for="item in dashboardOverviewFields(resource.typeDetail.dashboard)" :key="item.label" class="min-w-0 bg-white px-3 py-2">
+            <div class="text-xs text-ink-500">{{ item.label }}</div>
+            <div class="mt-1 break-words text-sm font-medium text-ink-900">{{ item.value }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-if="resource.type === 'dashboard' && resource.origin === 'app_content' && product" data-testid="admin-dashboard-resource-info" class="mt-4 border-t border-ink-100 pt-4">
+        <div class="mb-2 text-xs font-medium text-ink-500">资源属性</div>
+        <DetailFieldGrid :items="dashboardResourceInfoFields(product)" :columns="2" />
       </div>
     </div>
 
-    <div class="mb-6 flex items-center gap-3 rounded-lg border border-ink-200 bg-white p-4" data-testid="sales-status-bar">
-      <div class="mr-auto">
+    <div class="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-ink-200 bg-white p-4" data-testid="sales-status-bar">
+      <div class="mr-auto min-w-0 break-words">
         <div class="text-sm font-medium text-ink-700">销售状态</div>
-        <div class="mt-0.5 text-xs text-ink-500">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
+        <template v-if="isTrustedResource && product && salesState !== 'draft'">
+          <p data-testid="trusted-sales-state" class="mt-0.5 text-xs text-ink-500">前台状态：{{ SALES_STATE_LABELS[salesState] }} · 源端：{{ trustedSalesLabel }}</p>
+          <p v-if="product.manualDelistedBy" class="mt-1 text-xs text-warning-600">人工下架，仅可人工恢复</p>
+          <p v-if="salesState === 'delisted' && trustedRestoreBlocked" class="mt-1 text-xs text-danger-600">源端未确认上架或同步异常，暂不能恢复</p>
+          <p data-testid="trusted-sales-synced-at" class="mt-1 text-xs text-ink-500">最近同步：{{ trustedSnapshot?.syncedAt || product.spaceSyncedAt || '尚未同步' }}<span v-if="trustedSnapshot?.syncState === 'sync_failed'" class="text-danger-600"> · 同步失败</span></p>
+        </template>
+        <div v-else class="mt-0.5 text-xs text-ink-500">{{ listingBlocked || SALES_STATE_LABELS[salesState] }}</div>
+        <div v-if="publicSourceResource" class="mt-2 space-y-1 text-xs text-ink-500">
+          <p data-testid="public-source-state">源端状态：{{ publicSourceResource.sourcePublicDataset ? '公开' : '非公开' }} · {{ publicSourceResource.sourceDatasetAvailable ? '可用' : '不可用' }}<span v-if="publicSourceResource.publicSyncError" class="text-danger-600"> · 同步失败</span></p>
+          <p data-testid="public-source-synced-at">最近确认同步：{{ publicSourceResource.lastSyncedAt || '尚未确认' }}</p>
+          <p v-if="salesState === 'delisted' && publicSourceResource.publicDelistReason" data-testid="public-delist-reason">下架原因：{{ publicSourceResource.publicDelistReason === 'manual' ? '运营人工下架' : '源端不可用' }}</p>
+          <p v-if="salesState === 'delisted' && publicRestoreIssues.length" data-testid="public-restore-error" role="alert" class="text-danger-600">暂不能恢复上架：{{ publicRestoreIssues.join('；') }}</p>
+        </div>
         <p v-if="publishErrors.some((e) => e.field === 'listing')" data-testid="listing-block-error" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'listing')?.message }}</p>
       </div>
       <button v-if="canSave" data-testid="save-product" class="rounded-lg border border-ink-200 px-4 py-2 text-sm" type="button" @click="saveProduct">{{ salesState === 'unlisted' ? '保存草稿' : '保存' }}</button>
       <span v-if="productSaved" class="text-sm text-success-600">已保存</span>
       <button v-if="showPublish" data-testid="publish-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">上架</button>
-      <button v-if="salesState === 'published'" data-testid="pause-product" class="rounded-lg bg-warning-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPause">停新购</button>
-      <button v-if="salesState === 'paused'" data-testid="resume-product" class="rounded-lg bg-success-600 px-4 py-2 text-sm text-white" type="button" @click="confirmResume">恢复销售</button>
-      <button v-if="salesState === 'published' || salesState === 'paused'" data-testid="delist-product" class="rounded-lg bg-danger-50 px-4 py-2 text-sm text-danger-600" type="button" @click="confirmDelist">下架</button>
-      <button v-if="!listingBlocked && salesState === 'delisted'" data-testid="relist-product" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white" type="button" @click="confirmPublish">重新上架</button>
+      <button v-if="salesState === 'published'" data-testid="delist-product" class="rounded-lg bg-danger-50 px-4 py-2 text-sm text-danger-600" type="button" @click="confirmDelist">下架</button>
+      <button v-if="(!listingBlocked || publicSourceResource) && salesState === 'delisted' && product?.origin !== 'seller_market'" data-testid="relist-product" :disabled="Boolean(listingBlocked) || publicRestoreIssues.length > 0 || trustedRestoreBlocked" class="rounded-lg bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-40" type="button" @click="confirmPublish">重新上架</button>
     </div>
 
     <!-- 类型特有区块：用数视图（只读） -->
@@ -1053,7 +1159,7 @@ function removePackedAssociate(targetProductId: string) {
     </div>
 
     <!-- ================================================================== -->
-    <!-- 编辑表单（非用数视图即可填写；无商品时保存即创建草稿） -->
+    <!-- 编辑表单（公开数据集补齐后直接上架；其他资源沿用草稿能力） -->
     <!-- ================================================================== -->
     <template v-if="editable">
 
@@ -1075,6 +1181,7 @@ function removePackedAssociate(targetProductId: string) {
             <label class="block">
               <span class="mb-1 block text-xs text-ink-500">商品名称</span>
               <input v-model="productForm.name" data-testid="product-name-input" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
+              <p class="mt-1 text-right text-[11px] text-ink-500">{{ Array.from(productForm.name).length }}/{{ PRODUCT_NAME_MAX }}</p>
               <p v-if="publishErrors.some((e) => e.field === 'name')" class="mt-1 text-xs text-danger-500">{{ publishErrors.find((e) => e.field === 'name')?.message }}</p>
             </label>
             <label class="block">
@@ -1098,23 +1205,25 @@ function removePackedAssociate(targetProductId: string) {
           </div>
         </div>
 
-        <!-- 运营信息：空间商品整体只读同步，与详情页「资源信息 / 合规与授权」同源 -->
-        <div class="mb-4 border-t border-ink-100 pt-4">
+        <!-- 运营信息：空间商品只读同步；数据集按前台精简口径展示。 -->
+        <div class="mb-4 border-t border-ink-100 pt-4" :data-testid="resource.type === 'dashboard' && resource.origin === 'app_content' ? 'admin-dashboard-product-resource-editor' : undefined">
           <template v-if="product?.dealChannel === 'space_purchase'">
             <div data-testid="space-kind-readonly" class="mb-3 rounded-md bg-ink-100 px-3 py-2">
               <span class="text-xs text-ink-500">来源类型</span>
               <div class="mt-1 text-sm text-ink-700">{{ product.spaceKind === 'owned' ? '自有' : product.spaceKind === 'federated' ? '互联' : '—' }}</div>
             </div>
-            <ProductInfoSections :product="product" :columns="2" include-department />
+            <ProductInfoSections :product="product" :columns="2" :compact-dataset="resource.type === 'dataset'" :api-detail="resource.type === 'api'" :include-department="resource.type !== 'dataset'" />
           </template>
           <template v-else>
             <div class="mb-2 text-xs font-medium text-ink-500">运营信息</div>
             <div class="grid grid-cols-2 gap-3">
-              <label class="block"><span class="mb-1 block text-xs text-ink-500">提供方</span><input v-model="productForm.provider" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">提供方</span><input v-model="productForm.provider" :readonly="isSyncedPublicDataset" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm read-only:bg-ink-50 read-only:text-ink-500" /></label>
               <label class="block"><span class="mb-1 block text-xs text-ink-500">更新频率</span>
-                <UpdateFrequencySelect v-model="productForm.updateFrequency" data-testid="product-update-frequency" class="px-2.5 py-1.5 text-sm" />
+                <input v-if="isSyncedPublicDataset" v-model="productForm.updateFrequency" data-testid="product-update-frequency" readonly class="w-full rounded-lg border border-ink-200 bg-ink-50 px-2.5 py-1.5 text-sm text-ink-500" />
+                <UpdateFrequencySelect v-else-if="resource.type === 'dataset'" v-model="productForm.updateFrequency" data-testid="product-update-frequency" class="px-2.5 py-1.5 text-sm" />
+                <input v-else v-model="productForm.updateFrequency" data-testid="product-update-frequency" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" />
               </label>
-              <label class="block"><span class="mb-1 block text-xs text-ink-500">覆盖范围</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+              <label class="block"><span class="mb-1 block text-xs text-ink-500">{{ resource.type === 'dataset' || resource.type === 'dashboard' ? '地域范围' : '覆盖范围' }}</span><input v-model="productForm.coverage" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
               <label class="block"><span class="mb-1 block text-xs text-ink-500">交付方式</span><input v-model="productForm.deliveryMethod" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             </div>
           </template>
@@ -1134,7 +1243,7 @@ function removePackedAssociate(targetProductId: string) {
               <div class="mt-1 text-sm leading-relaxed text-ink-700">{{ product.description || '—' }}</div>
             </div>
             <label v-else class="block"><span class="mb-1 block text-xs text-ink-500">详细描述</span><textarea v-model="productForm.description" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
-            <label class="block"><span class="mb-1 block text-xs text-ink-500">质量/服务承诺</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
+            <label class="block"><span class="mb-1 block text-xs text-ink-500">{{ resource.type === 'dataset' || resource.type === 'dashboard' ? '质量承诺' : '质量/服务承诺' }}</span><textarea v-model="productForm.qualityPromise" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             <label class="block"><span class="mb-1 block text-xs text-ink-500">合规声明</span><textarea v-model="productForm.complianceNote" rows="2" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
             <!-- 适用场景：空间商品只读 -->
             <div v-if="product?.dealChannel === 'space_purchase'" class="rounded-md bg-ink-100 px-3 py-2">
@@ -1144,6 +1253,7 @@ function removePackedAssociate(targetProductId: string) {
             <label v-else class="block"><span class="mb-1 block text-xs text-ink-500">适用场景（顿号分隔）</span><input v-model="productForm.scenarios" class="w-full rounded-lg border border-ink-200 px-2.5 py-1.5 text-sm" /></label>
           </div>
         </div>
+        <ApiSupportingFiles v-if="resource.type === 'api' && product" :product="product" compact class="mb-4 border-t border-ink-100 pt-4" />
       </div>
 
       <!-- 内容配置 Tab -->
@@ -1156,7 +1266,7 @@ function removePackedAssociate(targetProductId: string) {
           <span class="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-500">运营配置 · 非必填</span>
         </div>
         <p class="mb-4 text-xs leading-relaxed text-ink-500">
-          粒度、时间范围、行数、字段数无可信空间同步源，由运营在本页维护；留空则 APP / 门户详情不展示对应项。保存商品信息时一并写入。
+          粒度、时间范围、行数、字段数由运营在本页维护；{{ isSyncedPublicDataset ? '公开数据集留空时详情不显示占位符。' : '留空时 APP / 门户详情显示「—」。' }}{{ isSyncedPublicDataset && !product ? '上架时一并写入。' : '保存商品信息时一并写入。' }}
         </p>
         <div class="grid grid-cols-2 gap-3" data-testid="dataset-metrics-editor">
           <label class="block">
@@ -1368,15 +1478,23 @@ function removePackedAssociate(targetProductId: string) {
         />
 
         <p
-          v-else-if="salesState === 'unlisted'"
+          v-else-if="salesState === 'unlisted' && !isSyncedPublicDataset"
           class="mb-4 text-[11px] text-ink-500"
           data-testid="resource-pricing-draft-hint"
         >
           价格与打码保存在资源草稿；点击「上架」后生成商品。
         </p>
 
-        <!-- APP 价格方案：个人单品、企业单品、普通会员和高级会员统一配置。 -->
-        <div v-if="dealChannel === 'app_payment'" class="mb-4 border-t border-ink-100 pt-4" data-testid="pricing-plan-editor">
+        <div v-if="isSyncedPublicDataset" class="border-t border-ink-100 pt-4" data-testid="public-pricing-readonly">
+          <div class="mb-2 text-xs font-medium text-ink-600">价格方案</div>
+          <div class="rounded-md border border-success-100 bg-success-50 px-3 py-3 text-sm">
+            <span class="font-medium text-success-700">会员免费</span>
+            <span class="ml-3 text-xs text-ink-500">公开数据集固定方案，不可修改；企业会员直接前往用数，无需下单。</span>
+          </div>
+        </div>
+
+        <!-- 非公开 APP 商品保留通用价格配置。 -->
+        <div v-else-if="dealChannel === 'app_payment'" class="mb-4 border-t border-ink-100 pt-4" data-testid="pricing-plan-editor">
           <div class="mb-1 flex items-center justify-between gap-3">
             <div class="text-xs font-medium text-ink-600">
               价格方案
@@ -1384,7 +1502,7 @@ function removePackedAssociate(targetProductId: string) {
             </div>
             <span class="rounded bg-success-50 px-2 py-0.5 text-[11px] text-success-600">APP 内配置</span>
           </div>
-          <p class="mb-3 text-[11px] leading-relaxed text-ink-500">免费商品与付费单品、会员权益互斥；非免费商品可同时配置个人单品、企业单品及普通 / 高级会员权益。</p>
+          <p class="mb-3 text-[11px] leading-relaxed text-ink-500">免费商品与付费购买互斥；非免费商品可配置企业购买价及普通 / 高级会员权益。</p>
           <p v-if="publishErrors.some((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')" class="mb-3 text-xs text-danger-500">
             {{ publishErrors.find((e) => e.field === 'pricing' || e.field === 'itemPrice' || e.field === 'memberZhe')?.message }}
           </p>
@@ -1419,12 +1537,12 @@ function removePackedAssociate(targetProductId: string) {
             </div>
 
             <div
-              v-for="offer in [itemOfferForm.personal, itemOfferForm.enterprise]"
+              v-for="offer in [itemOfferForm.enterprise]"
               :key="offer.subject"
               class="grid grid-cols-[160px_1fr] items-center border-b border-ink-100 px-4 py-3 last:border-b-0"
               :data-testid="`item-offer-${offer.subject}`"
             >
-              <div class="text-xs font-medium text-ink-700">{{ offer.subject === 'personal' ? '个人单品' : '企业单品' }}</div>
+              <div class="text-xs font-medium text-ink-700">企业购买</div>
               <div class="flex flex-wrap items-center gap-3 text-xs text-ink-600">
                 <label class="flex items-center gap-1.5">
                   <input v-model="offer.enabled" type="checkbox" :disabled="productForm.isFree" :data-testid="`item-offer-${offer.subject}-enabled`" />启用

@@ -14,6 +14,7 @@ import { formatYuan, memberDiscountedAmount } from '@/domain/membership'
 import { checkoutDualPathFields, previewOrderNo } from '@/domain/checkoutDualPath'
 import { usePortalPurchaseStore } from '@/stores/portalPurchase'
 import type { PurchasePricePath } from '@/domain/portalPurchase'
+import type { Order } from '@/types/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,6 +30,11 @@ const id = computed(() => String(route.params.id))
 const product = computed(() => catalog.byId(id.value))
 const isSellerMarket = computed(() => product.value?.origin === 'seller_market')
 const paid = ref(false)
+const purchaseOrder = ref<Order>()
+const saleIssue = computed(() => isSellerMarket.value && product.value && (
+  product.value.status !== 'published' || product.value.availability !== 'published'
+  || ['suspended', 'terminated'].includes(product.value.serviceStatus)
+) ? '该商品当前不可购买，请返回详情核对在售状态' : '')
 const submitting = ref(false)
 const purpose = ref('')
 const subject = computed(() => currentPurchaseSubject(user))
@@ -63,18 +69,19 @@ const orderPreviewNo = computed(() => previewOrderNo(id.value))
 const offerSummary = computed(() => (offer.value ? offerDescription(offer.value) : ''))
 const identityNote = computed(() => {
   if (isSellerMarket.value && subject.value === 'enterprise') {
-    return '本单打款到平台。在线支付后订单进入待开通，由运营开通后可查看；合同采购先待平台确认到账。不走会员价。'
+    return '本单打款到平台。在线支付后自动交付当前数据版本；合同采购待平台确认到账后自动交付。不享受会员价。'
   }
-  if (isSellerMarket.value) return '本单打款到平台，支付后订单进入待开通，由运营开通后可查看。不走会员价。'
+  if (isSellerMarket.value) return '本单打款到平台，支付后自动交付当前数据版本。不享受会员价。'
   return subject.value === 'enterprise'
     ? '本单归属当前企业，可选择在线支付或合同采购。'
     : '本单归属当前个人，支付后仅本人可使用。'
 })
 const paidTitle = computed(() => {
   if (isSellerMarket.value && subject.value === 'enterprise' && enterpriseMode.value === 'contract') {
-    return '已提交合同采购，待平台确认到账后进入待开通'
+    return '已提交合同采购，待平台确认到账后自动交付'
   }
-  if (isSellerMarket.value) return '支付成功，订单待运营开通'
+  if (isSellerMarket.value) return purchaseOrder.value?.status === 'entitlement_active'
+    ? '支付成功，当前数据版本已交付' : '支付成功，数据交付处理中'
   return subject.value === 'enterprise' && enterpriseMode.value === 'contract' ? '企业合同订单已提交' : '已解锁本商品'
 })
 
@@ -85,7 +92,8 @@ function goMemberCheckout() {
 }
 
 function confirmPurchase() {
-  if (submitting.value || paid.value || !product.value || !offer.value) return
+  if (submitting.value || paid.value || subject.value !== 'enterprise' || !product.value || !offer.value) return
+  if (saleIssue.value) { error.value = saleIssue.value; return }
   if (pricePath.value) {
     const reason = purchase.blockingReason(product.value, pricePath.value)
     if (reason) { error.value = reason; return }
@@ -98,7 +106,7 @@ function confirmPurchase() {
   submitting.value = true
   try {
     if (isSellerMarket.value) {
-      sellerMarket.purchaseSellerProduct(
+      purchaseOrder.value = sellerMarket.purchaseSellerProduct(
         id.value,
         offer.value.id,
         subject.value === 'enterprise' ? enterpriseMode.value : 'online'
@@ -126,16 +134,16 @@ function confirmPurchase() {
       : undefined
     orders.purchaseCommerceProductForSubject(id.value, subject.value, offer.value.id, purchasePeriodMonths.value, enterpriseMode.value, intent?.id, pricePath.value)
     paid.value = true
-  } catch {
-    error.value = '操作失败，请稍后重试'
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '操作失败，请稍后重试'
     submitting.value = false
   }
 }
 </script>
 
 <template>
-  <div v-if="product" class="mx-auto max-w-4xl">
-    <div v-if="error" role="status" class="fixed left-1/2 top-20 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg bg-ink-900 px-5 py-3 text-sm text-white">{{ error }}</div>
+  <div v-if="product && subject === 'enterprise'" class="mx-auto max-w-4xl">
+    <div v-if="!paid && (error || saleIssue)" role="status" class="mb-4 rounded-lg border border-warning-100 bg-warning-50 px-5 py-3 text-sm text-warning-600">{{ error || saleIssue }}</div>
     <div class="grid grid-cols-3 gap-6">
       <!-- 左栏：订单信息 -->
       <div class="col-span-2 space-y-4">
@@ -153,8 +161,13 @@ function confirmPurchase() {
             <PurchaseIdentityBanner :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
 
             <div v-if="isSellerMarket" class="rounded-lg border border-warning-100 bg-warning-50 p-3 text-xs leading-relaxed text-warning-600">
-              买家打款到平台。支付成功后订单为「待开通」，由运营开通后才可查看。平台按合同与卖家结算，本商品不享受会员价。
+              买家打款到平台。在线支付成功或合同确认到账后，自动交付当前数据版本。平台按合同与卖家结算，本商品不享受会员价。
             </div>
+            <dl v-if="isSellerMarket" data-testid="merchant-delivery-summary" class="space-y-2 rounded-lg bg-ink-100 p-3 text-xs">
+              <div class="flex justify-between gap-3"><dt class="text-ink-500">数据更新时间</dt><dd class="text-ink-700">{{ product.typeDetail.dataset?.dataUpdatedAt || '未提供' }}</dd></div>
+              <div class="flex justify-between gap-3"><dt class="text-ink-500">更新频率</dt><dd class="text-ink-700">{{ product.updateFrequency }}</dd></div>
+              <div class="flex justify-between gap-3"><dt class="text-ink-500">服务周期</dt><dd class="text-ink-700">{{ purchasePeriodMonths }} 个月</dd></div>
+            </dl>
 
             <div
               v-if="dualPath.showDualPath"
@@ -220,10 +233,10 @@ function confirmPurchase() {
 
         <div v-else class="ui-card border-success-100 bg-success-50 p-8 text-center">
           <div class="text-4xl"><svg class="mx-auto h-10 w-10 text-success-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m8.5 12.5 2.5 2.5 5-5" /></svg></div>
-          <div class="mt-3 text-lg font-medium text-success-600">{{ isSellerMarket ? (subject === 'enterprise' && enterpriseMode === 'contract' ? '合同采购已提交' : '订单待开通') : '支付成功' }}</div>
+          <div class="mt-3 text-lg font-medium text-success-600">{{ isSellerMarket && enterpriseMode === 'contract' ? '合同采购已提交' : '支付成功' }}</div>
           <div class="mt-1 text-sm text-success-600">{{ paidTitle }}</div>
-          <button class="mt-4 rounded-lg bg-brand-500 px-6 py-2.5 text-sm text-white" @click="router.push('/portal/mine')">
-            查看我的购买 →
+          <button class="mt-4 rounded-lg bg-brand-500 px-6 py-2.5 text-sm text-white" @click="router.push({ path: '/portal/mine', query: { menu: 'orders', orderTab: 'buy' } })">
+            查看我的订单 →
           </button>
         </div>
       </div>
@@ -291,7 +304,7 @@ function confirmPurchase() {
             v-else-if="!paid"
             data-testid="purchase-final-confirm"
             class="mt-4 w-full rounded-lg bg-brand-500 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-            :disabled="submitting || !offer"
+            :disabled="submitting || !offer || !!saleIssue"
             @click="confirmPurchase"
           >{{ submitting ? '处理中…' : subject === 'enterprise' ? '确认企业付款' : '确认并支付' }}</button>
           <button
@@ -303,5 +316,6 @@ function confirmPurchase() {
       </div>
     </div>
   </div>
+  <div v-else-if="product" class="p-8 text-center text-sm text-ink-500">试用会员不能购买或申请。</div>
   <div v-else class="p-8 text-center text-sm text-ink-500">商品不存在</div>
 </template>

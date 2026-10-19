@@ -60,7 +60,7 @@ describe('ProductCard list chips', () => {
 
   it('shows price summary without purchase button for member-eligible dashboard', async () => {
     const wrapper = await mountCard('prod-freight-index')
-    expect(wrapper.get('[data-testid="product-card-price"]').text()).toBe('¥199 · 会员免费')
+    expect(wrapper.get('[data-testid="product-card-price"]').text()).toBe('会员免费')
     expect(wrapper.text()).not.toContain('会员解锁')
     expect(wrapper.find('.rounded-full.bg-brand-500').exists()).toBe(false)
   })

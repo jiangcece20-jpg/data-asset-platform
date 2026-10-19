@@ -27,15 +27,13 @@ const contactPhone = ref('')
 const scenario = ref('')
 const currentEnterprise = computed(() => currentIntentPartyName(user))
 
-function submit() {
-  if (!user.context.loggedIn || !product.value || submitting.value || submitted.value) return
-  if (route.path.startsWith('/portal')) {
-    const reason = purchase.blockingReason(product.value, 'trial')
-    if (reason) { error.value = reason; return }
-    if (!purchase.actions(product.value).some((action) => action.key === 'trial')) {
-      error.value = '购买方式已更新，请返回商品详情重新选择'
-      return
-    }
+async function submit() {
+  if (!user.context.loggedIn || !user.isEnterpriseAuthenticated || !product.value || submitting.value || submitted.value) return
+  const reason = purchase.blockingReason(product.value, 'trial')
+  if (reason) { error.value = reason; return }
+  if (!purchase.actions(product.value).some((action) => action.key === 'trial')) {
+    error.value = '购买方式已更新，请返回商品详情重新选择'
+    return
   }
   submitting.value = true
   error.value = ''
@@ -49,8 +47,8 @@ function submit() {
     requestedEnterpriseName: currentEnterprise.value
     })
     submitted.value = true
-  } catch {
-    error.value = '操作失败，请稍后重试'
+  } catch (failure) {
+    error.value = failure instanceof Error ? failure.message : '操作失败，请稍后重试'
   } finally {
     submitting.value = false
   }
@@ -70,6 +68,10 @@ function goMine() {
     <div class="px-4 pt-3">
       <div v-if="!user.context.loggedIn" class="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-card">
         <div class="text-[13px] text-slate-500">请先登录</div>
+      </div>
+
+      <div v-else-if="!user.isEnterpriseAuthenticated" class="rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-card">
+        <div class="text-[13px] text-slate-500">试用会员不能购买或申请。</div>
       </div>
 
       <div v-else-if="submitted" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">

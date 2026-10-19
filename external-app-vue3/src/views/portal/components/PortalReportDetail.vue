@@ -102,7 +102,7 @@ const BAR_HEIGHTS = [46, 62, 40, 76, 84]
         v-if="product.entitlementPolicy?.kind === 'report_version'"
         class="rounded-lg bg-violet-50 p-3 text-xs leading-relaxed text-violet-600"
       >
-        单品购买永久绑定当前版本 {{ product.entitlementPolicy.version }}；后续独立版本需另行购买。
+        企业购买绑定当前版本 {{ product.entitlementPolicy.version }}；后续独立版本需另行购买。
       </div>
 
       <div class="space-y-2 text-sm leading-relaxed">

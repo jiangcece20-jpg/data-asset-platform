@@ -8,6 +8,7 @@ import PortalMine from '@/views/portal/PortalMine.vue'
 import PortalBills from '@/views/portal/PortalBills.vue'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/orders'
 
 const Dummy = { template: '<div />' }
 
@@ -22,6 +23,10 @@ async function mountPage(path: string, component: any) {
       { path: '/portal/mine', component: PortalMine },
       { path: '/portal/bills', component: Dummy },
       { path: '/portal/product/:id', component: Dummy },
+      { path: '/app/use/dataset/:id', component: Dummy },
+      { path: '/portal/use/dataset/:id', component: Dummy },
+      { path: '/app/data-prepare/datasets', component: Dummy },
+      { path: '/portal/data-prepare/datasets', component: Dummy },
       { path: '/portal/search', component: Dummy }
     ]
   })
@@ -33,17 +38,27 @@ async function mountPage(path: string, component: any) {
 describe('dataset account views', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('lands old mobile my-data links on buy-data orders with delivered dataset actions', async () => {
+  it('lands old mobile my-data links on buy-data orders with PC guidance for delivered datasets', async () => {
     const wrapper = await mountPage('/app/mine?tab=我的数据', Mine)
     expect(wrapper.find('[data-testid="my-datasets"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('仓储周转效率数据集')
-    expect(wrapper.text()).toContain('进入用数模块')
-    expect(wrapper.text()).toContain('下载数据')
+    const delivered = wrapper.get('[data-testid="order-card-app-order-dataset-history-001"]')
+    expect(delivered.findAll('button').map((button) => button.text())).toEqual(['PC端使用', '查看订单', '查看商品'])
+    expect(wrapper.get('[data-testid="order-card-app-order-dataset-pending-001"]').text()).not.toContain('PC端使用')
+    await delivered.findAll('button')[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/app/mine')
+    expect(wrapper.vm.$router.currentRoute.value.query).toEqual({ tab: '我的数据' })
+    expect(delivered.get('[role="status"]').text()).toContain('请登录PC端，前往「用数」模块查看和使用')
+    await delivered.get('button[aria-label="关闭PC端使用提示"]').trigger('click')
+    expect(delivered.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="dataset-pc-use-explanation"]').exists()).toBe(true)
   })
 
  it('lets an enterprise admin configure purchase policy and approve a member request', async () => {
+   useOrderStore().list = []
    const user = useUserStore()
    user.context.currentMemberId = 'mem-2'
    user.completeEnterpriseAuth()
@@ -69,6 +84,7 @@ describe('dataset account views', () => {
   })
 
   it('sends delivered enterprise purchases to my orders', async () => {
+    useOrderStore().list = []
     const user = useUserStore()
     user.context.currentMemberId = 'mem-2'
     user.completeEnterpriseAuth()
@@ -105,8 +121,13 @@ describe('dataset account views', () => {
     expect(wrapper.find('[data-testid="portal-my-data-tab"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="portal-my-orders"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('仓储周转效率数据集')
-    expect(wrapper.text()).toContain('进入用数模块')
-    expect(wrapper.text()).toContain('下载数据')
+    const delivered = wrapper.get('[data-testid="order-card-app-order-dataset-history-001"]')
+    expect(delivered.findAll('button').map((button) => button.text())).toEqual(['查看已交付数据', '查看订单', '查看商品'])
+    expect(wrapper.get('[data-testid="order-card-app-order-dataset-pending-001"]').text()).not.toContain('查看已交付数据')
+    await delivered.findAll('button')[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/portal/data-prepare/datasets')
+    expect(wrapper.vm.$router.currentRoute.value.query).toEqual({ tab: 'purchased', product: 'prod-warehouse-turnover-risk', order: 'order-dataset-history-001' })
   })
 
   it('applies the same enterprise order context and management filters in the PC portal', async () => {

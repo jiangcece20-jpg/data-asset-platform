@@ -1,13 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import ChatInterface from '@/components/mobile/ChatInterface.vue'
+import AiConversationHistory from '@/components/shared/AiConversationHistory.vue'
+import { IconHistory } from '@arco-design/web-vue/es/icon'
 import { useAiStore, guideQuestions } from '@/stores/ai'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const ai = useAiStore()
+const user = useUserStore()
+const historyOpen = ref(false)
+
+watch(() => user.context.currentMemberId, (ownerId) => ai.activateOwner(ownerId), { immediate: true })
 
 const fromKeywordEmpty = computed(() => route.query.from === 'keyword_empty')
 const lastQuestion = computed(() => {
@@ -26,7 +33,11 @@ function handleSend(text: string) {
 function bootstrapFromQuery() {
   const q = route.query.q
   if (typeof q !== 'string' || !q.trim()) return
-  if (ai.chatMessages.length) return
+  const firstUser = ai.chatMessages.find((message) => message.role === 'user')
+  const firstText = firstUser?.blocks.find((block) => block.type === 'text')
+  if (firstText?.type === 'text' && firstText.content === q.trim()) return
+  if (ai.chatTyping) return
+  if (ai.chatMessages.length) ai.startNewConversation()
   handleSend(q.trim())
 }
 
@@ -35,9 +46,7 @@ onMounted(bootstrapFromQuery)
 watch(
   () => route.query.q,
   (q, prev) => {
-    if (typeof q === 'string' && q.trim() && q !== prev && !ai.chatMessages.length) {
-      handleSend(q.trim())
-    }
+    if (q !== prev) bootstrapFromQuery()
   }
 )
 
@@ -50,10 +59,22 @@ function handleSelectFollowUp(text: string) {
 }
 
 function handleReset() {
-  ai.resetChat()
+  ai.startNewConversation()
   if (route.query.q) {
     router.replace({ path: '/app/ai-find', query: { entry: 'ai' } })
   }
+}
+
+function openHistoryConversation(id: string) {
+  ai.openConversation(id)
+  historyOpen.value = false
+  if (route.query.q) void router.replace({ path: '/app/ai-find', query: { entry: 'ai' } })
+}
+
+function newFromHistory() {
+  ai.startNewConversation()
+  historyOpen.value = false
+  if (route.query.q) void router.replace({ path: '/app/ai-find', query: { entry: 'ai' } })
 }
 
 function handleDowngrade() {
@@ -67,7 +88,9 @@ function handleDowngrade() {
 
 <template>
   <div class="flex h-full flex-col bg-slate-50" data-testid="ai-find-page">
-    <MobileHeader title="AI 问答" />
+    <MobileHeader title="AI 问答">
+      <button data-testid="ai-history-open" class="flex h-10 w-10 items-center justify-center rounded-md text-ink-600" aria-label="历史对话" title="历史对话" @click="historyOpen = true"><IconHistory /></button>
+    </MobileHeader>
     <div class="flex flex-1 flex-col overflow-hidden">
       <ChatInterface
         :messages="ai.chatMessages"
@@ -84,5 +107,6 @@ function handleDowngrade() {
         @downgrade-keyword="handleDowngrade"
       />
     </div>
+    <AiConversationHistory :open="historyOpen" :conversations="ai.conversationList" :active-id="ai.activeConversationId" :busy="ai.chatTyping" @close="historyOpen = false" @new="newFromHistory" @select="openHistoryConversation" />
   </div>
 </template>

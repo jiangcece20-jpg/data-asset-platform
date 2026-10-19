@@ -9,37 +9,30 @@ function product(id: string) {
 }
 
 describe('productPriceLines', () => {
-  it('shows item and member-free summary for dashboard products', () => {
+  it('shows member-free summary without a personal item price', () => {
     expect(productPriceLines(product('prod-freight-index'), 'personal')).toEqual({
-      itemLine: '¥199',
-      memberLine: '会员免费',
-      singleLine: '¥199 · 会员免费'
+      singleLine: '会员免费'
     })
   })
 
-  it('shows item and member discount summary', () => {
-    expect(productPriceLines(product('prod-logistics-monthly'), 'personal')).toEqual({
-      itemLine: '¥199',
-      memberLine: '会员价 ¥119.4',
-      singleLine: '¥199 · 会员价 ¥119.4'
-    })
+  it('shows the enterprise member discount price', () => {
+    const price = productPriceLines(product('prod-logistics-monthly'), 'personal')
+    expect(price.singleLine).toBe(productPriceLines(product('prod-logistics-monthly'), 'enterprise').singleLine)
+    expect(price.singleLine).toMatch(/^¥/)
   })
 
-  it('omits 起 when the current identity has only one fixed offer', () => {
+  it('does not add a starting-price suffix for a single enterprise plan', () => {
     const fixed = structuredClone(product('prod-logistics-monthly'))
     fixed.commerceOffers = fixed.commerceOffers?.filter((offer) =>
       offer.subject !== 'personal' || offer.id === 'offer-monthly-personal-current'
     )
 
-    expect(productPriceLines(fixed, 'personal')).toEqual({
-      itemLine: '¥199',
-      memberLine: '会员价 ¥119.4',
-      singleLine: '¥199 · 会员价 ¥119.4'
-    })
+    expect(productPriceLines(fixed, 'personal').singleLine).not.toContain('起')
   })
 
-  it('uses enterprise item price for enterprise subject', () => {
-    expect(productPriceLines(product('prod-freight-index'), 'enterprise').itemLine).toBe('¥1,990')
+  it('uses the same enterprise scheme regardless of the current identity', () => {
+    expect(productPriceLines(product('prod-seller-route-board'), 'personal').singleLine).toBe('¥1,990 / 12个月')
+    expect(productPriceLines(product('prod-seller-route-board'), 'enterprise').singleLine).toBe('¥1,990 / 12个月')
   })
 })
 

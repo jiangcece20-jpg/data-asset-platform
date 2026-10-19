@@ -21,26 +21,38 @@ async function mountForm() {
   })
 }
 
-describe('SellerListingApply prices', () => {
+describe('SellerListingApply trade terms', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('asks for personal and enterprise prices and no longer requires screenshots', async () => {
+  it('shows frequency validation without submitting an incomplete listing', async () => {
+    const wrapper = await mountForm()
+    const seller = useSellerMarketStore()
+    const count = seller.listings.length
+    await wrapper.get('[data-testid="seller-listing-update-frequency"]').setValue('')
+    await wrapper.get('button.w-full').trigger('click')
+    expect(wrapper.text()).toContain('请选择更新频率')
+    expect(seller.listings).toHaveLength(count)
+    expect(wrapper.emitted('done')).toBeUndefined()
+  })
+
+  it('asks for one enterprise price and defaults the service period to 12 months', async () => {
     const wrapper = await mountForm()
     expect(wrapper.find('[data-testid="seller-listing-shots"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="seller-listing-custom-shots"]').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('字段信息')
     expect(wrapper.text()).not.toContain('样例数据')
     expect(wrapper.text()).not.toContain('结算方式')
-    expect(wrapper.get('[data-testid="seller-listing-personal-price"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="seller-listing-personal-price"]').exists()).toBe(false)
     expect(wrapper.get('[data-testid="seller-listing-enterprise-price"]').exists()).toBe(true)
+    expect((wrapper.get('[data-testid="seller-listing-service-period"]').element as HTMLInputElement).value).toBe('12')
 
-    await wrapper.get('[data-testid="seller-listing-personal-price"]').setValue(88)
     await wrapper.get('[data-testid="seller-listing-enterprise-price"]').setValue(880)
+    await wrapper.get('[data-testid="seller-listing-service-period"]').setValue(6)
     await wrapper.get('button.w-full').trigger('click')
     await flushPromises()
     const created = useSellerMarketStore().listings.find((item) => item.artifactId === 'artifact-route-otp')
-    expect(created?.price).toBe(88)
     expect(created?.enterprisePrice).toBe(880)
+    expect(created?.servicePeriodMonths).toBe(6)
     expect(wrapper.emitted('done')).toBeTruthy()
   })
 })
@@ -54,6 +66,7 @@ describe('SellerListingApply catalog spec', () => {
     const frequency = wrapper.get('[data-testid="seller-listing-update-frequency"]')
     expect(frequency.element.tagName).toBe('SELECT')
     expect(frequency.text()).toContain('每日更新')
+    expect(frequency.text()).not.toContain('一次性')
     expect(frequency.text()).toContain('不定期')
     await wrapper.get('[data-testid="seller-listing-coverage"]').setValue('华东 12 仓')
     await wrapper.get('[data-testid="seller-listing-update-frequency"]').setValue('每周更新')

@@ -10,16 +10,14 @@ const props = defineProps<{
 }>()
 
 const messages = {
-  degraded: '当前服务降级，您的权益继续保留；恢复后将按影响情况补偿。',
+  degraded: '后续更新异常，历史已交付数据按实际使用权益保留。',
   suspended: '当前商品正在进行风险处置，受影响能力已暂停；请在"我的－服务通知"查看进展。',
-  terminated: '该商品已停止服务，我们将通过服务通知提供迁移或退款方案。',
-  pausedOwned: '该商品已暂停新购，您已有的有效权益不受影响。',
-  pausedUnowned: '该商品已暂停新购。',
+  terminated: '该商品服务不可用，请查看原订单或联系运营核实。',
   delisted: '该商品已下架。',
 }
 
 const notice = computed<{ text: string; tone: string } | null>(() => {
-  // Priority: terminated → suspended → degraded → paused → delisted
+  // Service availability and actual rights remain independent of delisting.
   if (props.serviceStatus === 'terminated') {
     return { text: messages.terminated, tone: 'bg-ink-100 text-ink-600' }
   }
@@ -29,11 +27,7 @@ const notice = computed<{ text: string; tone: string } | null>(() => {
   if (props.serviceStatus === 'degraded') {
     return { text: messages.degraded, tone: 'bg-warning-50 text-warning-600' }
   }
-  if (props.availability === 'paused') {
-    const text = props.hasAccess ? messages.pausedOwned : messages.pausedUnowned
-    return { text, tone: 'bg-warning-50 text-warning-600' }
-  }
-  if (props.availability === 'delisted') {
+  if (props.availability === 'delisted' || props.availability === 'paused') {
     return { text: messages.delisted, tone: 'bg-ink-100 text-ink-600' }
   }
   return null

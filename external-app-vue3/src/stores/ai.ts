@@ -12,6 +12,7 @@ import type {
 import { genId, now } from '@/utils/id'
 import { useEntitlementStore } from './entitlements'
 import { useCatalogStore } from './catalog'
+import { useUserStore } from './user'
 import {
   buildRetrievalHits,
   computeCompleteness,
@@ -30,6 +31,46 @@ interface QaEntry {
   fullFacts: string[]
   followUps: string[]
   metrics?: { label: string; value: string; change: string; dir: 'up' | 'down'; period: string }[]
+}
+
+export interface AiConversation {
+  id: string
+  ownerMemberId: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  messages: ChatMessage[]
+  followUps: string[]
+}
+
+const historyKey = (ownerId: string) => `v102-ai-conversations:${encodeURIComponent(ownerId)}`
+const byLastActivity = (a: AiConversation, b: AiConversation) =>
+  (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0)
+
+function retainRecentConversations(conversations: AiConversation[], ownerId: string): AiConversation[] {
+  return conversations
+    .filter((item) => item.ownerMemberId === ownerId && item.messages.length > 0)
+    .sort(byLastActivity)
+    .slice(0, 50)
+}
+
+function readHistory(ownerId: string): { conversations: AiConversation[]; recentQuestions: string[]; activeId: string } {
+  if (typeof localStorage === 'undefined') return { conversations: [], recentQuestions: [], activeId: '' }
+  try {
+    const saved = JSON.parse(localStorage.getItem(historyKey(ownerId)) || '{}') as Record<string, unknown>
+    const conversations = Array.isArray(saved.conversations)
+      ? saved.conversations.filter((item): item is AiConversation => Boolean(item && typeof item === 'object'
+        && item.ownerMemberId === ownerId && typeof item.id === 'string' && typeof item.title === 'string'
+        && Array.isArray(item.messages) && Array.isArray(item.followUps)))
+      : []
+    return {
+      conversations: retainRecentConversations(conversations, ownerId),
+      recentQuestions: Array.isArray(saved.recentQuestions) ? saved.recentQuestions.filter((item): item is string => typeof item === 'string') : [],
+      activeId: typeof saved.activeId === 'string' ? saved.activeId : ''
+    }
+  } catch {
+    return { conversations: [], recentQuestions: [], activeId: '' }
+  }
 }
 
 /** 商品对比演示库：比商品场景 */
@@ -185,6 +226,10 @@ export const useAiStore = defineStore('ai', {
     sessions: [] as AnswerSession[],
     // ── 新版聊天状态 ──
     chatMessages: [] as ChatMessage[],
+    conversations: [] as AiConversation[],
+    activeConversationId: '',
+    activeOwnerId: '',
+    historyReady: false,
     chatTyping: false,
     chatFollowUps: [] as string[],
     // 最近提问（合并入口后用于「找数」首页的最近记录）
@@ -194,6 +239,7 @@ export const useAiStore = defineStore('ai', {
     _pendingIntent: 'unknown' as ChatIntent,
     _pendingRoute: 'processing_query' as ChatDiscoverRoute,
     _pendingFollowUps: [] as string[],
+    _pendingConversationId: '',
   }),
   getters: {
     byId(state) {
@@ -202,12 +248,99 @@ export const useAiStore = defineStore('ai', {
     hasChat(state) {
       return state.chatMessages.length > 0
     },
+    conversationList(state): AiConversation[] {
+      return [...state.conversations].sort(byLastActivity)
+    }
   },
   actions: {
+    activateOwner(ownerId: string) {
+      if (!ownerId || (this.historyReady && this.activeOwnerId === ownerId)) return
+      const history = readHistory(ownerId)
+      this.activeOwnerId = ownerId
+      this.historyReady = true
+      this.conversations = history.conversations
+      this.recentQuestions = history.recentQuestions
+      this.activeConversationId = this.conversations.some((item) => item.id === history.activeId)
+        ? history.activeId : this.conversations[0]?.id || ''
+      const active = this.conversations.find((item) => item.id === this.activeConversationId)
+      this.chatMessages = active ? [...active.messages] : []
+      this.chatFollowUps = active ? [...active.followUps] : []
+      this.chatTyping = false
+      this._pendingBlocks = null
+      this._pendingConversationId = ''
+      this._pendingFollowUps = []
+      this.persistHistory()
+    },
+    persistHistory() {
+      if (!this.historyReady || !this.activeOwnerId) return
+      this.conversations = retainRecentConversations(this.conversations, this.activeOwnerId)
+      if (this.activeConversationId && !this.conversations.some((item) => item.id === this.activeConversationId)) {
+        this.activeConversationId = ''
+        this.chatMessages = []
+        this.chatFollowUps = []
+        this.chatTyping = false
+        this._pendingBlocks = null
+        this._pendingConversationId = ''
+        this._pendingSteps = []
+        this._pendingFollowUps = []
+      }
+      if (typeof localStorage === 'undefined') return
+      try {
+        localStorage.setItem(historyKey(this.activeOwnerId), JSON.stringify({
+          conversations: this.conversations,
+          recentQuestions: this.recentQuestions,
+          activeId: this.activeConversationId
+        }))
+      } catch {
+        // 浏览器存储不可用时，当前页面仍可继续对话。
+      }
+    },
+    syncActiveConversation() {
+      const conversation = this.conversations.find((item) => item.id === this.activeConversationId)
+      if (!conversation) return
+      conversation.messages = [...this.chatMessages]
+      conversation.followUps = [...this.chatFollowUps]
+      conversation.updatedAt = new Date().toISOString()
+      // Stable sorting keeps this activity first even when timestamps share a millisecond.
+      this.conversations = [conversation, ...this.conversations.filter((item) => item.id !== conversation.id)]
+      this.persistHistory()
+    },
+    startNewConversation() {
+      if (this.chatTyping) return
+      this.activeConversationId = ''
+      this.chatMessages = []
+      this.chatFollowUps = []
+      this._pendingBlocks = null
+      this._pendingConversationId = ''
+      this._pendingSteps = []
+      this._pendingFollowUps = []
+      this._pendingRoute = 'processing_query'
+      this.persistHistory()
+    },
+    openConversation(id: string) {
+      if (this.chatTyping) return
+      const ownerId = this.activeOwnerId || useUserStore().context.currentMemberId
+      const conversation = this.conversations.find((item) => item.id === id && item.ownerMemberId === ownerId)
+      if (!conversation) return
+      this.activeConversationId = id
+      this.chatMessages = [...conversation.messages]
+      this.chatFollowUps = [...conversation.followUps]
+      this.persistHistory()
+    },
     // ── 聊天：发送问题（意图识别 + 混排内容生成） ────────
     sendQuestion(text: string) {
       const question = text.trim()
-      if (!question) return
+      if (!question || this.chatTyping) return
+      if (!this.activeConversationId) {
+        const ownerMemberId = this.activeOwnerId || useUserStore().context.currentMemberId
+        const stamp = new Date().toISOString()
+        const conversation: AiConversation = {
+          id: genId('conversation'), ownerMemberId, title: question.slice(0, 30),
+          createdAt: stamp, updatedAt: stamp, messages: [], followUps: []
+        }
+        this.conversations.push(conversation)
+        this.activeConversationId = conversation.id
+      }
 
       // 记录最近提问（去重、置顶、上限 8 条）
       this.recentQuestions = [question, ...this.recentQuestions.filter((x) => x !== question)].slice(0, 8)
@@ -219,6 +352,7 @@ export const useAiStore = defineStore('ai', {
         blocks: [{ type: 'text', content: question }],
         createdAt: now(),
       })
+      this.syncActiveConversation()
 
       // 2. 意图识别 + 三路由决策
       const intent = recognizeIntent(question)
@@ -230,6 +364,7 @@ export const useAiStore = defineStore('ai', {
       this._pendingSteps = steps
       this._pendingFollowUps = followUps
       this._pendingRoute = route
+      this._pendingConversationId = this.activeConversationId
 
       // 4. 进入 typing 状态
       this.chatTyping = true
@@ -238,7 +373,7 @@ export const useAiStore = defineStore('ai', {
 
     // ── 聊天：刷新待响应（组件 setTimeout 后调用） ──────
     flushResponse() {
-      if (!this._pendingBlocks) return
+      if (!this._pendingBlocks || this._pendingConversationId !== this.activeConversationId) return
       this.chatMessages.push({
         id: genId('chat'),
         role: 'ai',
@@ -249,9 +384,11 @@ export const useAiStore = defineStore('ai', {
         createdAt: now(),
       })
       this._pendingBlocks = null
+      this._pendingConversationId = ''
       this._pendingSteps = []
       this.chatTyping = false
       this.chatFollowUps = this._pendingFollowUps
+      this.syncActiveConversation()
     },
 
     // ── 聊天：重新生成最后一条 AI 回答 ───────────────────
@@ -264,6 +401,7 @@ export const useAiStore = defineStore('ai', {
       const question = textBlock && textBlock.type === 'text' ? textBlock.content : ''
       if (!question) return false
       this.chatMessages.pop()
+      this.syncActiveConversation()
       const intent = recognizeIntent(question)
       const { blocks, followUps, route, steps } = this._generateResponse(question, intent)
       this._pendingBlocks = blocks
@@ -271,6 +409,7 @@ export const useAiStore = defineStore('ai', {
       this._pendingFollowUps = followUps
       this._pendingIntent = intent
       this._pendingRoute = route
+      this._pendingConversationId = this.activeConversationId
       this.chatTyping = true
       this.chatFollowUps = []
       return true
@@ -278,13 +417,7 @@ export const useAiStore = defineStore('ai', {
 
     // ── 聊天：重置 ──────────────────────────────────────
     resetChat() {
-      this.chatMessages = []
-      this.chatTyping = false
-      this.chatFollowUps = []
-      this._pendingBlocks = null
-      this._pendingSteps = []
-      this._pendingFollowUps = []
-      this._pendingRoute = 'processing_query'
+      this.startNewConversation()
     },
 
     // ── 内部：生成混排响应（结构化回答 + 过程步骤） ─────

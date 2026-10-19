@@ -101,6 +101,10 @@ export const useTrustedSpaceCatalogStore = defineStore('trusted-space-catalog', 
       bindingStatus: SpaceBindingStatus,
       now = new Date().toISOString()
     ): TrustedPurchaseCheck {
+      const product = useCatalogStore().byId(appProductId)
+      if (product && (product.manualDelistedBy || product.availability !== 'published')) {
+        return { allowed: false, reason: 'product_not_for_sale' }
+      }
       return evaluateTrustedPurchase({
         enterpriseAuthStatus,
         bindingStatus,

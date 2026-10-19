@@ -72,7 +72,7 @@ describe('MineShell defaults & placeholders', () => {
 
   it('defaults to buy-data orders', async () => {
     const { wrapper } = await mountMineShell('mobile', '/app/mine')
-    expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid^="order-tab-"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="mine-placeholder"]').exists()).toBe(false)
   })

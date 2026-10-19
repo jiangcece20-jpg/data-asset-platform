@@ -19,7 +19,6 @@ const isPortal = computed(() => route.path.startsWith('/portal'))
 const order = computed(() => orders.list.find((item) => item.id === String(route.params.orderId) && item.productType === 'dataset'))
 const delivery = computed(() => commerce.deliveries.find((item) => item.id === order.value?.biDeliveryId))
 const error = ref('')
-const isRenewal = computed(() => Boolean(route.query.renew))
 const identity = computed(() => {
   if (order.value?.ownerType === 'enterprise') {
     return { subject: 'enterprise' as const, typeLabel: '企业' as const, name: user.enterprise.name }
@@ -43,7 +42,7 @@ const paymentOptions: Array<{ value: PaymentMethod; label: string; note: string 
 const availablePaymentOptions = computed(() => paymentOptions.filter((item) =>
   order.value?.ownerType === 'enterprise' ? item.value !== 'personal_online' : item.value === 'personal_online'
 ))
-const selectedPaymentMethod = ref<PaymentMethod>(order.value?.paymentMethod || 'personal_online')
+const selectedPaymentMethod = ref<PaymentMethod>(order.value?.paymentMethod || (order.value?.ownerType === 'enterprise' ? 'enterprise_balance' : 'personal_online'))
 const selectedPaymentLabel = computed(() => paymentOptions.find((item) => item.value === selectedPaymentMethod.value)?.label || '—')
 const payButtonLabel = computed(() => {
   if (selectedPaymentMethod.value === 'enterprise_contract') return '提交合同付款申请'
@@ -102,7 +101,6 @@ function goApprovalCenter() {
           <div class="text-2xl font-semibold text-brand-600">¥{{ order.amount.toLocaleString() }}</div>
         </div>
         <PurchaseIdentityBanner class="mt-4" :type-label="identity.typeLabel" :name="identity.name" :note="identityNote" />
-        <div v-if="isRenewal" class="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">正在续订更新服务；原订单与已交付版本保留，本次支付成功后延长更新到期日。</div>
         <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-4 text-sm">
           <div><span class="text-slate-400">购买主体：</span>{{ identity.typeLabel }} · {{ identity.name }}</div>
           <div><span class="text-slate-400">支付方式：</span>{{ selectedPaymentLabel }}（mock）</div>
@@ -154,6 +152,7 @@ function goApprovalCenter() {
         <div v-else-if="delivery?.status === 'delivered'" data-testid="dataset-delivery-success" class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center">
           <div class="text-3xl">✓</div><div class="mt-2 text-base font-medium text-emerald-800">支付成功，数据已交付至用数模块</div>
           <p class="mt-1 text-xs text-emerald-700">实例 {{ delivery.datasetInstanceId }} · 数据集权益已激活</p>
+          <p v-if="!isPortal" class="mt-3 text-sm leading-relaxed text-emerald-800">请登录PC端，前往「用数」模块查看和使用。</p>
           <button class="mt-4 rounded-lg bg-emerald-700 px-5 py-2.5 text-sm text-white" @click="goMyOrders">查看我的订单</button>
         </div>
       </div>

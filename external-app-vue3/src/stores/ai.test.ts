@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAiStore, guideQuestions, guideScenarios } from './ai'
 import { useCatalogStore } from './catalog'
 import { useEntitlementStore } from './entitlements'
 import { seedProducts } from '@/data/products'
 import { seedEntitlements } from '@/data/seed'
+import { useUserStore } from './user'
+import type { AiConversation } from './ai'
 
 describe('AI Store — chat functionality', () => {
   beforeEach(() => {
@@ -247,5 +249,239 @@ describe('AI Store — chat functionality', () => {
       expect(guideQuestions[0]).toMatchObject({ icon: '🪪', text: '司机资格核验 API', intent: 'search' })
       expect(guideQuestions.some((g) => g.intent === 'compare')).toBe(true)
     })
+  })
+})
+
+describe('V1.0.2 AI conversation history', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  const storageKey = (ownerId = 'mem-1') => `v102-ai-conversations:${encodeURIComponent(ownerId)}`
+  const savedConversation = (index: number, ownerMemberId = 'mem-1'): AiConversation => {
+    const stamp = `2026-10-01T00:${String(index).padStart(2, '0')}:00.000Z`
+    return {
+      id: `conversation-${index}`, ownerMemberId, title: `Question ${index}`,
+      createdAt: stamp, updatedAt: stamp,
+      messages: [{ id: `message-${index}`, role: 'user', createdAt: stamp, blocks: [{ type: 'text', content: `Question ${index}` }] }],
+      followUps: [`Follow-up ${index}`]
+    }
+  }
+  const storedHistory = (ownerId = 'mem-1'): { conversations: AiConversation[]; activeId: string } =>
+    JSON.parse(localStorage.getItem(storageKey(ownerId)) || '{}')
+
+  it.each([0, 1000])('retains the most recent 50 sent conversations with %i ms between sends', (interval) => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-14T00:00:00.000Z'))
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    const ids: string[] = []
+    for (let index = 0; index < 51; index += 1) {
+      vi.advanceTimersByTime(interval)
+      ai.startNewConversation()
+      ai.sendQuestion(`Question ${index}`)
+      ids.push(ai.activeConversationId)
+      ai.flushResponse()
+      expect(ai.conversations).toHaveLength(Math.min(index + 1, 50))
+    }
+
+    expect(ai.conversationList.map((item) => item.id)).toEqual(ids.slice(1).reverse())
+    expect(storedHistory().conversations.map((item) => item.id)).toEqual(ids.slice(1).reverse())
+    expect(storedHistory().activeId).toBe(ids[50])
+    ai.openConversation(ids[0])
+    expect(ai.activeConversationId).toBe(ids[50])
+
+    setActivePinia(createPinia())
+    const reloaded = useAiStore()
+    reloaded.activateOwner('mem-1')
+    expect(reloaded.conversations).toHaveLength(50)
+    expect(reloaded.activeConversationId).toBe(ids[50])
+  })
+
+  it('trims old saved history by activity on load and rewrites an evicted active selection', () => {
+    const conversations = Array.from({ length: 53 }, (_, index) => savedConversation(index))
+    conversations[0].updatedAt = '2026-10-02T00:00:00.000Z'
+    const empty = { ...savedConversation(54), messages: [], updatedAt: '2026-10-03T00:00:00.000Z' }
+    localStorage.setItem(storageKey(), JSON.stringify({
+      conversations: [empty, savedConversation(55, 'mem-2'), ...conversations], activeId: 'conversation-1'
+    }))
+
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversationList[0].id).toBe('conversation-0')
+    expect(ai.conversationList[49].id).toBe('conversation-4')
+    expect(ai.conversations.some((item) => ['conversation-1', 'conversation-2', 'conversation-3', 'conversation-54', 'conversation-55'].includes(item.id))).toBe(false)
+    expect(ai.activeConversationId).toBe('conversation-0')
+    expect(ai.chatMessages).toEqual(conversations[0].messages)
+    expect(ai.chatFollowUps).toEqual(conversations[0].followUps)
+    expect(storedHistory().conversations).toEqual(ai.conversationList)
+    expect(storedHistory().activeId).toBe('conversation-0')
+  })
+
+  it.each(['conversation-0', 'conversation-51'])('trims on persist without leaving an evicted active record: %s', (activeId) => {
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    ai.conversations = Array.from({ length: 52 }, (_, index) => savedConversation(index))
+    const active = ai.conversations.find((item) => item.id === activeId)!
+    ai.activeConversationId = activeId
+    ai.chatMessages = [...active.messages]
+    ai.chatFollowUps = [...active.followUps]
+    ai.persistHistory()
+
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversationList[0].id).toBe('conversation-51')
+    expect(ai.conversationList[49].id).toBe('conversation-2')
+    const evicted = activeId === 'conversation-0'
+    expect(ai.activeConversationId).toBe(evicted ? '' : activeId)
+    expect(ai.chatMessages).toEqual(evicted ? [] : active.messages)
+    expect(ai.chatFollowUps).toEqual(evicted ? [] : active.followUps)
+    expect(storedHistory().conversations).toEqual(ai.conversationList)
+    expect(storedHistory().activeId).toBe(ai.activeConversationId)
+  })
+
+  it('does not count or evict history for an empty unsent new conversation at capacity', () => {
+    localStorage.setItem(storageKey(), JSON.stringify({
+      conversations: Array.from({ length: 50 }, (_, index) => savedConversation(index)), activeId: 'conversation-49'
+    }))
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    for (let index = 0; index < 3; index += 1) {
+      ai.startNewConversation()
+      ai.sendQuestion('   ')
+    }
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversations.some((item) => item.id === 'conversation-0')).toBe(true)
+    expect(ai.activeConversationId).toBe('')
+    expect(ai.chatMessages).toHaveLength(0)
+    expect(storedHistory().conversations).toHaveLength(50)
+    expect(storedHistory().activeId).toBe('')
+
+    ai.sendQuestion('First sent question')
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversations.some((item) => item.id === 'conversation-0')).toBe(false)
+    expect(ai.conversations.some((item) => item.id === ai.activeConversationId)).toBe(true)
+    ai.flushResponse()
+  })
+
+  it('limits conversations rather than messages in a continued conversation', () => {
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    for (let index = 0; index < 60; index += 1) {
+      ai.sendQuestion(`Question ${index}`)
+      ai.flushResponse()
+    }
+    expect(ai.conversations).toHaveLength(1)
+    expect(ai.chatMessages).toHaveLength(120)
+    expect(storedHistory().conversations[0].messages).toHaveLength(120)
+  })
+
+  it('refreshes old conversation activity within the same minute and evicts the next oldest', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-14T00:00:55.000Z'))
+    const conversations = Array.from({ length: 50 }, (_, index) => savedConversation(index))
+    conversations.forEach((item, index) => {
+      item.updatedAt = new Date(Date.UTC(2026, 9, 14, 0, 0, index)).toISOString()
+    })
+    const legacyTime = new Date('2026-10-14T00:00:00.000Z')
+    const pad = (value: number) => String(value).padStart(2, '0')
+    conversations[0].updatedAt = `${legacyTime.getFullYear()}-${pad(legacyTime.getMonth() + 1)}-${pad(legacyTime.getDate())} ${pad(legacyTime.getHours())}:${pad(legacyTime.getMinutes())}`
+    localStorage.setItem(storageKey(), JSON.stringify({ conversations, activeId: 'conversation-49' }))
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    ai.openConversation('conversation-0')
+    expect(ai.conversations.find((item) => item.id === 'conversation-0')!.updatedAt).toBe(conversations[0].updatedAt)
+    ai.sendQuestion('Continue old conversation')
+    expect(new Date(ai.conversations.find((item) => item.id === 'conversation-0')!.updatedAt).getTime()).toBe(Date.now())
+    expect(ai.conversationList[0].id).toBe('conversation-0')
+    ai.flushResponse()
+
+    vi.advanceTimersByTime(1000)
+    ai.startNewConversation()
+    ai.sendQuestion('New conversation')
+    ai.flushResponse()
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversations.some((item) => item.id === 'conversation-1')).toBe(false)
+    expect(ai.conversations.find((item) => item.id === 'conversation-0')!.messages).toHaveLength(3)
+    expect(storedHistory().conversations.some((item) => item.id === 'conversation-0')).toBe(true)
+  })
+
+  it('applies the cap separately to each account without rewriting another account history', () => {
+    for (const ownerId of ['mem-1', 'mem-2']) {
+      localStorage.setItem(storageKey(ownerId), JSON.stringify({
+        conversations: Array.from({ length: 51 }, (_, index) => savedConversation(index, ownerId)),
+        activeId: 'conversation-50'
+      }))
+    }
+    const secondAccountHistory = localStorage.getItem(storageKey('mem-2'))
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    expect(ai.conversations).toHaveLength(50)
+    expect(localStorage.getItem(storageKey('mem-2'))).toBe(secondAccountHistory)
+    ai.startNewConversation()
+    ai.sendQuestion('Account one question')
+    ai.flushResponse()
+    const firstAccountHistory = localStorage.getItem(storageKey())
+
+    ai.activateOwner('mem-2')
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversations.every((item) => item.ownerMemberId === 'mem-2')).toBe(true)
+    expect(ai.chatMessages[0].blocks[0]).toMatchObject({ content: 'Question 50' })
+    ai.startNewConversation()
+    ai.sendQuestion('Account two question')
+    ai.flushResponse()
+    expect(localStorage.getItem(storageKey())).toBe(firstAccountHistory)
+
+    ai.activateOwner('mem-1')
+    expect(ai.conversations).toHaveLength(50)
+    expect(ai.conversations.every((item) => item.ownerMemberId === 'mem-1')).toBe(true)
+    expect(ai.chatMessages[0].blocks[0]).toMatchObject({ content: 'Account one question' })
+  })
+
+  it('keeps prior conversations when starting a new one and resumes follow-up in the selected conversation', () => {
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    ai.sendQuestion('货运价格趋势如何')
+    ai.flushResponse()
+    const firstId = ai.activeConversationId
+
+    ai.startNewConversation()
+    expect(ai.chatMessages).toHaveLength(0)
+    expect(ai.conversations).toHaveLength(1)
+    ai.sendQuestion('港口吞吐量看板')
+    ai.flushResponse()
+    expect(ai.conversations).toHaveLength(2)
+
+    ai.openConversation(firstId)
+    expect(ai.chatMessages[0].blocks[0]).toMatchObject({ type: 'text', content: '货运价格趋势如何' })
+    ai.sendQuestion('近三个月呢')
+    ai.flushResponse()
+    expect(ai.chatMessages.filter((message) => message.role === 'user')).toHaveLength(2)
+  })
+
+  it('restores the same account after reload and does not expose it to another account', () => {
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    ai.sendQuestion('我的历史问题')
+    ai.flushResponse()
+
+    setActivePinia(createPinia())
+    const reloaded = useAiStore()
+    reloaded.activateOwner('mem-1')
+    expect(reloaded.conversations).toHaveLength(1)
+    expect(reloaded.chatMessages[0].blocks[0]).toMatchObject({ type: 'text', content: '我的历史问题' })
+
+    useUserStore().context.currentMemberId = 'mem-2'
+    reloaded.activateOwner('mem-2')
+    expect(reloaded.conversations).toHaveLength(0)
+    expect(reloaded.chatMessages).toHaveLength(0)
+    reloaded.activateOwner('mem-1')
+    expect(reloaded.conversations).toHaveLength(1)
   })
 })

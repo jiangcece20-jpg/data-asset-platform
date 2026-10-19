@@ -11,21 +11,20 @@ interface PolicyInput {
 }
 
 export function resolveProductReversePolicy(input: PolicyInput): ProductReversePolicy {
-  const { action, reason, hasCustomerImpact } = input
+  const { reason, hasCustomerImpact } = input
+  // Legacy pause requests use the same delisting path; no separate sales state remains.
+  const action = input.action === 'pause' ? 'delist' : input.action
 
   if (action === 'recall' && !['quality_issue', 'compliance_risk'].includes(reason)) {
     throw new Error('召回仅允许质量或合规原因')
   }
-  if (action === 'pause' && !['commercial_adjustment', 'quality_issue'].includes(reason)) {
-    throw new Error('暂停销售仅允许商业调整或质量问题')
-  }
-  if (action === 'delist' && !['commercial_adjustment', 'upstream_stop'].includes(reason)) {
-    throw new Error('下架仅允许商业调整或上游停供')
+  if (action === 'delist' && !['commercial_adjustment', 'upstream_stop', 'quality_issue', 'compliance_risk'].includes(reason)) {
+    throw new Error('下架原因不适用')
   }
 
-  if (reason === 'compliance_risk') {
+  if (action === 'recall' && reason === 'compliance_risk') {
     return {
-      availability: 'paused',
+      availability: 'delisted',
       service: 'suspended',
       entitlement: 'freeze',
       severity: 'S1',
@@ -37,7 +36,7 @@ export function resolveProductReversePolicy(input: PolicyInput): ProductReverseP
 
   if (reason === 'quality_issue' && action === 'recall') {
     return {
-      availability: 'paused',
+      availability: 'delisted',
       service: 'suspended',
       entitlement: 'freeze',
       severity: 'S2',
@@ -47,47 +46,11 @@ export function resolveProductReversePolicy(input: PolicyInput): ProductReverseP
     }
   }
 
-  if (reason === 'quality_issue') {
-    return {
-      availability: 'paused',
-      service: 'degraded',
-      entitlement: 'keep_and_compensate',
-      severity: 'S2',
-      createsWorkOrder: hasCustomerImpact,
-      requiresCustomerNotice: hasCustomerImpact,
-      requiresReview: true,
-    }
-  }
-
-  if (reason === 'upstream_stop') {
-    return {
-      availability: 'delisted',
-      service: 'terminated',
-      entitlement: 'migrate_or_refund',
-      severity: 'S2',
-      createsWorkOrder: hasCustomerImpact,
-      requiresCustomerNotice: hasCustomerImpact,
-      requiresReview: true,
-    }
-  }
-
-  if (action === 'delist') {
-    return {
-      availability: 'delisted',
-      service: 'normal',
-      entitlement: 'keep',
-      severity: 'S3',
-      createsWorkOrder: hasCustomerImpact,
-      requiresCustomerNotice: hasCustomerImpact,
-      requiresReview: true,
-    }
-  }
-
   return {
-    availability: 'paused',
+    availability: 'delisted',
     service: 'normal',
     entitlement: 'keep',
-    severity: 'S3',
+    severity: reason === 'commercial_adjustment' ? 'S3' : 'S2',
     createsWorkOrder: hasCustomerImpact,
     requiresCustomerNotice: hasCustomerImpact,
     requiresReview: true,

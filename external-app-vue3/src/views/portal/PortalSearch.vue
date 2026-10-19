@@ -2,12 +2,16 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useUserStore } from '@/stores/user'
 import { typeMeta, listedAtOf } from '@/utils/productMeta'
 import type { Product, ProductType } from '@/types/domain'
 import type { Resource } from '@/types/resource'
 import { productCardSummary } from '@/domain/productCardSummary'
 import { productPriceSummary } from '@/domain/productPriceSummary'
-import { productListChips } from '@/domain/productListChips'
+import { productListChips, productTrialChips } from '@/domain/productListChips'
+import { hasExpiredEnterpriseProductEntitlement } from '@/domain/v102Trade'
+import { isDiscoverProductUsable } from '@/domain/discoverUsability'
 import {
   ROUTE_META,
   buildRetrievalHits,
@@ -18,6 +22,8 @@ import {
 const route = useRoute()
 const router = useRouter()
 const catalog = useCatalogStore()
+const entitlements = useEntitlementStore()
+const user = useUserStore()
 
 const query = ref(String(route.query.q || ''))
 const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
@@ -25,6 +31,7 @@ const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
 const viewMode = ref<'list' | 'grid'>('list')
 const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
 const activeVenue = ref(String(route.query.venue || ''))
+const usableOnly = ref(false)
 
 watch(
   () => route.query.q,
@@ -48,11 +55,7 @@ watch(
 
 // ---------- 筛选 ----------
 const filters = reactive({
-  venueKind: '' as '' | 'platform' | 'space' | 'seller',
-  priceKinds: [] as Array<'free' | 'money' | 'quote'>,
-  freqs: [] as string[],
-  scales: [] as string[],
-  providers: [] as string[]
+  venueKind: '' as '' | 'platform' | 'space' | 'seller'
 })
 
 const TYPE_OPTIONS: Array<{ key: ProductType; label: string }> = [
@@ -63,48 +66,22 @@ const TYPE_OPTIONS: Array<{ key: ProductType; label: string }> = [
 ]
 
 const VENUE_OPTIONS = [
-  { key: 'platform', label: '本平台' },
+  { key: 'platform', label: '自营产品' },
   { key: 'space', label: '可信空间' },
   { key: 'seller', label: '入驻商家' }
 ] as const
 
-const PRICE_OPTIONS = [
-  { key: 'free' as const, label: '免费' },
-  { key: 'money' as const, label: '付费' },
-  { key: 'quote' as const, label: '待报价' }
-]
-
-const FREQ_OPTIONS = [
-  { key: '实时更新', label: '实时' },
-  { key: '每日更新', label: '每日' },
-  { key: '每周更新', label: '每周' },
-  { key: '每月更新', label: '每月' },
-  { key: '不定期', label: '不定期' }
-]
-
-const SCALE_OPTIONS = [
-  { key: 'lt1w', label: '1 万行以内', test: (n: number) => n < 10_000 },
-  { key: '1w-100w', label: '1 万–100 万行', test: (n: number) => n >= 10_000 && n < 1_000_000 },
-  { key: 'gte100w', label: '100 万行以上', test: (n: number) => n >= 1_000_000 }
-]
-
 // 当前展开的顶部筛选面板（同一时间只开一个，点外部关闭）
-const openFilter = ref<null | 'venue' | 'price' | 'scale' | 'freq' | 'provider'>(null)
-function toggleFilterPanel(key: 'venue' | 'price' | 'scale' | 'freq' | 'provider') {
+const openFilter = ref<null | 'venue'>(null)
+function toggleFilterPanel(key: 'venue') {
   openFilter.value = openFilter.value === key ? null : key
 }
 function closeFilterPanel() {
   openFilter.value = null
 }
 
-function toggle(list: string[], value: string) {
-  const idx = list.indexOf(value)
-  if (idx >= 0) list.splice(idx, 1)
-  else list.push(value)
-}
-
 const activeFilterCount = computed(() => {
-  let n = filters.priceKinds.length + filters.freqs.length + filters.scales.length + filters.providers.length
+  let n = usableOnly.value ? 1 : 0
   if (activeType.value) n += 1
   if (filters.venueKind) n += 1
   return n
@@ -113,11 +90,8 @@ const activeFilterCount = computed(() => {
 function resetFilters() {
   activeType.value = ''
   activeVenue.value = ''
+  usableOnly.value = false
   filters.venueKind = ''
-  filters.priceKinds.splice(0)
-  filters.freqs.splice(0)
-  filters.scales.splice(0)
-  filters.providers.splice(0)
   closeFilterPanel()
   page.value = 1
 }
@@ -136,19 +110,11 @@ const filteredProducts = computed(() =>
     if (filters.venueKind === 'platform' && venue) return false
     if (filters.venueKind === 'space' && (!venue || venue.kind !== 'space')) return false
     if (filters.venueKind === 'seller' && (!venue || venue.kind !== 'seller')) return false
-
-    if (filters.priceKinds.length && !filters.priceKinds.includes(productPriceSummary(p).kind as 'free' | 'money' | 'quote')) return false
-
-    if (filters.freqs.length && !filters.freqs.includes(p.updateFrequency)) return false
-
-    if (filters.scales.length) {
-      const rowCount = p.typeDetail.dataset?.rowCount
-      if (typeof rowCount !== 'number' || !SCALE_OPTIONS.some((o) => filters.scales.includes(o.key) && o.test(rowCount))) {
-        return false
-      }
-    }
-
-    if (filters.providers.length && !filters.providers.includes(p.provider)) return false
+    if (usableOnly.value && !isDiscoverProductUsable(p, {
+      enterpriseAuthenticated: user.isEnterpriseAuthenticated,
+      accessLevel: entitlements.accessLevel(p),
+      serviceExpired: hasExpiredEnterpriseProductEntitlement(entitlements.list, p.id, user.context.currentEnterpriseId)
+    })) return false
 
     return true
   })
@@ -208,7 +174,7 @@ const mixedResults = computed<MixedResult[]>(() => [
 const page = ref(1)
 const PAGE_SIZE = 10
 const totalPages = computed(() => Math.max(1, Math.ceil(mixedResults.value.length / PAGE_SIZE)))
-watch([query, sortType, filters, activeType, activeVenue], () => {
+watch([query, sortType, filters, activeType, activeVenue, usableOnly], () => {
   page.value = 1
 })
 const pagedResults = computed(() =>
@@ -240,15 +206,6 @@ const venueCounts = computed(() => {
     else counts.platform += 1
   }
   return counts
-})
-
-const providerFacets = computed(() => {
-  const counts = new Map<string, number>()
-  for (const p of filteredProducts.value) {
-    if (!p.provider) continue
-    counts.set(p.provider, (counts.get(p.provider) || 0) + 1)
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
 })
 
 const venueLabel = computed(
@@ -438,7 +395,7 @@ function goAi(from?: string) {
       </div>
 
       <!-- 筛选工具栏 -->
-      <div class="flex flex-wrap items-center gap-2 px-5 py-3">
+      <div data-testid="portal-filter-toolbar" class="flex flex-wrap items-center gap-2 px-5 py-3">
         <!-- 来源（单选） -->
         <div class="relative z-50">
           <button
@@ -470,133 +427,18 @@ function goAi(from?: string) {
           </div>
         </div>
 
-        <!-- 价格（多选） -->
-        <div class="relative z-50">
-          <button
-            class="inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-[13px] transition"
-            :class="filters.priceKinds.length
-              ? 'border-brand-300 bg-brand-50 text-brand-600'
-              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-            @click.stop="toggleFilterPanel('price')"
-          >
-            价格<span v-if="filters.priceKinds.length" class="text-brand-500"> · {{ filters.priceKinds.length }}</span>
-            <svg class="h-3.5 w-3.5 transition" :class="openFilter === 'price' ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          <div
-            v-if="openFilter === 'price'"
-            class="absolute left-0 top-full z-50 mt-1.5 w-36 rounded-xl border border-ink-100 bg-white p-1.5 shadow-float"
-          >
-            <button
-              v-for="opt in PRICE_OPTIONS"
-              :key="opt.key"
-              class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] transition hover:bg-ink-100/60"
-              :class="filters.priceKinds.includes(opt.key) ? 'text-brand-600' : 'text-ink-700'"
-              @click="toggle(filters.priceKinds, opt.key)"
-            >
-              <span class="flex h-3.5 w-3.5 items-center justify-center rounded-[4px] border transition" :class="filters.priceKinds.includes(opt.key) ? 'border-brand-500 bg-brand-500' : 'border-ink-300'">
-                <svg v-if="filters.priceKinds.includes(opt.key)" class="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              </span>
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 数据规模（多选） -->
-        <div class="relative z-50">
-          <button
-            class="inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-[13px] transition"
-            :class="filters.scales.length
-              ? 'border-brand-300 bg-brand-50 text-brand-600'
-              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-            @click.stop="toggleFilterPanel('scale')"
-          >
-            数据规模<span v-if="filters.scales.length" class="text-brand-500"> · {{ filters.scales.length }}</span>
-            <svg class="h-3.5 w-3.5 transition" :class="openFilter === 'scale' ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          <div
-            v-if="openFilter === 'scale'"
-            class="absolute left-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-ink-100 bg-white p-1.5 shadow-float"
-          >
-            <button
-              v-for="opt in SCALE_OPTIONS"
-              :key="opt.key"
-              class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] transition hover:bg-ink-100/60"
-              :class="filters.scales.includes(opt.key) ? 'text-brand-600' : 'text-ink-700'"
-              @click="toggle(filters.scales, opt.key)"
-            >
-              <span class="flex h-3.5 w-3.5 items-center justify-center rounded-[4px] border transition" :class="filters.scales.includes(opt.key) ? 'border-brand-500 bg-brand-500' : 'border-ink-300'">
-                <svg v-if="filters.scales.includes(opt.key)" class="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              </span>
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 更新频率（多选） -->
-        <div class="relative z-50">
-          <button
-            class="inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-[13px] transition"
-            :class="filters.freqs.length
-              ? 'border-brand-300 bg-brand-50 text-brand-600'
-              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-            @click.stop="toggleFilterPanel('freq')"
-          >
-            更新频率<span v-if="filters.freqs.length" class="text-brand-500"> · {{ filters.freqs.length }}</span>
-            <svg class="h-3.5 w-3.5 transition" :class="openFilter === 'freq' ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          <div
-            v-if="openFilter === 'freq'"
-            class="absolute left-0 top-full z-50 mt-1.5 w-36 rounded-xl border border-ink-100 bg-white p-1.5 shadow-float"
-          >
-            <button
-              v-for="opt in FREQ_OPTIONS"
-              :key="opt.key"
-              class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] transition hover:bg-ink-100/60"
-              :class="filters.freqs.includes(opt.key) ? 'text-brand-600' : 'text-ink-700'"
-              @click="toggle(filters.freqs, opt.key)"
-            >
-              <span class="flex h-3.5 w-3.5 items-center justify-center rounded-[4px] border transition" :class="filters.freqs.includes(opt.key) ? 'border-brand-500 bg-brand-500' : 'border-ink-300'">
-                <svg v-if="filters.freqs.includes(opt.key)" class="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-              </span>
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 供应商（多选） -->
-        <div class="relative z-50">
-          <button
-            class="inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-[13px] transition"
-            :class="filters.providers.length
-              ? 'border-brand-300 bg-brand-50 text-brand-600'
-              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-            @click.stop="toggleFilterPanel('provider')"
-          >
-            供应商<span v-if="filters.providers.length" class="text-brand-500"> · {{ filters.providers.length }}</span>
-            <svg class="h-3.5 w-3.5 transition" :class="openFilter === 'provider' ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          <div
-            v-if="openFilter === 'provider'"
-            class="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-ink-100 bg-white p-1.5 shadow-float"
-          >
-            <div class="max-h-56 overflow-y-auto">
-              <button
-                v-for="[name, count] in providerFacets"
-                :key="name"
-                class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition hover:bg-ink-100/60"
-                :class="filters.providers.includes(name) ? 'text-brand-600' : 'text-ink-700'"
-                @click="toggle(filters.providers, name)"
-              >
-                <span class="flex min-w-0 items-center gap-2">
-                  <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="filters.providers.includes(name) ? 'bg-brand-500' : 'bg-ink-300'"></span>
-                  <span class="truncate">{{ name }}</span>
-                </span>
-                <span class="ml-2 shrink-0 text-[11px] text-ink-400">{{ count }}</span>
-              </button>
-              <div v-if="!providerFacets.length" class="px-2.5 py-1.5 text-xs text-ink-400">暂无可选供应商</div>
-            </div>
-          </div>
-        </div>
+        <button
+          data-testid="portal-usable-filter"
+          class="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] transition"
+          :class="usableOnly
+            ? 'border-brand-300 bg-brand-50 font-medium text-brand-600'
+            : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
+          :aria-pressed="usableOnly"
+          @click="usableOnly = !usableOnly"
+        >
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="usableOnly" d="m5 12 4 4L19 6" /><circle v-else cx="12" cy="12" r="7" /></svg>
+          我可使用
+        </button>
 
         <button
           v-if="activeFilterCount"
@@ -735,7 +577,7 @@ function goAi(from?: string) {
                   class="rounded-md border border-violet-200 px-2 py-0.5 text-[11px] text-violet-600"
                 >可试用</span>
                 <span
-                  v-if="item.type === 'product' && (item.data as Product).hasSampleData"
+                  v-if="item.type === 'product' && productTrialChips(item.data as Product).includes('有样例')"
                   class="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600"
                 >有样例</span>
               </div>
@@ -764,7 +606,7 @@ function goAi(from?: string) {
                 <div
                   v-else-if="productPriceSummary(item.data as Product).kind === 'free'"
                   class="text-[20px] font-bold text-violet-600"
-                >免费</div>
+                >{{ productPriceSummary(item.data as Product).text }}</div>
                 <div
                   v-else
                   class="rounded-md bg-ink-100 px-2.5 py-1 text-[12px] text-ink-600"
@@ -844,7 +686,7 @@ function goAi(from?: string) {
                 class="rounded-md border border-violet-200 px-2 py-0.5 text-[11px] text-violet-600"
               >可试用</span>
               <span
-                v-if="item.type === 'product' && (item.data as Product).hasSampleData"
+                v-if="item.type === 'product' && productTrialChips(item.data as Product).includes('有样例')"
                 class="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600"
               >有样例</span>
             </div>
@@ -872,7 +714,7 @@ function goAi(from?: string) {
                   <div
                     v-else-if="productPriceSummary(item.data as Product).kind === 'free'"
                     class="text-[15px] font-bold leading-none text-violet-600"
-                  >免费</div>
+                  >{{ productPriceSummary(item.data as Product).text }}</div>
                   <div
                     v-else
                     class="rounded-md bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600"
@@ -916,7 +758,18 @@ function goAi(from?: string) {
 
         <!-- 空态 -->
         <div
-          v-if="query.trim() && !mixedResults.length"
+          v-if="usableOnly && !mixedResults.length"
+          class="py-14 text-center"
+        >
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
+            <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+          </div>
+          <div class="mt-3 text-sm font-medium text-ink-700">当前企业暂无可直接使用的商品</div>
+          <button class="mt-4 rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="resetFilters">清空筛选</button>
+        </div>
+
+        <div
+          v-else-if="query.trim() && !mixedResults.length"
           class="py-14 text-center"
         >
           <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">

@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useCatalogStore } from '@/stores/catalog'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -22,9 +24,14 @@ const router = createRouter({
     },
     { path: '/app/search', name: 'search-result', component: () => import('@/views/mobile/SearchResult.vue'), meta: { title: '找数据' } },
     { path: '/app/product/:id', name: 'product-detail', component: () => import('@/views/mobile/ProductDetail.vue'), meta: { title: '商品详情' } },
+    { path: '/app/use/dataset/:id', name: 'app-dataset-use', component: () => import('@/views/shared/DatasetUse.vue'), meta: { title: '用数' } },
+    { path: '/app/data-prepare/datasets', name: 'app-dataset-management', component: () => import('@/views/shared/DatasetManagement.vue'), meta: { title: '数据集管理' } },
+    { path: '/app/data-prepare/datasets/public', name: 'app-public-dataset-management', component: () => import('@/views/shared/PublicDatasetManagement.vue'), meta: { title: '公开数据集管理' } },
+    { path: '/app/view/:id', name: 'app-content-use', component: () => import('@/views/shared/ContentUse.vue'), meta: { title: '看数' } },
+    { path: '/app/bi/dashboard/:id', name: 'app-bound-dashboard', component: () => import('@/views/shared/ContentUse.vue'), meta: { title: '看数' } },
     { path: '/app/enterprise-auth', name: 'enterprise-auth', component: () => import('@/views/mobile/EnterpriseAuth.vue'), meta: { title: '企业认证' } },
     { path: '/app/checkout/member', name: 'checkout-member', component: () => import('@/views/mobile/CheckoutMember.vue'), meta: { title: '会员购买' } },
-    { path: '/app/checkout/item/:id', name: 'checkout-item', component: () => import('@/views/mobile/CheckoutItem.vue'), meta: { title: '单品购买' } },
+    { path: '/app/checkout/item/:id', name: 'checkout-item', component: () => import('@/views/mobile/CheckoutItem.vue'), meta: { title: '企业购买' } },
     { path: '/app/checkout/enterprise/:id', name: 'checkout-enterprise', component: () => import('@/views/mobile/CheckoutEnterprise.vue'), meta: { title: '企业采购' } },
     { path: '/app/checkout/dataset/:id', name: 'checkout-dataset', component: () => import('@/views/shared/DatasetCheckout.vue'), meta: { title: '数据集购买' } },
     { path: '/app/payment/dataset/:orderId', name: 'payment-dataset', component: () => import('@/views/shared/DatasetPayment.vue'), meta: { title: '数据集支付' } },
@@ -70,6 +77,11 @@ const router = createRouter({
     { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '关键词搜索' } },
     { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/portal/PortalAiChat.vue'), meta: { title: 'AI问答' } },
     { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },
+    { path: '/portal/use/dataset/:id', name: 'portal-dataset-use', component: () => import('@/views/shared/DatasetUse.vue'), meta: { title: '用数' } },
+    { path: '/portal/data-prepare/datasets', name: 'portal-dataset-management', component: () => import('@/views/shared/DatasetManagement.vue'), meta: { title: '数据集管理' } },
+    { path: '/portal/data-prepare/datasets/public', name: 'portal-public-dataset-management', component: () => import('@/views/shared/PublicDatasetManagement.vue'), meta: { title: '公开数据集管理' } },
+    { path: '/portal/view/:id', name: 'portal-content-use', component: () => import('@/views/shared/ContentUse.vue'), meta: { title: '看数' } },
+    { path: '/portal/bi/dashboard/:id', name: 'portal-bound-dashboard', component: () => import('@/views/shared/ContentUse.vue'), meta: { title: '看数' } },
     { path: '/portal/space-intent/:id', name: 'portal-space-intent', component: () => import('@/views/mobile/SpaceIntentForm.vue'), meta: { title: '提交试用申请' } },
     { path: '/portal/checkout/:id', name: 'portal-checkout', component: () => import('@/views/portal/PortalCheckout.vue'), meta: { title: '购买结算' } },
     { path: '/portal/checkout/dataset/:id', name: 'portal-checkout-dataset', component: () => import('@/views/shared/DatasetCheckout.vue'), meta: { title: '数据集购买' } },
@@ -80,6 +92,20 @@ const router = createRouter({
    { path: '/portal/bills', name: 'portal-bills', component: () => import('@/views/portal/PortalBills.vue'), meta: { title: 'API账单' } },
     { path: '/portal/demand', redirect: { path: '/portal/mine', query: { menu: 'demands' } } }
   ]
+})
+
+router.beforeEach((to) => {
+  if (to.path.startsWith('/app/checkout/') || to.path.startsWith('/portal/checkout/')) {
+    const legacyEnterpriseCheckout = /^\/portal\/checkout\/enterprise\/([^/]+)\/?$/.exec(to.path)
+    const id = typeof to.params.id === 'string' ? to.params.id : legacyEnterpriseCheckout?.[1]
+    if (id && useCatalogStore().byId(id)?.type === 'report') {
+      const surface = to.path.startsWith('/portal/') ? 'portal' : 'app'
+      return { path: `/${surface}/product/${id}`, replace: true }
+    }
+  }
+  const buyerPage = to.path === '/app/discover' || to.path === '/app/search' || to.path.startsWith('/app/product/')
+    || to.path === '/portal/search' || to.path.startsWith('/portal/product/')
+  if (buyerPage && !useUserStore().context.loggedIn) return '/app/home'
 })
 
 export default router

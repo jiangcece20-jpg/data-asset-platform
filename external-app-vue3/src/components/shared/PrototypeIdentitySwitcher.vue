@@ -2,19 +2,25 @@
 import { computed } from 'vue'
 import { currentPurchaseSubject, hasEnterprisePurchaseIdentity } from '@/domain/purchaseIdentity'
 import { useUserStore } from '@/stores/user'
+import { useEntitlementStore } from '@/stores/entitlements'
 
 const user = useUserStore()
+const entitlements = useEntitlementStore()
 
 const options = [
   { id: 'personal' as const, label: '个人', hint: '陈静' },
-  { id: 'enterprise_admin' as const, label: '企业管理员', hint: '万联' },
   { id: 'enterprise_member' as const, label: '企业成员', hint: '王涛' }
 ]
 
 const active = computed(() => {
   if (!hasEnterprisePurchaseIdentity(user) || currentPurchaseSubject(user) === 'personal') return 'personal'
-  return user.currentEnterpriseMember?.role === 'admin' ? 'enterprise_admin' : 'enterprise_member'
+  return 'enterprise_member'
 })
+
+function selectIdentity(identity: 'personal' | 'enterprise_member') {
+  user.switchMockPurchaseIdentity(identity)
+  if (identity === 'enterprise_member' && !entitlements.hasTeamMembership) entitlements.grantTeamMember()
+}
 </script>
 
 <template>
@@ -27,7 +33,7 @@ const active = computed(() => {
         :data-testid="`prototype-identity-${option.id}`"
         class="rounded-full px-2 py-0.5 text-[11px] transition"
         :class="active === option.id ? 'bg-[#722ED1] text-white' : 'bg-white text-[#722ED1]'"
-        @click="user.switchMockPurchaseIdentity(option.id)"
+        @click="selectIdentity(option.id)"
       >
         {{ option.label }}
         <span class="hidden sm:inline">· {{ option.hint }}</span>

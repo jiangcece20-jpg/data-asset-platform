@@ -11,7 +11,7 @@ const nav = [
   { key: 'home', label: '首页', external: true },
   { key: 'wumao', label: '物贸一体', external: true },
   { key: 'kan', label: '看数', external: true },
-  { key: 'yong', label: '用数', external: true },
+  { key: 'yong', label: '用数', path: '/portal/data-prepare/datasets?tab=purchased' },
   { key: 'market', label: '找数买数', path: '/portal/search' },
   { key: 'cai', label: '采数', external: true },
   { key: 'mine', label: '我的', path: '/portal/mine' }
@@ -34,8 +34,9 @@ function isActive(key: string, path?: string) {
       || route.path.startsWith('/portal/enterprise')
   }
   if (key === 'market') {
-    return route.path.startsWith('/portal') && !isActive('mine')
+    return route.path.startsWith('/portal') && !isActive('mine') && !isActive('yong')
   }
+  if (key === 'yong') return route.path.startsWith('/portal/data-prepare/') || route.path.startsWith('/portal/use/')
   if (path) return route.path.startsWith(path)
   return false
 }

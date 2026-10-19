@@ -3,6 +3,7 @@ import { ref, nextTick, watch } from 'vue'
 import type { ChatMessage, GuideQuestion } from '@/types/aiChat'
 import { useCatalogStore } from '@/stores/catalog'
 import { typeMeta } from '@/utils/productMeta'
+import { IconPlus } from '@arco-design/web-vue/es/icon'
 
 const props = withDefaults(defineProps<{
   messages: ChatMessage[]
@@ -39,7 +40,7 @@ const scrollRef = ref<HTMLDivElement | null>(null)
 
 function handleSend() {
   const text = input.value.trim()
-  if (!text) return
+  if (!text || props.typing) return
   emit('send', text)
   input.value = ''
 }
@@ -87,10 +88,11 @@ function getProduct(productId: string) {
       <button
         v-if="messages.length"
         data-testid="reset-chat"
-        class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500"
+        :disabled="typing"
+        class="flex shrink-0 items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600 disabled:opacity-50"
         @click="emit('reset')"
       >
-        新对话
+        <IconPlus />新对话
       </button>
     </div>
 
@@ -210,7 +212,7 @@ function getProduct(productId: string) {
         <button
           data-testid="chat-send"
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white disabled:opacity-40"
-          :disabled="!input.trim()"
+          :disabled="!input.trim() || typing"
           @click="handleSend"
         >
           ➤

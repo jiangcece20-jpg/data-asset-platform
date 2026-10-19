@@ -10,16 +10,16 @@ export interface InfoItem {
   full?: boolean
 }
 
-const props = defineProps<{ items: InfoItem[] }>()
+const props = defineProps<{ items: InfoItem[]; keepEmpty?: boolean }>()
 
 /** 过滤掉无 label / 空值项（空值不展示，而非回落为 —） */
 const rows = computed(() =>
   props.items
     .filter((item) => item.label)
-    .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
+    .filter((item) => props.keepEmpty || (item.value !== null && item.value !== undefined && item.value !== ''))
     .map((item) => ({
       ...item,
-      display: typeof item.value === 'number' ? item.value.toLocaleString() : String(item.value)
+      display: typeof item.value === 'number' ? item.value.toLocaleString() : String(item.value ?? '')
     }))
 )
 </script>

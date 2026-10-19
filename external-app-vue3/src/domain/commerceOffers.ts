@@ -33,6 +33,9 @@ export function commerceOffersOf(product: Product, includeMemberOnly = false): C
       ? product.datasetOffers.map(datasetOfferToCommerce)
       : []
 
+  if (product.origin === 'seller_market' && configured.length === 1 && configured[0].subject === 'enterprise') {
+    return configured
+  }
   if (product.dealChannel !== 'app_payment') return configured
   if (!product.acquisitions.includes('item_purchase') && !(includeMemberOnly && product.acquisitions.includes('member'))) return []
 

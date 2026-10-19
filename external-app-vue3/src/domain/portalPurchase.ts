@@ -40,7 +40,10 @@ export function purchasePrice(product: Product, subject: PurchaseIdentitySubject
 
 export function portalPurchaseActions(product: Product, context: PortalPurchaseContext): PortalPurchaseAction[] {
   if (product.availability === 'delisted' || product.status === 'delisted') {
-    return [{ key: 'unavailable', label: '已下架', disabled: true }]
+    const label = product.dealChannel === 'space_purchase' ? '提交试用申请'
+      : product.acquisitions.includes('free') ? '免费获取'
+        : product.origin === 'seller_market' ? '购买数据集' : '立即购买'
+    return [{ key: 'unavailable', label, disabled: true }]
   }
   if (product.availability === 'candidate' || product.availability === 'preparing') {
     return [{ key: 'listing', label: product.availability === 'candidate' ? '求上架' : '查看上架进度' }]
@@ -50,11 +53,14 @@ export function portalPurchaseActions(product: Product, context: PortalPurchaseC
   if (!context.loggedIn) {
     return [{ key: 'login', label: space ? '登录后提交试用申请' : free ? '登录后免费获取' : '登录查看价格' }]
   }
+  if (context.subject !== 'enterprise') {
+    return [{ key: 'unavailable', label: '试用会员不能购买或申请。', disabled: true }]
+  }
   if (space) return [{ key: 'trial', label: '提交试用申请' }]
   if (free) return [{ key: 'free', label: '免费获取' }]
   const actions: PortalPurchaseAction[] = []
   if (product.acquisitions.includes('item_purchase')) {
-    actions.push({ key: 'item', label: `单品购买｜${purchaseMoney(purchasePrice(product, context.subject, 'item', context.memberTier))}` })
+    actions.push({ key: 'item', label: `企业购买｜${purchaseMoney(purchasePrice(product, context.subject, 'item', context.memberTier))}` })
   }
   if (product.origin !== 'seller_market' && product.acquisitions.includes('member')) {
     const price = purchaseMoney(purchasePrice(product, context.subject, 'member', context.memberTier))

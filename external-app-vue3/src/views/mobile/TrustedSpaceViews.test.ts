@@ -49,7 +49,10 @@ async function mountMine(context: Partial<UserContext> = {}, path = '/app/mine')
   Object.assign(user.context, context)
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/app/mine', name: 'mine', component: Mine }]
+    routes: [
+      { path: '/app/mine', name: 'mine', component: Mine },
+      { path: '/app/mine/orders/:source/:id', component: { template: '<div />' } }
+    ]
   })
   await router.push(path)
   await router.isReady()
@@ -371,20 +374,31 @@ describe('mine order views', () => {
       enterpriseAuthStatus: 'authenticated',
       role: 'member'
     })
-    expect(wrapper.text()).toContain('本人个人订单')
-    expect(wrapper.text()).not.toContain('其他成员个人订单')
-    expect(wrapper.text()).toContain('企业 APP 订单')
+    expect(wrapper.find('[data-testid="order-card-app-personal-current"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="order-card-app-personal-other"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="order-card-app-enterprise-app"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-card-space-SP-ORDER-MINE"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="order-card-space-SP-ORDER-OTHER"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('APP 内购买')
-    expect(wrapper.text()).toContain('可信空间购买')
+    for (const id of ['app-personal-current', 'app-enterprise-app', 'space-SP-ORDER-MINE']) {
+      const card = wrapper.get(`[data-testid="order-card-${id}"]`)
+      expect(card.findAll('button').map((button) => button.text())).toEqual(['查看订单', '查看商品'])
+      expect(card.text()).not.toContain('APP 内购买')
+      expect(card.text()).not.toContain('可信空间购买')
+      expect(card.text()).toContain(id.startsWith('space-') ? '已开通' : '已支付')
+    }
+    await wrapper.get('[data-testid="order-card-app-personal-current"]').findAll('button')[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/app/mine/orders/app/personal-current')
+    await wrapper.get('[data-testid="order-card-space-SP-ORDER-MINE"]').findAll('button')[0].trigger('click')
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/app/mine/orders/space/SP-ORDER-MINE')
   })
 
   it('exposes orders as a primary mine menu with buy default', async () => {
     const wrapper = await mountMine()
     expect(wrapper.find('[data-testid="mine-menu-orders"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="mine-menu-data"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="order-tab-buy"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid^="order-tab-"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="my-orders"]').exists()).toBe(true)
   })
 

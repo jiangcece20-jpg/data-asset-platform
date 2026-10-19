@@ -3,6 +3,10 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { OWNED_SPACE_NAME } from '@/domain/spaceIntent'
+import { useCatalogStore } from '@/stores/catalog'
+import { useUserStore } from '@/stores/user'
+import { useEntitlementStore } from '@/stores/entitlements'
+import ProductCard from '@/components/mobile/ProductCard.vue'
 import SearchResult from './SearchResult.vue'
 import AIFindData from './AIFindData.vue'
 
@@ -50,7 +54,7 @@ describe('SearchResult filters', () => {
     expect(venues.element.tagName).toBe('SELECT')
     expect(wrapper.find('[data-testid="filter-ops"]').exists()).toBe(false)
     expect(venues.text()).toContain(OWNED_SPACE_NAME)
-    expect(venues.text()).toContain('本平台')
+    expect(venues.text()).toContain('自营产品')
     expect(venues.text()).toContain('陈静')
     expect(venues.text()).not.toContain('自有')
     expect(venues.text()).not.toContain('互联')
@@ -68,6 +72,42 @@ describe('SearchResult filters', () => {
     await wrapper.get('[data-testid="filter-types"]').setValue('dataset')
     expect(wrapper.find('[data-testid="filter-has-sample"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="filter-has-trial-api"]').exists()).toBe(false)
+  })
+
+  it.each(['asset_platform', 'app_content'])('uses one self-operated label and query for legacy origin %s', async (origin) => {
+    const catalog = useCatalogStore()
+    const base = catalog.byId('prod-public-freight-dataset')!
+    catalog.products = [
+      { ...base, id: 'asset-origin', origin: 'asset_platform' },
+      { ...base, id: 'content-origin', origin: 'app_content' },
+      { ...base, id: 'trusted-origin', origin: 'trusted_space', dealChannel: 'space_purchase' }
+    ]
+    catalog.resources = []
+    const wrapper = await mountSearch({ origin })
+    expect(wrapper.text()).toContain('来源：自营产品')
+    expect(wrapper.text()).not.toContain('资产平台')
+    expect(wrapper.findAllComponents(ProductCard).map((card) => card.props('product').id).sort()).toEqual(['asset-origin', 'content-origin'])
+  })
+
+  it('ignores the excluded directory filter and retains usable, keyword, type and source filters', async () => {
+    useUserStore().completeEnterpriseAuth()
+    useEntitlementStore().grantTeamMember()
+    const user = useUserStore()
+    useEntitlementStore().list.push({ id: 'snapshot-only', productId: 'prod-private-zero-dataset', type: 'dataset',
+      source: 'enterprise', ownerId: user.context.currentEnterpriseId!, enterpriseId: user.context.currentEnterpriseId!,
+      status: 'active', validFrom: '1999-01-01', updateValidTo: '2000-01-01', accessScope: 'enterprise_wide' })
+    const wrapper = await mountSearch({ q: '货运', type: 'dataset', venue: 'platform', usable: '1', directory: '不存在的目录' })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="mobile-business-directory"]').exists()).toBe(false)
+    expect((wrapper.get('[data-testid="mobile-usable-filter"]').element as HTMLInputElement).checked).toBe(true)
+    const cards = wrapper.findAllComponents(ProductCard)
+    expect(cards.length).toBeGreaterThan(0)
+    expect(cards.some((card) => card.props('product').id === 'prod-public-freight-dataset')).toBe(true)
+    expect(cards.some((card) => card.props('product').id === 'prod-private-zero-dataset')).toBe(false)
+    expect(cards.every((card) => card.props('product').type === 'dataset')).toBe(true)
+    await wrapper.get('[data-testid="mobile-usable-filter"]').setValue(false)
+    await flushPromises()
+    expect(wrapper.findAllComponents(ProductCard).some((card) => card.props('product').id === 'prod-private-zero-dataset')).toBe(true)
   })
 })
 

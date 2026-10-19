@@ -70,7 +70,6 @@ function goToDetail(id: string) {
       </select>
       <select v-model="filterAction" data-testid="filter-action" class="rounded-lg border border-ink-200 px-2 py-1 text-[12px]">
         <option value="">全部操作</option>
-        <option value="pause">暂停销售</option>
         <option value="delist">下架</option>
         <option value="recall">召回</option>
       </select>

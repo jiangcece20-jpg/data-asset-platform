@@ -278,7 +278,7 @@ describe('trustedSpaceCatalog store', () => {
     })
     expect(useCatalogStore().byId('prod-qualification-api')).toMatchObject({
       name: '当前权威商品',
-      availability: 'paused',
+      availability: 'delisted',
       price: { model: 'quote', quoteNote: '当前权威价格' }
     })
   })

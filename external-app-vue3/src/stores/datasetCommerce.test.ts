@@ -5,11 +5,24 @@ import { useEntitlementStore } from './entitlements'
 import { useOrderStore } from './orders'
 import { useUserStore } from './user'
 import { mockBiDeliveryAdapter } from '@/services/bi/mockBiDeliveryAdapter'
+import { useSellerMarketStore } from './sellerMarket'
+import { commerceOffersOf } from '@/domain/commerceOffers'
+import { useCatalogStore } from './catalog'
 
 describe('dataset commerce closed loop', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockBiDeliveryAdapter.reset()
+    useOrderStore().list = []
+  })
+
+  it('snapshots only an explicit source data time, never a product edit or sync time', () => {
+    const detail = useCatalogStore().byId('prod-truck-trajectory')!.typeDetail.dataset!
+    detail.dataUpdatedAt = undefined
+    expect(useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal').order.dataVersionUpdatedAt).toBeUndefined()
+    useOrderStore().list = []
+    detail.dataUpdatedAt = '2026-10-01T08:00:00'
+    expect(useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal').order.dataVersionUpdatedAt).toBe('2026-10-01T08:00:00')
   })
 
   it('personal purchase pays online and activates a BI dataset entitlement', () => {
@@ -53,6 +66,14 @@ describe('dataset commerce closed loop', () => {
     )
     expect(order.selectedTermMonths).toBe(12)
     expect(order.amount).toBe(399)
+  })
+
+  it('reuses an open order when the same purchase route is submitted twice', () => {
+    const commerce = useDatasetCommerceStore()
+    const first = commerce.createOrder('prod-truck-trajectory', 'personal').order
+    const second = commerce.createOrder('prod-truck-trajectory', 'personal').order
+    expect(second.id).toBe(first.id)
+    expect(useOrderStore().list.filter((item) => item.productId === first.productId)).toHaveLength(1)
   })
 
  it('ordinary enterprise member submits approval before enterprise-balance payment', () => {
@@ -140,7 +161,25 @@ describe('dataset commerce closed loop', () => {
     expect(useOrderStore().list.some((order) => order.productId === 'prod-enterprise-activity')).toBe(false)
   })
 
-  it('pauses new purchases for high-risk asset changes', () => {
-    expect(() => useDatasetCommerceStore().createOrder('prod-warehouse-turnover-risk', 'personal')).toThrow('暂停新购')
+  it('rejects purchases of the delisted high-risk sample', () => {
+    expect(() => useDatasetCommerceStore().createOrder('prod-warehouse-turnover-risk', 'personal')).toThrow('当前不可购买')
   })
+})
+
+it('resumes an online seller payment on the original order and delivers once', () => {
+  setActivePinia(createPinia())
+  mockBiDeliveryAdapter.reset()
+  useUserStore().switchMockPurchaseIdentity('enterprise_admin')
+  const product = useCatalogStore().byId('prod-seller-route-board')!
+  product.status = product.availability = 'published'
+  const offer = commerceOffersOf(product).find(item => item.subject === 'enterprise')!
+  const order = useSellerMarketStore().purchaseSellerProduct(product.id, offer.id, 'contract')
+  order.paymentMethod = 'enterprise_balance'
+  const beforeCount = useOrderStore().list.length
+  const commerce = useDatasetCommerceStore()
+  commerce.pay(order.id)
+  commerce.pay(order.id)
+  expect(useOrderStore().list.length).toBe(beforeCount)
+  expect(order.status).toBe('entitlement_active')
+  expect(commerce.deliveries.filter(item => item.orderId === order.id)).toHaveLength(1)
 })

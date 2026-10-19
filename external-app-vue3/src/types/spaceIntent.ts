@@ -8,6 +8,17 @@ export type SpaceIntentOpsStatus =
 
 export type SpaceIntentUserStatus = SpaceIntentOpsStatus
 
+export type SpaceIntentOperationAction = 'submitted' | 'claimed' | 'entitled' | 'closed'
+
+export interface SpaceIntentOperation {
+  id: string
+  action: SpaceIntentOperationAction
+  label: string
+  actor: string
+  note: string
+  createdAt: string
+}
+
 export interface SpaceIntentOrder {
   id: string
   productId: string
@@ -21,6 +32,7 @@ export interface SpaceIntentOrder {
   opsStatus: SpaceIntentOpsStatus
   processNote?: string
   closeReason?: string
+  operations?: SpaceIntentOperation[]
   createdAt: string
   updatedAt: string
 }

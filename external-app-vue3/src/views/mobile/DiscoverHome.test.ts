@@ -3,6 +3,9 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import DiscoverHome from './DiscoverHome.vue'
+import { useAiStore } from '@/stores/ai'
+import { useEntitlementStore } from '@/stores/entitlements'
+import { useUserStore } from '@/stores/user'
 
 async function mountDiscover() {
   const router = createRouter({
@@ -36,6 +39,28 @@ describe('DiscoverHome', () => {
     expect(wrapper.text()).toContain('全国货运价格指数')
   })
 
+  it('uses the unified self-operated product label in source filters', async () => {
+    const { wrapper } = await mountDiscover()
+    await wrapper.get('[data-testid="discover-filter-button"]').trigger('click')
+    expect(wrapper.text()).toContain('自营产品')
+    expect(wrapper.text()).not.toContain('App自有内容')
+  })
+
+  it('filters to products usable by the current enterprise', async () => {
+    useUserStore().completeEnterpriseAuth()
+    useEntitlementStore().grantTeamMember()
+    const user = useUserStore()
+    useEntitlementStore().list.push({ id: 'snapshot-only', productId: 'prod-private-zero-dataset', type: 'dataset',
+      source: 'enterprise', ownerId: user.context.currentEnterpriseId!, enterpriseId: user.context.currentEnterpriseId!,
+      status: 'active', validFrom: '1999-01-01', updateValidTo: '2000-01-01', accessScope: 'enterprise_wide' })
+    const { wrapper } = await mountDiscover()
+    expect(wrapper.text()).toContain('全国货运公开数据集')
+    expect(wrapper.text()).toContain('企业货运指标体验数据集')
+    await wrapper.get('[data-testid="discover-usable-filter"]').trigger('click')
+    expect(wrapper.text()).toContain('全国货运公开数据集')
+    expect(wrapper.text()).not.toContain('企业货运指标体验数据集')
+  })
+
   it('switches to embedded chat panel in AI mode', async () => {
     const { wrapper } = await mountDiscover()
     await wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
@@ -44,6 +69,18 @@ describe('DiscoverHome', () => {
     expect(wrapper.get('[data-testid="chat-empty"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('用自然语言找数')
     expect(wrapper.text()).not.toContain('数据来源样例')
+  })
+
+  it('carries the usable filter and type into keyword results', async () => {
+    const { wrapper, router } = await mountDiscover()
+    await wrapper.get('[data-testid="discover-usable-filter"]').trigger('click')
+    await wrapper.findAll('button').find((button) => button.text() === '数据集')!.trigger('click')
+    const input = wrapper.get('input[placeholder="搜索商品名称、场景或关键词"]')
+    await input.setValue('货运')
+    await input.trigger('keydown.enter')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/app/search')
+    expect(router.currentRoute.value.query).toMatchObject({ q: '货运', type: 'dataset', usable: '1' })
   })
 
   it('sends AI question inline without leaving discover tab', async () => {
@@ -56,5 +93,19 @@ describe('DiscoverHome', () => {
     await flushPromises()
     expect(wrapper.get('[data-testid="user-message"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="route-badge"]').text()).toContain('平台内')
+  })
+
+  it('opens saved conversations from the embedded AI mode', async () => {
+    const ai = useAiStore()
+    ai.activateOwner('mem-1')
+    ai.sendQuestion('历史货运问题')
+    ai.flushResponse()
+    const conversationId = ai.activeConversationId
+    ai.startNewConversation()
+    const { wrapper } = await mountDiscover()
+    await wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
+    await wrapper.get('[data-testid="discover-ai-history"]').trigger('click')
+    await wrapper.get(`[data-testid="ai-history-${conversationId}"]`).trigger('click')
+    expect(wrapper.get('[data-testid="discover-ai-panel"]').text()).toContain('历史货运问题')
   })
 })

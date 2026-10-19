@@ -6,21 +6,24 @@ import {
   originalPriceOk
 } from '@/domain/itemPricing'
 
-export type SalesState = 'unlisted' | 'draft' | 'published' | 'paused' | 'delisted'
+export type SalesState = 'unlisted' | 'draft' | 'published' | 'delisted'
+
+export function listingChangeLabel(product?: Product): string {
+  const change = product?.lastListingChange
+  return change ? `${change.mode === 'manual' ? '人工' : '系统'}${change.action === 'publish' ? '上架' : '下架'}` : '未记录'
+}
 
 export const SALES_STATE_LABELS: Record<SalesState, string> = {
   unlisted: '未上架',
   draft: '草稿',
   published: '已上架',
-  paused: '暂停新购',
   delisted: '已下架'
 }
 
 export function salesStateOf(product: Product | undefined): SalesState {
   if (!product) return 'unlisted'
   if (product.availability === 'published') return 'published'
-  if (product.availability === 'paused') return 'paused'
-  if (product.availability === 'delisted') return 'delisted'
+  if (product.availability === 'delisted' || product.availability === 'paused') return 'delisted'
   return 'draft'
 }
 

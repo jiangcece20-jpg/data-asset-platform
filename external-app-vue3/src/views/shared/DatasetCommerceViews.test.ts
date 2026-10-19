@@ -6,6 +6,7 @@ import DatasetCheckout from './DatasetCheckout.vue'
 import DatasetPayment from './DatasetPayment.vue'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
 import { useUserStore } from '@/stores/user'
+import { useOrderStore } from '@/stores/orders'
 
 const Dummy = { template: '<div />' }
 
@@ -33,13 +34,16 @@ async function mountRoute(path: string, component: typeof DatasetCheckout | type
 }
 
 describe('dataset commerce views', () => {
-  beforeEach(() => setActivePinia(createPinia()))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    useOrderStore().list = []
+  })
 
-  it('creates a personal order from checkout and goes straight to payment', async () => {
+  it('does not create a personal order from dataset checkout', async () => {
     const { router, wrapper } = await mountRoute('/app/checkout/dataset/prod-truck-trajectory', DatasetCheckout)
     await flushPromises()
-    expect(wrapper.find('[data-testid="dataset-subject-personal"]').exists()).toBe(false)
-    expect(router.currentRoute.value.path).toMatch(/^\/app\/payment\/dataset\/order-dataset-/)
+    expect(router.currentRoute.value.path).toBe('/app/checkout/dataset/prod-truck-trajectory')
+    expect(wrapper.get('[data-testid="dataset-checkout-error"]').text()).toContain('请先完成企业认证')
   })
 
  it('submits an enterprise approval for an ordinary member and lands on payment', async () => {
@@ -96,18 +100,27 @@ describe('dataset commerce views', () => {
     expect(order.contractStatus).toBe('payment_confirmed')
   })
 
-  it('sends a delivered payment success CTA to my orders', async () => {
+  it.each(['/app', '/portal'])('sends a delivered payment success CTA to my orders on %s', async (base) => {
     const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
-    const { router, wrapper } = await mountRoute(`/app/payment/dataset/${order.id}`, DatasetPayment)
+    const { router, wrapper } = await mountRoute(`${base}/payment/dataset/${order.id}`, DatasetPayment)
     await wrapper.find('[data-testid="dataset-pay"]').trigger('click')
     await flushPromises()
 
     const cta = wrapper.findAll('button').find((btn) => btn.text() === '查看我的订单')
     expect(cta).toBeTruthy()
     expect(wrapper.text()).not.toContain('查看我的数据')
+    expect(wrapper.get('[data-testid="dataset-delivery-success"]').text().includes('请登录PC端，前往「用数」模块查看和使用')).toBe(base === '/app')
     await cta!.trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/app/mine')
+    expect(router.currentRoute.value.path).toBe(`${base}/mine`)
     expect(router.currentRoute.value.query).toMatchObject({ menu: 'orders' })
+  })
+
+  it('does not expose legacy renewal semantics on a dataset payment', async () => {
+    const { order } = useDatasetCommerceStore().createOrder('prod-truck-trajectory', 'personal')
+    const { wrapper } = await mountRoute(`/app/payment/dataset/${order.id}?renew=legacy-entitlement`, DatasetPayment)
+
+    expect(wrapper.text()).not.toContain('续订')
+    expect(wrapper.text()).not.toContain('延长更新到期日')
   })
 })

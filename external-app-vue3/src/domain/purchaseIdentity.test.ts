@@ -56,11 +56,8 @@ describe('purchase identity', () => {
     expect(user.context.currentEnterpriseId).toBeUndefined()
   })
 
-  it('creates a dataset order for the current identity and returns the payment path', () => {
-    const { order, path } = startDatasetPayment('prod-truck-trajectory', false)
-    expect(order.ownerType).toBe('personal')
-    expect(path).toBe(`/app/payment/dataset/${order.id}`)
-
+  it('requires an enterprise identity for new dataset orders', () => {
+    expect(() => startDatasetPayment('prod-truck-trajectory', false)).toThrow('请先完成企业认证')
     useUserStore().completeEnterpriseAuth()
     const enterprise = startDatasetPayment('prod-truck-trajectory', true)
     expect(enterprise.order.ownerType).toBe('enterprise')
