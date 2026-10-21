@@ -70,7 +70,7 @@ const usableOnly = ref(false)
 
 const filterOpen = ref(false)
 // 抽屉草稿：打开时拷贝，确定后应用
-const draft = ref({ sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value })
+const draft = ref({ sort: sort.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value })
 
 const activeFilterCount = computed(
   () => (sort.value !== 'recommend' ? 1 : 0) + (originFilter.value ? 1 : 0) + (spaceFilter.value ? 1 : 0) + (usableOnly.value ? 1 : 0)
@@ -120,19 +120,18 @@ function selectType(key: ProductType | '') {
 }
 
 function openFilter() {
-  draft.value = { sort: sort.value, type: activeType.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value }
+  draft.value = { sort: sort.value, origin: originFilter.value, space: spaceFilter.value, usable: usableOnly.value }
   filterOpen.value = true
 }
 function applyFilter() {
   sort.value = draft.value.sort
-  activeType.value = draft.value.type
   originFilter.value = draft.value.origin
   spaceFilter.value = draft.value.space
   usableOnly.value = draft.value.usable
   filterOpen.value = false
 }
 function resetFilter() {
-  draft.value = { sort: 'recommend', type: '', origin: '', space: '', usable: false }
+  draft.value = { sort: 'recommend', origin: '', space: '', usable: false }
 }
 
 function submitKeyword(q?: string) {
@@ -251,16 +250,6 @@ function handleDowngradeKeyword() {
           </button>
         </div>
         <button
-          data-testid="discover-usable-filter"
-          class="flex h-9 shrink-0 items-center gap-1 rounded-xl border px-2.5 text-[13px] transition"
-          :class="usableOnly ? 'border-brand-300 bg-brand-50 font-medium text-brand-600' : 'border-ink-200 bg-white text-ink-600'"
-          :aria-pressed="usableOnly"
-          @click="usableOnly = !usableOnly"
-        >
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="usableOnly" d="m5 12 4 4L19 6" /><circle v-else cx="12" cy="12" r="7" /></svg>
-          我可使用
-        </button>
-        <button
           data-testid="discover-filter-button"
           class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white"
           :class="activeFilterCount ? 'font-medium text-brand-600' : 'text-ink-600'"
@@ -269,7 +258,7 @@ function handleDowngradeKeyword() {
           @click="openFilter"
         >
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6 7v5l-4 2v-7z" /></svg>
-          <span v-if="activeFilterCount" class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">{{ activeFilterCount }}</span>
+          <span v-if="activeFilterCount" data-testid="discover-filter-count" class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] text-white">{{ activeFilterCount }}</span>
         </button>
       </div>
     </div>
@@ -337,19 +326,37 @@ function handleDowngradeKeyword() {
     </div>
     <AiConversationHistory :open="historyOpen" :conversations="ai.conversationList" :active-id="ai.activeConversationId" :busy="ai.chatTyping" @close="historyOpen = false" @new="newAiFromHistory" @select="openAiHistory" />
 
-    <!-- 筛选抽屉（对齐设计稿：排序/类型/来源/空间 + 重置/确定） -->
+    <!-- 更多筛选抽屉：使用范围/排序/来源/空间 + 重置/确定；类型由顶部快捷入口控制 -->
     <teleport to="body">
       <div v-if="filterOpen" class="fixed inset-0 z-[70] flex items-end justify-center">
         <div class="absolute inset-0 bg-ink-900/40" @click="filterOpen = false"></div>
         <div class="relative w-full max-w-[390px] rounded-t-3xl bg-white px-5 pb-6 pt-4">
           <div class="relative mb-4 text-center text-[16px] font-semibold text-ink-900">
-            筛选
+            更多筛选
             <button class="absolute right-0 top-1/2 -translate-y-1/2 text-ink-400" aria-label="关闭" @click="filterOpen = false">
               <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
           <div class="max-h-[60vh] space-y-5 overflow-y-auto">
+            <!-- 使用范围 -->
+            <div>
+              <div class="mb-2 text-[14px] font-semibold text-ink-900">使用范围</div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="rounded-full px-5 py-2 text-[13px] transition"
+                  :class="!draft.usable ? 'bg-brand-50 font-medium text-brand-600' : 'bg-ink-100 text-ink-500'"
+                  @click="draft.usable = false"
+                >全部</button>
+                <button
+                  data-testid="discover-usable-only"
+                  class="rounded-full px-5 py-2 text-[13px] transition"
+                  :class="draft.usable ? 'bg-brand-50 font-medium text-brand-600' : 'bg-ink-100 text-ink-500'"
+                  @click="draft.usable = true"
+                >我可使用</button>
+              </div>
+            </div>
+
             <!-- 排序 -->
             <div>
               <div class="mb-2 text-[14px] font-semibold text-ink-900">排序</div>
@@ -361,20 +368,6 @@ function handleDowngradeKeyword() {
                   :class="draft.sort === opt.key ? 'bg-brand-50 font-medium text-brand-600' : 'bg-ink-100 text-ink-500'"
                   @click="draft.sort = opt.key"
                 >{{ opt.label }}</button>
-              </div>
-            </div>
-
-            <!-- 类型 -->
-            <div>
-              <div class="mb-2 text-[14px] font-semibold text-ink-900">类型</div>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="tab in typeTabs"
-                  :key="tab.key"
-                  class="rounded-full px-5 py-2 text-[13px] transition"
-                  :class="draft.type === tab.key ? 'bg-brand-50 font-medium text-brand-600' : 'bg-ink-100 text-ink-500'"
-                  @click="draft.type = tab.key"
-                >{{ tab.label }}</button>
               </div>
             </div>
 
@@ -414,7 +407,7 @@ function handleDowngradeKeyword() {
 
           <div class="mt-5 flex gap-3">
             <button class="h-11 flex-1 rounded-full border border-ink-200 text-[15px] font-medium text-ink-600" @click="resetFilter">重置</button>
-            <button class="h-11 flex-[2] rounded-full bg-brand-500 text-[15px] font-medium text-white" @click="applyFilter">确定</button>
+            <button data-testid="discover-filter-apply" class="h-11 flex-[2] rounded-full bg-brand-500 text-[15px] font-medium text-white" @click="applyFilter">确定</button>
           </div>
         </div>
       </div>

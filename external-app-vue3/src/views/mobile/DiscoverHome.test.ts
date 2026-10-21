@@ -29,6 +29,7 @@ describe('DiscoverHome', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    document.body.innerHTML = ''
   })
 
   it('shows keyword search panel by default with showcase cards', async () => {
@@ -56,9 +57,16 @@ describe('DiscoverHome', () => {
     const { wrapper } = await mountDiscover()
     expect(wrapper.text()).toContain('全国货运公开数据集')
     expect(wrapper.text()).toContain('企业货运指标体验数据集')
-    await wrapper.get('[data-testid="discover-usable-filter"]').trigger('click')
+    expect(wrapper.find('[data-testid="discover-usable-filter"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="discover-filter-button"]').trigger('click')
+    expect(document.body.textContent).toContain('使用范围')
+    expect(document.body.textContent).not.toContain('类型全部数据集')
+    document.body.querySelector<HTMLElement>('[data-testid="discover-usable-only"]')!.click()
+    document.body.querySelector<HTMLElement>('[data-testid="discover-filter-apply"]')!.click()
+    await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('全国货运公开数据集')
     expect(wrapper.text()).not.toContain('企业货运指标体验数据集')
+    expect(wrapper.get('[data-testid="discover-filter-count"]').text()).toBe('1')
   })
 
   it('switches to embedded chat panel in AI mode', async () => {
@@ -73,7 +81,10 @@ describe('DiscoverHome', () => {
 
   it('carries the usable filter and type into keyword results', async () => {
     const { wrapper, router } = await mountDiscover()
-    await wrapper.get('[data-testid="discover-usable-filter"]').trigger('click')
+    await wrapper.get('[data-testid="discover-filter-button"]').trigger('click')
+    document.body.querySelector<HTMLElement>('[data-testid="discover-usable-only"]')!.click()
+    document.body.querySelector<HTMLElement>('[data-testid="discover-filter-apply"]')!.click()
+    await wrapper.vm.$nextTick()
     await wrapper.findAll('button').find((button) => button.text() === '数据集')!.trigger('click')
     const input = wrapper.get('input[placeholder="搜索商品名称、场景或关键词"]')
     await input.setValue('货运')
