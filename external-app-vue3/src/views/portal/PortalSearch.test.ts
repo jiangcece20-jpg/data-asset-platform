@@ -24,11 +24,11 @@ async function mountSearch(query: Record<string, string> = {}) {
 describe('PortalSearch keyword-only', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('shows route 1 badge and no inline AI answer panel', async () => {
+  it('shows compact keyword search and no inline AI answer panel', async () => {
     const { wrapper } = await mountSearch({ q: '货运' })
     await flushPromises()
     expect(wrapper.get('[data-testid="portal-keyword-search"]').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="route-badge"]').text()).toContain('关键词')
+    expect(wrapper.get('[data-testid="portal-search-input"]').attributes('aria-label')).toBe('搜索数据商品')
     expect(wrapper.text()).not.toContain('🤖 AI回答')
   })
 
@@ -52,7 +52,7 @@ describe('PortalSearch keyword-only', () => {
 
   it('uses the unified self-operated product label in source filters', async () => {
     const { wrapper } = await mountSearch()
-    await wrapper.findAll('button').find((button) => button.text().trim() === '来源')!.trigger('click')
+    // 侧栏来源分组直接展开，无需点击下拉
     expect(wrapper.text()).toContain('自营产品')
     expect(wrapper.text()).not.toContain('本平台')
   })

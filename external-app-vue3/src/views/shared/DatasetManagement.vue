@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { IconSearch as Search, IconArrowRight as ArrowRight, IconArrowLeft as ArrowLeft, IconStorage as Database } from '@arco-design/web-vue/es/icon'
+import PortalDatasetWorkspace from '@/views/portal/components/PortalDatasetWorkspace.vue'
 import ProductTypeIcon from '@/components/shared/ProductTypeIcon.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useDatasetCommerceStore } from '@/stores/datasetCommerce'
@@ -19,7 +20,7 @@ const tabs = [
   { key: 'all', label: '全部' }, { key: 'sql', label: 'SQL 查询' },
   { key: 'model', label: '可视化建模' }, { key: 'purchased', label: '已购数据集' }
 ]
-const activeTab = computed(() => tabs.some(tab => tab.key === route.query.tab) ? String(route.query.tab) : 'purchased')
+const activeTab = computed(() => tabs.some(tab => tab.key === route.query.tab) ? String(route.query.tab) : client.value === 'portal' ? 'all' : 'purchased')
 const datasets = computed(() => {
   if (!['all', 'purchased'].includes(activeTab.value)) return []
   return catalog.products.filter(product => commerce.canUsePurchasedDataset(product)
@@ -42,7 +43,10 @@ function openDataset(id: string) {
 </script>
 
 <template>
-  <main class="mx-auto max-w-[1200px] bg-white" data-testid="dataset-management">
+  <PortalDatasetWorkspace v-if="client === 'portal'" :datasets="datasets" :active-tab="activeTab" v-model:keyword="keyword" v-model:sort="sort" :target-unavailable="targetUnavailable"
+    :empty-message="!user.context.loggedIn || !user.currentEnterpriseMember ? '请以有效企业成员身份查看数据集。' : ['all', 'purchased'].includes(activeTab) ? '暂无可用的已购数据集' : '暂无数据集'"
+    @select-tab="selectTab" @open-dataset="openDataset" />
+  <main v-else class="mx-auto max-w-[1200px] bg-white" data-testid="dataset-management">
     <div class="flex items-center gap-3 border-b border-ink-200 px-4 py-4 sm:px-6">
       <button aria-label="返回" title="返回" class="shrink-0 text-ink-500" @click="router.back()"><ArrowLeft class="h-5 w-5" /></button>
       <h1 class="text-lg font-semibold text-ink-900">数据集管理</h1>

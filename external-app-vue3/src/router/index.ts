@@ -74,6 +74,7 @@ const router = createRouter({
     // ---------------- PC 门户 ----------------
     { path: '/portal', redirect: '/portal/search' },
     { path: '/portal/home', redirect: '/portal/search' },
+    { path: '/portal/insights', name: 'portal-insights', component: () => import('@/views/portal/PortalInsights.vue'), meta: { title: '看数' } },
     { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '关键词搜索' } },
     { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/portal/PortalAiChat.vue'), meta: { title: 'AI问答' } },
     { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },

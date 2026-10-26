@@ -29,7 +29,7 @@ function switchMode(target: 'app' | 'portal' | 'admin') {
 </script>
 
 <template>
-  <div class="min-h-screen bg-ink-100">
+  <div class="min-h-screen bg-ink-100" :class="{ 'tech-preview': ['/portal/search', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path) }">
     <header class="sticky top-0 z-50 border-b border-ink-200 bg-white/95 backdrop-blur">
       <div class="flex items-center justify-between px-3 py-2.5 sm:px-4">
         <div class="flex items-center gap-2">

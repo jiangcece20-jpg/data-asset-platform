@@ -10,8 +10,8 @@ const userStore = useUserStore()
 const nav = [
   { key: 'home', label: '首页', external: true },
   { key: 'wumao', label: '物贸一体', external: true },
-  { key: 'kan', label: '看数', external: true },
-  { key: 'yong', label: '用数', path: '/portal/data-prepare/datasets?tab=purchased' },
+  { key: 'kan', label: '看数', path: '/portal/insights' },
+  { key: 'yong', label: '用数', path: '/portal/data-prepare/datasets?tab=all' },
   { key: 'market', label: '找数买数', path: '/portal/search' },
   { key: 'cai', label: '采数', external: true },
   { key: 'mine', label: '我的', path: '/portal/mine' }
@@ -34,8 +34,9 @@ function isActive(key: string, path?: string) {
       || route.path.startsWith('/portal/enterprise')
   }
   if (key === 'market') {
-    return route.path.startsWith('/portal') && !isActive('mine') && !isActive('yong')
+    return route.path.startsWith('/portal') && !isActive('mine') && !isActive('yong') && !isActive('kan')
   }
+  if (key === 'kan') return route.path === '/portal/insights'
   if (key === 'yong') return route.path.startsWith('/portal/data-prepare/') || route.path.startsWith('/portal/use/')
   if (path) return route.path.startsWith(path)
   return false
@@ -43,7 +44,7 @@ function isActive(key: string, path?: string) {
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-93px)]">
+  <div class="min-h-[calc(100vh-93px)]" :class="{ 'tech-shell': ['/portal/search', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path), 'dataset-shell': route.path === '/portal/data-prepare/datasets', 'insights-shell': route.path === '/portal/insights' }">
     <!-- 顶部全局导航（对齐线上：首页/物贸一体/看数/用数/找数买数/采数/我的） -->
     <header class="z-40 border-b border-ink-100 bg-white">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center px-6">

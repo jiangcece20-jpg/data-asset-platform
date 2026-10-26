@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
+import './portal-concept.css'
+import DataNexus from './components/DataNexus.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
@@ -13,11 +15,11 @@ import { productListChips, productTrialChips } from '@/domain/productListChips'
 import { hasExpiredEnterpriseProductEntitlement } from '@/domain/v102Trade'
 import { isDiscoverProductUsable } from '@/domain/discoverUsability'
 import {
-  ROUTE_META,
   buildRetrievalHits,
   explainProductMatch,
   formatMatchExplain
 } from '@/domain/discoverRouting'
+import PortalProductIcon from './components/PortalProductIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,10 +30,11 @@ const user = useUserStore()
 const query = ref(String(route.query.q || ''))
 const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
 // 结果视图：长卡（单列）与豆腐块（双列网格）可切换
-const viewMode = ref<'list' | 'grid'>('list')
+const viewMode = ref<'list' | 'grid'>('grid')
 const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
 const activeVenue = ref(String(route.query.venue || ''))
 const usableOnly = ref(false)
+const activeOps = ref('')
 
 watch(
   () => route.query.q,
@@ -71,19 +74,13 @@ const VENUE_OPTIONS = [
   { key: 'seller', label: '入驻商家' }
 ] as const
 
-// 当前展开的顶部筛选面板（同一时间只开一个，点外部关闭）
-const openFilter = ref<null | 'venue'>(null)
-function toggleFilterPanel(key: 'venue') {
-  openFilter.value = openFilter.value === key ? null : key
-}
-function closeFilterPanel() {
-  openFilter.value = null
-}
+const OPS_OPTIONS = ['热门', '合规首选'] as const
 
 const activeFilterCount = computed(() => {
   let n = usableOnly.value ? 1 : 0
   if (activeType.value) n += 1
   if (filters.venueKind) n += 1
+  if (activeOps.value) n += 1
   return n
 })
 
@@ -92,7 +89,7 @@ function resetFilters() {
   activeVenue.value = ''
   usableOnly.value = false
   filters.venueKind = ''
-  closeFilterPanel()
+  activeOps.value = ''
   page.value = 1
 }
 
@@ -110,6 +107,10 @@ const filteredProducts = computed(() =>
     if (filters.venueKind === 'platform' && venue) return false
     if (filters.venueKind === 'space' && (!venue || venue.kind !== 'space')) return false
     if (filters.venueKind === 'seller' && (!venue || venue.kind !== 'seller')) return false
+    if (activeOps.value) {
+      const ops = productListChips(p).ops
+      if (!ops || ops.kind !== 'campaign' || ops.label !== activeOps.value) return false
+    }
     if (usableOnly.value && !isDiscoverProductUsable(p, {
       enterpriseAuthenticated: user.isEnterpriseAuthenticated,
       accessLevel: entitlements.accessLevel(p),
@@ -174,7 +175,7 @@ const mixedResults = computed<MixedResult[]>(() => [
 const page = ref(1)
 const PAGE_SIZE = 10
 const totalPages = computed(() => Math.max(1, Math.ceil(mixedResults.value.length / PAGE_SIZE)))
-watch([query, sortType, filters, activeType, activeVenue, usableOnly], () => {
+watch([query, sortType, filters, activeType, activeVenue, usableOnly, activeOps], () => {
   page.value = 1
 })
 const pagedResults = computed(() =>
@@ -208,9 +209,14 @@ const venueCounts = computed(() => {
   return counts
 })
 
-const venueLabel = computed(
-  () => VENUE_OPTIONS.find((o) => o.key === filters.venueKind)?.label || ''
-)
+const opsCounts = computed(() => {
+  const counts: Record<string, number> = { 热门: 0, 合规首选: 0 }
+  for (const p of baseResults.value) {
+    const ops = productListChips(p).ops
+    if (ops?.kind === 'campaign' && ops.label in counts) counts[ops.label] += 1
+  }
+  return counts
+})
 
 // ---------- 行展示 ----------
 function cardSummary(product: Product) {
@@ -280,460 +286,297 @@ function goAi(from?: string) {
 </script>
 
 <template>
-  <!-- 通体渐变背景：对角渐变与 hero 同源，往下淡出至灰白 -->
-  <div
-    class="relative -mx-6 -mt-5 px-6 pb-10 pt-5"
-    style="background-image: linear-gradient(180deg, rgba(247,248,250,0) 0%, rgba(247,248,250,0.92) 760px, #F7F8FA 1250px), linear-gradient(135deg, #EAF0FF 0%, #F3F1FF 35%, #FAF3FF 100%);"
-  >
-    <!-- 页面级装饰层：光斑/网格铺满顶部，随通体渐变自然过渡，无 hero 局部边界 -->
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-[620px] overflow-hidden">
-      <!-- 光斑（大而柔，铺满顶部两角） -->
-      <div class="absolute -right-24 -top-36 h-96 w-96 rounded-full bg-violet-400/25 blur-3xl"></div>
-      <div class="absolute right-1/3 top-24 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl"></div>
-      <div class="absolute -left-20 -top-28 h-80 w-80 rounded-full bg-brand-300/30 blur-3xl"></div>
-      <!-- 细线网格：全宽铺开，向下淡出 -->
-      <div
-        class="absolute inset-0 opacity-70"
-        style="background-image: linear-gradient(rgba(123,92,246,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(123,92,246,0.08) 1px, transparent 1px); background-size: 26px 26px; -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 88%); mask-image: linear-gradient(to bottom, #000 0%, transparent 88%);"
-      ></div>
-      <!-- 蓝色点阵：与网格错位，向下淡出 -->
-      <div
-        class="absolute inset-0 opacity-50"
-        style="background-image: radial-gradient(circle, rgba(59,111,247,0.16) 1px, transparent 1px); background-size: 22px 22px; background-position: 11px 11px; -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 80%); mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);"
-      ></div>
-      <!-- 轨道环：静态外环 + 慢转虚线内环（含卫星点） -->
-      <svg class="absolute right-10 top-7 h-36 w-36 text-violet-400/30" viewBox="0 0 120 120" fill="none">
-        <circle cx="60" cy="60" r="54" stroke="currentColor" stroke-width="1" />
-        <circle cx="60" cy="60" r="6" fill="currentColor" />
-      </svg>
-      <svg class="ring-spin absolute right-10 top-7 h-36 w-36 text-violet-400/45" viewBox="0 0 120 120" fill="none">
-        <circle cx="60" cy="60" r="38" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5" />
-        <circle cx="60" cy="22" r="3" fill="currentColor" />
-      </svg>
-      <!-- 数据折线（上扬趋势） -->
-      <svg class="absolute right-52 top-[218px] h-24 w-44 text-violet-300/60" viewBox="0 0 160 90" fill="none" stroke="currentColor" stroke-width="1.2">
-        <path d="M8 72 L46 34 L90 56 L150 12" stroke-linecap="round" stroke-linejoin="round" />
-        <circle cx="8" cy="72" r="2.5" fill="currentColor" />
-        <circle cx="46" cy="34" r="2.5" fill="currentColor" />
-        <circle cx="90" cy="56" r="2.5" fill="currentColor" />
-        <circle cx="150" cy="12" r="2.5" fill="currentColor" />
-      </svg>
-      <!-- 星光点（呼应豆腐块图标闪烁） -->
-      <svg class="icon-twinkle absolute right-60 top-10 h-3 w-3 text-violet-400" viewBox="0 0 24 24" fill="currentColor" style="animation-delay: 0.9s"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-      <svg class="icon-twinkle absolute right-12 top-[240px] h-2.5 w-2.5 text-violet-300" viewBox="0 0 24 24" fill="currentColor" style="animation-delay: 1.7s"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-    </div>
-    <div class="relative mx-auto max-w-6xl" data-testid="portal-keyword-search">
-    <!-- 浅色科技头（与页面背景通体，无边界） -->
-    <div class="relative px-8 pb-7 pt-8">
-      <div class="relative max-w-2xl">
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-500">Data Marketplace</span>
-          <span
-            class="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-violet-600 ring-1 ring-violet-100"
-            data-testid="route-badge"
-          >{{ ROUTE_META.known_lookup.label }}</span>
+  <div class="market-concept">
+    <div class="market-container" data-testid="portal-keyword-search">
+      <section class="market-hero">
+        <div class="hero-copy">
+          <div class="hero-eyebrow"><span class="live-dot"></span> CONNECTING DATA. CREATING VALUE.<span class="concept-tag">DESIGN EXPLORATION / 01</span></div>
+          <h1>让数据的价值，<span>超越你的想象。</span></h1>
+          <p>交通运输全链路数据 · 官方审核上架 · 可信空间交付</p>
         </div>
-        <h1 class="mt-2 text-[26px] font-bold leading-tight text-ink-900">让行业数据，可信可得</h1>
-        <p class="mt-1 text-[13px] text-ink-500">覆盖交通运输全链路的数据资产市场 · 官方审核上架 · 可信空间合规交付</p>
+        <DataNexus />
+      </section>
 
-        <div class="mt-4 flex h-12 items-center gap-2 rounded-xl bg-white p-1.5 pl-4 shadow-card">
-          <svg class="h-[18px] w-[18px] shrink-0 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            v-model="query"
-            data-testid="portal-search-input"
-            class="h-full min-w-0 flex-1 bg-transparent text-sm text-ink-900 outline-none placeholder:text-ink-400"
-            placeholder="输入关键词，如：运价、货车轨迹、订单预测"
-            @keyup.enter="handleSearch"
-          />
-          <button
-            class="h-9 shrink-0 rounded-lg bg-gradient-to-r from-[#3B6FF7] to-[#7B5CF6] px-6 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
-            data-testid="portal-search-submit"
-            @click="handleSearch"
-          >
-            找数
-          </button>
-          <button
-            class="h-9 shrink-0 rounded-lg px-4 text-sm font-medium text-violet-600 transition hover:bg-violet-50"
-            data-testid="portal-go-ai"
-            @click="goAi()"
-          >
-            AI 问答
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 结果工作台：顶部导航式筛选，无侧栏 -->
-    <div class="relative mt-4 rounded-lg border border-[#F0F1F3] bg-white shadow-card">
-      <div v-if="openFilter" class="fixed inset-0 z-40" @click="closeFilterPanel"></div>
-
-      <!-- 类型 Tab（紫系胶囊 + 线框图标，呼应豆腐块图标语言） -->
-      <div class="flex items-center gap-1.5 overflow-x-auto border-b border-ink-100 px-4 py-2.5 text-sm">
-        <button
-          class="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition"
-          :class="!activeType ? 'bg-violet-50 text-violet-700' : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-900'"
-          @click="activeType = ''"
-        >
-          <svg class="h-3.5 w-3.5" :class="!activeType ? 'text-violet-500' : 'text-ink-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
-          全部<span class="text-xs font-normal" :class="!activeType ? 'text-violet-400' : 'text-ink-400'">{{ baseResults.length }}</span>
-        </button>
-        <button
-          v-for="opt in TYPE_OPTIONS"
-          :key="opt.key"
-          class="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium transition"
-          :class="activeType === opt.key ? 'bg-violet-50 text-violet-700' : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-900'"
-          @click="activeType = activeType === opt.key ? '' : opt.key"
-        >
-          <svg v-if="opt.key === 'dataset'" class="h-3.5 w-3.5" :class="activeType === opt.key ? 'text-violet-500' : 'text-ink-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" /></svg>
-          <svg v-else-if="opt.key === 'api'" class="h-3.5 w-3.5" :class="activeType === opt.key ? 'text-violet-500' : 'text-ink-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4" /><path d="m16 8 4 4-4 4" /><path d="m13 5-2 14" /></svg>
-          <svg v-else-if="opt.key === 'report'" class="h-3.5 w-3.5" :class="activeType === opt.key ? 'text-violet-500' : 'text-ink-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></svg>
-          <svg v-else class="h-3.5 w-3.5" :class="activeType === opt.key ? 'text-violet-500' : 'text-ink-400'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="6" y="11" width="3" height="6" rx="0.5" /><rect x="11" y="7" width="3" height="10" rx="0.5" /><rect x="16" y="13" width="3" height="4" rx="0.5" /></svg>
-          {{ opt.label }}<span class="text-xs font-normal" :class="activeType === opt.key ? 'text-violet-400' : 'text-ink-400'">{{ typeCounts.get(opt.key) || 0 }}</span>
-        </button>
-      </div>
-
-      <!-- 筛选工具栏 -->
-      <div data-testid="portal-filter-toolbar" class="flex flex-wrap items-center gap-2 px-5 py-3">
-        <!-- 来源（单选） -->
-        <div class="relative z-50">
-          <button
-            class="inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-[13px] transition"
-            :class="filters.venueKind
-              ? 'border-brand-300 bg-brand-50 text-brand-600'
-              : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-            @click.stop="toggleFilterPanel('venue')"
-          >
-            {{ venueLabel || '来源' }}
-            <svg class="h-3.5 w-3.5 transition" :class="openFilter === 'venue' ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          <div
-            v-if="openFilter === 'venue'"
-            class="absolute left-0 top-full z-50 mt-1.5 w-40 rounded-xl border border-ink-100 bg-white p-1.5 shadow-float"
-          >
-            <button
-              v-for="opt in VENUE_OPTIONS"
-              :key="opt.key"
-              class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-[13px] transition hover:bg-ink-100/60"
-              :class="filters.venueKind === opt.key ? 'text-brand-600' : 'text-ink-700'"
-              @click="filters.venueKind = filters.venueKind === opt.key ? '' : opt.key; closeFilterPanel()"
-            >
-              <span class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full" :class="filters.venueKind === opt.key ? 'bg-brand-500' : 'bg-ink-300'"></span>{{ opt.label }}
-              </span>
-              <span class="text-[11px] text-ink-400">{{ venueCounts[opt.key] }}</span>
-            </button>
-          </div>
-        </div>
-
-        <button
-          data-testid="portal-usable-filter"
-          class="inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[13px] transition"
-          :class="usableOnly
-            ? 'border-brand-300 bg-brand-50 font-medium text-brand-600'
-            : 'border-ink-200 text-ink-600 hover:border-brand-300 hover:text-brand-600'"
-          :aria-pressed="usableOnly"
-          @click="usableOnly = !usableOnly"
-        >
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-if="usableOnly" d="m5 12 4 4L19 6" /><circle v-else cx="12" cy="12" r="7" /></svg>
-          我可使用
-        </button>
-
-        <button
-          v-if="activeFilterCount"
-          class="inline-flex h-8 items-center rounded-lg px-2 text-[13px] text-ink-500 transition hover:text-danger-500"
-          @click="resetFilters"
-        >
-          <svg class="mr-0.5 h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          重置（{{ activeFilterCount }}）
-        </button>
-
-        <span class="flex-1"></span>
-
-        <div class="text-[13px] text-ink-500">
-          共 <span class="font-semibold text-ink-900">{{ mixedResults.length }}</span> 条结果
-        </div>
-        <div class="inline-flex rounded-lg bg-ink-100 p-0.5 text-[13px]">
-          <button
-            class="rounded-md px-3 py-1 transition"
-            :class="sortType === 'default' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
-            @click="sortType = 'default'"
-          >综合</button>
-          <button
-            class="rounded-md px-3 py-1 transition"
-            :class="sortType === 'latest' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
-            @click="sortType = 'latest'"
-          >最新</button>
-          <button
-            class="rounded-md px-3 py-1 transition"
-            :class="sortType === 'price_asc' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
-            @click="sortType = 'price_asc'"
-          >价格 ↑</button>
-        </div>
-
-        <!-- 视图切换：长卡 / 豆腐块 -->
-        <div class="inline-flex rounded-lg bg-ink-100 p-0.5">
-          <button
-            class="rounded-md px-2 py-1 transition"
-            :class="viewMode === 'list' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
-            aria-label="长卡视图"
-            @click="viewMode = 'list'"
-          >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-          <button
-            class="rounded-md px-2 py-1 transition"
-            :class="viewMode === 'grid' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
-            aria-label="豆腐块视图"
-            @click="viewMode = 'grid'"
-          >
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- 结果区：长卡 / 豆腐块 -->
-      <div class="px-3 pb-3">
-        <!-- 长卡视图 -->
-        <div v-if="viewMode === 'list'" class="space-y-2.5">
-          <div
-            v-for="(item, idx) in pagedResults"
-            :key="(item.data as Product | Resource).id"
-            class="group relative flex cursor-pointer items-start gap-4 rounded-lg border border-ink-200 bg-white p-4 transition hover:border-violet-200 hover:shadow-card-hover-violet"
-            @click="handleItemClick(item)"
-          >
-            <!-- 右上角：收藏 + 进入详情（参考豆腐块头部布局） -->
-            <div class="absolute right-3 top-3 flex items-center gap-1.5">
-              <button
-                v-if="item.type === 'product'"
-                class="text-ink-300 transition hover:text-warning-500"
-                :class="(item.data as Product).favorite ? 'text-warning-500' : ''"
-                :aria-label="(item.data as Product).favorite ? '取消收藏' : '收藏'"
-                @click.stop="toggleFavorite($event, (item.data as Product).id)"
-              >
-                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" :fill="(item.data as Product).favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              </button>
-              <button
-                class="flex h-7 w-7 items-center justify-center rounded-full border border-ink-200 text-ink-400 transition group-hover:border-violet-300 group-hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-600"
-                :aria-label="item.type === 'product' ? '查看详情' : '打开'"
-              >
-                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
-              </button>
-            </div>
-
-            <!-- 类型图标（发光线框，与豆腐块同语言） -->
-            <span v-if="item.type === 'product'" class="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] transition-shadow group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
-              <svg v-if="(item.data as Product).type === 'dataset'" class="relative z-10 h-6 w-6 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" /></svg>
-              <svg v-else-if="(item.data as Product).type === 'api'" class="relative z-10 h-6 w-6 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4" /><path d="m16 8 4 4-4 4" /><path d="m13 5-2 14" /></svg>
-              <svg v-else-if="(item.data as Product).type === 'report'" class="relative z-10 h-6 w-6 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></svg>
-              <svg v-else class="relative z-10 h-6 w-6 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="6" y="11" width="3" height="6" rx="0.5" /><rect x="11" y="7" width="3" height="10" rx="0.5" /><rect x="16" y="13" width="3" height="4" rx="0.5" /></svg>
-              <span class="icon-sheen pointer-events-none absolute inset-y-0 left-0 z-20 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" :style="{ animationDelay: `${(idx % 5) * 0.55}s` }"></span>
-              <svg class="icon-twinkle absolute right-0.5 top-0.5 z-30 h-2.5 w-2.5 text-violet-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-            </span>
-            <span v-else class="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] transition-shadow group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
-              <svg class="relative z-10 h-6 w-6 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-5h4v5" /></svg>
-              <span class="icon-sheen pointer-events-none absolute inset-y-0 left-0 z-20 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" :style="{ animationDelay: `${(idx % 5) * 0.55}s` }"></span>
-              <svg class="icon-twinkle absolute right-0.5 top-0.5 z-30 h-2.5 w-2.5 text-violet-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-            </span>
-
-            <!-- 主体 -->
-            <div class="min-w-0 flex-1 pr-24">
-              <div class="flex items-center gap-2">
-                <div class="truncate text-[16px] font-semibold text-ink-900 transition group-hover:text-violet-700">
-                  {{ item.type === 'product' ? (item.data as Product).name : (item.data as Resource).resourceName }}
+      <!-- 主体：左侧筛选栏 + 右侧结果 -->
+      <div class="market-body relative mt-2 flex gap-4">
+        <!-- 左侧筛选栏 -->
+        <aside class="market-sidebar w-52 shrink-0">
+          <div class="sticky top-2 rounded-lg border border-[#F0F1F3] bg-white/90 p-4 shadow-card backdrop-blur">
+            <div class="mb-3 text-[14px] font-semibold text-ink-900">商品筛选</div>
+            <div data-testid="portal-filter-toolbar" class="space-y-4">
+              <div>
+                <div class="mb-1.5 text-[12px] font-medium text-ink-500">类别</div>
+                <div class="filter-chip-options">
+                  <button :aria-pressed="!activeType" :class="{ chosen: !activeType }" @click="activeType = ''">全部</button>
+                  <button v-for="opt in TYPE_OPTIONS" :key="opt.key" :aria-pressed="activeType === opt.key" :class="{ chosen: activeType === opt.key }" @click="activeType = activeType === opt.key ? '' : opt.key">{{ opt.label }}</button>
                 </div>
-                <span
-                  v-if="item.type === 'product' && opsChip(item.data as Product)"
-                  class="flex shrink-0 items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700"
+              </div>
+              <!-- 来源 -->
+              <div>
+                <div class="mb-1.5 text-[12px] font-medium text-ink-500">来源</div>
+                <div class="space-y-0.5">
+                  <button
+                    v-for="opt in VENUE_OPTIONS"
+                    :key="opt.key"
+                    class="flex w-full items-center justify-between rounded-md px-2 py-1 text-[13px] transition"
+                    :class="filters.venueKind === opt.key ? 'bg-violet-50 text-violet-700' : 'text-ink-600 hover:bg-ink-100/60'"
+                    @click="filters.venueKind = filters.venueKind === opt.key ? '' : opt.key"
+                  >
+                    <span>{{ opt.label }}</span>
+                    <span class="text-[11px]" :class="filters.venueKind === opt.key ? 'text-violet-400' : 'text-ink-400'">{{ venueCounts[opt.key] }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 运营标签 -->
+              <div>
+                <div class="mb-1.5 text-[12px] font-medium text-ink-500">运营标签</div>
+                <div class="space-y-0.5">
+                  <button
+                    v-for="label in OPS_OPTIONS"
+                    :key="label"
+                    class="flex w-full items-center justify-between rounded-md px-2 py-1 text-[13px] transition"
+                    :class="activeOps === label ? 'bg-violet-50 text-violet-700' : 'text-ink-600 hover:bg-ink-100/60'"
+                    @click="activeOps = activeOps === label ? '' : label"
+                  >
+                    <span>{{ label }}</span>
+                    <span class="text-[11px]" :class="activeOps === label ? 'text-violet-400' : 'text-ink-400'">{{ opsCounts[label] || 0 }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 可使用 -->
+              <div>
+                <div class="mb-1.5 text-[12px] font-medium text-ink-500">使用权限</div>
+                <button
+                  data-testid="portal-usable-filter"
+                  class="flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] transition"
+                  :class="usableOnly ? 'bg-violet-50 text-violet-700' : 'text-ink-600 hover:bg-ink-100/60'"
+                  :aria-pressed="usableOnly"
+                  @click="usableOnly = !usableOnly"
                 >
-                  <svg v-if="opsChip(item.data as Product) === '热门'" class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-                  <svg v-else class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.4 2.9 7.8 7 10 4.1-2.2 7-5.6 7-10V6z" /><path d="m9 11.5 2 2 4-4" /></svg>
-                  {{ opsChip(item.data as Product) }}
-                </span>
+                  <span class="flex h-4 w-4 items-center justify-center rounded border" :class="usableOnly ? 'border-violet-500 bg-violet-500' : 'border-ink-300'">
+                    <svg v-if="usableOnly" class="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+                  </span>
+                  我可使用
+                </button>
               </div>
 
-              <div v-if="item.type === 'product'" class="mt-1.5 truncate text-[13px] leading-5 text-ink-600">
-                {{ cardSummary(item.data as Product) }}
-              </div>
-              <div v-else class="mt-1.5 truncate text-[13px] leading-5 text-ink-600">
-                {{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}
-              </div>
-
-              <div v-if="item.type === 'product'" class="mt-1 truncate text-[12px] text-ink-500">
-                {{ productMetrics(item.data as Product) }}
-              </div>
-
-              <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <span
-                  v-if="item.type === 'product' && venueChip(item.data as Product)"
-                  class="rounded-md bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600"
-                >{{ venueChip(item.data as Product) }}</span>
-                <span v-else-if="item.type === 'view'" class="rounded-md bg-violet-50 px-2 py-0.5 text-[11px] text-violet-600">{{ item.label }}</span>
-                <span
-                  v-if="item.type === 'product' && (item.data as Product).hasTrialApi"
-                  class="rounded-md border border-violet-200 px-2 py-0.5 text-[11px] text-violet-600"
-                >可试用</span>
-                <span
-                  v-if="item.type === 'product' && productTrialChips(item.data as Product).includes('有样例')"
-                  class="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600"
-                >有样例</span>
-              </div>
-
-              <div
-                v-if="item.type === 'product' && query.trim()"
-                class="mt-1.5 truncate text-[11px] text-ink-400"
-                data-testid="match-explain"
+              <!-- 重置 -->
+              <button
+                v-if="activeFilterCount"
+                class="w-full rounded-md border border-ink-200 py-1.5 text-[12px] text-ink-500 transition hover:border-danger-300 hover:text-danger-500"
+                @click="resetFilters"
               >
-                {{ matchExplainFor((item.data as Product).id) }}
-              </div>
-            </div>
-
-            <!-- 价格 + CTA（右栏） -->
-            <div class="absolute bottom-4 right-4 flex flex-col items-end">
-              <template v-if="item.type === 'product'">
-                <template v-if="productPriceSummary(item.data as Product).kind === 'money'">
-                  <div class="text-[22px] font-bold leading-none tabular-nums text-violet-600">
-                    <span class="text-[13px] align-top">¥</span>{{ productPriceSummary(item.data as Product).text.replace('¥', '') }}
-                    <span class="ml-0.5 text-[12px] font-normal text-ink-400">{{ productPriceSummary(item.data as Product).suffix }}</span>
-                  </div>
-                  <div v-if="productPriceSummary(item.data as Product).hint" class="mt-1 text-[11px] text-ink-400">
-                    {{ productPriceSummary(item.data as Product).hint }}
-                  </div>
-                </template>
-                <div
-                  v-else-if="productPriceSummary(item.data as Product).kind === 'free'"
-                  class="text-[20px] font-bold text-violet-600"
-                >{{ productPriceSummary(item.data as Product).text }}</div>
-                <div
-                  v-else
-                  class="rounded-md bg-ink-100 px-2.5 py-1 text-[12px] text-ink-600"
-                >{{ productPriceSummary(item.data as Product).text }}</div>
-              </template>
-              <span v-else class="text-[14px] font-medium text-violet-600">内部视图</span>
+                重置筛选（{{ activeFilterCount }}）
+              </button>
             </div>
           </div>
-        </div>
+        </aside>
 
-        <!-- 豆腐块视图（科技风：线框图标 + 元信息行 + 跳转箭头） -->
-        <div v-else class="grid grid-cols-2 gap-3 xl:grid-cols-3">
-          <div
-            v-for="(item, idx) in pagedResults"
-            :key="(item.data as Product | Resource).id"
-            class="group relative flex cursor-pointer flex-col rounded-lg border border-ink-200 bg-white px-3.5 py-3 transition hover:border-violet-200 hover:shadow-card-hover-violet"
-            @click="handleItemClick(item)"
-          >
-            <!-- 头部：发光线框图标 + 收藏/跳转 -->
-            <div class="flex items-start justify-between">
-              <span v-if="item.type !== 'product'" class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] transition-shadow group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
-                <svg class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-5h4v5" /></svg>
-                <span class="icon-sheen pointer-events-none absolute inset-y-0 left-0 z-20 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" :style="{ animationDelay: `${(idx % 5) * 0.55}s` }"></span>
-                <svg class="icon-twinkle absolute right-0.5 top-0.5 z-30 h-2 w-2 text-violet-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-              </span>
-              <span v-else class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] transition-shadow group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
-                <svg v-if="(item.data as Product).type === 'dataset'" class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" /></svg>
-                <svg v-else-if="(item.data as Product).type === 'api'" class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4" /><path d="m16 8 4 4-4 4" /><path d="m13 5-2 14" /></svg>
-                <svg v-else-if="(item.data as Product).type === 'report'" class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></svg>
-                <svg v-else class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16" /><rect x="6" y="11" width="3" height="6" rx="0.5" /><rect x="11" y="7" width="3" height="10" rx="0.5" /><rect x="16" y="13" width="3" height="4" rx="0.5" /></svg>
-                <span class="icon-sheen pointer-events-none absolute inset-y-0 left-0 z-20 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" :style="{ animationDelay: `${(idx % 5) * 0.55}s` }"></span>
-                <svg class="icon-twinkle absolute right-0.5 top-0.5 z-30 h-2 w-2 text-violet-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-              </span>
+        <!-- 右侧结果区 -->
+        <div class="market-results min-w-0 flex-1">
+          <!-- 结果工具栏 -->
+          <div class="market-toolbar mb-3 flex items-center gap-2">
+            <div class="text-[13px] text-ink-500">
+              共 <span class="font-semibold text-ink-900">{{ mixedResults.length }}</span> 条结果
+            </div>
+            <span class="toolbar-spacer flex-1"></span>
+            <div class="inline-flex rounded-lg bg-ink-100 p-0.5 text-[13px]">
+              <button
+                class="rounded-md px-3 py-1 transition"
+                :class="sortType === 'default' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
+                @click="sortType = 'default'"
+              >综合</button>
+              <button
+                class="rounded-md px-3 py-1 transition"
+                :class="sortType === 'latest' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
+                @click="sortType = 'latest'"
+              >最新</button>
+              <button
+                class="rounded-md px-3 py-1 transition"
+                :class="sortType === 'price_asc' ? 'bg-white font-medium text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
+                @click="sortType = 'price_asc'"
+              >价格 ↑</button>
+            </div>
+            <div class="inline-flex rounded-lg bg-ink-100 p-0.5">
+              <button
+                class="rounded-md px-2 py-1 transition"
+                :class="viewMode === 'list' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
+                aria-label="长卡视图"
+                @click="viewMode = 'list'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <button
+                class="rounded-md px-2 py-1 transition"
+                :class="viewMode === 'grid' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'"
+                aria-label="豆腐块视图"
+                @click="viewMode = 'grid'"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
+              </button>
+            </div>
+            <section class="discovery-console" aria-label="数据搜索">
+        <form class="nexus-search" @submit.prevent="handleSearch">
+          <input v-model="query" data-testid="portal-search-input" aria-label="搜索数据商品" placeholder="搜索数据商品">
+          <button type="submit" data-testid="portal-search-submit">搜索</button>
+        </form>
+        <button class="search-ai-link" data-testid="portal-go-ai" @click="goAi()">AI 问答</button>
+            </section>
 
-              <div class="flex items-center gap-1.5">
+          </div>
+
+          <!-- 长卡视图 -->
+          <div v-if="viewMode === 'list'" class="space-y-2.5">
+            <div
+              v-for="item in pagedResults"
+              :key="(item.data as Product | Resource).id"
+              class="market-card market-list-card group relative flex cursor-pointer items-start gap-4 rounded-lg border border-ink-200 bg-white p-4 transition hover:border-violet-200 hover:shadow-card-hover-violet"
+              role="link"
+              tabindex="0"
+              @keydown.enter="handleItemClick(item)"
+              @keydown.space.prevent="handleItemClick(item)"
+              @click="handleItemClick(item)"
+            >
+              <!-- 右上角：收藏 -->
+              <div class="absolute right-3 top-3 flex items-center gap-1.5">
                 <button
                   v-if="item.type === 'product'"
                   class="text-ink-300 transition hover:text-warning-500"
-                  :class="(item.data as Product).favorite ? 'text-warning-500' : 'opacity-0 group-hover:opacity-100'"
+                  :class="(item.data as Product).favorite ? 'text-warning-500' : ''"
                   :aria-label="(item.data as Product).favorite ? '取消收藏' : '收藏'"
                   @click.stop="toggleFavorite($event, (item.data as Product).id)"
                 >
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" :fill="(item.data as Product).favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" :fill="(item.data as Product).favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                 </button>
-                <svg class="h-4 w-4 text-ink-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7" /><path d="M8 7h9v9" /></svg>
               </div>
-            </div>
 
-            <!-- 标题 + 运营标签 -->
-            <div class="mt-2.5 flex items-center gap-1.5">
-              <div class="min-w-0 flex-1 truncate text-[15px] font-semibold text-ink-900 transition group-hover:text-violet-700">
-                {{ item.type === 'product' ? (item.data as Product).name : (item.data as Resource).resourceName }}
-              </div>
-              <span
-                v-if="item.type === 'product' && opsChip(item.data as Product)"
-                class="flex shrink-0 items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700"
-              >
-                <svg v-if="opsChip(item.data as Product) === '热门'" class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
-                <svg v-else class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.4 2.9 7.8 7 10 4.1-2.2 7-5.6 7-10V6z" /><path d="m9 11.5 2 2 4-4" /></svg>
-                {{ opsChip(item.data as Product) }}
+              <!-- 类型图标 -->
+              <PortalProductIcon v-if="item.type === 'product'" :type="(item.data as Product).type" :size="44" />
+              <span v-else class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-5h4v5" /></svg>
               </span>
-            </div>
 
-            <!-- 摘要（最多两行，不强制占位，减少空段） -->
-            <div class="mt-1 line-clamp-2 text-[12px] leading-5 text-ink-500">
-              <template v-if="item.type === 'product'">{{ cardSummary(item.data as Product) }}</template>
-              <template v-else>{{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}</template>
-            </div>
-
-            <!-- 能力标签 -->
-            <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <span v-if="item.type === 'view'" class="rounded-md bg-violet-50 px-2 py-0.5 text-[11px] text-violet-600">{{ item.label }}</span>
-              <span
-                v-if="item.type === 'product' && (item.data as Product).hasTrialApi"
-                class="rounded-md border border-violet-200 px-2 py-0.5 text-[11px] text-violet-600"
-              >可试用</span>
-              <span
-                v-if="item.type === 'product' && productTrialChips(item.data as Product).includes('有样例')"
-                class="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600"
-              >有样例</span>
-            </div>
-
-            <div
-              v-if="item.type === 'product' && query.trim()"
-              class="mt-1.5 truncate text-[11px] text-ink-400"
-              data-testid="match-explain"
-            >{{ matchExplainFor((item.data as Product).id) }}</div>
-
-            <!-- 底部：元信息行 + 价格行 -->
-            <div v-if="item.type === 'product'" class="mt-auto pt-2.5">
-              <div class="flex items-center justify-between gap-2 text-[11px]">
-                <span class="truncate text-ink-500">{{ typeLine(item.data as Product) }}</span>
-                <span class="flex shrink-0 items-center gap-1 text-ink-500"><span class="h-1.5 w-1.5 rounded-full bg-violet-400"></span>在售</span>
-              </div>
-              <div class="mt-1.5 flex items-end justify-between gap-2 border-t border-ink-100 pt-2">
-                <div class="min-w-0">
-                  <div
-                    v-if="productPriceSummary(item.data as Product).kind === 'money'"
-                    class="text-[17px] font-bold leading-none tabular-nums text-violet-600"
-                  >
-                    <span class="align-top text-[12px]">¥</span>{{ productPriceSummary(item.data as Product).text.replace('¥', '') }}<span class="ml-0.5 text-[11px] font-normal text-ink-400">{{ productPriceSummary(item.data as Product).suffix }}</span>
+              <!-- 主体 -->
+              <div class="min-w-0 flex-1 pr-24">
+                <div class="flex items-center gap-2">
+                  <div class="truncate text-[16px] font-semibold text-ink-900 transition group-hover:text-violet-700">
+                    {{ item.type === 'product' ? (item.data as Product).name : (item.data as Resource).resourceName }}
                   </div>
+                  <span
+                    v-if="item.type === 'product' && opsChip(item.data as Product)"
+                    class="flex shrink-0 items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-700"
+                  >
+                    <svg v-if="opsChip(item.data as Product) === '热门'" class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2 5.6L20 11l-6 2.4L12 19l-2-5.6L4 11l6-2.4z" /></svg>
+                    <svg v-else class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.4 2.9 7.8 7 10 4.1-2.2 7-5.6 7-10V6z" /><path d="m9 11.5 2 2 4-4" /></svg>
+                    {{ opsChip(item.data as Product) }}
+                  </span>
+                </div>
+
+                <div v-if="item.type === 'product'" class="mt-1.5 truncate text-[13px] leading-5 text-ink-600">
+                  {{ cardSummary(item.data as Product) }}
+                </div>
+                <div v-else class="mt-1.5 truncate text-[13px] leading-5 text-ink-600">
+                  {{ (item.data as Resource).typeDetail.userView?.dataSourceName }} · {{ (item.data as Resource).typeDetail.userView?.chartType }}
+                </div>
+
+                <div v-if="item.type === 'product'" class="mt-1 truncate text-[12px] text-ink-500">
+                  {{ productMetrics(item.data as Product) }}
+                </div>
+
+                <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span
+                    v-if="item.type === 'product' && venueChip(item.data as Product)"
+                    class="rounded-md bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600"
+                  >{{ venueChip(item.data as Product) }}</span>
+                  <span v-else-if="item.type === 'view'" class="rounded-md bg-violet-50 px-2 py-0.5 text-[11px] text-violet-600">{{ item.label }}</span>
+                  <span
+                    v-if="item.type === 'product' && (item.data as Product).hasTrialApi"
+                    class="rounded-md border border-violet-200 px-2 py-0.5 text-[11px] text-violet-600"
+                  >可试用</span>
+                  <span
+                    v-if="item.type === 'product' && productTrialChips(item.data as Product).includes('有样例')"
+                    class="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600"
+                  >有样例</span>
+                </div>
+
+                <div
+                  v-if="item.type === 'product' && query.trim()"
+                  class="mt-1.5 truncate text-[11px] text-ink-400"
+                  data-testid="match-explain"
+                >
+                  {{ matchExplainFor((item.data as Product).id) }}
+                </div>
+              </div>
+
+              <!-- 价格（右栏） -->
+              <div class="absolute bottom-4 right-4 flex flex-col items-end">
+                <template v-if="item.type === 'product'">
+                  <template v-if="productPriceSummary(item.data as Product).kind === 'money'">
+                    <div class="text-[22px] font-bold leading-none tabular-nums text-violet-600">
+                      <span class="text-[13px] align-top">¥</span>{{ productPriceSummary(item.data as Product).text.replace('¥', '') }}
+                      <span class="ml-0.5 text-[12px] font-normal text-ink-400">{{ productPriceSummary(item.data as Product).suffix }}</span>
+                    </div>
+                    <div v-if="productPriceSummary(item.data as Product).hint" class="mt-1 text-[11px] text-ink-400">
+                      {{ productPriceSummary(item.data as Product).hint }}
+                    </div>
+                  </template>
                   <div
                     v-else-if="productPriceSummary(item.data as Product).kind === 'free'"
-                    class="text-[15px] font-bold leading-none text-violet-600"
+                    class="text-[20px] font-bold text-violet-600"
                   >{{ productPriceSummary(item.data as Product).text }}</div>
                   <div
                     v-else
-                    class="rounded-md bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600"
+                    class="rounded-md bg-ink-100 px-2.5 py-1 text-[12px] text-ink-600"
                   >{{ productPriceSummary(item.data as Product).text }}</div>
-                  <div v-if="productPriceSummary(item.data as Product).kind === 'money' && productPriceSummary(item.data as Product).hint" class="mt-1 truncate text-[11px] text-ink-400">
-                    {{ productPriceSummary(item.data as Product).hint }}
-                  </div>
-                </div>
-                <span class="shrink-0 text-[11px] tabular-nums text-ink-400">{{ listedAtOf(item.data as Product) }}</span>
-              </div>
-            </div>
-            <div v-else class="mt-auto pt-3">
-              <div class="flex items-center justify-between gap-2 border-t border-ink-100 pt-2.5">
-                <span class="text-[12px] font-medium text-violet-600">内部视图</span>
-                <span class="text-[11px] text-ink-400">BI 资源</span>
+                </template>
+                <span v-else class="text-[14px] font-medium text-violet-600">内部视图</span>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- 紧凑商品卡片 -->
+          <div v-else class="market-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+            <article v-for="item in pagedResults" :key="item.data.id"
+              class="market-card product-tile group"
+              :data-kind="item.type === 'product' ? (item.data as Product).type : 'view'"
+              role="link" tabindex="0"
+              @keydown.enter.self="handleItemClick(item)"
+              @keydown.space.self.prevent="handleItemClick(item)"
+              @click="handleItemClick(item)">
+              <div class="tile-heading">
+                <div class="tile-icon"><PortalProductIcon :type="item.type === 'product' ? (item.data as Product).type : 'view'" :size="38" /></div>
+                <h2>{{ item.type === 'product' ? (item.data as Product).name : (item.data as Resource).resourceName }}</h2>
+                <button v-if="item.type === 'product'" class="tile-favorite" :class="{ saved: (item.data as Product).favorite }"
+                  :aria-label="(item.data as Product).favorite ? '取消收藏' : '收藏'"
+                  @click.stop="toggleFavorite($event, (item.data as Product).id)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" :fill="(item.data as Product).favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.5l-5.7 3 1.1-6.3L2.8 9.7l6.4-.9z"/></svg>
+                </button>
+              </div>
+              <div class="tile-chips">
+                <span class="tile-type">{{ item.label }}</span>
+                <template v-if="item.type === 'product'">
+                  <span v-if="opsChip(item.data as Product)" class="tile-ops">{{ opsChip(item.data as Product) }}</span>
+                  <span v-if="(item.data as Product).hasTrialApi">可试用</span>
+                  <span v-if="productTrialChips(item.data as Product).includes('有样例')">有样例</span>
+                </template>
+              </div>
+              <p class="tile-summary">{{ item.type === 'product' ? cardSummary(item.data as Product) : (item.data as Resource).typeDetail.userView?.dataSourceName }}</p>
+              <div v-if="item.type === 'product' && query.trim()" class="tile-match" data-testid="match-explain">{{ matchExplainFor((item.data as Product).id) }}</div>
+              <div class="tile-source"><span>{{ item.type === 'product' ? venueChip(item.data as Product) || '自营产品' : 'BI 资源' }}</span><time v-if="item.type === 'product'">{{ listedAtOf(item.data as Product) }}</time></div>
+              <div class="tile-footer">
+                <div v-if="item.type === 'product'" class="tile-pricing">
+                  <strong :class="{ 'tile-money': productPriceSummary(item.data as Product).kind === 'money' }">{{ productPriceSummary(item.data as Product).text }}<small>{{ productPriceSummary(item.data as Product).suffix }}</small></strong>
+                  <span v-if="productPriceSummary(item.data as Product).hint">{{ productPriceSummary(item.data as Product).hint }}</span>
+                </div>
+                <strong v-else class="tile-view">内部视图</strong>
+                <span class="tile-detail" aria-hidden="true">查看详情 <b>↗</b></span>
+              </div>
+            </article>
+          </div>
 
           <!-- 分页 -->
           <div v-if="totalPages > 1" class="mt-4 flex items-center justify-center gap-1.5 text-[13px]">
@@ -756,87 +599,58 @@ function goAi(from?: string) {
             >下一页</button>
           </div>
 
-        <!-- 空态 -->
-        <div
-          v-if="usableOnly && !mixedResults.length"
-          class="py-14 text-center"
-        >
-          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
-            <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+          <!-- 空态 -->
+          <div
+            v-if="usableOnly && !mixedResults.length"
+            class="py-14 text-center"
+          >
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
+              <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
+            </div>
+            <div class="mt-3 text-sm font-medium text-ink-700">当前企业暂无可直接使用的商品</div>
+            <button class="mt-4 rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="resetFilters">清空筛选</button>
           </div>
-          <div class="mt-3 text-sm font-medium text-ink-700">当前企业暂无可直接使用的商品</div>
-          <button class="mt-4 rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="resetFilters">清空筛选</button>
-        </div>
 
-        <div
-          v-else-if="query.trim() && !mixedResults.length"
-          class="py-14 text-center"
-        >
-          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
-            <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+          <div
+            v-else-if="query.trim() && !mixedResults.length"
+            class="py-14 text-center"
+          >
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
+              <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+            <div class="mt-3 text-sm font-medium text-ink-700">未找到匹配的结果</div>
+            <div class="mt-1 text-xs text-ink-500">可调整筛选条件，或改用 AI 问答做汇总与对比</div>
+            <div class="mt-4 flex justify-center gap-3">
+              <button
+                v-if="activeFilterCount"
+                class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600"
+                @click="resetFilters"
+              >
+                清空筛选
+              </button>
+              <button
+                class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white transition hover:bg-brand-600"
+                data-testid="upgrade-ai-cta"
+                @click="goAi('keyword_empty')"
+              >
+                没有命中？试试 AI 问答
+              </button>
+              <button class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })">
+                提交需求
+              </button>
+            </div>
           </div>
-          <div class="mt-3 text-sm font-medium text-ink-700">未找到匹配的结果</div>
-          <div class="mt-1 text-xs text-ink-500">可调整筛选条件，或改用 AI 问答做汇总与对比</div>
-          <div class="mt-4 flex justify-center gap-3">
-            <button
-              v-if="activeFilterCount"
-              class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600"
-              @click="resetFilters"
-            >
-              清空筛选
-            </button>
-            <button
-              class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white transition hover:bg-brand-600"
-              data-testid="upgrade-ai-cta"
-              @click="goAi('keyword_empty')"
-            >
-              没有命中？试试 AI 问答
-            </button>
-            <button class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })">
-              提交需求
-            </button>
-          </div>
-        </div>
 
-        <div v-else-if="!mixedResults.length" class="py-14 text-center text-sm text-ink-500">暂无上架商品</div>
+          <div v-else-if="!mixedResults.length" class="py-14 text-center text-sm text-ink-500">暂无上架商品</div>
+        </div>
       </div>
     </div>
-  </div>
+    <footer class="market-footer"><span>万联灵析 <b>/</b> 让数据成为生产力</span><span>DISCOVER · CONNECT · CREATE</span><span>PC 视觉探索版 01</span></footer>
   </div>
 </template>
 
 <style scoped>
-/* 豆腐块图标扫光：斜向高光条周期扫过 */
-@keyframes icon-sheen {
-  0% { transform: translateX(-140%) skewX(-18deg); }
-  55%, 100% { transform: translateX(260%) skewX(-18deg); }
-}
-.icon-sheen {
-  animation: icon-sheen 3.4s ease-in-out infinite;
-  will-change: transform;
-}
-/* 角标星光：呼吸闪烁 */
-@keyframes icon-twinkle {
-  0%, 100% { opacity: 0.35; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-.icon-twinkle {
-  animation: icon-twinkle 2.4s ease-in-out infinite;
-}
-/* hero 轨道环慢转 */
-@keyframes ring-spin {
-  to { transform: rotate(360deg); }
-}
-.ring-spin {
-  animation: ring-spin 26s linear infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .icon-sheen,
-  .icon-twinkle,
-  .ring-spin {
-    animation: none;
-  }
-}
+/* 视觉探索样式集中在 portal-concept.css，限定在搜索门户内。 */
 </style>
