@@ -7,6 +7,7 @@ import type { PrimaryAction, SupplyStatus } from '@/types/aiChatV104'
 const store = useAiV104Store()
 const input = ref('')
 const scrollRef = ref<HTMLDivElement | null>(null)
+const analysisExpanded = ref(false)
 
 // V104 原型入口：每次进入都重置为新会话（两端共用 store 单例，需避免状态泄露）
 onMounted(() => {
@@ -303,11 +304,11 @@ const greeting = computed(() => {
           </div>
         </div>
 
-        <!-- ════════════════ 结果展示区（混合布局，PC 端主视觉） ════════════════ -->
+        <!-- ════════════════ 结果展示区（PC 端主视觉） ════════════════ -->
         <div v-if="store.currentVersion && !store.isSearching && store.currentVersion.tasks.length > 0">
 
-          <!-- 放宽标注条 + 回到原条件 -->
-          <div v-if="store.currentVersion.relaxApplied" class="rounded-lg border border-blue-200 bg-blue-50/70 px-4 py-2.5 flex items-center justify-between gap-3">
+          <!-- 放宽标注条 -->
+          <div v-if="store.currentVersion.relaxApplied" class="mb-3 rounded-lg border border-blue-200 bg-blue-50/70 px-4 py-2.5 flex items-center justify-between gap-3">
             <div class="text-[12px] text-blue-800 flex items-center gap-1.5">
               <span class="text-blue-500">↻</span>
               <span class="font-medium">已放宽条件：</span>{{ store.currentVersion.relaxNote }}
@@ -319,108 +320,123 @@ const greeting = computed(() => {
             >回到原条件</button>
           </div>
 
-          <!-- 条件持续展示栏 -->
-          <div class="rounded-lg border border-ink-200 bg-white p-4 shadow-card">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <span class="text-[13px] font-semibold text-ink-800">当前搜索条件</span>
-                <span class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600 border border-violet-100">v{{ store.currentVersion.versionNo }}</span>
+          <!-- ══ 条件持续展示栏（浅灰底工具条，与商品卡明确分层） ══ -->
+          <div class="mb-3 rounded-lg border border-slate-200/70 bg-slate-50/60 px-4 py-2.5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 shrink-0">
+                <svg class="h-3.5 w-3.5 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                <span class="text-[12px] font-medium text-ink-500">搜索条件</span>
+                <span class="rounded bg-slate-200/70 px-1.5 py-0.5 text-[10px] text-ink-500">v{{ store.currentVersion.versionNo }}</span>
               </div>
-              <button class="text-[11px] text-ink-400 hover:text-violet-600 transition">修改条件</button>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="(slot, i) in store.currentVersion.sharedConditions"
-                :key="i"
-                class="inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[12px]"
-                :class="slot.strength === 'must' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-ink-50 text-ink-600 border-ink-200'"
-              >
-                {{ slot.original }}
-                <span v-if="slot.strength === 'must'" class="text-[9px] font-medium text-violet-400">必须</span>
-                <span v-else-if="slot.strength === 'prefer'" class="text-[9px] font-medium text-ink-400">偏好</span>
-              </span>
-              <span v-if="store.currentVersion.sharedConditions.length === 0" class="text-[12px] text-ink-400">（当前无共享条件，所有需求按各自条件搜索）</span>
+              <div class="flex flex-wrap gap-1.5 items-center">
+                <span
+                  v-for="(slot, i) in store.currentVersion.sharedConditions"
+                  :key="i"
+                  class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px]"
+                  :class="slot.strength === 'must' ? 'bg-violet-100/70 text-violet-700' : 'bg-white text-ink-600 border border-slate-200'"
+                >
+                  {{ slot.original }}
+                  <span v-if="slot.strength === 'must'" class="text-[9px] font-medium text-violet-500">必须</span>
+                </span>
+                <span v-if="store.currentVersion.sharedConditions.length === 0" class="text-[11px] text-ink-400">（所有需求按各自条件搜索）</span>
+              </div>
             </div>
           </div>
 
-          <!-- 双栏布局：左→逐需求摘要  右→全局商品卡 -->
-          <div class="grid gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
-            <!-- 左：逐需求摘要 -->
-            <div class="space-y-2">
-              <div class="text-[12px] font-medium text-ink-500 px-1">逐需求结果</div>
-              <div
-                v-for="(task, i) in store.currentVersion.tasks"
-                :key="task.id"
-                class="rounded-lg border border-ink-200 bg-white p-3 shadow-card"
-              >
-                <div class="flex items-start gap-2">
+          <!-- ══ 搜索分析折叠面板（逐需求结果，默认折叠） ══ -->
+          <div class="mb-3 overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/50">
+            <button
+              class="flex w-full items-center justify-between px-4 py-2 text-left transition hover:bg-slate-100/60"
+              @click="analysisExpanded = !analysisExpanded"
+            >
+              <div class="flex items-center gap-2">
+                <svg class="h-3.5 w-3.5 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span class="text-[12px] font-medium text-ink-500">搜索分析</span>
+                <span class="text-[11px] text-ink-400">{{ store.currentVersion.tasks.length }} 项需求</span>
+                <template v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'suitable')">
+                  <span class="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">✓ {{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'suitable').length }} 合适</span>
+                </template>
+                <template v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'partial')">
+                  <span class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">△ {{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'partial').length }} 部分匹配</span>
+                </template>
+                <template v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'none')">
+                  <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">✗ {{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'none').length }} 无合适</span>
+                </template>
+              </div>
+              <svg class="h-3.5 w-3.5 text-ink-400 transition-transform" :class="{ 'rotate-180': analysisExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div v-if="analysisExpanded" class="border-t border-slate-200/70 bg-white/70 px-4 py-3">
+              <div class="space-y-2">
+                <div
+                  v-for="(task, i) in store.currentVersion.tasks"
+                  :key="task.id"
+                  class="flex items-start gap-2 py-1.5"
+                >
                   <span class="shrink-0 w-5 h-5 rounded bg-violet-100 text-[10px] font-semibold text-violet-700 flex items-center justify-center">{{ i + 1 }}</span>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-[13px] text-ink-800 leading-relaxed">{{ task.standardQuestion }}</div>
-                    <div class="mt-2 flex items-center gap-2 flex-wrap">
-                      <span class="rounded-full border px-2 py-0.5 text-[11px]" :class="statusColor[task.supplyStatus || 'partial']">
-                        {{ statusLabel[task.supplyStatus || 'partial'] }}
-                      </span>
-                      <template v-if="task.bestMatchProductId">
-                        <span class="text-[11px] text-ink-400">最佳匹配：</span>
-                        <span class="text-[11px] text-violet-600 font-medium truncate">{{ productMeta(task.bestMatchProductId).name }}</span>
-                      </template>
-                      <span v-else-if="task.supplyStatus === 'none'" class="text-[11px] text-ink-400">本次未找到</span>
-                    </div>
+                  <div class="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                    <span class="text-[13px] text-ink-700 leading-relaxed">{{ task.standardQuestion }}</span>
+                    <span class="rounded-full border px-2 py-0.5 text-[11px]" :class="statusColor[task.supplyStatus || 'partial']">
+                      {{ statusLabel[task.supplyStatus || 'partial'] }}
+                    </span>
+                    <template v-if="task.bestMatchProductId">
+                      <span class="text-[11px] text-ink-400">最佳：</span>
+                      <span class="text-[11px] text-violet-600 font-medium">{{ productMeta(task.bestMatchProductId).name }}</span>
+                    </template>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 右：全局去重商品卡列表 -->
-            <div>
-              <div class="flex items-center justify-between mb-2 px-1">
-                <span class="text-[12px] font-medium text-ink-500">候选商品（{{ store.resultCards.length }}）</span>
-                <span class="text-[11px] text-ink-400">按证据匹配度排序</span>
-              </div>
+          <!-- ══ 候选商品（主视觉，全宽） ══ -->
+          <div>
+            <div class="flex items-center justify-between mb-3 px-1">
+              <span class="text-[13px] font-semibold text-ink-800">推荐商品 <span class="text-[12px] font-normal text-ink-400">（{{ store.resultCards.length }}）</span></span>
+              <span class="text-[11px] text-ink-400">按证据匹配度排序</span>
+            </div>
 
-              <div v-if="store.resultCards.length > 0" class="space-y-3">
-                <div
-                  v-for="card in store.resultCards"
-                  :key="card.id"
-                  class="group rounded-lg border border-ink-200 bg-white p-4 shadow-card transition hover:border-violet-200 hover:shadow-card-hover-violet cursor-pointer"
-                >
-                  <!-- 头部：名称 + 最佳匹配徽章 + 价格 -->
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-3 flex-1 min-w-0">
-                      <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
-                        <svg class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                          <ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
-                        </svg>
-                      </span>
-                      <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                          <span class="text-[15px] font-semibold text-ink-900 transition group-hover:text-violet-700">{{ productMeta(card.productId).name }}</span>
-                          <span class="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-500">{{ productMeta(card.productId).type }}</span>
-                          <span v-if="card.isBestMatchOfTaskIds.length > 0" class="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 border border-violet-200">
-                            ⭐ 最佳匹配{{ card.isBestMatchOfTaskIds.length > 1 ? `×${card.isBestMatchOfTaskIds.length}` : '' }}
-                          </span>
-                        </div>
-                        <div class="mt-0.5 text-[12px] text-ink-500 truncate">{{ productMeta(card.productId).desc }}</div>
+            <div v-if="store.resultCards.length > 0" class="space-y-3">
+              <div
+                v-for="card in store.resultCards"
+                :key="card.id"
+                class="group rounded-lg border border-ink-200 bg-white p-4 shadow-card transition hover:border-violet-200 hover:shadow-card-hover-violet cursor-pointer"
+              >
+                <!-- 头部：名称 + 最佳匹配徽章 + 价格 -->
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
+                      <svg class="relative z-10 h-5 w-5 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
+                      </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[15px] font-semibold text-ink-900 transition group-hover:text-violet-700">{{ productMeta(card.productId).name }}</span>
+                        <span class="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-500">{{ productMeta(card.productId).type }}</span>
+                        <span v-if="card.isBestMatchOfTaskIds.length > 0" class="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 border border-violet-200">
+                          ⭐ 最佳匹配{{ card.isBestMatchOfTaskIds.length > 1 ? `×${card.isBestMatchOfTaskIds.length}` : '' }}
+                        </span>
                       </div>
-                    </div>
-                    <div class="shrink-0 text-right min-w-[72px]">
-                      <div class="text-[17px] font-bold leading-none tabular-nums text-violet-600">{{ productMeta(card.productId).price }}</div>
+                      <div class="mt-0.5 text-[12px] text-ink-500 truncate">{{ productMeta(card.productId).desc }}</div>
                     </div>
                   </div>
+                  <div class="shrink-0 text-right min-w-[72px]">
+                    <div class="text-[17px] font-bold leading-none tabular-nums text-violet-600">{{ productMeta(card.productId).price }}</div>
+                  </div>
+                </div>
 
-                  <!-- 匹配证据（PC 端可展开显示更多） -->
-                  <div class="mt-3 rounded-md bg-ink-50/70 border border-ink-100 p-3 space-y-1.5">
-                    <div class="text-[11px] font-medium text-ink-500 mb-1">匹配证据</div>
-                    <div v-for="(ev, i) in card.evidences" :key="i" class="flex items-start gap-2 text-[12px]">
-                      <span class="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
-                            :class="{
-                              'bg-green-100 text-green-600': ev.status === 'covered',
-                              'bg-amber-100 text-amber-600': ev.status === 'partial',
-                              'bg-red-100 text-red-500': ev.status === 'gap',
-                              'bg-slate-100 text-slate-500': ev.status === 'pending_verify',
-                            }">
-                        {{ ev.status === 'covered' ? '✓' : ev.status === 'partial' ? '△' : ev.status === 'gap' ? '✗' : '?' }}
+                <!-- 匹配证据 -->
+                <div class="mt-3 rounded-md bg-ink-50/70 border border-ink-100 p-3 space-y-1.5">
+                  <div class="text-[11px] font-medium text-ink-500 mb-1">匹配证据</div>
+                  <div v-for="(ev, i) in card.evidences" :key="i" class="flex items-start gap-2 text-[12px]">
+                    <span class="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
+                          :class="{
+                            'bg-green-100 text-green-600': ev.status === 'covered',
+                            'bg-amber-100 text-amber-600': ev.status === 'partial',
+                            'bg-red-100 text-red-500': ev.status === 'gap',
+                            'bg-slate-100 text-slate-500': ev.status === 'pending_verify',
+                          }">
+                      {{ ev.status === 'covered' ? '✓' : ev.status === 'partial' ? '△' : ev.status === 'gap' ? '✗' : '?' }}
                       </span>
                       <span class="text-ink-600 leading-relaxed">{{ ev.reason }}</span>
                     </div>
@@ -460,7 +476,6 @@ const greeting = computed(() => {
                 </div>
               </div>
             </div>
-          </div>
 
           <!-- 历史版本折叠 -->
           <div v-if="store.conversation && store.conversation.versions.length > 1" class="mt-4 rounded-lg border border-ink-200 bg-white shadow-card overflow-hidden">
