@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import ProductCard from '@/components/mobile/ProductCard.vue'
-import ChatInterface from '@/components/mobile/ChatInterface.vue'
-import AiConversationHistory from '@/components/shared/AiConversationHistory.vue'
-import { IconHistory, IconPlus } from '@arco-design/web-vue/es/icon'
 import { useCatalogStore } from '@/stores/catalog'
-import { useAiStore, guideQuestions } from '@/stores/ai'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
 import { discoverShowcaseProducts } from '@/domain/discoverShowcase'
@@ -18,14 +14,10 @@ import type { Product, ProductOrigin, ProductType } from '@/types/domain'
 
 const router = useRouter()
 const catalog = useCatalogStore()
-const ai = useAiStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
-const historyOpen = ref(false)
-watch(() => user.context.currentMemberId, (ownerId) => ai.activateOwner(ownerId), { immediate: true })
 
 const query = ref('')
-const activeMode = ref<'ai' | 'keyword'>('keyword')
 
 const recommended = computed(() => discoverShowcaseProducts(catalog.products))
 
@@ -143,48 +135,6 @@ function submitKeyword(q?: string) {
     venue: spaceFilter.value ? `space:${spaceFilter.value}` : undefined, sort: sort.value
   } })
 }
-
-const lastQuestion = computed(() => {
-  const userMsgs = ai.chatMessages.filter((m) => m.role === 'user')
-  const last = userMsgs[userMsgs.length - 1]
-  if (!last) return ''
-  const text = last.blocks.find((b) => b.type === 'text')
-  return text && text.type === 'text' ? text.content : ''
-})
-
-function handleAiSend(text: string) {
-  ai.sendQuestion(text)
-  setTimeout(() => ai.flushResponse(), 600)
-}
-
-function handleAiFollowUp(text: string) {
-  if (text === '提交需求') {
-    router.push({ path: '/app/demand', query: { q: lastQuestion.value } })
-    return
-  }
-  handleAiSend(text)
-}
-
-function handleAiReset() {
-  ai.startNewConversation()
-}
-
-function openAiHistory(id: string) {
-  ai.openConversation(id)
-  historyOpen.value = false
-}
-
-function newAiFromHistory() {
-  ai.startNewConversation()
-  historyOpen.value = false
-}
-
-function handleDowngradeKeyword() {
-  activeMode.value = 'keyword'
-  if (lastQuestion.value.trim()) {
-    query.value = lastQuestion.value.trim()
-  }
-}
 </script>
 
 <template>
@@ -235,7 +185,7 @@ function handleDowngradeKeyword() {
       </div>
 
       <!-- 类型 Tab（横滑）+ 筛选（固定右侧） -->
-      <div v-if="activeMode === 'keyword'" class="mt-3 flex items-center gap-2">
+      <div class="mt-3 flex items-center gap-2">
         <div class="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             v-for="tab in typeTabs"
@@ -264,7 +214,7 @@ function handleDowngradeKeyword() {
     </div>
 
     <!-- 关键词模式：商品列表 -->
-    <div v-if="activeMode === 'keyword'" class="flex-1 overflow-y-auto px-3 pb-6 pt-3" data-testid="discover-keyword-panel">
+    <div class="flex-1 overflow-y-auto px-3 pb-6 pt-3" data-testid="discover-keyword-panel">
       <template v-if="filtered.length">
         <!-- 默认态：样例分组 -->
         <template v-if="isGrouped">
@@ -297,34 +247,6 @@ function handleDowngradeKeyword() {
         <button class="mt-4 rounded-full bg-brand-500 px-6 py-2 text-[13px] font-medium text-white" @click="activeType = ''; originFilter = ''; spaceFilter = ''; usableOnly = false; sort = 'recommend'">清空筛选</button>
       </div>
     </div>
-
-    <!-- AI 模式：对话式界面 -->
-    <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-2 pt-1" data-testid="discover-ai-panel">
-      <div class="mb-2 flex shrink-0 items-center justify-between px-1 text-sm font-medium text-ink-800">
-        <span>AI 问答</span>
-        <div class="flex items-center gap-1">
-          <button data-testid="discover-ai-history" class="flex h-9 w-9 items-center justify-center rounded-md text-ink-600" aria-label="历史对话" title="历史对话" @click="historyOpen = true"><IconHistory /></button>
-          <button data-testid="discover-ai-new" :disabled="ai.chatTyping" class="flex h-9 w-9 items-center justify-center rounded-md text-ink-600 disabled:opacity-50" aria-label="新对话" title="新对话" @click="handleAiReset"><IconPlus /></button>
-        </div>
-      </div>
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white shadow-card">
-        <ChatInterface
-          embedded
-          :messages="ai.chatMessages"
-          :guides="guideQuestions"
-          :follow-ups="ai.chatFollowUps"
-          :typing="ai.chatTyping"
-          placeholder="说说你想了解的问题，或描述你需要的数据"
-          @send="handleAiSend"
-          @select-guide="handleAiSend"
-          @select-follow-up="handleAiFollowUp"
-          @reset="handleAiReset"
-          @navigate-product="(id: string) => router.push(`/app/product/${id}`)"
-          @downgrade-keyword="handleDowngradeKeyword"
-        />
-      </div>
-    </div>
-    <AiConversationHistory :open="historyOpen" :conversations="ai.conversationList" :active-id="ai.activeConversationId" :busy="ai.chatTyping" @close="historyOpen = false" @new="newAiFromHistory" @select="openAiHistory" />
 
     <!-- 更多筛选抽屉：使用范围/排序/来源/空间 + 重置/确定；类型由顶部快捷入口控制 -->
     <teleport to="body">
