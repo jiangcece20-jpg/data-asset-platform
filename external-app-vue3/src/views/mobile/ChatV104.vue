@@ -8,6 +8,7 @@ import type { SearchVersionV104, ResultCardV104, SupplyStatus, PrimaryAction } f
 const store = useAiV104Store()
 const input = ref('')
 const scrollRef = ref<HTMLDivElement | null>(null)
+const analysisExpanded = ref(false)
 const versionExpandMap = ref<Record<string, boolean>>({})
 
 // V104 原型入口：每次进入都重置为新会话（两端共用 store 单例，需避免状态泄露）
@@ -276,42 +277,59 @@ function evidenceStatusClass(s: string): string {
             <button class="text-[10px] px-2 py-0.5 rounded bg-white border border-blue-300 text-blue-700 shrink-0 hover:bg-blue-100" @click="handleRestore">回到原条件</button>
           </div>
 
-          <!-- 条件持续展示栏（PRD 4.1） -->
-          <div class="bg-white rounded-xl border border-slate-200 p-3 mb-3">
-            <div class="flex items-center justify-between mb-2">
-              <div class="text-xs font-medium text-slate-700">当前搜索条件</div>
-              <span class="text-xs text-slate-400">v{{ store.currentVersion.versionNo }}</span>
+          <!-- ══ 搜索条件（浅灰工具条，PRD 4.1） ══ -->
+          <div class="rounded-lg border border-slate-200/70 bg-slate-50/60 px-3 py-2 mb-2">
+            <div class="flex items-center gap-2 mb-1.5">
+              <svg class="h-3 w-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+              <span class="text-[11px] font-medium text-slate-500">搜索条件</span>
+              <span class="rounded bg-slate-200/70 px-1 py-0 text-[9px] text-slate-500">v{{ store.currentVersion.versionNo }}</span>
             </div>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap gap-1">
               <span v-for="(slot, i) in store.currentVersion.sharedConditions" :key="i"
-                    class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md"
-                    :class="slot.strength === 'must' ? 'bg-violet-50 text-violet-700 border border-violet-200' : 'bg-slate-50 text-slate-600 border border-slate-200'">
+                    class="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded"
+                    :class="slot.strength === 'must' ? 'bg-violet-100/70 text-violet-700' : 'bg-white text-slate-600 border border-slate-200'">
                 {{ slot.original }}
-                <span v-if="slot.strength === 'must'" class="text-[9px] text-violet-400">必须</span>
+                <span v-if="slot.strength === 'must'" class="text-[8px] text-violet-500">必须</span>
               </span>
-              <span v-if="store.currentVersion.sharedConditions.length === 0" class="text-[11px] text-slate-400">（无共享条件）</span>
+              <span v-if="store.currentVersion.sharedConditions.length === 0" class="text-[10px] text-slate-400">（按各自条件搜索）</span>
             </div>
           </div>
 
-          <!-- 逐需求最佳匹配摘要（PRD 4.7） -->
-          <div class="mb-3">
-            <div class="text-xs font-medium text-slate-500 mb-2">逐需求结果</div>
-            <div class="space-y-2">
-              <div v-for="task in store.currentVersion.tasks" :key="task.id"
-                   class="bg-white rounded-xl border border-slate-200 p-3">
-                <div class="flex items-start gap-2">
-                  <span class="text-[10px] text-slate-400 mt-0.5 shrink-0">需求</span>
+          <!-- ══ 搜索分析折叠面板（逐需求结果，默认折叠） ══ -->
+          <div class="mb-2 overflow-hidden rounded-lg border border-slate-200/70 bg-slate-50/50">
+            <button
+              class="flex w-full items-center justify-between px-3 py-1.5 text-left active:bg-slate-100/60"
+              @click="analysisExpanded = !analysisExpanded"
+            >
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <svg class="h-3 w-3 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span class="text-[11px] font-medium text-slate-500 shrink-0">搜索分析</span>
+                <span class="text-[10px] text-slate-400 shrink-0">{{ store.currentVersion.tasks.length }} 项需求</span>
+                <span v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'suitable')"
+                      class="rounded bg-green-100 px-1 py-0 text-[9px] font-medium text-green-700 shrink-0">✓{{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'suitable').length }}</span>
+                <span v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'partial')"
+                      class="rounded bg-amber-100 px-1 py-0 text-[9px] font-medium text-amber-700 shrink-0">△{{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'partial').length }}</span>
+                <span v-if="store.currentVersion.tasks.some(t => t.supplyStatus === 'none')"
+                      class="rounded bg-slate-200 px-1 py-0 text-[9px] font-medium text-slate-700 shrink-0">✗{{ store.currentVersion.tasks.filter(t => t.supplyStatus === 'none').length }}</span>
+              </div>
+              <svg class="h-3 w-3 text-slate-400 shrink-0 transition-transform" :class="{ 'rotate-180': analysisExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div v-if="analysisExpanded" class="border-t border-slate-200/70 bg-white/70 px-3 py-2">
+              <div class="space-y-1.5">
+                <div v-for="(task, i) in store.currentVersion.tasks" :key="task.id"
+                     class="flex items-start gap-1.5 py-1">
+                  <span class="shrink-0 w-4 h-4 rounded bg-violet-100 text-[9px] font-semibold text-violet-700 flex items-center justify-center">{{ i + 1 }}</span>
                   <div class="flex-1 min-w-0">
-                    <div class="text-sm text-slate-800 truncate">{{ task.standardQuestion }}</div>
-                    <div class="mt-2 flex items-center gap-2">
-                      <span class="text-[11px] px-2 py-0.5 rounded-full border" :class="statusColor[task.supplyStatus || 'partial']">
+                    <div class="text-[12px] text-slate-700 leading-snug">{{ task.standardQuestion }}</div>
+                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] px-1.5 py-0 rounded-full border" :class="statusColor[task.supplyStatus || 'partial']">
                         {{ statusLabel[task.supplyStatus || 'partial'] }}
                       </span>
                       <template v-if="task.bestMatchProductId">
-                        <span class="text-[11px] text-slate-400">最佳匹配：</span>
-                        <span class="text-[11px] text-violet-600 truncate">{{ task.bestMatchProductId }}</span>
+                        <span class="text-[10px] text-slate-400">最佳：</span>
+                        <span class="text-[10px] text-violet-600 truncate">{{ task.bestMatchProductId }}</span>
                       </template>
-                      <span v-else-if="task.supplyStatus === 'none'" class="text-[11px] text-slate-400">本次未找到</span>
+                      <span v-else-if="task.supplyStatus === 'none'" class="text-[10px] text-slate-400">本次未找到</span>
                     </div>
                   </div>
                 </div>
@@ -319,9 +337,12 @@ function evidenceStatusClass(s: string): string {
             </div>
           </div>
 
-          <!-- 全局去重商品卡片列表（PRD 4.4） -->
+          <!-- 全局去重商品卡片列表（PRD 4.4，主视觉） -->
           <div v-if="store.resultCards.length > 0">
-            <div class="text-xs font-medium text-slate-500 mb-2">候选商品（{{ store.resultCards.length }}）</div>
+            <div class="flex items-center justify-between mb-2 px-0.5">
+              <span class="text-[13px] font-semibold text-slate-800">推荐商品 <span class="text-[11px] font-normal text-slate-400">（{{ store.resultCards.length }}）</span></span>
+              <span class="text-[10px] text-slate-400">按证据匹配度排序</span>
+            </div>
             <div class="space-y-3">
               <div v-for="card in store.resultCards" :key="card.id"
                    class="bg-white rounded-xl border border-slate-200 p-4 space-y-3 hover:border-violet-200 transition-colors">
