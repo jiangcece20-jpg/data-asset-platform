@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAiV104Store } from '@/stores/aiV104'
 import { IconHistory } from '@arco-design/web-vue/es/icon'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
 import type { SearchVersionV104, ResultCardV104, SupplyStatus, PrimaryAction } from '@/types/aiChatV104'
+import { listActionLabelByKey } from '@/domain/productAccess'
 
 const store = useAiV104Store()
+const router = useRouter()
 const input = ref('')
 const scrollRef = ref<HTMLDivElement | null>(null)
 const analysisExpanded = ref(false)
@@ -100,18 +103,45 @@ const statusColor: Record<SupplyStatus, string> = {
 }
 
 function actionLabel(a: PrimaryAction): string {
-  switch (a.type) {
-    case 'use_now': return '立即使用'
-    case 'buy_now': return '立即购买'
-    case 'consult': return '咨询获取'
-    case 'view_detail': return '查看详情'
-  }
+  // 优先取覆写文案，否则用 1.0.2 详情页统一文案（提交试用申请/查看订单/继续支付 等）
+  return a.label ?? listActionLabelByKey[a.key] ?? '查看详情'
 }
 function actionClass(a: PrimaryAction): string {
-  if (a.type === 'use_now') return 'bg-violet-600 text-white'
-  if (a.type === 'buy_now') return 'bg-violet-600 text-white'
-  if (a.type === 'consult') return 'bg-white border border-violet-300 text-violet-700'
+  if (a.disabled || a.key === 'unavailable') return 'bg-slate-100 text-slate-400'
+  if (['view', 'free_view', 'item_purchase', 'dataset_purchase', 'member_purchase', 'continue_payment'].includes(a.key)) {
+    return 'bg-violet-600 text-white'
+  }
+  if (['delivery_progress', 'intent_progress', 'listing_progress', 'submit_space_intent', 'request_listing'].includes(a.key)) {
+    return 'bg-white border border-violet-300 text-violet-700'
+  }
   return 'bg-slate-100 text-slate-700'
+}
+
+/** 商品名/查看商品 → 跳详情 */
+function goProduct(productId: string) {
+  router.push(`/app/product/${productId}`)
+}
+
+/** 收藏切换 */
+function toggleFav(productId: string, e: MouseEvent) {
+  e.stopPropagation()
+  store.toggleFavorite(productId)
+}
+
+// 商品元数据映射（与 PC 端 PortalAiChatV104 保持一致）
+const productNameMap: Record<string, { name: string; type: string; price: string; desc: string }> = {
+  'mock-coal-freight-dataset': { name: '煤炭公路运价明细数据集', type: '数据集', price: '¥ 2,800', desc: '煤炭公路运输起讫点、车型、运价月度明细' },
+  'mock-coal-freight-report': { name: '煤炭运价与运输市场季报', type: '报告', price: '¥ 980', desc: '煤炭运输市场供需、运价走势、区域对比分析' },
+  'mock-coal-freight-api': { name: '煤炭运价查询 API', type: 'API', price: '待报价', desc: '按线路、车型、时间查询煤炭运价接口' },
+  'mock-freight-route-dataset': { name: '货运路线与运力分布数据集', type: '数据集', price: '¥ 3,200', desc: '全国货运起讫路线、运力规模、路线明细' },
+  'mock-freight-route-api': { name: '货运路线查询 API', type: 'API', price: '待报价', desc: '按起讫点、港口查询货运路线与运力' },
+  'mock-enterprise-bankruptcy-report': { name: '企业破产清算司法案例汇编', type: '报告', price: '¥ 1,680', desc: '全国范围内企业破产清算司法案例汇编与要点摘要' },
+  'mock-qingdao-enterprise-dataset': { name: '青岛企业状态与司法信息数据集', type: '数据集', price: '¥ 1,200', desc: '青岛地区企业经营状态、司法案件、清算信息' },
+  'mock-freight-dataset': { name: '货运价格历史明细数据集', type: '数据集', price: '待报价', desc: '分线路、分车型的货运价格历史明细' },
+  'mock-freight-report': { name: '货运价格趋势月报', type: '报告', price: '会员专享', desc: '全国货运价格月度走势与区域对比' },
+}
+function productMeta(id: string) {
+  return productNameMap[id] ?? { name: id, type: '未知', price: '—', desc: '' }
 }
 
 function evidenceStatusLabel(s: string): string {
@@ -346,17 +376,38 @@ function evidenceStatusClass(s: string): string {
             <div class="space-y-3">
               <div v-for="card in store.resultCards" :key="card.id"
                    class="bg-white rounded-xl border border-slate-200 p-4 space-y-3 hover:border-violet-200 transition-colors">
-                <!-- 商品头部 -->
+                <!-- 商品头部：图标 + 名称（可点） + 收藏 -->
                 <div class="flex items-start justify-between gap-2">
-                  <div class="flex-1 min-w-0">
-                    <div class="text-sm font-medium text-slate-800">{{ card.productId }}</div>
-                    <div class="text-[11px] text-slate-500 mt-0.5">商品详情页</div>
+                  <div class="flex items-start gap-2 flex-1 min-w-0">
+                    <span class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100">
+                      <svg class="h-4 w-4 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v12c0 1.66 3.13 3 7 3s7-1.34 7-3V6" /><path d="M5 12c0 1.66 3.13 3 7 3s7-1.34 7-3" />
+                      </svg>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <button
+                        class="text-[13px] font-semibold text-slate-900 text-left leading-snug hover:text-violet-700 hover:underline underline-offset-2"
+                        @click.stop="goProduct(card.productId)"
+                      >{{ productMeta(card.productId).name }}</button>
+                      <div class="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[10px] px-1.5 py-0 rounded bg-slate-100 text-slate-500">{{ productMeta(card.productId).type }}</span>
+                        <span v-if="card.isBestMatchOfTaskIds.length > 0"
+                              class="text-[10px] px-1.5 py-0 rounded-full bg-violet-100 text-violet-700">
+                          ⭐ 最佳匹配{{ card.isBestMatchOfTaskIds.length > 1 ? `×${card.isBestMatchOfTaskIds.length}` : '' }}
+                        </span>
+                      </div>
+                      <div class="mt-1 text-[15px] font-bold tabular-nums text-violet-600 leading-none">{{ productMeta(card.productId).price }}</div>
+                    </div>
                   </div>
-                  <!-- 最佳匹配标记 -->
-                  <span v-if="card.isBestMatchOfTaskIds.length > 0"
-                        class="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
-                    ⭐ 最佳匹配 {{ card.isBestMatchOfTaskIds.length > 1 ? `×${card.isBestMatchOfTaskIds.length}` : '' }}
-                  </span>
+                  <!-- 收藏星标 -->
+                  <button
+                    class="shrink-0 p-1 -mr-1 -mt-0.5 rounded"
+                    :aria-label="store.isFavorite(card.productId) ? '取消收藏' : '收藏'"
+                    @click="toggleFav(card.productId, $event)"
+                  >
+                    <svg v-if="store.isFavorite(card.productId)" class="h-4 w-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.3 5.8 21.5l1.6-7L1 9.9l7.1-.6L12 3l3.9 6.3 7.1.6-6.4 4.6 1.6 7z"/></svg>
+                    <svg v-else class="h-4 w-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 17.3 5.8 21.5l1.6-7L1 9.9l7.1-.6L12 3l3.9 6.3 7.1.6-6.4 4.6 1.6 7z"/></svg>
+                  </button>
                 </div>
 
                 <!-- 逐需求匹配证据 -->
@@ -386,14 +437,20 @@ function evidenceStatusClass(s: string): string {
                   </div>
                 </template>
 
-                <!-- 动态主操作 + 价格 -->
+                <!-- 操作条：查看商品 + 主操作 -->
                 <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <div class="text-[11px] text-slate-500">
-                    价格信息
-                  </div>
+                  <button
+                    class="text-[11px] text-slate-500 hover:text-violet-600 transition flex items-center gap-0.5"
+                    @click.stop="goProduct(card.productId)"
+                  >
+                    查看商品
+                    <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
                   <button
                     class="text-xs px-3 py-1.5 rounded-lg font-medium"
                     :class="actionClass(card.primaryAction)"
+                    :disabled="card.primaryAction.disabled"
+                    @click.stop
                   >
                     {{ actionLabel(card.primaryAction) }}
                   </button>

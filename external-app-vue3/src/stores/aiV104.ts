@@ -14,6 +14,7 @@
  */
 
 import { defineStore } from 'pinia'
+import type { ProductActionKey } from '@/domain/productAccess'
 import { genId, now } from '@/utils/id'
 import type {
   ConversationV104,
@@ -90,6 +91,8 @@ interface V104ProductMeta {
   forSale: boolean
   /** 需要线下洽谈 */
   needsConsult: boolean
+  /** 主操作 key（对齐 1.0.2 ProductActionKey），原型阶段显式指定以覆盖各场景 */
+  actionKey: ProductActionKey
 }
 
 /** V104 原型专用商品元数据 — 覆盖 PRD 样本涉及的品类 */
@@ -111,6 +114,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: true,
     needsConsult: false,
+    actionKey: 'dataset_purchase',
   },
   'mock-coal-freight-report': {
     id: 'mock-coal-freight-report',
@@ -128,6 +132,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: true,
     needsConsult: false,
+    actionKey: 'item_purchase',
   },
   'mock-coal-freight-api': {
     id: 'mock-coal-freight-api',
@@ -145,6 +150,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: false,
     needsConsult: true,
+    actionKey: 'submit_space_intent',
   },
 
   // ── 货运路线相关（样本 4-5） ──
@@ -164,6 +170,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: true,
     needsConsult: false,
+    actionKey: 'dataset_purchase',
   },
   'mock-freight-route-api': {
     id: 'mock-freight-route-api',
@@ -181,6 +188,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: false,
     needsConsult: true,
+    actionKey: 'submit_space_intent',
   },
 
   // ── 清算案例相关（样本 1-2）—— 无直接匹配，仅部分匹配 ──
@@ -200,6 +208,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: true,
     needsConsult: false,
+    actionKey: 'delivery_progress',
   },
   'mock-qingdao-enterprise-dataset': {
     id: 'mock-qingdao-enterprise-dataset',
@@ -217,6 +226,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: true,
     needsConsult: false,
+    actionKey: 'view',
   },
 
   // ── 现有 catalog 商品（补充元数据） ──
@@ -236,6 +246,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: false,
     forSale: false,
     needsConsult: true,
+    actionKey: 'submit_space_intent',
   },
   'mock-freight-report': {
     id: 'mock-freight-report',
@@ -253,6 +264,7 @@ const v104ProductMeta: Record<string, V104ProductMeta> = {
     hasEntitlement: true,
     forSale: false,
     needsConsult: false,
+    actionKey: 'free_view',
   },
 }
 
@@ -289,10 +301,8 @@ interface ScenarioMatch {
 }
 
 function evaluatePrimaryAction(meta: V104ProductMeta): PrimaryAction {
-  if (meta.hasEntitlement) return { type: 'use_now' }
-  if (meta.forSale) return { type: 'buy_now' }
-  if (meta.needsConsult) return { type: 'consult' }
-  return { type: 'view_detail' }
+  // 原型阶段直接使用 meta.actionKey，文案由视图层 listActionLabelByKey 决定
+  return { key: meta.actionKey }
 }
 
 /**
@@ -573,6 +583,8 @@ interface V104State {
   isSearching: boolean
   /** 正在展示结果的版本 ID */
   activeResultVersionId: string
+  /** 收藏的商品 ID 集合（原型阶段本地内存，mock 商品不在 catalog） */
+  favoriteIds: Record<string, true>
 }
 
 export const useAiV104Store = defineStore('aiV104', {
@@ -582,6 +594,7 @@ export const useAiV104Store = defineStore('aiV104', {
     pendingClarify: null,
     isSearching: false,
     activeResultVersionId: '',
+    favoriteIds: {},
   }),
 
   getters: {
@@ -604,6 +617,19 @@ export const useAiV104Store = defineStore('aiV104', {
   },
 
   actions: {
+    /** 切换商品收藏状态（原型阶段本地内存） */
+    toggleFavorite(productId: string) {
+      if (this.favoriteIds[productId]) {
+        delete this.favoriteIds[productId]
+      } else {
+        this.favoriteIds[productId] = true
+      }
+    },
+    /** 是否已收藏 */
+    isFavorite(productId: string): boolean {
+      return Boolean(this.favoriteIds[productId])
+    },
+
     startConversation(ownerMemberId: string = 'demo-user') {
       if (this.conversation) return
       const id = genId('conversation-v104')
@@ -991,7 +1017,7 @@ export const useAiV104Store = defineStore('aiV104', {
         risks: [],
         pendingVerifications: ['是否包含具体清算案例明细'],
         confirmedGaps: [],
-        primaryAction: { type: 'buy_now' },
+        primaryAction: { key: 'dataset_purchase' },
       }]
 
       version.resultCards = cards

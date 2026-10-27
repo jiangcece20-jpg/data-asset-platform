@@ -238,7 +238,7 @@ function resolveMemberAwareActions(context: ProductActionContext): {
   }
 }
 
-const listActionLabelByKey: Record<ProductActionKey, string> = {
+export const listActionLabelByKey: Record<ProductActionKey, string> = {
   view: '立即查看',
   request_listing: '可申请上架',
   listing_progress: '查看进度',

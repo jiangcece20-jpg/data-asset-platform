@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAiV104Store } from '@/stores/aiV104'
 import { IconHistory, IconPlus } from '@arco-design/web-vue/es/icon'
 import type { PrimaryAction, SupplyStatus } from '@/types/aiChatV104'
+import { listActionLabelByKey } from '@/domain/productAccess'
 
 const store = useAiV104Store()
+const router = useRouter()
 const input = ref('')
 const scrollRef = ref<HTMLDivElement | null>(null)
 const analysisExpanded = ref(false)
@@ -88,17 +91,31 @@ const statusColor: Record<SupplyStatus, string> = {
   none: 'bg-slate-100 text-slate-600 border-slate-200',
 }
 function actionLabel(a: PrimaryAction): string {
-  switch (a.type) {
-    case 'use_now': return '立即使用'
-    case 'buy_now': return '立即购买'
-    case 'consult': return '咨询获取'
-    case 'view_detail': return '查看详情'
-  }
+  // 优先取覆写文案，否则用 1.0.2 详情页统一文案（提交试用申请/查看订单/继续支付 等）
+  return a.label ?? listActionLabelByKey[a.key] ?? '查看详情'
 }
 function actionClass(a: PrimaryAction): string {
-  if (a.type === 'use_now' || a.type === 'buy_now') return 'bg-gradient-to-r from-[#3B6FF7] to-[#7B5CF6] text-white'
-  if (a.type === 'consult') return 'bg-white border border-violet-300 text-violet-700 hover:bg-violet-50'
+  if (a.disabled || a.key === 'unavailable') return 'bg-slate-100 text-slate-400 cursor-not-allowed'
+  // 强转化类主操作：紫渐变实心
+  if (['view', 'free_view', 'item_purchase', 'dataset_purchase', 'member_purchase', 'continue_payment'].includes(a.key)) {
+    return 'bg-gradient-to-r from-[#3B6FF7] to-[#7B5CF6] text-white'
+  }
+  // 进度查询/咨询类：紫描边
+  if (['delivery_progress', 'intent_progress', 'listing_progress', 'submit_space_intent', 'request_listing'].includes(a.key)) {
+    return 'bg-white border border-violet-300 text-violet-700 hover:bg-violet-50'
+  }
   return 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+}
+
+/** 商品名/查看商品 → 跳详情 */
+function goProduct(productId: string) {
+  router.push(`/portal/product/${productId}`)
+}
+
+/** 收藏切换 */
+function toggleFav(productId: string, e: MouseEvent) {
+  e.stopPropagation()
+  store.toggleFavorite(productId)
 }
 
 const hasMessages = computed(() => store.messages.length > 1)
@@ -401,7 +418,7 @@ const greeting = computed(() => {
                 :key="card.id"
                 class="group rounded-lg border border-ink-200 bg-white p-4 shadow-card transition hover:border-violet-200 hover:shadow-card-hover-violet cursor-pointer"
               >
-                <!-- 头部：名称 + 最佳匹配徽章 + 价格 -->
+                <!-- 头部：名称 + 最佳匹配徽章 + 价格 + 收藏 -->
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex items-start gap-3 flex-1 min-w-0">
                     <span class="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-violet-200 bg-gradient-to-br from-violet-50 to-violet-100 shadow-[0_0_10px_rgba(123,92,246,0.18)] group-hover:shadow-[0_0_16px_rgba(123,92,246,0.35)]">
@@ -411,7 +428,10 @@ const greeting = computed(() => {
                     </span>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-[15px] font-semibold text-ink-900 transition group-hover:text-violet-700">{{ productMeta(card.productId).name }}</span>
+                        <button
+                          class="text-[15px] font-semibold text-ink-900 transition hover:text-violet-700 hover:underline underline-offset-2 cursor-pointer text-left"
+                          @click.stop="goProduct(card.productId)"
+                        >{{ productMeta(card.productId).name }}</button>
                         <span class="rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-500">{{ productMeta(card.productId).type }}</span>
                         <span v-if="card.isBestMatchOfTaskIds.length > 0" class="rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 border border-violet-200">
                           ⭐ 最佳匹配{{ card.isBestMatchOfTaskIds.length > 1 ? `×${card.isBestMatchOfTaskIds.length}` : '' }}
@@ -420,8 +440,17 @@ const greeting = computed(() => {
                       <div class="mt-0.5 text-[12px] text-ink-500 truncate">{{ productMeta(card.productId).desc }}</div>
                     </div>
                   </div>
-                  <div class="shrink-0 text-right min-w-[72px]">
+                  <!-- 右侧：价格 + 收藏星标 -->
+                  <div class="shrink-0 flex flex-col items-end gap-1.5">
                     <div class="text-[17px] font-bold leading-none tabular-nums text-violet-600">{{ productMeta(card.productId).price }}</div>
+                    <button
+                      class="p-1 -mr-1 rounded transition hover:bg-violet-50"
+                      :aria-label="store.isFavorite(card.productId) ? '取消收藏' : '收藏'"
+                      @click="toggleFav(card.productId, $event)"
+                    >
+                      <svg v-if="store.isFavorite(card.productId)" class="h-4 w-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.3 5.8 21.5l1.6-7L1 9.9l7.1-.6L12 3l3.9 6.3 7.1.6-6.4 4.6 1.6 7z"/></svg>
+                      <svg v-else class="h-4 w-4 text-ink-300 hover:text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 17.3 5.8 21.5l1.6-7L1 9.9l7.1-.6L12 3l3.9 6.3 7.1.6-6.4 4.6 1.6 7z"/></svg>
+                    </button>
                   </div>
                 </div>
 
@@ -456,10 +485,20 @@ const greeting = computed(() => {
 
                   <!-- 操作条 -->
                   <div class="mt-3 pt-3 border-t border-ink-100 flex items-center justify-between">
-                    <span class="text-[11px] text-ink-400">点击卡片进入商品详情</span>
+                    <button
+                      class="text-[11px] text-ink-500 hover:text-violet-600 transition flex items-center gap-1"
+                      @click.stop="goProduct(card.productId)"
+                    >
+                      查看商品
+                      <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
                     <div class="flex items-center gap-2">
-                      <button class="rounded-md px-4 py-1.5 text-[12px] font-medium transition hover:opacity-90"
-                              :class="actionClass(card.primaryAction)">
+                      <button
+                        class="rounded-md px-4 py-1.5 text-[12px] font-medium transition hover:opacity-90"
+                        :class="actionClass(card.primaryAction)"
+                        :disabled="card.primaryAction.disabled"
+                        @click.stop
+                      >
                         {{ actionLabel(card.primaryAction) }}
                       </button>
                     </div>

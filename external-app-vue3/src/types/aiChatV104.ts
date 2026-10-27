@@ -69,11 +69,18 @@ export interface SearchTaskV104 {
 export type SupplyStatus = 'suitable' | 'partial' | 'none'
 
 // ── 动态主操作（PRD 4.8） ───────────────────────────
-export type PrimaryAction =
-  | { type: 'use_now' }      // 已有可用权益 → 立即使用
-  | { type: 'buy_now' }      // 支持在线购买 → 立即购买
-  | { type: 'consult' }      // 需要线下洽谈 → 咨询获取
-  | { type: 'view_detail' }  // 价格/权益不明 → 查看详情
+// 与 1.0.2 详情页 ProductActionKey 对齐，按钮文案从 @/domain/productAccess 的
+// listActionLabelByKey 取（提交试用申请 / 查看订单 / 继续支付 / 购买数据集 等）
+import type { ProductActionKey } from '@/domain/productAccess'
+
+export interface PrimaryAction {
+  /** 动作 key，对应 1.0.2 详情页 ProductActionKey */
+  key: ProductActionKey
+  /** 可选：覆写按钮文案（默认取 listActionLabelByKey[key]） */
+  label?: string
+  /** 是否禁用 */
+  disabled?: boolean
+}
 
 // ── 商品匹配证据（PRD 4.4） ──────────────────────────
 export interface MatchEvidence {
