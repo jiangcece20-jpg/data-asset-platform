@@ -210,7 +210,7 @@ function handleDowngradeKeyword() {
         <button
           data-testid="discover-mode-ai"
           class="flex w-11 shrink-0 flex-col items-center"
-          @click="activeMode = 'ai'"
+          @click="router.push('/app/ai-find')"
         >
           <svg class="h-10 w-10" viewBox="0 0 44 44" fill="none">
             <defs>
