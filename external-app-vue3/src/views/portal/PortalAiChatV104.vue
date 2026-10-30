@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAiV104Store } from '@/stores/aiV104'
 import { IconHistory, IconPlus } from '@arco-design/web-vue/es/icon'
-import type { PrimaryAction, SupplyStatus } from '@/types/aiChatV104'
+import type { ChatMessageV104, PrimaryAction, SupplyStatus } from '@/types/aiChatV104'
 import { listActionLabelByKey } from '@/domain/productAccess'
 
 const store = useAiV104Store()
@@ -93,6 +93,17 @@ const statusColor: Record<SupplyStatus, string> = {
 function actionLabel(a: PrimaryAction): string {
   // 优先取覆写文案，否则用 1.0.2 详情页统一文案（提交试用申请/查看订单/继续支付 等）
   return a.label ?? listActionLabelByKey[a.key] ?? '查看详情'
+}
+
+/** 消息正文极简渲染：**加粗** 与换行 */
+function richText(msg: ChatMessageV104): string {
+  const raw = msg.text || msg.aiContent?.text || ''
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
 }
 function actionClass(a: PrimaryAction): string {
   if (a.disabled || a.key === 'unavailable') return 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -248,7 +259,7 @@ const greeting = computed(() => {
               </div>
 
               <!-- 正文 -->
-              <div v-if="msg.text" class="rounded-lg border border-ink-200 bg-white p-4 text-[14px] text-ink-700 leading-relaxed shadow-card whitespace-pre-wrap">{{ msg.text }}</div>
+              <div v-if="msg.text || msg.aiContent?.text" class="rounded-lg border border-ink-200 bg-white p-4 text-[14px] text-ink-700 leading-relaxed shadow-card" v-html="richText(msg)"></div>
 
               <!-- 澄清问题 -->
               <div v-if="msg.aiContent?.clarifyQuestion" class="rounded-lg border border-amber-200 bg-amber-50/70 p-4">

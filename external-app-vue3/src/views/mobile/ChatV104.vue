@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAiV104Store } from '@/stores/aiV104'
 import { IconHistory } from '@arco-design/web-vue/es/icon'
 import MobileHeader from '@/components/mobile/MobileHeader.vue'
-import type { SearchVersionV104, ResultCardV104, SupplyStatus, PrimaryAction } from '@/types/aiChatV104'
+import type { SearchVersionV104, ResultCardV104, SupplyStatus, PrimaryAction, ChatMessageV104 } from '@/types/aiChatV104'
 import { listActionLabelByKey } from '@/domain/productAccess'
 
 const store = useAiV104Store()
@@ -106,6 +106,17 @@ function actionLabel(a: PrimaryAction): string {
   // 优先取覆写文案，否则用 1.0.2 详情页统一文案（提交试用申请/查看订单/继续支付 等）
   return a.label ?? listActionLabelByKey[a.key] ?? '查看详情'
 }
+
+/** 消息正文极简渲染：**加粗** 与换行 */
+function richText(msg: ChatMessageV104): string {
+  const raw = msg.text || msg.aiContent?.text || ''
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+}
 function actionClass(a: PrimaryAction): string {
   if (a.disabled || a.key === 'unavailable') return 'bg-slate-100 text-slate-400'
   if (['view', 'free_view', 'item_purchase', 'dataset_purchase', 'member_purchase', 'continue_payment'].includes(a.key)) {
@@ -205,9 +216,7 @@ function evidenceStatusClass(s: string): string {
             <!-- AI 消息 -->
             <div v-else class="space-y-3">
               <!-- 纯文本 -->
-              <div v-if="msg.text" class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">
-                {{ msg.text }}
-              </div>
+              <div v-if="msg.text || msg.aiContent?.text" class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100" v-html="richText(msg)"></div>
 
               <!-- 过程步骤（可折叠） -->
               <div v-if="msg.aiContent?.steps" class="bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">

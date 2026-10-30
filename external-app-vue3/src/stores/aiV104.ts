@@ -321,7 +321,8 @@ function mockSearchEngine(
     const productIds = ['mock-coal-freight-dataset', 'mock-coal-freight-report', 'mock-coal-freight-api']
     const taskId = tasks[0]?.id || genId('task')
 
-    const task1 = tasks.find((t) => t.standardQuestion.includes('煤炭运价'))
+    const task1 = tasks.find((t) => t.standardQuestion.includes('煤炭运价') || t.standardQuestion.includes('运价'))
+      || tasks[0]
       || makeTask('找 2025 年榆林到天津港的煤炭公路运价，按月查看',
         '从平台找 2025 年榆林到天津港的煤炭公路运价数据，按月拆分', [])
     taskId

@@ -16,7 +16,7 @@ const fillHeight = computed(() => route.path === '/app/discover' || route.path =
 
 <template>
   <div class="flex justify-center py-0 sm:py-8">
-    <div class="relative flex h-[calc(100vh-49px)] w-full flex-col overflow-hidden border-0 border-ink-900 bg-white shadow-none sm:h-[800px] sm:w-[390px] sm:rounded-[2.5rem] sm:border-8 sm:shadow-2xl">
+    <div :class="fillHeight ? 'h-[calc(100dvh-88px)]' : 'h-[calc(100vh-49px)]'" class="relative flex w-full flex-col overflow-hidden border-0 border-ink-900 bg-white shadow-none sm:h-[800px] sm:w-[390px] sm:rounded-[2.5rem] sm:border-8 sm:shadow-2xl">
       <!-- 状态栏 -->
       <div class="flex shrink-0 items-center justify-between bg-white px-6 pb-1 pt-3 text-[11px] font-medium text-ink-900">
         <span>9:41</span>

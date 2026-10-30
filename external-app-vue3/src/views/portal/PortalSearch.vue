@@ -422,7 +422,7 @@ function goAi(from?: string) {
           <input v-model="query" data-testid="portal-search-input" aria-label="搜索数据商品" placeholder="搜索数据商品">
           <button type="submit" data-testid="portal-search-submit">搜索</button>
         </form>
-        <button class="search-ai-link" data-testid="portal-go-ai" @click="goAi()">AI 问答</button>
+        <button class="search-ai-link" data-testid="portal-go-ai" @click="goAi()">AI找数</button>
             </section>
 
           </div>
@@ -621,7 +621,7 @@ function goAi(from?: string) {
               </svg>
             </div>
             <div class="mt-3 text-sm font-medium text-ink-700">未找到匹配的结果</div>
-            <div class="mt-1 text-xs text-ink-500">可调整筛选条件，或改用 AI 问答做汇总与对比</div>
+            <div class="mt-1 text-xs text-ink-500">可调整筛选条件，或改用 AI找数查找相关商品</div>
             <div class="mt-4 flex justify-center gap-3">
               <button
                 v-if="activeFilterCount"
@@ -635,7 +635,7 @@ function goAi(from?: string) {
                 data-testid="upgrade-ai-cta"
                 @click="goAi('keyword_empty')"
               >
-                没有命中？试试 AI 问答
+                没有命中？试试 AI找数
               </button>
               <button class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })">
                 提交需求

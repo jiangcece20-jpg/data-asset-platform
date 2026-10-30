@@ -13,7 +13,7 @@ const router = createRouter({
     // ---------------- 移动端：综合 APP 找数模块 ----------------
     { path: '/app/home', name: 'app-home', component: () => import('@/views/mobile/AppHome.vue'), meta: { title: '综合APP首页' } },
     { path: '/app/discover', name: 'discover-home', component: () => import('@/views/mobile/DiscoverHome.vue'), meta: { title: '找数' } },
-    { path: '/app/ai-find', name: 'ai-find', component: () => import('@/views/mobile/ChatV104.vue'), meta: { title: 'AI找数' } },
+    { path: '/app/ai-find', name: 'ai-find', component: () => import('@/views/shared/AiFindPrototypePage.vue'), meta: { title: 'AI找数' } },
     {
       path: '/app/answer',
       name: 'answer-result',
@@ -76,7 +76,7 @@ const router = createRouter({
     { path: '/portal/home', redirect: '/portal/search' },
     { path: '/portal/insights', name: 'portal-insights', component: () => import('@/views/portal/PortalInsights.vue'), meta: { title: '看数' } },
     { path: '/portal/search', name: 'portal-search', component: () => import('@/views/portal/PortalSearch.vue'), meta: { title: '关键词搜索' } },
-    { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/portal/PortalAiChatV104.vue'), meta: { title: 'AI找数' } },
+    { path: '/portal/ai-chat', name: 'portal-ai-chat', component: () => import('@/views/shared/AiFindPrototypePage.vue'), meta: { title: 'AI找数' } },
     { path: '/portal/product/:id', name: 'portal-product-detail', component: () => import('@/views/portal/PortalProductDetail.vue'), meta: { title: '商品详情' } },
     { path: '/portal/use/dataset/:id', name: 'portal-dataset-use', component: () => import('@/views/shared/DatasetUse.vue'), meta: { title: '用数' } },
     { path: '/portal/data-prepare/datasets', name: 'portal-dataset-management', component: () => import('@/views/shared/DatasetManagement.vue'), meta: { title: '数据集管理' } },

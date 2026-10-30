@@ -3,9 +3,9 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import DiscoverHome from './DiscoverHome.vue'
-import { useAiStore } from '@/stores/ai'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
+import { useDemoConversation } from '@/components/ai-v104/demoConversation'
 
 async function mountDiscover() {
   const router = createRouter({
@@ -24,7 +24,9 @@ async function mountDiscover() {
 describe('DiscoverHome', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.removeItem('ai-v104-mobile-mode')
     vi.useFakeTimers()
+    useDemoConversation('mobile').newSession()
   })
 
   afterEach(() => {
@@ -69,13 +71,13 @@ describe('DiscoverHome', () => {
     expect(wrapper.get('[data-testid="discover-filter-count"]').text()).toBe('1')
   })
 
-  it('switches to embedded chat panel in AI mode', async () => {
-    const { wrapper } = await mountDiscover()
+  it('opens the interactive AI prototype inside discover without navigating', async () => {
+    const { wrapper, router } = await mountDiscover()
     await wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
+    expect(router.currentRoute.value.path).toBe('/app/discover')
     expect(wrapper.get('[data-testid="discover-ai-panel"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="discover-keyword-panel"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="chat-empty"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('用自然语言找数')
+    expect(wrapper.get('[data-testid="prototype-user-screen"]').text()).toContain('你想找什么数据')
     expect(wrapper.text()).not.toContain('数据来源样例')
   })
 
@@ -94,29 +96,47 @@ describe('DiscoverHome', () => {
     expect(router.currentRoute.value.query).toMatchObject({ q: '货运', type: 'dataset', usable: '1' })
   })
 
-  it('sends AI question inline without leaving discover tab', async () => {
-    const { wrapper } = await mountDiscover()
+  it('does not auto-send keyword text and preserves it when returning', async () => {
+    const { wrapper, router } = await mountDiscover()
+    await wrapper.get('input[placeholder="搜索商品名称、场景或关键词"]').setValue('煤炭运价')
     await wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
-    const textarea = wrapper.get('[data-testid="discover-ai-panel"] textarea')
-    await textarea.setValue('近三个月货运价格趋势如何')
-    await wrapper.get('[data-testid="chat-send"]').trigger('click')
-    vi.advanceTimersByTime(700)
-    await flushPromises()
-    expect(wrapper.get('[data-testid="user-message"]').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="route-badge"]').text()).toContain('平台内')
+    expect(wrapper.find('[data-testid="prototype-user-question"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="prototype-product-list"]').exists()).toBe(false)
+    await wrapper.get('button[aria-label="返回关键词找数"]').trigger('click')
+    expect(router.currentRoute.value.path).toBe('/app/discover')
+    expect(wrapper.get<HTMLInputElement>('input[placeholder="搜索商品名称、场景或关键词"]').element.value).toBe('煤炭运价')
   })
 
-  it('opens saved conversations from the embedded AI mode', async () => {
-    const ai = useAiStore()
-    ai.activateOwner('mem-1')
-    ai.sendQuestion('历史货运问题')
-    ai.flushResponse()
-    const conversationId = ai.activeConversationId
-    ai.startNewConversation()
+  it('supports optional review scenes alongside the interactive conversation', async () => {
     const { wrapper } = await mountDiscover()
     await wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
-    await wrapper.get('[data-testid="discover-ai-history"]').trigger('click')
-    await wrapper.get(`[data-testid="ai-history-${conversationId}"]`).trigger('click')
-    expect(wrapper.get('[data-testid="discover-ai-panel"]').text()).toContain('历史货运问题')
+    await wrapper.get('[data-testid="prototype-scene-select"]').setValue('timeout')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="prototype-user-screen"]').text()).toContain('本批未完成')
+    expect(wrapper.find('[data-testid="prototype-product-list"]').exists()).toBe(false)
+    await wrapper.get('[data-testid="prototype-scene-select"]').setValue('result')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="prototype-product-list"]').text()).toContain('煤炭公路运价明细数据集')
   })
+  it('restores AI mode and the same conversation after remount without sending again', async () => {
+    const first = await mountDiscover()
+    await first.wrapper.get('[data-testid="discover-mode-ai"]').trigger('click')
+    await first.wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价')
+    await first.wrapper.get('form.composer-box').trigger('submit')
+    const sessionId = useDemoConversation('mobile').session.id
+    first.wrapper.unmount()
+    const next = await mountDiscover()
+    expect(next.wrapper.find('[data-testid="discover-ai-panel"]').exists()).toBe(true)
+    expect(useDemoConversation('mobile').session.id).toBe(sessionId)
+    expect(useDemoConversation('mobile').session.frames).toHaveLength(1)
+    await vi.runAllTimersAsync(); await flushPromises()
+    await next.wrapper.get('[aria-label="返回关键词找数"]').trigger('click')
+    next.wrapper.unmount()
+    const last = await mountDiscover()
+    expect(last.wrapper.find('[data-testid="discover-keyword-panel"]').exists()).toBe(true)
+    last.wrapper.unmount()
+  })
+
 })

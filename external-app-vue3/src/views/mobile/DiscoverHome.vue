@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ProductCard from '@/components/mobile/ProductCard.vue'
+import AiFindPrototype from '@/components/ai-v104/AiFindPrototype.vue'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
@@ -18,6 +19,10 @@ const entitlements = useEntitlementStore()
 const user = useUserStore()
 
 const query = ref('')
+const modeKey = 'ai-v104-mobile-mode'
+function restoreMode() { try { return localStorage.getItem(modeKey) === 'ai' } catch { return false } }
+const aiMode = ref(restoreMode())
+watch(aiMode, value => { try { localStorage.setItem(modeKey, value ? 'ai' : 'keyword') } catch { /* 禁用本地存储时仍可使用入口。 */ } }, { flush: 'sync' })
 
 const recommended = computed(() => discoverShowcaseProducts(catalog.products))
 
@@ -140,7 +145,7 @@ function submitKeyword(q?: string) {
 <template>
   <div class="flex h-full min-h-0 flex-col bg-ink-100" data-testid="discover-home">
     <!-- 浅蓝搜索头 -->
-    <div class="shrink-0 bg-gradient-to-b from-[#EDF4FF] to-[#F5F8FF] px-4 pb-3 pt-3">
+    <div v-if="!aiMode" class="shrink-0 bg-gradient-to-b from-[#EDF4FF] to-[#F5F8FF] px-4 pb-3 pt-3">
       <div class="flex items-center gap-2">
         <!-- 返回 -->
         <button class="flex h-9 w-7 shrink-0 items-center justify-center text-ink-700" aria-label="返回" @click="router.back()">
@@ -160,7 +165,7 @@ function submitKeyword(q?: string) {
         <button
           data-testid="discover-mode-ai"
           class="flex w-11 shrink-0 flex-col items-center"
-          @click="router.push('/app/ai-find')"
+          @click="aiMode = true"
         >
           <svg class="h-10 w-10" viewBox="0 0 44 44" fill="none">
             <defs>
@@ -214,7 +219,7 @@ function submitKeyword(q?: string) {
     </div>
 
     <!-- 关键词模式：商品列表 -->
-    <div class="flex-1 overflow-y-auto px-3 pb-6 pt-3" data-testid="discover-keyword-panel">
+    <div v-if="!aiMode" class="flex-1 overflow-y-auto px-3 pb-6 pt-3" data-testid="discover-keyword-panel">
       <template v-if="filtered.length">
         <!-- 默认态：样例分组 -->
         <template v-if="isGrouped">
@@ -246,6 +251,10 @@ function submitKeyword(q?: string) {
         <div class="mt-2 text-[13px] text-ink-500">{{ usableOnly ? '当前企业暂无可直接使用的商品' : '没有符合筛选条件的商品' }}</div>
         <button class="mt-4 rounded-full bg-brand-500 px-6 py-2 text-[13px] font-medium text-white" @click="activeType = ''; originFilter = ''; spaceFilter = ''; usableOnly = false; sort = 'recommend'">清空筛选</button>
       </div>
+    </div>
+
+    <div v-if="aiMode" class="flex min-h-0 flex-1 flex-col overflow-hidden" data-testid="discover-ai-panel">
+      <AiFindPrototype compact inline @back="aiMode = false" />
     </div>
 
     <!-- 更多筛选抽屉：使用范围/排序/来源/空间 + 重置/确定；类型由顶部快捷入口控制 -->
