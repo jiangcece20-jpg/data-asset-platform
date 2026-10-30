@@ -209,13 +209,13 @@ function goAiAnswer(from: 'keyword_empty' | 'manual' = 'manual') {
     <EmptyState v-if="!results.length && usableOnly" title="没有符合当前条件的可用商品" desc="调整关键词或筛选条件后重试">
       <button class="w-full rounded-lg border border-slate-200 py-2 text-sm" @click="usableOnly = false">查看全部商品</button>
     </EmptyState>
-    <EmptyState v-else-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或用 AI 问答做汇总与对比">
+    <EmptyState v-else-if="!results.length" icon="🔍" title="没有找到匹配的商品" desc="换个关键词试试，或用 AI找数查找相关商品">
       <button
         class="w-full rounded-full bg-brand-500 py-2.5 text-[13px] font-medium text-white"
         data-testid="upgrade-ai-cta"
         @click="goAiAnswer('keyword_empty')"
       >
-        没有命中？试试 AI 问答
+        没有命中？试试 AI找数
       </button>
       <button
         class="mt-2 w-full rounded-full border border-slate-200 bg-white py-2.5 text-[13px] font-medium text-slate-600"
