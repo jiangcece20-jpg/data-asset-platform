@@ -63,3 +63,5 @@
 - [PC商城](assets/2026-10-31-ai-ui-integration/pc-market.png)
 
 独立复核未发现UI隐藏必要证据、恢复编辑表单或遗漏PC收藏参数透传的问题。浏览器视觉与前端演示范围以本记录和截图为准；未进行后台联调。
+
+后续：[PRD与HTML截图同步核对](2026-10-31-ai-ui-doc-consistency.md)。本地整合版截图已写回Obsidian，仍未部署。
