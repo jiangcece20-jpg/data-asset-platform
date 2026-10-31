@@ -51,10 +51,10 @@ describe('AI找数前端演示流程', () => {
     expect(demo.current.conditions).toEqual(conditions)
     expect(demo.current.taskIds).toHaveLength(2)
   })
-  it('resumes only the deferred demand and preserves the published result', async () => {
+  it('follows up only the newly requested demand and preserves the published result', async () => {
     const demo = createDemoConversation()
     await demo.send('找煤炭运价，再找2025年苹果销量')
-    await demo.defer()
+    await demo.send('苹果先不找了')
     const published = JSON.stringify(demo.current)
     const publishedId = demo.current.id
     await demo.send('继续刚才苹果销量，是水果')
