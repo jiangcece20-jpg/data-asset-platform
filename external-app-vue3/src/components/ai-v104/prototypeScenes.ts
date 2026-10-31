@@ -1,5 +1,6 @@
 /** 固定评审画面，不包含意图识别、检索、匹配或业务执行。 */
 export interface EvidencePreview {
+  demand?: string
   label: string
   fact: string
   state: 'met' | 'partial' | 'unmet' | 'unknown'
@@ -36,7 +37,7 @@ export const coalConditions = ['煤炭公路运价', '榆林 → 天津港', '20
 export const dailyConditions = ['煤炭公路运价', '榆林 → 天津港', '2025 年', '按天查看（必须）', '每天更新（必须）']
 export const coal: ProductPreview = {
   id: 'preview-coal', name: '煤炭公路运价明细数据集', type: '数据集', price: '¥2,400／年',
-  description: '查看指定线路的煤炭公路运价，支持按月拆分。', action: '立即购买',
+  description: '煤炭运输价格与线路信息查询。', action: '立即购买',
   evidence: [
     { label: '数据内容', fact: '包含煤炭公路运价指标', state: 'met' },
     { label: '线路方向', fact: '榆林 → 天津港', state: 'met' },
@@ -65,7 +66,7 @@ export const route: ProductPreview = {
 export const shared: ProductPreview = {
   ...coal, id: 'preview-shared', name: '煤炭运输线路与运价综合数据集', price: '¥3,600／年',
   description: '同一商品同时提供线路、运价与运力信息。', coverage: ['需求 1 · 煤炭运价', '需求 2 · 货运路线'],
-  evidence: [...coal.evidence, { label: '货运路线', fact: '提供地市间路线与运力信息', state: 'met' }]
+  evidence: [...coal.evidence.map(e => ({ ...e, demand: '需求 1 · 煤炭运价' })), { label: '货运路线', fact: '提供地市间路线与运力信息', state: 'met', demand: '需求 2 · 货运路线' }]
 }
 const freightQuery = '找 2025 年榆林到天津港的煤炭公路运价，按月查看'
 const dailyQuery = '找榆林到天津港的煤炭公路运价，2025 年，必须按天查看、每天更新'
