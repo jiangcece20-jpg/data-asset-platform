@@ -165,12 +165,16 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     const byId = new Map<string, ProductPreview>()
     for (const p of frame.products) {
       const existing = byId.get(p.id)
-      if (existing) existing.coverage = [...new Set([...(existing.coverage || []), ...(p.coverage || [])])]
+      if (existing) {
+        const scope = (product: ProductPreview) => [product.coverage?.join('、'), product.evidence.find(e => e.label === '时间范围')?.fact].filter(Boolean).join(' · ')
+        existing.evidence = [...existing.evidence.map(e => ({ ...e, demand: e.demand || scope(existing) })), ...p.evidence.map(e => ({ ...e, demand: scope(p) }))]
+        existing.coverage = [...new Set([...(existing.coverage || []), ...(p.coverage || [])])]
+      }
       else byId.set(p.id, p)
     }
     frame.products = [...byId.values()]
     if (tasks.length > 1) frame.products.forEach(p => { p.best = false })
-    frame.tasks = tasks.map(t => ({ id: t.id, title: t.name, status: products(t).length ? t.note ? '找到相关商品' : t.unknown || t.preference || t.routeCoverageUnknown ? '部分匹配' : '有合适商品' : '无合适商品', detail: products(t).length ? t.note ? '已明确条件见商品证据；补充要求的具体标准尚未明确，不据此判断已满足。' : t.unknown || t.routeCoverageUnknown ? '相关商品资料未写明支持情况，请核实标记的信息。' : t.preference ? '必须条件满足，更新偏好有缺口。' : '请查看下方商品和逐条件证据。' : '保留当前要求，可修改条件或提交采数需求。' }))
+    frame.tasks = tasks.map(t => ({ id: t.id, title: t.name, status: products(t).length ? t.note ? '找到相关商品' : t.unknown || t.preference || t.routeCoverageUnknown ? '部分匹配' : '有合适商品' : '无合适商品', detail: products(t).length ? t.note ? '已明确条件见商品证据；补充要求的具体标准尚未明确，不据此判断已满足。' : t.unknown || t.routeCoverageUnknown ? '相关商品资料未写明支持情况，请核实标记的信息。' : t.preference ? '必须条件满足，更新偏好有缺口。' : '请查看下方商品的匹配说明及需留意的信息。' : '保留当前要求，可修改条件或提交采数需求。' }))
     frame.message = frame.products.length ? '本批需求已全部完成，以下一起展示结果。' : '本次搜索未找到符合当前要求的商品，暂时没有可靠的条件调整建议。'
     if (!frame.products.length) frame.kind = 'empty'
     frame.products.forEach(p => { state.catalog[p.id] = clone(p) })

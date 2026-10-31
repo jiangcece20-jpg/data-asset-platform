@@ -1,12 +1,41 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import PrototypeProductCard from './PrototypeProductCard.vue'
-import { coal, type ProductPreview } from './prototypeScenes'
+import { coal, shared, type ProductPreview } from './prototypeScenes'
 
 describe('商品卡片的条件与风险分区', () => {
+  it('keeps scopes in the actual shared preset', () => {
+    const wrapper = mount(PrototypeProductCard, { props: { product: shared } })
+    expect(wrapper.get('.match-summary').text()).toBe('需求 1 · 煤炭运价：包含 2025 年榆林至天津港的煤炭公路运价，支持按月查看；需求 2 · 货运路线：提供地市间路线与运力信息。')
+  })
+
+  it('keeps ownership when a shared product confirms different scopes', () => {
+    const wrapper = mount(PrototypeProductCard, { props: { product: {...coal, coverage:['运价需求','路线需求'], evidence:[
+      {label:'数据内容',fact:'包含煤炭运价',state:'met',demand:'运价需求'},
+      {label:'时间范围',fact:'覆盖 2024 年',state:'met',demand:'运价需求'},
+      {label:'数据内容',fact:'包含货运路线',state:'met',demand:'路线需求'},
+      {label:'时间范围',fact:'覆盖 2025 年',state:'met',demand:'路线需求'}
+    ]} } })
+    expect(wrapper.get('.match-summary').text()).toBe('运价需求：包含 2024 年煤炭运价；路线需求：包含 2025 年货运路线。')
+  })
+
+  it('rebuilds summary when facts change without claiming unknown coverage', async () => {
+    const wrapper = mount(PrototypeProductCard, { props: { product: coal } })
+    await wrapper.setProps({ product: { ...coal, evidence: [coal.evidence[0], {label:'时间范围',fact:'覆盖 2024 年',state:'met'}, {label:'线路方向',fact:'指定路线资料未说明',state:'unknown'}] } })
+    const summary = wrapper.get('[data-evidence-group="satisfied"]').text()
+    expect(summary).toContain('2024')
+    expect(summary).not.toContain('2025')
+    expect(summary).not.toContain('榆林')
+    expect(summary).not.toContain('按月')
+    expect(wrapper.get('[data-evidence-group="unknown"]').text()).toContain('指定路线资料未说明')
+    expect(wrapper.find('[data-evidence-group="satisfied"] li').exists()).toBe(false)
+  })
+
   it('shows only satisfied conditions when all supplied evidence is met', () => {
     const wrapper = mount(PrototypeProductCard, { props: { product: coal } })
-    expect(wrapper.get('[data-evidence-group="satisfied"]').text()).toContain('满足的条件')
+    expect(wrapper.get('[data-evidence-group="satisfied"]').text()).toContain('匹配说明')
+    expect(wrapper.get('[data-evidence-group="satisfied"] p').text()).toBe('包含 2025 年榆林至天津港的煤炭公路运价，支持按月查看。')
+    expect(wrapper.find('[data-evidence-group="satisfied"] li').exists()).toBe(false)
     expect(wrapper.find('[data-evidence-group="risks"]').exists()).toBe(false)
     expect(wrapper.find('[data-evidence-group="unknown"]').exists()).toBe(false)
     expect(wrapper.find('[data-evidence-group="differences"]').exists()).toBe(false)
