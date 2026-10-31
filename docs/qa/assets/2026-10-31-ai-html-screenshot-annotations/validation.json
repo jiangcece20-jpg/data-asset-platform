@@ -1,0 +1,14 @@
+{
+  "currentPhotos": 14,
+  "photoPins": 38,
+  "preservedAuxiliaryRuleAnchors": 86,
+  "totalAnnotations": 124,
+  "matchingAnnotationReferences": 124,
+  "duplicateIds": 0,
+  "missingLinksOrAssets": 0,
+  "checkedLocalReferences": 275,
+  "imageBytesUnchanged": true,
+  "svgAndFourMermaidUnchanged": true,
+  "vueSourceUnchanged": true,
+  "deployed": false
+}

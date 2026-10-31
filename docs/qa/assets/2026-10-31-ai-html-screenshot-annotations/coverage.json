@@ -1,0 +1,225 @@
+[
+  {
+    "section": "entry-paths",
+    "captures": [],
+    "hasAuxiliarySketch": false
+  },
+  {
+    "section": "page-layout",
+    "captures": [
+      "pc-market",
+      "pc-ai-home",
+      "mobile-home"
+    ],
+    "hasAuxiliarySketch": false
+  },
+  {
+    "section": "common-progress",
+    "captures": [
+      "pc-process-collapsed",
+      "pc-process-expanded",
+      "mobile-process"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-common",
+    "captures": [
+      "pc-history"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-card-groups",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-access",
+    "captures": [
+      "mobile-detail"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "sm",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "flow-overview",
+    "captures": [],
+    "hasAuxiliarySketch": false
+  },
+  {
+    "section": "confirmed",
+    "captures": [],
+    "hasAuxiliarySketch": false
+  },
+  {
+    "section": "s0",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s3-soft",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s3-hard",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s3",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s3a",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s8",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-mixed-faq",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s1",
+    "captures": [
+      "pc-result"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s2-final",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s4",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-route-coverage",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-budget",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-types",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-empty",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-ops",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-edit-scope",
+    "captures": [
+      "mobile-scope",
+      "mobile-dialogue"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-resume",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s6",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-scope",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s2",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5-options",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5-batch",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5-partial",
+    "captures": [
+      "pc-staged"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5a",
+    "captures": [
+      "pc-confirmed"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s5-reject",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s7",
+    "captures": [
+      "pc-collection"
+    ],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-timeout",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "s-failure",
+    "captures": [],
+    "hasAuxiliarySketch": true
+  },
+  {
+    "section": "pending",
+    "captures": [],
+    "hasAuxiliarySketch": false
+  },
+  {
+    "section": "current-vue",
+    "captures": [],
+    "hasAuxiliarySketch": false
+  }
+]

@@ -1,0 +1,77 @@
+{
+  "closedAuxiliary": 38,
+  "figures": [
+    {
+      "hiddenInDetails": false,
+      "name": "pc-market",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-ai-home",
+      "pins": 4
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "mobile-home",
+      "pins": 3
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-process-collapsed",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-process-expanded",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "mobile-process",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-history",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "mobile-detail",
+      "pins": 3
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-result",
+      "pins": 4
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "mobile-scope",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "mobile-dialogue",
+      "pins": 2
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-staged",
+      "pins": 3
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-confirmed",
+      "pins": 3
+    },
+    {
+      "hiddenInDetails": false,
+      "name": "pc-collection",
+      "pins": 4
+    }
+  ],
+  "totalAuxiliary": 38,
+  "errors": []
+}
