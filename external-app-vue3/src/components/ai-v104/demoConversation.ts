@@ -1,4 +1,5 @@
 import { reactive, watch } from 'vue'
+import { isConditionChange, parseConditionChanges } from './conditionChanges'
 import { board, coal, prototypeScenes, route, shared, type ProductPreview } from './prototypeScenes'
 
 export interface DemoTask {
@@ -25,6 +26,7 @@ interface Relaxation { taskId: string; changes: { key: string; before: string; a
 interface DemoRun { id: string; frameId: string; tasks: DemoTask[]; searchIds?: string[]; stage: number; dueAt: number; decisionsDone: boolean; failure: string }
 export interface DemoSession {
   id: string; title: string; tasks: DemoTask[]; frames: DemoFrame[]; relaxations: Relaxation[]; pending: string[]
+  conditionQuestion?: { changes: Partial<DemoTask>; query: string };
   decisionDraft?: Pick<DemoFrame, 'plans' | 'choices' | 'proposed' | 'proposedText'>; collectionDrafts?: Record<string, {price: string; name: string; contact: string}>;
   purchaseRulesKnown?: boolean; purchaseQuestion?: boolean; facts?: Record<string, ProductPreview[]>; draft: string; clarificationDraft: string; sendError: string; run: DemoRun | null; decisionsDone: boolean
 }
@@ -294,6 +296,35 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (current()?.kind === 'relax' && /全部保留原要求/.test(text)) { current().plans.forEach(p => choose(p.taskId, 'keep')); return }
     if (/回到.*放宽前/.test(text)) { const target = session().tasks.find(t => text.includes(t.name.slice(0, 2))); await rollback(target?.id); return }
     if (/采数|帮我采/.test(text)) { openCollection(); return }
+    if (session().conditionQuestion && /先不改了|取消修改|不修改了|全部保留原要求/.test(text)) {
+      session().conditionQuestion = undefined
+      restoreDecisionFrame(text, '已取消这次修改，原条件和已有选择保留。')
+      if (/全部保留原要求/.test(text) && current().kind === 'relax') current().plans.forEach(p => choose(p.taskId, 'keep'))
+      return
+    }
+    if (session().pending.length && isConditionChange(text) && (!session().conditionQuestion || Object.keys(parseConditionChanges(text)).length)) {
+      const changes = parseConditionChanges(text)
+      if (!Object.keys(changes).length) {
+        const previous = current()
+        rememberDecisions()
+        const f = append(text, previous?.kind || 'notice', '暂未识别你要修改的具体条件，可以说明修改哪项的年份、查看方式、更新频率、商品类型或预算。')
+        if (previous) for (const key of ['plans', 'choices', 'proposed', 'proposedText', 'tasks', 'missing', 'steps'] as const) Object.assign(f, { [key]: clone(previous[key]) })
+        return
+      }
+      const assignments = conditionAssignments(text)
+      if (assignments?.length) { session().conditionQuestion = undefined; await applyDialogueEdits(assignments, text); return }
+      if (new Set(text.match(/20\d{2}\s*年/g) || []).size > 1) { append(text, 'notice', '这条修改包含不同的年份，请分别说明对应需求，例如：煤炭运价改查2024年；货运量改查2023年。'); return }
+      const ids = conditionTargets(text)
+      if (!ids.length) { rememberDecisions(); session().conditionQuestion = { changes, query: text }; append(text, 'clarify-edit', '你想修改哪一项需求的条件？请说明需求名称，或说明本轮全部需求都修改。'); return }
+      session().conditionQuestion = undefined
+      await applyDialogueChanges(ids, changes, text); return
+    }
+    if (session().conditionQuestion) {
+      const ids = conditionTargets(text), question = session().conditionQuestion!
+      if (!ids.length) { append(text, 'clarify-edit', '还不能确定修改范围，请说明需求名称，或说明本轮全部需求都修改。'); return }
+      session().conditionQuestion = undefined
+      await applyDialogueChanges(ids, question.changes, `${question.query}；${text}`); return
+    }
     if (current()?.kind === 'clarify' && !/再找|另外找|新增/.test(text)) {
       const task = session().tasks.find(t => current().missing.includes(t.id))!
       if (task.blocked === '含义' && !/水果|品牌|手机/.test(text)) { append(text, 'clarify', clarification(task)).missing = [task.id]; return }
@@ -311,22 +342,12 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
         const previous = current()
         const f = append(text, 'relax', `已记录你的选择：按月查看、${task.frequency || '保留原更新要求'}。当前条件尚未改变，请统一确认后继续。`, previous.taskIds)
         f.plans = clone(previous.plans); f.choices = clone(previous.choices); f.proposed = clone(previous.proposed); f.proposedText = clone(previous.proposedText); f.tasks = clone(previous.tasks)
-        await edit(task.id, { grain: '按月查看' }); return
+        await edit(task.id, { grain: '按月查看', ...parseConditionChanges(text) }); return
       }
-    }
-    if (session().tasks.length && /改成|改为|换成/.test(text) && !/找.*(和|再找)/.test(text)) {
-      const year = text.match(/20\d{2}/)?.[0]
-      const changes: Partial<DemoTask> = { ...(year ? { year: `${year} 年` } : {}), ...(/按月/.test(text) ? { grain: '按月查看' } : /按天/.test(text) ? { grain: '按天查看' } : {}) }
-      const candidates = session().tasks.filter(t => session().pending.includes(t.id))
-      if (/全部|都|共同/.test(text)) { await editMany(candidates.map(t => t.id), changes); return }
-      const named = referencedTasks(text, candidates)
-      const task = named.length === 1 ? named[0] : candidates.length === 1 ? candidates[0] : undefined
-      if (!task) { append(text, 'notice', '你想修改哪一项需求的条件？'); return }
-      await edit(task.id, changes); return
     }
     if (asksPurchase && !/销量|运价|货运量|货运路线|找/.test(text)) { const f = append(text, 'faq', '以下是平台数据商品的获取说明。', []); f.purchaseGuide = purchaseGuide(); return }
     session().purchaseQuestion = asksPurchase
-    const unresolved = ['relax', 'clarify', 'failure', 'stopped'].includes(current()?.kind)
+    const unresolved = ['relax', 'clarify', 'clarify-edit', 'failure', 'stopped'].includes(current()?.kind)
     rememberDecisions()
     const tasks = parse(text)
     if (/刚才|之前|继续/.test(text)) for (const task of tasks) {
@@ -339,6 +360,52 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (/是多少|多少[？?]?$/.test(text) && !/找/.test(text)) { append(text, 'fallback', '我目前不能可靠地直接回答具体数值，可以帮你查找相关的数据商品。要继续找相关商品吗？'); return }
     if (/这个.*(看板|商品).*(包含|线路|多少钱|价格)/.test(text)) { append(text, 'consult', '我目前还不能可靠确认这个商品的具体内容，你可以先查看商品详情。'); return }
     await search(ids, text, false, ids.filter(id => !session().facts || !(id in session().facts!)))
+  }
+  function conditionTargets(text: string): string[] {
+    const candidates = session().tasks.filter(t => session().pending.includes(t.id))
+    const named = referencedTasks(text, candidates)
+    if (named.length) return new Set(named.map(t => t.topic)).size === named.length || /全部|都|所有/.test(text) ? named.map(t => t.id) : []
+    if (/煤炭|运价|货运量|货运路线|货运线路|苹果|汽车|乘用车/.test(text)) return []
+    if (/两项|这两|这俩/.test(text) && candidates.length !== 2) return []
+    if (/三项|这三/.test(text) && candidates.length !== 3) return []
+    if (/全部|所有|都|两项|三项|一起|共同/.test(text)) return candidates.map(t => t.id)
+    return candidates.length === 1 ? [candidates[0].id] : []
+  }
+  function conditionAssignments(text: string) {
+    const candidates = session().tasks.filter(t => session().pending.includes(t.id))
+    let scope: string[] = [], explicitGroups = 0
+    const updates = new Map<string, Partial<DemoTask>>()
+    for (const clause of text.split(/[，,；;]/)) {
+      if (referencedTasks(clause, candidates).length) {
+        scope = conditionTargets(clause); explicitGroups++
+        if (!scope.length) return null
+      }
+      if (/不(?:用|要|必)?改|保持原|保留原/.test(clause)) continue
+      const changes = parseConditionChanges(clause)
+      if (!Object.keys(changes).length) continue
+      if (!scope.length) return null
+      for (const id of scope) updates.set(id, { ...updates.get(id), ...changes })
+    }
+    return explicitGroups > 1 ? [...updates].map(([taskId, changes]) => ({ taskId, changes })) : null
+  }
+  function restoreDecisionFrame(query: string, message: string) {
+    const blocked = session().tasks.find(t => session().pending.includes(t.id) && t.blocked)
+    const f = append(query, blocked ? 'clarify' : session().decisionDraft ? 'relax' : 'notice', blocked ? clarification(blocked) : message)
+    if (blocked) f.missing = [blocked.id]
+    else if (session().decisionDraft) {
+      for (const key of ['plans', 'choices', 'proposed', 'proposedText'] as const) Object.assign(f, { [key]: clone(session().decisionDraft![key]) })
+      f.tasks = session().tasks.filter(t => session().pending.includes(t.id) && !f.plans.some(p => p.taskId === t.id)).map(t => ({ id: t.id, title: t.name, status: '待统一展示', detail: '保持当前条件，等待本轮必要决策完成。' }))
+    }
+    return f
+  }
+  async function applyDialogueChanges(ids: string[], changes: Partial<DemoTask>, query: string) {
+    await applyDialogueEdits(ids.map(taskId => ({ taskId, changes })), query)
+  }
+  async function applyDialogueEdits(assignments: { taskId: string; changes: Partial<DemoTask> }[], query: string) {
+    rememberDecisions()
+    if (session().decisionDraft) restoreDecisionFrame(query, '已记录拟修改条件，请统一确认后继续。')
+    const changed = await editAssignments(assignments, query)
+    if (!changed) append(query, 'notice', '这些条件与当前条件相同，已保留原要求，无需重新搜索。')
   }
   function choose(taskId: string, value: string) { if (state.busy || current()?.kind !== 'relax') return; current().choices[taskId] = value; current().missing = current().missing.filter(id => id !== taskId) }
   async function confirm() {
@@ -368,14 +435,19 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     else { session().decisionsDone = true; const reply = append('确认选择并继续', 'results', '', ids); reply.searchedTaskIds = []; publish(reply, session().tasks.filter(t => ids.includes(t.id))); reply.message = '已保留原要求，以下是此前完整搜索的结果。' }
   }
   async function edit(id: string, changes: Partial<DemoTask>) { await editMany([id], changes) }
-  async function editMany(ids: string[], changes: Partial<DemoTask>) {
-    if (state.busy) return
-    const tasks = session().tasks.filter(t => ids.includes(t.id) && session().pending.includes(t.id))
-    const editable = Object.fromEntries(Object.entries(changes).filter(([key]) => ['year', 'grain', 'frequency', 'productType', 'budget', 'note', 'region'].includes(key))) as Partial<DemoTask>
+  async function editMany(ids: string[], changes: Partial<DemoTask>, query = '修改条件后继续查找') {
+    return editAssignments(ids.map(taskId => ({ taskId, changes })), query)
+  }
+  async function editAssignments(assignments: { taskId: string; changes: Partial<DemoTask> }[], query: string) {
+    if (state.busy) return false
+    const tasks = session().tasks.filter(t => assignments.some(a => a.taskId === t.id) && session().pending.includes(t.id))
     const changedIds: string[] = []
+    let staged = false
     for (const task of tasks) {
-      const id = task.id
+      const id = task.id, changes = assignments.find(a => a.taskId === id)!.changes
+      const editable = Object.fromEntries(Object.entries(changes).filter(([key]) => ['year', 'grain', 'frequency', 'productType', 'budget', 'note', 'region'].includes(key))) as Partial<DemoTask>
       if (current()?.kind === 'relax' || session().decisionDraft) {
+        staged = true
         const frame = current()?.kind === 'relax' ? current() : session().decisionDraft!, proposed = { ...pendingChanges(id), ...editable }
         frame.proposed[id] = Object.fromEntries(Object.entries(proposed).filter(([key, value]) => task[key as keyof DemoTask] !== value))
         frame.proposedText[id] = taskConditions([{ ...task, ...frame.proposed[id] }])[0]
@@ -391,7 +463,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
         changedIds.push(id)
       }
     }
-    if (changedIds.length) await search([...session().pending], '修改条件后继续查找', session().decisionsDone, changedIds)
+    if (changedIds.length) await search([...session().pending], query, session().decisionsDone, changedIds)
+    return staged || changedIds.length > 0
   }
   function lastRelaxation(taskId: string) { return [...session().relaxations].reverse().find(r => r.taskId === taskId) }
   function rollbackPreview(taskId: string) {
@@ -436,6 +509,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
       return
     }
     rememberDecisions()
+    owner.conditionQuestion = undefined
     owner.pending = owner.pending.filter(id => !ids.includes(id))
     if (owner.decisionDraft) for (const id of ids) {
       owner.decisionDraft.plans = owner.decisionDraft.plans.filter(p => p.taskId !== id)
@@ -520,7 +594,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
   async function receiveEntry(text: string) { if (!text || state.entryQuery === text) return; state.entryQuery = text; newSession(); await send(text, 'external') }
   function status(item: DemoSession) {
     if (item.run) return '处理中'
-    return ({ clarify: '待你补充', relax: '待你确认', stopped: '已停止', failure: '未完成' } as Record<string, string>)[item.frames.at(-1)?.kind || ''] || (item.frames.length ? '已完成' : '新会话')
+    return ({ clarify: '待你补充', 'clarify-edit': '待你补充', relax: '待你确认', stopped: '已停止', failure: '未完成' } as Record<string, string>)[item.frames.at(-1)?.kind || ''] || (item.frames.length ? '已完成' : '新会话')
   }
   async function preset(id: string) {
     newSession()
@@ -529,7 +603,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (id === 'mixed-faq-unverified') session().purchaseRulesKnown = false
     if (id === 'unknown') { await send(`${sample.query}，商品资料未说明查看方式`); return }
     if (id === 'route-coverage') { await send('找榆林到天津港的煤炭公路运价，商品资料仅列出发地、目的地和运价字段'); return }
-    if (id === 'history') { await send('找2025年煤炭运价，按月查看'); await edit(session().tasks[0].id, { year: '2024 年' }); return }
+    if (id === 'history' || id === 'dialogue-edit') { await send('找2025年煤炭运价，按月查看'); await send('煤炭运价改查2024年'); return }
     if (id === 'scope-excluded') { await send('找煤炭运价，再找2025年苹果销量'); await send('苹果先不找了'); return }
     if (id === 'context-followup') { await send('找煤炭运价，再找2025年苹果销量'); await send('苹果先不找了'); await send('继续刚才苹果销量，是水果'); return }
     if (id.startsWith('batch') || id === 'partial-accept' || id === 'all-kept') {
