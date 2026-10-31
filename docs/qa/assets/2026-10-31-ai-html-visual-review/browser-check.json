@@ -1,0 +1,68 @@
+{
+  "annotationRefs": 86,
+  "annotations": 86,
+  "currentImages": [
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-ai-home.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-result.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-process-expanded.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-staged.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-confirmed.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-collection.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-market.jpg"
+    },
+    {
+      "aspectError": 0.002551612154952365,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/pc-process-collapsed.jpg"
+    },
+    {
+      "aspectError": 0.0031451832548778924,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/mobile-process.jpg"
+    },
+    {
+      "aspectError": 0.0031451832548778924,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/mobile-detail.jpg"
+    },
+    {
+      "aspectError": 0.0031451832548778924,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/mobile-scope.jpg"
+    },
+    {
+      "aspectError": 0.0031451832548778924,
+      "loaded": true,
+      "src": "assets/vue-2026-10-31-ui-integration/mobile-dialogue.jpg"
+    }
+  ],
+  "pageWidth": 390,
+  "width": 390
+}
