@@ -334,13 +334,16 @@ function confirmLogin() {
             </div>
             <button
               type="button"
-              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white border border-ink-200 transition hover:border-violet-300 hover:text-violet-600"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-white border border-ink-200 px-3 transition hover:border-violet-300 hover:text-violet-600"
               :title="product.favorite ? '取消收藏' : '收藏'"
+              :aria-label="product.favorite ? '取消收藏' : '收藏'"
+              :aria-pressed="!!product.favorite"
               @click="toggleFav"
             >
               <svg class="h-5 w-5" viewBox="0 0 24 24" :fill="product.favorite ? '#FFB400' : 'none'" :stroke="product.favorite ? '#FFB400' : '#86909C'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 17.3-6.2 3.6 1.6-6.9L2 9.2l7-.6L12 2.2l3 6.4 7 .6-5.4 4.8 1.6 6.9z" />
               </svg>
+              <span class="text-xs">{{ product.favorite ? '已收藏' : '收藏' }}</span>
             </button>
           </div>
         </section>

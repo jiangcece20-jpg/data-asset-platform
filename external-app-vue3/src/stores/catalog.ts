@@ -39,8 +39,14 @@ function assertLocalSalesControl(products: Product[], allowInitialPublication = 
 }
 
 function cloneProducts(): Product[] {
+  let favorites: Record<string, boolean> = {}
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem('market-product-favorites-v1') || '{}')
+    if (saved && typeof saved === 'object' && !Array.isArray(saved)) favorites = saved as Record<string, boolean>
+  } catch { /* Unavailable or invalid storage must not prevent browsing. */ }
   return [...seedProducts, ...mockProducts].map((p) => ({
     ...p,
+    favorite: typeof favorites[p.id] === 'boolean' ? favorites[p.id] : !!p.favorite,
     availability: p.availability === 'paused' ? 'delisted' : p.availability,
     status: p.status === 'paused' ? 'delisted' : p.status,
     updateFrequency: coerceUpdateFrequency(p.updateFrequency),
@@ -115,6 +121,8 @@ export interface PublicUseDatasetSnapshot {
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
     products: cloneProducts(),
+    favoriteOwnerId: '',
+    favoriteSnapshots: {} as Record<string, Record<string, boolean>>,
     resources: cloneResources()
   }),
   getters: {
@@ -612,9 +620,42 @@ export const useCatalogStore = defineStore('catalog', {
         return q.split(/[\s,，、]+/).some((t) => t.length >= 2 && !GENERIC.has(t) && haystack.includes(t))
       })
     },
+    activateFavoriteOwner(ownerId: string) {
+      if (ownerId === this.favoriteOwnerId) return
+      if (this.favoriteOwnerId) this.favoriteSnapshots[this.favoriteOwnerId] = Object.fromEntries(this.products.map(p => [p.id, !!p.favorite]))
+      let snapshot = this.favoriteSnapshots[ownerId]
+      if (!snapshot) {
+        snapshot = {}
+        try {
+          const key = `market-product-favorites-v2:${encodeURIComponent(ownerId)}`
+          let raw = localStorage.getItem(key)
+          // Bind the previous unscoped snapshot once; keep its source recoverable.
+          if (raw === null && !localStorage.getItem('market-product-favorites-legacy-owner')) {
+            raw = localStorage.getItem('market-product-favorites-v1')
+            if (raw !== null) {
+              localStorage.setItem('market-product-favorites-legacy-owner', ownerId)
+              localStorage.setItem(key, raw)
+            }
+          }
+          const saved: unknown = JSON.parse(raw || '{}')
+          if (saved && typeof saved === 'object' && !Array.isArray(saved)) snapshot = saved as Record<string, boolean>
+        } catch { /* Disabled storage falls back to this session's snapshot. */ }
+      }
+      this.favoriteOwnerId = ownerId
+      this.favoriteSnapshots[ownerId] = snapshot
+      for (const p of this.products) p.favorite = snapshot[p.id] === true
+    },
     toggleFavorite(productId: string) {
       const p = this.products.find((x) => x.id === productId)
-      if (p) p.favorite = !p.favorite
+      if (!p) return
+      p.favorite = !p.favorite
+      try {
+        const key = this.favoriteOwnerId ? `market-product-favorites-v2:${encodeURIComponent(this.favoriteOwnerId)}` : 'market-product-favorites-v1'
+        localStorage.setItem(key, JSON.stringify(
+          Object.fromEntries(this.products.map(product => [product.id, !!product.favorite]))
+        ))
+      } catch { /* Keep the in-memory interaction usable when storage is disabled. */ }
+      return p.favorite
     },
     // ---- 运营后台动作 ----
     updateStatus(productId: string, status: ProductStatus) {

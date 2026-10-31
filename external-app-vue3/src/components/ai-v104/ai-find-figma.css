@@ -1,0 +1,110 @@
+/* PC AI 找数，沿用已确认的冰川蓝 Figma；仅作用于桌面页面。 */
+.ai-find-shell > main.ai-page-main{padding:0;background:#f6f9fc}
+.ai-find-shell > header > div{height:76px;max-width:1440px;padding:0 48px}
+.ai-find-shell > header{border-color:#e3eaf2}
+.ai-find-shell > header nav{margin-left:24px;gap:0}
+.ai-find-shell > header a > .bg-gradient-to-br{background:#1677ff}
+.ai-find-shell > header .text-brand-600{color:#1677ff}
+.ai-find-shell > header .bg-brand-500{background:#1677ff}
+.ai-find-shell > header .text-ink-900{font-size:21px;letter-spacing:0;color:#16263d}
+.ai-find-shell > header .text-ink-700{color:#66788f}
+.figma-ai{--ai-blue:#1677ff;--ai-ink:#16263d;--ai-sub:#66788f;--ai-muted:#8494a7;--ai-line:#e3eaf2;--violet:#1677ff;position:relative;width:100%;max-width:none;margin:0;background:#f6f9fc;color:var(--ai-ink);height:calc(100dvh - 169px);min-height:560px;font-size:14px}
+.ai-prototype.figma-ai{max-width:none;margin:0}
+.figma-ai button,.figma-ai input,.figma-ai textarea,.figma-ai select{font-family:inherit}
+.figma-ai button{cursor:pointer}.figma-ai button:disabled{cursor:default}.figma-ai button:focus-visible,.figma-ai a:focus-visible{outline:2px solid var(--ai-blue);outline-offset:3px}
+.figma-ai .ai-workspace{display:flex;height:100%;min-height:0}
+.figma-ai .ai-sidebar{width:240px;flex:none;display:flex;flex-direction:column;gap:24px;background:#fff;border-right:1px solid var(--ai-line);padding:28px 18px;min-height:0}
+.figma-ai .sidebar-brand{display:flex;align-items:center;gap:12px;padding:0 10px}.figma-ai .sidebar-brand>span{font-size:27px;color:#00afc1}.figma-ai .sidebar-brand strong{display:block;font-size:16px;font-weight:650}.figma-ai .sidebar-brand small{display:block;color:var(--ai-muted);font-size:10px;letter-spacing:1px}
+.figma-ai .sidebar-new{height:42px;flex:none;background:#edf5ff;color:var(--ai-blue);border:1px solid #cfe2fd;border-radius:7px;font-size:12px}
+.figma-ai .sidebar-history-heading{display:flex;align-items:center;justify-content:space-between;padding:0 10px;color:var(--ai-muted);font-size:11px}.figma-ai .sidebar-history-heading button{border:0;background:none;color:var(--ai-muted);font-size:11px}
+.figma-ai .sidebar-history{flex:1;min-height:70px;overflow:auto;margin-top:-12px;scrollbar-width:thin;scrollbar-color:#e3eaf2 transparent}.figma-ai .sidebar-history-row{display:flex;align-items:center;border-radius:7px;margin-bottom:5px;color:var(--ai-sub)}.figma-ai .sidebar-history-row.active{background:#edf5ff;color:var(--ai-blue)}.figma-ai .sidebar-session{display:flex;flex:1;min-width:0;gap:6px;align-items:center;text-align:left;padding:11px 10px;border:0;background:none;color:inherit;font-size:12px}.figma-ai .sidebar-session>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.figma-ai .sidebar-session small{font-size:9px;white-space:nowrap}.figma-ai .sidebar-delete{border:0;background:none;color:var(--ai-muted);padding:8px;font-size:16px;opacity:0}.figma-ai .sidebar-history-row:hover .sidebar-delete,.figma-ai .sidebar-history-row:focus-within .sidebar-delete{opacity:1}
+.figma-ai .sidebar-links{display:grid;gap:18px;padding:20px 10px 0;border-top:1px solid #edf1f6}.figma-ai .sidebar-links button,.figma-ai .sidebar-links a{padding:0;border:0;background:none;color:var(--ai-sub);font-size:13px;text-align:left;text-decoration:none}.figma-ai .sidebar-links span{margin-left:6px}.figma-ai .sidebar-footer{display:grid;gap:7px;padding:8px 10px 0;font-size:11px;color:var(--ai-muted)}.figma-ai .sidebar-footer p{margin:0;color:#00afc1}.figma-ai .sidebar-footer small{font-size:10px}.figma-ai .sidebar-footer button{justify-self:start;padding:0;border:0;background:none;color:var(--ai-muted);font-size:11px}
+.figma-ai .chat-surface{flex:1;min-width:0;height:100%;min-height:0;max-height:none;border:0;border-radius:0;box-shadow:none;background:#f6f9fc}
+.figma-ai .chat-header{height:76px;padding:0 36px;background:#fbfdff;border-bottom:1px solid #eaf0f6;gap:8px}.figma-ai .header-copy h1{font-size:16px;color:var(--ai-ink);font-weight:650;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;max-width:100%}.figma-ai .header-copy p{font-size:12px;color:var(--ai-muted);margin-top:3px}.figma-ai .header-action{font-size:12px;background:#fff;border:1px solid var(--ai-line);border-radius:7px;color:var(--ai-sub);padding:8px 12px}
+.figma-ai .conversation-scroll{scrollbar-color:#dce6f1 transparent}.figma-ai .conversation-content{width:100%;max-width:952px;padding:28px 36px 24px}.figma-ai .conversation-turn{margin-bottom:28px}.figma-ai .user-message{padding:14px 18px;color:var(--ai-ink);background:#eaf3ff;border:1px solid #daeaff;font-size:14px;border-radius:12px 12px 3px 12px;line-height:1.7;margin-bottom:24px;overflow-wrap:anywhere}
+.figma-ai .assistant-reply{min-width:0}.figma-ai .reply-label{display:flex;align-items:center;gap:9px;margin-bottom:16px;font-size:13px;color:var(--ai-ink);font-weight:600}.figma-ai .tiny-star{color:#00afc1;font-size:23px}.figma-ai .reply-label small{margin-left:auto;font-size:10px;font-weight:400;color:var(--ai-muted)}
+.figma-ai .processing-steps{padding:0;margin:0 0 16px;background:none;border:0;border-radius:0}
+.figma-ai .welcome-screen{padding:4px 0 12px;text-align:center}.figma-ai .welcome-art{width:340px;height:192px;margin:0 auto 20px}.figma-ai .welcome-art img{display:block;width:340px;height:192px;object-fit:contain;animation:ai-core-float 8s ease-in-out infinite}.figma-ai .eyebrow{display:block;margin:0 0 16px;font-size:10px;letter-spacing:1.6px;color:#00afc1}.figma-ai .welcome-screen h2{margin:0 0 16px;font-size:34px;line-height:1.55;font-weight:700;letter-spacing:-.7px;color:var(--ai-ink)}.figma-ai .welcome-screen>p{margin:0;color:var(--ai-sub);font-size:14px;line-height:1.8}.figma-ai .welcome-features{display:flex;justify-content:center;gap:24px;margin:20px 0 28px;color:var(--ai-muted);font-size:11px}.figma-ai .example-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0;text-align:left}.figma-ai .example-card{display:flex;flex-direction:column;gap:10px;min-height:170px;padding:18px;border:1px solid var(--ai-line);border-radius:10px;background:#fff;box-shadow:none;text-align:left}.figma-ai .example-card:hover{border-color:#bdd8fc;background:#fff}.figma-ai .example-card>span{display:block;color:var(--ai-ink);font-size:14px;font-weight:600}.figma-ai .example-card>span.example-symbol{color:var(--ai-blue);font-size:24px;font-weight:400;line-height:1.4}.figma-ai .example-card i{float:right;font-style:normal;font-weight:400;color:var(--ai-muted)}.figma-ai .example-card p{font-size:12px;line-height:1.8;margin:0;color:var(--ai-sub)}
+.figma-ai .condition-block{padding:14px 18px;border:1px solid var(--ai-line);border-radius:9px;background:#fff;margin:0 0 16px}.figma-ai .condition-top{margin-bottom:9px}.figma-ai .section-kicker{font-size:11px;color:var(--ai-muted);letter-spacing:0}.figma-ai .condition-top button{color:var(--ai-blue);font-size:11px}.figma-ai .condition-values{display:flex;flex-wrap:wrap;gap:6px}.figma-ai .condition-values span{font-size:11px;padding:4px 9px;border:0;background:#f2f6fa;color:var(--ai-sub);border-radius:5px;white-space:normal;overflow-wrap:anywhere}.figma-ai .reply-text{color:var(--ai-ink);font-size:14px;line-height:1.9;margin:0 0 16px}.figma-ai .conversation-turn[data-phase=searching] .reply-text{font-size:12px;color:var(--ai-muted)}
+.figma-ai .task-list{display:grid;gap:8px;margin:16px 0}.figma-ai .task-summary{border:0;padding:0;background:none}.figma-ai .task-summary>div{gap:10px}.figma-ai .task-summary b{font-size:12px;font-weight:500;color:var(--ai-sub)}.figma-ai .task-summary p{font-size:11px;color:var(--ai-muted);line-height:1.7}.figma-ai .task-status{font-size:10px;background:#edf8f5;color:#278a79}.figma-ai .task-status.waiting{background:#edf5ff;color:#66788f}.figma-ai .task-status.absent{background:#f0f3f7;color:#8494a7}
+.figma-ai .product-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px;align-items:start}.figma-ai .product-list>.section-kicker{grid-column:1/-1}.figma-ai .preview-product{padding:18px 20px;border:1px solid var(--ai-line);border-radius:10px;box-shadow:none;min-width:0}.figma-ai .preview-product.best-match{border-color:#bfd8fb}.figma-ai .product-name{gap:8px;flex-direction:column;align-items:flex-start}.figma-ai .product-name h3{font-size:15px;color:var(--ai-ink);line-height:1.6}.figma-ai .type-chip{background:#edf5ff;color:var(--ai-blue);font-size:10px}.figma-ai .favorite{border:0;padding:0;background:none;font-size:0;color:var(--ai-muted)}.figma-ai .favorite span{font-size:22px}.figma-ai .favorite.saved{color:var(--ai-blue);background:none}.figma-ai .product-description{color:var(--ai-sub);font-size:12px;line-height:1.8;margin:10px 0}.figma-ai .price-row strong{font-size:22px;color:var(--ai-blue)}.figma-ai .best-label{font-size:10px;background:#edf8f5;color:#278a79;margin-top:8px}.figma-ai .coverage span{background:#f2f6fa;color:var(--ai-sub);font-size:10px}.figma-ai .product-actions{display:flex;gap:8px;margin-top:14px}.figma-ai .product-actions button{font-size:12px;padding:9px 12px;border-radius:7px}.figma-ai .primary-action{flex:1;background:var(--ai-blue);border-color:var(--ai-blue)}.figma-ai .secondary-action{background:#fff;color:var(--ai-sub);border-color:var(--ai-line)}.figma-ai .evidence-group{border-radius:7px;padding:11px 12px;margin-top:12px}.figma-ai .evidence-group.satisfied{background:#f6fbfa;border-color:#e4f0ed}.figma-ai .evidence-title{font-size:11px!important;font-weight:500!important}.figma-ai .match-summary{font-size:11px;line-height:1.9}.figma-ai .evidence-list li{font-size:11px}.figma-ai .evidence-status{font-size:10px}.figma-ai .evidence-group.unknown{background:#f6f8fc;border-color:#e6edf4}
+.figma-ai .composer{padding:12px 36px 16px;background:#f6f9fc;border:0}.figma-ai .composer-box{max-width:880px;margin:0 auto;padding:16px 18px 12px;border:1px solid #bdd8fc;border-radius:12px;background:#fff;box-shadow:0 6px 22px #1677ff06}.figma-ai .composer-box:focus-within{border-color:var(--ai-blue);box-shadow:0 0 0 3px #1677ff09}.figma-ai .composer textarea{height:44px;padding:0;border:0;resize:none;font-size:14px;color:var(--ai-ink);line-height:1.7}.figma-ai .composer textarea::placeholder{color:#97a6b8}.figma-ai .composer-bottom{gap:10px;margin-top:8px;align-items:center}.figma-ai .composer-bottom>span{font-size:11px;color:var(--ai-muted)}.figma-ai .composer-shortcut{margin-left:auto;font-size:10px!important}.figma-ai .send-button{width:34px;height:34px;border:0;border-radius:8px;background:var(--ai-blue);font-size:20px;box-shadow:none;flex:none;margin-left:0}.figma-ai .send-button:disabled{background:#b8d6fe;opacity:1}.figma-ai .stop-button{background:#edf5ff;color:var(--ai-blue);border-color:#cfe2fd;border-radius:7px}.figma-ai .composer-note{text-align:center;color:var(--ai-muted);font-size:10px;margin:8px 0 0;line-height:1.6}
+.figma-ai .primary{background:var(--ai-blue);border-color:var(--ai-blue);border-radius:7px;font-size:12px}.figma-ai .secondary{background:#fff;border-color:var(--ai-line);color:var(--ai-sub);border-radius:7px;font-size:12px}.figma-ai .text-button{color:var(--ai-sub)}.figma-ai .result-footer{gap:14px;padding-top:14px;border:0}.figma-ai .rating-button{border:0;background:none;padding:0;color:var(--ai-muted)}.figma-ai .rating-button.selected{color:var(--ai-blue);background:none}.figma-ai .gap-actions,.figma-ai .failure-panel{background:#fff;border:1px solid var(--ai-line);border-radius:10px;padding:22px}.figma-ai .gap-actions p,.figma-ai .failure-panel p{color:var(--ai-sub);font-size:13px}.figma-ai .failure-panel h3{color:var(--ai-ink);font-size:16px}.figma-ai .failure-icon{display:none}.figma-ai .latest-bar button{border-color:#dce6f1;color:var(--ai-sub)}
+.figma-ai .clarification-box,.figma-ai .plan-panel,.figma-ai .purchase-guide{background:#fff;border:1px solid var(--ai-line);border-radius:10px}.figma-ai .clarification-box textarea:focus{border-color:var(--ai-blue)}.figma-ai .plan-option{border-color:var(--ai-line);border-radius:8px;background:#fff}.figma-ai .plan-option.chosen{border-color:#a7cdfc;background:#f4f9ff}.figma-ai .plan-option h4{color:var(--ai-ink)}.figma-ai .change-text,.figma-ai .pending-label{color:var(--ai-blue)}.figma-ai .radio-mark.checked{background:var(--ai-blue);border-color:var(--ai-blue)}.figma-ai .confirm-panel{background:#edf5ff;border-color:#d7e7fc}.figma-ai .confirm-panel p{color:var(--ai-sub)}
+.figma-ai .prototype-tools{position:absolute;right:24px;top:70px;z-index:15;width:min(620px,calc(100% - 48px));padding:16px;margin:0;background:#fff;border:1px solid var(--ai-line);border-radius:10px;box-shadow:0 14px 50px #16263d18;color:var(--ai-sub)}.figma-ai .review-options p{font-size:11px;color:var(--ai-muted);margin-top:10px}.figma-ai .review-controls select{border-color:var(--ai-line);color:var(--ai-sub)}
+.figma-ai .demo-overlay{background:#16263d33;backdrop-filter:blur(3px)}.figma-ai .demo-dialog{border:1px solid var(--ai-line);border-radius:14px;box-shadow:0 25px 70px #16263d18}.figma-ai .dialog-heading h2{color:var(--ai-ink);font-size:20px}.figma-ai .demo-dialog input,.figma-ai .demo-dialog select,.figma-ai .demo-dialog textarea{border-color:var(--ai-line);border-radius:7px;background:#fbfdff;color:var(--ai-ink)}.figma-ai .demo-dialog .history-item{border-color:var(--ai-line);color:var(--ai-ink)}.figma-ai .feedback-types button.chosen{background:#edf5ff;border-color:#bdd8fc;color:var(--ai-blue)}.figma-ai .delete-confirm .danger{background:#b76b6b;border-color:#b76b6b}
+@keyframes ai-core-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media(max-height:1000px){.figma-ai .welcome-art,.figma-ai .welcome-art img{width:280px;height:158px}.figma-ai .welcome-art{margin-bottom:14px}.figma-ai .welcome-screen h2{font-size:30px;margin-bottom:12px}.figma-ai .welcome-features{margin:16px 0 22px}.figma-ai .example-card{min-height:150px}.figma-ai .conversation-content{padding-top:22px}}
+@media(max-height:850px){.figma-ai .welcome-art,.figma-ai .welcome-art img{width:220px;height:124px}.figma-ai .eyebrow{margin-bottom:10px}.figma-ai .welcome-screen h2{font-size:27px}.figma-ai .welcome-features{margin:12px 0 18px}.figma-ai .example-card{min-height:132px;padding:15px;gap:7px}.figma-ai .example-symbol{display:none!important}}
+@media(max-width:1199px){.ai-find-shell > header > div{padding:0 24px}.ai-find-shell > header nav{margin-left:8px}.figma-ai .ai-sidebar{width:208px;padding-left:14px;padding-right:14px}.figma-ai .chat-header{padding:0 24px}.figma-ai .conversation-content{padding-left:24px;padding-right:24px}.figma-ai .composer{padding-left:24px;padding-right:24px}.figma-ai .example-grid{gap:10px}.figma-ai .example-card{padding:15px}.figma-ai .header-action[aria-label='历史会话']{display:none}}
+@media(max-width:980px){.figma-ai .product-list{grid-template-columns:minmax(0,1fr)}.figma-ai .welcome-screen h2{font-size:27px}.figma-ai .welcome-features{gap:12px}.figma-ai .example-card>span{font-size:13px}.figma-ai .example-card p{font-size:11px}.figma-ai .composer-shortcut{display:none}.figma-ai .composer-bottom>span:first-child{flex:1}.figma-ai .ai-sidebar{width:188px}.figma-ai .sidebar-footer small{font-size:9px}}
+@media(max-width:760px){.figma-ai{height:calc(100dvh - 203px)}.figma-ai .ai-sidebar{display:none}.figma-ai .chat-header{padding:0 18px;height:66px}.figma-ai .conversation-content{padding:20px 18px}.figma-ai .composer{padding:12px 18px}.figma-ai .example-grid{grid-template-columns:1fr}.figma-ai .example-card{min-height:0}.figma-ai .example-symbol{display:none!important}.figma-ai .welcome-features{font-size:10px}.figma-ai .header-action[aria-label='历史会话']{display:block}.ai-find-shell > header > div{height:auto;min-height:60px;flex-wrap:wrap;padding:0 18px}.ai-find-shell > header nav{order:3;width:100%;height:34px;overflow-x:auto;margin:0}.ai-find-shell > header nav a{white-space:nowrap;flex-shrink:0}}
+@media(prefers-reduced-motion:reduce){.figma-ai .welcome-art img{animation:none}}
+
+/* 真透明图层与纯 CSS 动效，保持原媒体区尺寸。 */
+.figma-ai .welcome-art{--ai-art-height:192px;position:relative;display:grid;place-items:center;height:var(--ai-art-height);background:transparent}
+.figma-ai .ai-alpha-scene{position:relative;width:calc(var(--ai-art-height)*1.5);height:var(--ai-art-height);max-width:100%;min-width:0;min-height:0;animation:ai-core-float 8s ease-in-out infinite}
+/* 明暗投影和折射亮纹已包含在透明素材中。 */
+.figma-ai .ai-alpha-scene::after{content:"";position:absolute;left:31%;top:17%;width:39%;height:54%;border-radius:50%;pointer-events:none;background:linear-gradient(115deg,transparent 40%,#ffffff00 46%,#ffffffc4 50%,#ffffff00 55%,transparent 61%);background-size:250% 100%;opacity:0;animation:ai-glass-reflection 8s ease-in-out infinite}
+@keyframes ai-glass-reflection{0%,25%{opacity:0;background-position:150% 0}36%{opacity:.35}58%{opacity:.35;background-position:-50% 0}64%,100%{opacity:0;background-position:-50% 0}}
+.figma-ai .welcome-art img.ai-alpha-image{display:block;width:100%;height:100%;object-fit:contain;animation:none}
+.figma-ai .ai-data-pulse{position:absolute;width:3px;height:3px;border-radius:50%;background:#24b9ef;box-shadow:0 0 6px #24b9ef80;opacity:0;animation:ai-data-transfer 8s linear infinite;animation-delay:var(--pulse-delay);pointer-events:none}
+.figma-ai .pulse-table{--start-x:26%;--start-y:29%;--mid-x:33%;--mid-y:37%;--pulse-delay:.4s}
+.figma-ai .pulse-series{--start-x:75%;--start-y:32%;--mid-x:63%;--mid-y:42%;--pulse-delay:2.1s}
+.figma-ai .pulse-network{--start-x:66%;--start-y:65%;--mid-x:60%;--mid-y:55%;--pulse-delay:3.8s}
+@keyframes ai-data-transfer{
+  0%{left:var(--start-x);top:var(--start-y);opacity:0}
+  3%{opacity:.85}
+  14%{left:var(--mid-x);top:var(--mid-y)}
+  26%{opacity:.85}
+  29%,100%{left:48%;top:46%;opacity:0}
+}
+@media(max-height:1000px){.figma-ai .welcome-art{--ai-art-height:158px}}
+@media(max-height:850px){.figma-ai .welcome-art{--ai-art-height:124px}}
+@media(prefers-reduced-motion:reduce){
+  .figma-ai .ai-alpha-scene{animation:none}
+  .figma-ai .ai-alpha-scene::after{animation:none;opacity:0}
+  .figma-ai .ai-data-pulse{display:none;animation:none}
+}
+
+/* 白底对话主题：主区留白，浅灰侧栏，仅重点操作保留品牌蓝。 */
+.ai-find-shell > main.ai-page-main,.ai-prototype.figma-ai,.figma-ai .chat-surface,.figma-ai .chat-header,.figma-ai .composer{background:#fff}
+.ai-find-shell > header,.figma-ai .chat-header{border-color:#f0f0f0}
+.figma-ai .ai-sidebar{background:#f8f8f8;border-right-color:#ededed}
+.figma-ai .sidebar-new{background:#fff;border-color:#e4e6e9;color:#343b46;border-radius:10px}
+.figma-ai .sidebar-history-row.active{background:#eceef1;color:#303640}
+.figma-ai .sidebar-history-row:hover{background:#f0f1f3}
+.figma-ai .sidebar-links{border-color:#e9eaec}
+.figma-ai .header-action{border-color:#e9eaed;background:#fff;color:#717985}
+.figma-ai .welcome-screen h2{color:#20252d}
+.figma-ai .eyebrow{color:#8a949d;letter-spacing:1.2px}
+.figma-ai .welcome-features{color:#949ca5}
+.figma-ai .example-card{border-color:#ebedf0;background:#fff;border-radius:12px}
+.figma-ai .example-card:hover{border-color:#d9dfe6;background:#fafbfc}
+.figma-ai .composer-box{border-color:#b8d5ff;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #1677ff05,0 4px 28px #408cff14,0 0 18px #6aabff0d;transition:border-color .2s ease,box-shadow .2s ease}
+.figma-ai .composer-box:focus-within{border-color:#83b5ff;box-shadow:0 0 0 1px #1677ff0d,0 4px 32px #408cff20,0 0 22px #6aabff14}
+.figma-ai .composer textarea{background:#fff}
+.figma-ai .condition-block,.figma-ai .preview-product{border-color:#e6e9ed}
+.figma-ai .condition-values span{background:#f4f5f7}
+.figma-ai .user-message{background:#f3f5f8;border-color:#eceff3}
+
+/* 精简桌面辅助文案，保留处理状态、匹配依据和业务提示。 */
+.figma-ai .sidebar-brand small,.figma-ai .sidebar-footer p,.figma-ai .sidebar-footer small,
+.figma-ai .header-copy p,.figma-ai .welcome-screen .eyebrow,.figma-ai .welcome-screen>p,
+.figma-ai .welcome-features,.figma-ai .reply-label small,.figma-ai .composer-note{display:none}
+.figma-ai .composer-bottom>span:first-child{visibility:hidden}
+.figma-ai:has(.stop-button) .composer-bottom>span:first-child{visibility:visible}
+.figma-ai .welcome-screen h2{margin-bottom:28px}
+.figma-ai .sidebar-footer{padding-top:0}
+
+/* 参考豆包：左对齐的内容宽度短条，分类用蓝色轻量强调。 */
+.figma-ai .example-grid{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;max-width:none;margin:0;text-align:left}
+.figma-ai .example-grid::before{content:"为你推荐";display:block;margin:0 0 0 4px;color:#a0a5ad;font-size:11px;line-height:1.5}
+.figma-ai .example-card{display:flex;flex-direction:row;align-items:center;gap:6px;width:fit-content;max-width:100%;min-height:0;padding:8px 14px;border:1px solid #e9ebee;border-radius:14px;background:#fff;transition:background .16s ease,border-color .16s ease}
+.figma-ai .example-card:hover{background:#f8fbff;border-color:#cbdffc}
+.figma-ai .example-card>span.example-symbol{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 18px;color:#1677ff;font-size:0;line-height:1}
+.figma-ai .example-card>span.example-symbol::before{content:"◇";font-size:23px;font-weight:500}
+.figma-ai .example-card>span:not(.example-symbol){flex:none;font-size:13px;font-weight:400;color:#1677ff;line-height:1.7;white-space:nowrap}
+.figma-ai .example-card i{display:none}
+.figma-ai .example-card p{flex:0 1 auto;min-width:0;margin:0;font-size:13px;line-height:1.7;color:#303640;overflow-wrap:anywhere}
+@media(max-width:760px){.figma-ai .example-card{padding:9px 12px;flex-wrap:wrap}.figma-ai .example-card p{flex-basis:100%;padding-left:24px;font-size:12px}}

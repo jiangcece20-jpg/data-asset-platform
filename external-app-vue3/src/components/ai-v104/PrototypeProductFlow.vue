@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import PrototypeProductCard from './PrototypeProductCard.vue'
 import type { ProductPreview } from './prototypeScenes'
-const props = defineProps<{ product: ProductPreview; start: 'details' | 'action' }>()
+const props = withDefaults(defineProps<{ product: ProductPreview; start: 'details' | 'action'; showFavorite?: boolean }>(), { showFavorite: true })
 const emit = defineEmits<{ acquired: [action: string]; favorite: []; close: [] }>()
 type View = 'details' | 'use' | 'checkout' | 'application' | 'order' | 'progress'
 const view = ref<View>('details')
@@ -22,7 +22,7 @@ if (props.start === 'action') action()
   <div class="product-flow" :data-product-view="view">
     <p class="demo-label">前端原型演示 · 示例数据与订单，不产生真实交易</p>
     <template v-if="view === 'details'">
-      <PrototypeProductCard :product="product" @favorite="emit('favorite')" @action="action" />
+      <PrototypeProductCard :product="product" :show-favorite="showFavorite" @favorite="emit('favorite')" @action="action" />
       <section class="flow-section"><h3>商品说明</h3><p>{{ product.description }}</p><p>价格：{{ product.price }}</p><p>获取方式：{{ product.action }}。当前状态：{{ product.state || '请在获取前核对商品权益与购买条件' }}。</p></section>
       <section class="flow-section"><h3>资料与适用范围</h3><p v-for="evidence in product.evidence" :key="evidence.label">{{ evidence.label }}：{{ evidence.fact }}{{ evidence.state === 'unknown' ? '（待核实）' : '' }}</p></section>
       <p class="flow-hint">匹配依据以已列出的资料为准，示例画面不能证明资料未说明的具体覆盖范围。</p>

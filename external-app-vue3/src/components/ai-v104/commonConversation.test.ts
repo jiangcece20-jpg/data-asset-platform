@@ -181,3 +181,12 @@ describe('通用问答规则', () => {
     expect(demo.session.frames).toHaveLength(1)
   })
 })
+
+it('restores a legacy in-flight confirmed search without asking completed decisions again', async()=>{
+ const values=new Map<string,string>();const storage={getItem:(k:string)=>values.get(k)||null,setItem:(k:string,v:string)=>{values.set(k,v)}};let wait=false
+ const d=createDemoConversation(()=>wait?new Promise(()=>{}):Promise.resolve(),{storage,storageKey:'legacy'})
+ await d.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量');d.choose(d.tasks[0].id,'0');wait=true;void d.confirm()
+ const saved=JSON.parse(values.get('legacy')!);saved.sessions.forEach((s:any)=>delete s.decidedTaskIds);storage.setItem('legacy',JSON.stringify(saved))
+ const restored=createDemoConversation(undefined,{storage,storageKey:'legacy'});for(let i=0;i<12;i++)await Promise.resolve()
+ expect(restored.current.kind).toBe('results');expect(restored.current.plans).toHaveLength(0);d.stop()
+})
