@@ -184,3 +184,33 @@ describe('纯前端交互原型', () => {
   })
 
 })
+
+describe.each([false,true])('本轮范围 UI compact=%s', compact => {
+  it('uses dialogue instead of defer controls and exposes explicitly selected shared edits', async () => {
+    const scope=compact?'mobile':'pc';useDemoConversation(scope).newSession()
+    const wrapper=mount(AiFindPrototype,{props:{compact}})
+    await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价，按月查看；再找山东货运量；再找水果苹果销量')
+    await wrapper.get('form.composer-box').trigger('submit');await finish()
+    await wrapper.findAll('.condition-top button').at(-1)!.trigger('click')
+    await wrapper.get('.edit-panel select').setValue('shared')
+    const checks=wrapper.findAll('.shared-scope input')
+    await checks[2].setValue(false);await checks[3].setValue(true)
+    await wrapper.get('.edit-panel input:not([type="checkbox"])').setValue('2024 年')
+    await wrapper.get('.edit-panel').trigger('submit');await finish()
+    const [a,b,c]=useDemoConversation(scope).tasks
+    expect(a.year).toBe('2024 年');expect(b.year).toBe('2024 年');expect(c.year).toBe('')
+    expect(wrapper.text()).not.toContain('暂缓该需求');expect(wrapper.text()).not.toContain('删除该需求')
+    wrapper.unmount()
+  })
+})
+
+ it('prefills a selected plan when editing only the year', async () => {
+   const wrapper=mount(AiFindPrototype)
+   await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
+   await wrapper.get('form.composer-box').trigger('submit');await finish()
+   await wrapper.get('.plan-option').trigger('click');await wrapper.get('.condition-top button').trigger('click')
+   expect((wrapper.findAll('.edit-panel select')[1].element as HTMLSelectElement).value).toBe('按月查看')
+   await wrapper.get('.edit-panel input').setValue('2024 年');await wrapper.get('.edit-panel').trigger('submit')
+   expect(useDemoConversation('pc').current.proposed[useDemoConversation('pc').tasks[0].id].grain).toBe('按月查看')
+   wrapper.unmount()
+ })
