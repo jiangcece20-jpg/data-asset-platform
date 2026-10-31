@@ -118,7 +118,7 @@ export const prototypeScenes: ScenePreview[] = [
   { id: 'context-followup', label: '普通多轮接续，保留旧结果', group: '多轮与历史', kind: 'context-followup', query: '继续找刚才的苹果销量，是水果，还是 2025 年', conditions: ['水果苹果销量', '2025 年'], message: '按多轮上下文查找苹果销量，保留明确的 2025 年条件。正在查找相关数据商品……' },
   { id: 'history', label: '旧条件与结果留在原对话', group: '多轮与历史', kind: 'history', query: '年份改成 2024 年，其他不变', conditions: ['煤炭公路运价', '榆林 → 天津港', '2024 年', '按月查看（必须）'], message: '已将年份改为 2024 年，以下是新条件下的结果。', products: [{ ...coal, evidence: coal.evidence.map(e => e.label === '时间范围' ? { ...e, fact: '覆盖 2024 年' } : e) }] },
   { id: 'rollback', label: '回到最近放宽前，保留主动修改', group: '多轮与历史', kind: 'rollback', query: '回到放宽前的条件', conditions: ['煤炭公路运价', '榆林 → 天津港', '2024 年（你主动修改）', '按天查看（恢复）'], message: '已恢复最近一次放宽前的按天查看，保留你修改的 2024 年。正在按这些条件重新查找……' },
-  { id: 'edit', label: '修改条件的画面', group: '多轮与历史', kind: 'edit', query: freightQuery, conditions: coalConditions, message: '你可以修改当前需求的条件。' },
+  { id: 'dialogue-edit', label: '通过对话修改年份', group: '多轮与历史', kind: 'dialogue-edit', query: freightQuery, conditions: coalConditions, message: '在对话中明确要修改哪项条件，系统按对应范围更新。' },
   { id: 'collection', label: '采数核对、价格与联系方式', group: '获取与反馈', kind: 'collection', query: '还是需要按天查看、每天更新，帮我采数', conditions: dailyConditions, message: '请核对采数需求，并补充联系方式。' },
   { id: 'collection-failed', label: '采数失败，保留已填内容', group: '获取与反馈', kind: 'collection', query: '确认提交', conditions: dailyConditions, message: '暂时未能提交，请稍后重试。你填写的内容已保留。' },
   { id: 'collection-success', label: '采数提交成功画面', group: '获取与反馈', kind: 'collection-success', query: '确认提交', message: '采数需求已提交。你可以继续找数据，或在我的需求中查看。' },
