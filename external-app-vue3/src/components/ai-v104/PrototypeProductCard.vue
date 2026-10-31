@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { matchSummary } from './matchSummary'
 import type { ProductPreview } from './prototypeScenes'
-const props = defineProps<{ product: ProductPreview }>()
+const props = withDefaults(defineProps<{ product: ProductPreview; showFavorite?: boolean }>(), { showFavorite: true })
 const emit = defineEmits<{ favorite: []; details: []; action: [] }>()
 const summary = computed(() => matchSummary(props.product.evidence))
 const evidenceLabels = { met: '满足', partial: '部分满足', unmet: '不满足', unknown: '待核实' }
@@ -14,10 +14,10 @@ const groups = computed(() => [
 </script>
 
 <template>
-  <article class="preview-product" :data-product="product.id">
+  <article class="preview-product" :class="{ 'best-match': product.best }" :data-product="product.id">
     <div class="product-top">
       <div class="product-name"><h3>{{ product.name }}</h3><span class="type-chip">{{ product.type }}</span></div>
-      <button type="button" class="favorite" @click="emit('favorite')" :class="{ saved: product.saved }" :aria-label="product.saved ? '已收藏，可取消收藏' : '收藏商品'"><span aria-hidden="true">{{ product.saved ? '★' : '☆' }}</span>{{ product.saved ? '已收藏' : '收藏' }}</button>
+      <button v-if="showFavorite" type="button" class="favorite" @click="emit('favorite')" :class="{ saved: product.saved }" :aria-pressed="!!product.saved" :aria-label="product.saved ? '已收藏，可取消收藏' : '收藏商品'"><span aria-hidden="true">{{ product.saved ? '★' : '☆' }}</span>{{ product.saved ? '已收藏' : '收藏' }}</button>
     </div>
     <div v-if="product.coverage?.length" class="coverage"><span v-for="item in product.coverage" :key="item">{{ item }}</span></div>
     <p class="product-description">{{ product.description }}</p>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch, reactive, nextTick } from 'vue'
 import './portal-concept.css'
-import DataNexus from './components/DataNexus.vue'
+import './portal-market-figma.css'
 import { useRoute, useRouter } from 'vue-router'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
@@ -28,13 +28,27 @@ const entitlements = useEntitlementStore()
 const user = useUserStore()
 
 const query = ref(String(route.query.q || ''))
-const sortType = ref<'default' | 'price_asc' | 'latest'>('default')
+const submittedQuery = computed(() => String(route.query.q || '').trim())
+const favoriteMessage = ref('')
+function updateQuery(patch: Record<string, string | undefined>, resetPage = true) {
+  void router.replace({ path: '/portal/search', query: { ...route.query, ...(resetPage ? { page: undefined } : {}), ...patch } })
+}
+function routeChoice<T extends string>(key: string, values: readonly T[], fallback: T) {
+  return computed<T>({
+    get: () => {
+      const raw = String(route.query[key] || '') as T
+      return values.includes(raw) ? raw : fallback
+    },
+    set: value => updateQuery({ [key]: value === fallback ? undefined : value }, key !== 'view')
+  })
+}
+const sortType = routeChoice('sort', ['default', 'price_asc', 'latest'] as const, 'default')
 // 结果视图：长卡（单列）与豆腐块（双列网格）可切换
-const viewMode = ref<'list' | 'grid'>('grid')
-const activeType = ref<ProductType | ''>((route.query.type as ProductType) || '')
-const activeVenue = ref(String(route.query.venue || ''))
-const usableOnly = ref(false)
-const activeOps = ref('')
+const viewMode = routeChoice('view', ['grid', 'list'] as const, 'grid')
+const activeType = routeChoice('type', ['', 'dataset', 'api', 'report', 'dashboard'] as const, '')
+const activeVenue = computed(() => String(route.query.venue || ''))
+const usableOnly = computed({ get: () => route.query.usable === '1', set: value => updateQuery({ usable: value ? '1' : undefined }) })
+const activeOps = routeChoice('ops', ['', '热门', '合规首选'] as const, '')
 
 watch(
   () => route.query.q,
@@ -58,7 +72,7 @@ watch(
 
 // ---------- 筛选 ----------
 const filters = reactive({
-  venueKind: '' as '' | 'platform' | 'space' | 'seller'
+  venueKind: routeChoice('source', ['', 'platform', 'space', 'seller'] as const, '')
 })
 
 const TYPE_OPTIONS: Array<{ key: ProductType; label: string }> = [
@@ -80,26 +94,22 @@ const activeFilterCount = computed(() => {
   let n = usableOnly.value ? 1 : 0
   if (activeType.value) n += 1
   if (filters.venueKind) n += 1
+  if (activeVenue.value) n += 1
   if (activeOps.value) n += 1
   return n
 })
 
 function resetFilters() {
-  activeType.value = ''
-  activeVenue.value = ''
-  usableOnly.value = false
-  filters.venueKind = ''
-  activeOps.value = ''
-  page.value = 1
+  updateQuery({ type: undefined, venue: undefined, usable: undefined, source: undefined, ops: undefined })
 }
 
 // ---------- 检索结果 ----------
-const baseResults = computed(() =>
-  catalog.search(query.value, {
-    type: activeType.value || undefined,
+const keywordProducts = computed(() =>
+  catalog.search(submittedQuery.value, {
     venue: activeVenue.value || undefined
   })
 )
+const baseResults = computed(() => keywordProducts.value.filter(p => !activeType.value || p.type === activeType.value))
 
 const filteredProducts = computed(() =>
   baseResults.value.filter((p) => {
@@ -123,22 +133,29 @@ const filteredProducts = computed(() =>
 
 const sortedProducts = computed(() => {
   if (sortType.value === 'price_asc') {
-    return [...filteredProducts.value].sort((a, b) => (a.price.itemPrice || 0) - (b.price.itemPrice || 0))
+    const price = (p: Product) => {
+      const summary = productPriceSummary(p)
+      if (summary.kind === 'free') return 0
+      if (summary.kind !== 'money') return Infinity
+      const amount = Number(summary.text.replace(/[^\d.]/g, ''))
+      return Number.isFinite(amount) ? amount : Infinity
+    }
+    return [...filteredProducts.value].sort((a, b) => price(a) - price(b))
   }
   if (sortType.value === 'latest') {
-    return [...filteredProducts.value].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    return [...filteredProducts.value].sort((a, b) => listedAtOf(b).localeCompare(listedAtOf(a)))
   }
   return filteredProducts.value
 })
 
-const rankedHits = computed(() => buildRetrievalHits(baseResults.value, query.value))
+const rankedHits = computed(() => buildRetrievalHits(baseResults.value, submittedQuery.value))
 
 function matchExplainFor(productId: string) {
   const product = catalog.byId(productId)
   if (!product) return ''
   const hit = rankedHits.value.find((item) => item.id === productId)
   if (hit) return formatMatchExplain(hit)
-  return formatMatchExplain(explainProductMatch(product, query.value))
+  return formatMatchExplain(explainProductMatch(product, submittedQuery.value))
 }
 
 const hasExtraFilters = computed(
@@ -146,7 +163,8 @@ const hasExtraFilters = computed(
 )
 
 const internalResults = computed(() =>
-  hasExtraFilters.value ? [] : catalog.searchInternalViews(query.value)
+  hasExtraFilters.value || !user.isEnterpriseAuthenticated || !user.context.currentEnterpriseId
+    ? [] : catalog.searchInternalViews(submittedQuery.value, user.context.currentEnterpriseId)
 )
 
 interface MixedResult {
@@ -172,11 +190,11 @@ const mixedResults = computed<MixedResult[]>(() => [
 ])
 
 // ---------- 分页 ----------
-const page = ref(1)
 const PAGE_SIZE = 10
 const totalPages = computed(() => Math.max(1, Math.ceil(mixedResults.value.length / PAGE_SIZE)))
-watch([query, sortType, filters, activeType, activeVenue, usableOnly, activeOps], () => {
-  page.value = 1
+const page = computed({
+  get: () => Math.min(totalPages.value, Math.max(1, Math.floor(Number(route.query.page) || 1))),
+  set: value => updateQuery({ page: value > 1 ? String(value) : undefined }, false)
 })
 const pagedResults = computed(() =>
   mixedResults.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE)
@@ -194,7 +212,7 @@ const pageNumbers = computed(() => {
 // ---------- 顶部筛选分面计数 ----------
 const typeCounts = computed(() => {
   const counts = new Map<ProductType, number>()
-  for (const p of baseResults.value) counts.set(p.type, (counts.get(p.type) || 0) + 1)
+  for (const p of keywordProducts.value) counts.set(p.type, (counts.get(p.type) || 0) + 1)
   return counts
 })
 
@@ -249,19 +267,32 @@ function typeLine(p: Product): string {
 
 function toggleFavorite(e: Event, id: string) {
   e.stopPropagation()
-  catalog.toggleFavorite(id)
+  const saved = catalog.toggleFavorite(id)
+  favoriteMessage.value = saved ? '已收藏，可在「我的 → 我的收藏」查看' : '已取消收藏'
 }
 
 function handleSearch() {
-  router.replace({
-    path: '/portal/search',
-    query: {
-      q: query.value.trim() || undefined,
-      entry: 'keyword',
-      type: activeType.value || undefined,
-      venue: activeVenue.value || undefined
-    }
-  })
+  favoriteMessage.value = ''
+  updateQuery({ q: query.value.trim() || undefined, entry: 'keyword' })
+}
+
+const internalPreview = ref<Resource>()
+const internalPanel = ref<HTMLElement>()
+watch(() => [user.context.currentEnterpriseId, user.isEnterpriseAuthenticated], () => {
+  internalPreview.value = undefined
+})
+let previewTrigger: HTMLElement | null = null
+function closeInternalPreview() {
+  internalPreview.value = undefined
+  previewTrigger?.focus()
+}
+function trapPreviewFocus(event: KeyboardEvent) {
+  if (event.key !== 'Tab') return
+  const buttons = internalPanel.value?.querySelectorAll<HTMLElement>('button, a')
+  if (!buttons?.length) return
+  const first = buttons[0], last = buttons[buttons.length - 1]
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
 }
 
 function handleItemClick(item: MixedResult) {
@@ -269,7 +300,12 @@ function handleItemClick(item: MixedResult) {
     router.push(`/portal/product/${(item.data as Product).id}`)
   } else {
     const url = (item.data as Resource).typeDetail.userView?.externalUrl
-    if (url) window.open(url, '_blank')
+    if (url && /^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer')
+    else {
+      previewTrigger = document.activeElement as HTMLElement
+      internalPreview.value = item.data as Resource
+      void nextTick(() => internalPanel.value?.querySelector<HTMLButtonElement>('button')?.focus())
+    }
   }
 }
 
@@ -290,11 +326,19 @@ function goAi(from?: string) {
     <div class="market-container" data-testid="portal-keyword-search">
       <section class="market-hero">
         <div class="hero-copy">
-          <div class="hero-eyebrow"><span class="live-dot"></span> CONNECTING DATA. CREATING VALUE.<span class="concept-tag">DESIGN EXPLORATION / 01</span></div>
-          <h1>让数据的价值，<span>超越你的想象。</span></h1>
-          <p>交通运输全链路数据 · 官方审核上架 · 可信空间交付</p>
+          <div class="market-hero-heading"><h1>找到好数据，释放业务新价值</h1><span>DATA MARKETPLACE</span></div>
+          <p>连接交通运输全链路数据，让每一次决策都有据可依</p>
         </div>
-        <DataNexus />
+        <div class="market-core" aria-hidden="true"><img src="/hero-data-core.png" alt="" width="1536" height="864" fetchpriority="high" /><i v-for="n in 3" :key="n" :class="`core-orbit core-orbit-${n}`"><b /></i></div>
+        <section class="discovery-console" aria-label="数据搜索">
+          <form class="nexus-search" @submit.prevent="handleSearch">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+            <input v-model="query" data-testid="portal-search-input" aria-label="搜索数据商品" placeholder="搜索数据商品、业务场景或关键词">
+            <button type="submit" data-testid="portal-search-submit">搜索</button>
+          </form>
+          <button class="search-ai-link" data-testid="portal-go-ai" @click="goAi()"><span aria-hidden="true">✦</span><strong>AI 找数</strong><small>描述需求 →</small></button>
+        </section>
+        <div class="market-hot-search"><span>热门搜索</span><button v-for="word in ['物流运价', '企业资质核验', '港口吞吐量', '新能源汽车']" :key="word" @click="query = word; handleSearch()">{{ word }}</button></div>
       </section>
 
       <!-- 主体：左侧筛选栏 + 右侧结果 -->
@@ -307,8 +351,8 @@ function goAi(from?: string) {
               <div>
                 <div class="mb-1.5 text-[12px] font-medium text-ink-500">类别</div>
                 <div class="filter-chip-options">
-                  <button :aria-pressed="!activeType" :class="{ chosen: !activeType }" @click="activeType = ''">全部</button>
-                  <button v-for="opt in TYPE_OPTIONS" :key="opt.key" :aria-pressed="activeType === opt.key" :class="{ chosen: activeType === opt.key }" @click="activeType = activeType === opt.key ? '' : opt.key">{{ opt.label }}</button>
+                  <button :aria-pressed="!activeType" :class="{ chosen: !activeType }" @click="activeType = ''"><span>全部商品</span><small>{{ keywordProducts.length }}</small></button>
+                  <button v-for="opt in TYPE_OPTIONS" :key="opt.key" :aria-pressed="activeType === opt.key" :class="{ chosen: activeType === opt.key }" @click="activeType = activeType === opt.key ? '' : opt.key"><span>{{ opt.label }}</span><small>{{ typeCounts.get(opt.key) || 0 }}</small></button>
                 </div>
               </div>
               <!-- 来源 -->
@@ -378,8 +422,10 @@ function goAi(from?: string) {
         <div class="market-results min-w-0 flex-1">
           <!-- 结果工具栏 -->
           <div class="market-toolbar mb-3 flex items-center gap-2">
+            <span v-if="favoriteMessage" role="status" class="text-xs text-blue-600">{{ favoriteMessage }}</span>
             <div class="text-[13px] text-ink-500">
               共 <span class="font-semibold text-ink-900">{{ mixedResults.length }}</span> 条结果
+              <small v-if="internalResults.length" class="ml-2 text-xs font-normal text-slate-500">商品 {{ sortedProducts.length }} · 内部视图 {{ internalResults.length }}</small>
             </div>
             <span class="toolbar-spacer flex-1"></span>
             <div class="inline-flex rounded-lg bg-ink-100 p-0.5 text-[13px]">
@@ -417,13 +463,6 @@ function goAi(from?: string) {
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>
               </button>
             </div>
-            <section class="discovery-console" aria-label="数据搜索">
-        <form class="nexus-search" @submit.prevent="handleSearch">
-          <input v-model="query" data-testid="portal-search-input" aria-label="搜索数据商品" placeholder="搜索数据商品">
-          <button type="submit" data-testid="portal-search-submit">搜索</button>
-        </form>
-        <button class="search-ai-link" data-testid="portal-go-ai" @click="goAi()">AI找数</button>
-            </section>
 
           </div>
 
@@ -435,8 +474,8 @@ function goAi(from?: string) {
               class="market-card market-list-card group relative flex cursor-pointer items-start gap-4 rounded-lg border border-ink-200 bg-white p-4 transition hover:border-violet-200 hover:shadow-card-hover-violet"
               role="link"
               tabindex="0"
-              @keydown.enter="handleItemClick(item)"
-              @keydown.space.prevent="handleItemClick(item)"
+              @keydown.enter.self="handleItemClick(item)"
+              @keydown.space.self.prevent="handleItemClick(item)"
               @click="handleItemClick(item)"
             >
               <!-- 右上角：收藏 -->
@@ -488,6 +527,7 @@ function goAi(from?: string) {
                 </div>
 
                 <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] text-blue-600">{{ item.label }}</span>
                   <span
                     v-if="item.type === 'product' && venueChip(item.data as Product)"
                     class="rounded-md bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600"
@@ -504,7 +544,7 @@ function goAi(from?: string) {
                 </div>
 
                 <div
-                  v-if="item.type === 'product' && query.trim()"
+                  v-if="item.type === 'product' && submittedQuery"
                   class="mt-1.5 truncate text-[11px] text-ink-400"
                   data-testid="match-explain"
                 >
@@ -565,7 +605,8 @@ function goAi(from?: string) {
                 </template>
               </div>
               <p class="tile-summary">{{ item.type === 'product' ? cardSummary(item.data as Product) : (item.data as Resource).typeDetail.userView?.dataSourceName }}</p>
-              <div v-if="item.type === 'product' && query.trim()" class="tile-match" data-testid="match-explain">{{ matchExplainFor((item.data as Product).id) }}</div>
+              <div v-if="item.type === 'product'" class="tile-metrics">{{ [(item.data as Product).coverage, (item.data as Product).updateFrequency].filter(Boolean).join(' · ') }}</div>
+              <div v-if="item.type === 'product' && submittedQuery" class="tile-match" data-testid="match-explain">{{ matchExplainFor((item.data as Product).id) }}</div>
               <div class="tile-source"><span>{{ item.type === 'product' ? venueChip(item.data as Product) || '自营产品' : 'BI 资源' }}</span><time v-if="item.type === 'product'">{{ listedAtOf(item.data as Product) }}</time></div>
               <div class="tile-footer">
                 <div v-if="item.type === 'product'" class="tile-pricing">
@@ -602,18 +643,19 @@ function goAi(from?: string) {
           <!-- 空态 -->
           <div
             v-if="usableOnly && !mixedResults.length"
-            class="py-14 text-center"
+            class="market-empty py-14 text-center"
           >
             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
               <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
             </div>
-            <div class="mt-3 text-sm font-medium text-ink-700">当前企业暂无可直接使用的商品</div>
+            <div class="mt-3 text-sm font-medium text-ink-700">{{ user.isEnterpriseAuthenticated ? '当前企业暂无可直接使用的商品' : '请切换已认证企业后查看可使用商品' }}</div>
             <button class="mt-4 rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600" @click="resetFilters">清空筛选</button>
+            <button class="mt-3 rounded-lg px-4 py-2 text-sm" @click="router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })">提交需求</button>
           </div>
 
           <div
-            v-else-if="query.trim() && !mixedResults.length"
-            class="py-14 text-center"
+            v-else-if="!mixedResults.length && (submittedQuery || activeFilterCount)"
+            class="market-empty py-14 text-center"
           >
             <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink-100">
               <svg class="h-6 w-6 text-ink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -624,11 +666,10 @@ function goAi(from?: string) {
             <div class="mt-1 text-xs text-ink-500">可调整筛选条件，或改用 AI找数查找相关商品</div>
             <div class="mt-4 flex justify-center gap-3">
               <button
-                v-if="activeFilterCount"
                 class="rounded-lg border border-ink-300 px-4 py-2 text-sm text-ink-600 transition hover:border-brand-300 hover:text-brand-600"
-                @click="resetFilters"
+                @click="query = ''; updateQuery({ q: undefined, type: undefined, venue: undefined, usable: undefined, source: undefined, ops: undefined })"
               >
-                清空筛选
+                清空搜索
               </button>
               <button
                 class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white transition hover:bg-brand-600"
@@ -643,11 +684,19 @@ function goAi(from?: string) {
             </div>
           </div>
 
-          <div v-else-if="!mixedResults.length" class="py-14 text-center text-sm text-ink-500">暂无上架商品</div>
+          <div v-else-if="!mixedResults.length" class="market-empty py-14 text-center text-sm text-ink-500">暂无上架商品<button class="mt-3 rounded-lg px-4 py-2 text-sm" @click="router.push({ path: '/portal/mine', query: { menu: 'demands', submitDemand: '1' } })">提交需求</button></div>
         </div>
       </div>
     </div>
-    <footer class="market-footer"><span>万联灵析 <b>/</b> 让数据成为生产力</span><span>DISCOVER · CONNECT · CREATE</span><span>PC 视觉探索版 01</span></footer>
+    <footer class="market-footer"><span>万联灵析 <b>/</b> 让数据成为生产力</span></footer>
+    <div v-if="internalPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-6" @click.self="closeInternalPreview" @keydown.esc="closeInternalPreview">
+      <section ref="internalPanel" role="dialog" aria-modal="true" aria-labelledby="internal-view-title" class="w-full max-w-xl rounded-xl bg-white p-8 shadow-xl" @keydown="trapPreviewFocus">
+        <div class="flex items-center justify-between gap-4"><h2 id="internal-view-title" class="text-lg font-semibold">{{ internalPreview.resourceName }}</h2><button aria-label="关闭视图预览" @click="closeInternalPreview">×</button></div>
+        <dl class="my-6 space-y-3 text-sm text-slate-600"><div><dt>数据来源</dt><dd>{{ internalPreview.typeDetail.userView?.dataSourceName }}</dd></div><div><dt>图表类型</dt><dd>{{ internalPreview.typeDetail.userView?.chartType }}</dd></div><div><dt>更新日期</dt><dd>{{ internalPreview.updatedAt }}</dd></div></dl>
+        <p class="mb-6 text-sm text-slate-500">当前为本地内部视图信息预览，完整报表需对接 BI 工作台。</p>
+        <router-link class="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" to="/portal/data-prepare/datasets">前往用数工作台</router-link>
+      </section>
+    </div>
   </div>
 </template>
 

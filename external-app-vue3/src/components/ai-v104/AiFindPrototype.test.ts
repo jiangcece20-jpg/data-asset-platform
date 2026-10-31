@@ -8,6 +8,56 @@ afterEach(() => { vi.useRealTimers() })
 async function finish() { await vi.runAllTimersAsync(); await flushPromises() }
 
 describe('纯前端交互原型', () => {
+  it('keeps the PC process collapsed while live stages change, and exposes the real steps on demand', async () => {
+    const wrapper = mount(AiFindPrototype, { attachTo: document.body })
+    await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价，按月查看')
+    await wrapper.get('form.composer-box').trigger('submit')
+    const toggle = wrapper.get('.processing-toggle')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.text()).toContain('正在理解需求')
+    expect(wrapper.get('.processing-steps ol').isVisible()).toBe(false)
+    await toggle.trigger('click')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('.processing-steps ol').isVisible()).toBe(true)
+    await vi.advanceTimersByTimeAsync(440)
+    expect(toggle.text()).toContain('正在查找相关数据')
+    await finish()
+    expect(toggle.text()).toContain('已完成查找')
+    expect(wrapper.findAll('[data-state="done"]')).toHaveLength(4)
+    await toggle.trigger('click')
+    expect(wrapper.get('.processing-steps ol').isVisible()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('never labels stopped or failed processing as completed', async () => {
+    const wrapper = mount(AiFindPrototype)
+    await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价')
+    await wrapper.get('form.composer-box').trigger('submit')
+    await wrapper.get('[aria-label="停止本批处理"]').trigger('click')
+    expect(wrapper.get('.processing-toggle').text()).toContain('查找已停止')
+    const demo = useDemoConversation('pc')
+    demo.state.nextFailure = 'search'
+    await wrapper.get('.failure-panel button').trigger('click')
+    await finish()
+    expect(wrapper.findAll('.processing-toggle').at(-1)!.text()).toContain('查找未完成')
+    wrapper.unmount()
+  })
+
+  it('switches PC sidebar conversations without losing unsent drafts', async () => {
+    const wrapper = mount(AiFindPrototype)
+    expect(wrapper.get('.welcome-art .ai-alpha-image').attributes('src')).toBe('/ai-search-lens-caustics-soft.png')
+    const demo = useDemoConversation('pc')
+    const originalId = demo.session.id
+    await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('还没发送的需求')
+    await wrapper.get('[data-testid="sidebar-new-session"]').trigger('click')
+    expect(demo.session.id).not.toBe(originalId)
+    expect(wrapper.get('textarea').element.value).toBe('')
+    await wrapper.get(`.ai-sidebar [data-session="${originalId}"]`).trigger('click')
+    expect(wrapper.get('textarea').element.value).toBe('还没发送的需求')
+    expect(wrapper.get('.market-return').attributes('href')).toBe('#/portal/search')
+    wrapper.unmount()
+  })
+
   it('does not pull a reader to the bottom when a confirmed-plan search finishes', async () => {
     const wrapper = mount(AiFindPrototype)
     await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找煤炭运价，必须按天查看、每天更新')
@@ -77,16 +127,18 @@ describe('纯前端交互原型', () => {
     expect(wrapper.findAll('.conversation-turn')).toHaveLength(1)
     wrapper.unmount()
   })
-  it('lets users send, favorite, view details and edit without using the scene menu', async () => {
+  it('lets PC users send, view details and edit without exposing favorite operations', async () => {
     const wrapper = mount(AiFindPrototype)
+    expect(wrapper.find('[aria-label="我的收藏"]').exists()).toBe(false)
+    expect(wrapper.find('.sidebar-links').text()).not.toContain('收藏')
     await wrapper.get('textarea[aria-label="描述数据需求"]').setValue('找2025年煤炭运价，按月查看')
     await wrapper.get('form.composer-box').trigger('submit')
     await finish()
     expect(wrapper.get('[data-testid="prototype-product-list"]').text()).toContain('煤炭公路运价明细数据集')
-    await wrapper.get('.favorite').trigger('click')
-    expect(wrapper.get('.favorite').text()).toContain('已收藏')
+    expect(wrapper.find('.favorite').exists()).toBe(false)
     await wrapper.get('.secondary-action').trigger('click')
     expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe('商品详情')
+    expect(wrapper.find('[role="dialog"] .favorite').exists()).toBe(false)
     await wrapper.get('[aria-label="关闭弹窗"]').trigger('click')
     await wrapper.get('.condition-top button').trigger('click')
     await wrapper.get('.edit-panel input').setValue('2024 年')
@@ -107,6 +159,7 @@ describe('纯前端交互原型', () => {
     await answer.trigger('keydown', { key: 'Enter' })
     await finish()
     expect(wrapper.get('.product-list').text()).toContain('水果苹果销量')
+    expect(wrapper.findAll('.processing-toggle')[0].text()).toContain('已补充需求')
     wrapper.unmount()
   })
   it('only applies plan choices after the final confirmation', async () => {

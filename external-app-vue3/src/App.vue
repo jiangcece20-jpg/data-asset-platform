@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PhoneShell from '@/layouts/PhoneShell.vue'
 import AdminShell from '@/layouts/AdminShell.vue'
@@ -7,12 +7,17 @@ import PortalShell from '@/layouts/PortalShell.vue'
 import PrototypeIdentitySwitcher from '@/components/shared/PrototypeIdentitySwitcher.vue'
 import { useUserStore } from '@/stores/user'
 import { useEntitlementStore } from '@/stores/entitlements'
+import { useCatalogStore } from '@/stores/catalog'
 
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const entitlements = useEntitlementStore()
 user.switchMockPurchaseIdentity('enterprise_member')
+const catalog = useCatalogStore()
+watch(() => user.context.loggedIn ? user.context.currentMemberId : 'guest', owner => {
+  catalog.activateFavoriteOwner(owner || 'guest')
+}, { immediate: true, flush: 'sync' })
 if (!entitlements.hasTeamMembership) entitlements.grantTeamMember()
 
 const mode = computed(() => {
@@ -29,7 +34,7 @@ function switchMode(target: 'app' | 'portal' | 'admin') {
 </script>
 
 <template>
-  <div class="min-h-screen bg-ink-100" :class="{ 'tech-preview': ['/portal/search', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path) }">
+  <div class="min-h-screen bg-ink-100" :class="{ 'tech-preview': ['/portal/search', '/portal/ai-chat', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path) }">
     <header class="sticky top-0 z-50 border-b border-ink-200 bg-white/95 backdrop-blur">
       <div class="flex items-center justify-between px-3 py-2.5 sm:px-4">
         <div class="flex items-center gap-2">

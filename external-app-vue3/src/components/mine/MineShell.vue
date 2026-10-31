@@ -5,6 +5,7 @@ import OrdersPanel from './OrdersPanel.vue'
 import SellerPanel from './SellerPanel.vue'
 import DemandsPanel from './DemandsPanel.vue'
 import PlaceholderPanel from './PlaceholderPanel.vue'
+import FavoritesPanel from './FavoritesPanel.vue'
 import { useUserStore } from '@/stores/user'
 import { hasEnterprisePurchaseIdentity } from '@/domain/purchaseIdentity'
 import {
@@ -222,6 +223,7 @@ const portalLegacyTestId: Partial<Record<MineMenu, string>> = {
         variant="portal"
         @update:seller-tab="selectSellerTab"
       />
+      <FavoritesPanel v-else-if="state.menu === 'favorites'" />
       <PlaceholderPanel v-else :title="menuLabel" />
     </section>
   </div>
