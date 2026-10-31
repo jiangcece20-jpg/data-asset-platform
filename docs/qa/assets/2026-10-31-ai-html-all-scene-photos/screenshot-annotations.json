@@ -1,0 +1,1378 @@
+{
+  "implementationCommit": "05b6565",
+  "branch": "codex/ai-v104-ui-integration",
+  "annotationScope": "每张实拍独立编号；坐标为原始截图像素；HTML在图片上叠加编号。",
+  "screenshots": [
+    {
+      "name": "pc-hard",
+      "file": "assets/vue-2026-10-31-scene-review/pc-hard.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "014f0da787f992af153c14908fe678de1dd17d612b2c94b3c4b4bd9d6a0099d1",
+      "title": "必要标准不明确：先问统计口径",
+      "section": "s3-hard",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留已明确目标",
+          "body": "已明确要找新能源汽车销量。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-hard-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "先澄清必要标准",
+          "body": "“必须与现有报表一致”无法核对，先问口径再搜索。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-hard-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 596,
+          "title": "回答当前问题",
+          "body": "用户补充口径后与原需求合并，不要求从头重述。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-hard-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-soft",
+      "file": "assets/vue-2026-10-31-scene-review/pc-soft.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "2c11d30b999a3bd319516ce90ad5a71cd0ccd9c8d9e86f88d4e01e0207dd3ec1",
+      "title": "目标明确、质量描述模糊：先搜索",
+      "section": "s3-soft",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留模糊描述",
+          "body": "保留“质量好一点”，标明质量标准尚未明确。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-soft-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 596,
+          "title": "不假称质量已满足",
+          "body": "仅对已明确条件给出匹配事实。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-soft-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 658,
+          "title": "展示相关商品",
+          "body": "模糊质量描述不阻断已明确目标的搜索。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-soft-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-fallback",
+      "file": "assets/vue-2026-10-31-scene-review/pc-fallback.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "ceb92d238347c8c3af31d6b84601541fa3ebc79002264e367e635b4840b82f34",
+      "title": "直接问数：说明边界并提供找商品入口",
+      "section": "s8",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 406,
+          "title": "保留用户问题的条件",
+          "body": "保留煤炭运价、路线和“今天”。",
+          "rule_refs": "功能 §3；算法 §3.1",
+          "id": "shot-pc-fallback-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 511,
+          "title": "不能可靠回答具体数值",
+          "body": "说明能力边界，不编造运价。",
+          "rule_refs": "功能 §3；算法 §3.1",
+          "id": "shot-pc-fallback-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 555,
+          "title": "由用户选择继续",
+          "body": "点击“找相关商品”后进入找数流程。",
+          "rule_refs": "功能 §3；算法 §3.1",
+          "id": "shot-pc-fallback-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-mixed-faq",
+      "file": "assets/vue-2026-10-31-scene-review/pc-mixed-faq.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "205c77197911e07bdb1e42152e7e97a8fd07638b93e7c982b53f8b96445e35fa",
+      "title": "同轮找汽车销量并说明怎么买数据",
+      "section": "s-mixed-faq",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留找数目标",
+          "body": "汽车销量继续正常查找。",
+          "rule_refs": "功能 §3、§9；算法 §3.1",
+          "id": "shot-pc-mixed-faq-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 662,
+          "title": "同轮回答购买问题",
+          "body": "解释购买路径；询问怎么买不会创建订单。",
+          "rule_refs": "功能 §3、§9；算法 §3.1",
+          "id": "shot-pc-mixed-faq-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 802,
+          "title": "同轮保留相关商品",
+          "body": "购买说明和找数结果在同一回答中展示。",
+          "rule_refs": "功能 §3、§9；算法 §3.1",
+          "id": "shot-pc-mixed-faq-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-multi-results",
+      "file": "assets/vue-2026-10-31-scene-review/pc-multi-results.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "45ba54724c2905b2f3f2d95f1fc0322e678be9eade90d4d6900b5746102b36d7",
+      "title": "多需求结论与去重后的商品",
+      "section": "s2-final",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "两项分别保留条件",
+          "body": "煤炭运价与山东货运路线各有自己的条件。",
+          "rule_refs": "功能 §6；算法 §7.21",
+          "id": "shot-pc-multi-results-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 596,
+          "title": "逐需求给出结论",
+          "body": "两项分别判断，然后一起展示。",
+          "rule_refs": "功能 §6；算法 §7.21",
+          "id": "shot-pc-multi-results-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 1110,
+          "title": "一个综合商品对应两项需求",
+          "body": "综合商品卡片同时注明两个需求的匹配关系，不按需求重复展示。",
+          "rule_refs": "功能 §6；算法 §7.21",
+          "id": "shot-pc-multi-results-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-unknown",
+      "file": "assets/vue-2026-10-31-scene-review/pc-unknown.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "ac3b6f044ed25ad405cc2cb44001c43c55636913f2324301a048691b1ab282b1",
+      "title": "资料没写按天查看：保留候选并标待核实",
+      "section": "s4",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留按天查看要求",
+          "body": "资料缺失不自动放宽用户要求。",
+          "rule_refs": "功能 §7；算法 §6.2、§7.18",
+          "id": "shot-pc-unknown-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 596,
+          "title": "部分匹配",
+          "body": "不把“资料没写”判定为已满足或明确不满足。",
+          "rule_refs": "功能 §7；算法 §6.2、§7.18",
+          "id": "shot-pc-unknown-2"
+        },
+        {
+          "order": 3,
+          "x": 405,
+          "y": 956,
+          "title": "指出待核实项",
+          "body": "匹配说明概括已确认事实，查看方式单独标待核实。",
+          "rule_refs": "功能 §7；算法 §6.2、§7.18",
+          "id": "shot-pc-unknown-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-route-coverage",
+      "file": "assets/vue-2026-10-31-scene-review/pc-route-coverage.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "c6f8f96e179f9de61d0ebfc2b59b65bacda7ef279f7dc07be579c88a22d8ef01",
+      "title": "只有出发地、目的地字段：具体路线待核实",
+      "section": "s-route-coverage",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留指定方向",
+          "body": "当前要求仍为榆林到天津港。",
+          "rule_refs": "功能 §7；算法 §6.2",
+          "id": "shot-pc-route-coverage-1"
+        },
+        {
+          "order": 2,
+          "x": 405,
+          "y": 960,
+          "title": "不从字段推断覆盖",
+          "body": "有出发地、目的地字段，不证明存在这条指定方向的运价。",
+          "rule_refs": "功能 §7；算法 §6.2",
+          "id": "shot-pc-route-coverage-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-budget",
+      "file": "assets/vue-2026-10-31-scene-review/pc-budget.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "a1216f45372631cb20423613290a64b5ce3030746db594956e9f15dd18ff779a",
+      "title": "预算提示：预算内、超预算与不可比",
+      "section": "s-budget",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留预算口径",
+          "body": "当前预算为单个商品每年3000元。",
+          "rule_refs": "功能 §7；算法 §7.20",
+          "id": "shot-pc-budget-1"
+        },
+        {
+          "order": 2,
+          "x": 535,
+          "y": 799,
+          "title": "可比价格分别提示",
+          "body": "2400元/年为预算内，4800元/年为超预算。",
+          "rule_refs": "功能 §7；算法 §7.20",
+          "id": "shot-pc-budget-2"
+        },
+        {
+          "order": 3,
+          "x": 490,
+          "y": 1114,
+          "title": "未知或口径不同不强行比较",
+          "body": "需询价、按次计费与按年预算分别说明暂无法判断。",
+          "rule_refs": "功能 §7；算法 §7.20",
+          "id": "shot-pc-budget-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-types",
+      "file": "assets/vue-2026-10-31-scene-review/pc-types.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "2b40e60a313f35d6554483a923306120cd54fc9b4dffd26aed0e346893c45df4",
+      "title": "明确只要API：结果限定为API商品",
+      "section": "s-types",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "必须条件：仅API",
+          "body": "用户已明确商品类型，保留为必须条件。",
+          "rule_refs": "功能 §5、§6；算法 §5",
+          "id": "shot-pc-types-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 658,
+          "title": "类型限制作用于结果",
+          "body": "本图只展示API，不用其他类型替代。",
+          "rule_refs": "功能 §5、§6；算法 §5",
+          "id": "shot-pc-types-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-empty",
+      "file": "assets/vue-2026-10-31-scene-review/pc-empty.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "b5ed3c1e6cbf7e7eb84989a8500c23ea3f08d91d04ae4cb32125f1d11add0244",
+      "title": "专用线路逐车运价：零候选保留原要求",
+      "section": "s-empty",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留完整原要求",
+          "body": "矿区内部专用线路、2025年、逐车运价均保留。",
+          "rule_refs": "功能 §6、§11；算法 §7、§9",
+          "id": "shot-pc-empty-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "搜索未找到不等于数据不存在",
+          "body": "没有可靠建议时不凭空推荐放宽。",
+          "rule_refs": "功能 §6、§11；算法 §7、§9",
+          "id": "shot-pc-empty-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 692,
+          "title": "保留采数入口",
+          "body": "用户可通过对话继续调整，或提报采数。",
+          "rule_refs": "功能 §6、§11；算法 §7、§9",
+          "id": "shot-pc-empty-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-risk",
+      "file": "assets/vue-2026-10-31-scene-review/pc-risk.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "c5f82cfd3db93a1195ff8240a7df3310ff55b4905f68b1aad3d55912577e66db",
+      "title": "匹配事实与使用风险分开表达",
+      "section": "s-card-groups",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 405,
+          "y": 875,
+          "title": "匹配说明概括已核实事实",
+          "body": "用一句话说明内容、范围、时间与查看方式。",
+          "rule_refs": "功能 §7.3—7.4；算法 §7.17—7.19",
+          "id": "shot-pc-risk-1"
+        },
+        {
+          "order": 2,
+          "x": 405,
+          "y": 936,
+          "title": "风险事实及影响单列",
+          "body": "12月有2条明细缺失，可能影响该月汇总完整性。",
+          "rule_refs": "功能 §7.3—7.4；算法 §7.17—7.19",
+          "id": "shot-pc-risk-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-preference",
+      "file": "assets/vue-2026-10-31-scene-review/pc-preference.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "a282c6ac0e0d582ceef881bf62b43c9f962be10133a9833b50263d9941a24b5f",
+      "title": "必须条件满足，更新偏好有差异",
+      "section": "s-card-groups",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留用户的偏好表达",
+          "body": "“最好每天更新”是偏好。",
+          "rule_refs": "功能 §7.3—7.4；算法 §7.18",
+          "id": "shot-pc-preference-1"
+        },
+        {
+          "order": 2,
+          "x": 405,
+          "y": 935,
+          "title": "条件差异单列",
+          "body": "每周更新低于每天更新偏好，不混为资料待核实。",
+          "rule_refs": "功能 §7.3—7.4；算法 §7.18",
+          "id": "shot-pc-preference-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-access",
+      "file": "assets/vue-2026-10-31-scene-review/pc-access.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "f70f8044c0237e9458eb3f87840dbd65fe3c9dc22dbcf709d28e435b9d1123c8",
+      "title": "获取操作按商品真实状态展示",
+      "section": "s-access",
+      "note": "当前差异：此演示回答仍写“也可以先收藏”，但PC AI页没有收藏操作。PC AI不提供收藏、商城和移动端保留收藏的规则不变；本轮仅标注，未改Vue。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 405,
+          "y": 959,
+          "title": "权益可用：立即使用",
+          "body": "已有权益时进入使用流程。",
+          "rule_refs": "功能 §9",
+          "id": "shot-pc-access-1"
+        },
+        {
+          "order": 2,
+          "x": 835,
+          "y": 959,
+          "title": "订单待付款：继续支付",
+          "body": "沿用已有订单状态，不重新创建购买动作。",
+          "rule_refs": "功能 §9",
+          "id": "shot-pc-access-2"
+        },
+        {
+          "order": 3,
+          "x": 405,
+          "y": 1304,
+          "title": "可申请试用",
+          "body": "试用商品展示提交试用申请。",
+          "rule_refs": "功能 §9",
+          "id": "shot-pc-access-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-multi-wait",
+      "file": "assets/vue-2026-10-31-scene-review/pc-multi-wait.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "cb1fc5e214bc5306abd3b1fd81189e3290b349f848d4ec3adb6b978595fd8fc2",
+      "title": "一项已有匹配，仍等待本批统一决定",
+      "section": "s2",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 596,
+          "title": "已有匹配先保留",
+          "body": "煤炭运价保持原条件，未提前发布商品。",
+          "rule_refs": "功能 §6、§10；算法 §7.21、§8.6",
+          "id": "shot-pc-multi-wait-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 660,
+          "title": "其他项决定是否放宽",
+          "body": "货运路线需决定是否从按港口筛选改为按地市查看。",
+          "rule_refs": "功能 §6、§10；算法 §7.21、§8.6",
+          "id": "shot-pc-multi-wait-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 992,
+          "title": "一起确认后继续",
+          "body": "本批必要决策完成后再统一处理结果。",
+          "rule_refs": "功能 §6、§10；算法 §7.21、§8.6",
+          "id": "shot-pc-multi-wait-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-relax",
+      "file": "assets/vue-2026-10-31-scene-review/pc-relax.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "445b5bcc5db956eef07de8025a9a98280441eb414e721144348e658b07a33441",
+      "title": "同一套方案：同时调整查看方式和更新频率",
+      "section": "s5",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "当前条件仍有效",
+          "body": "按天查看、每天更新尚未改变。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-relax-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 598,
+          "title": "变化、依据与影响一起说明",
+          "body": "按天→按月、每天→每周；同时说明候选依据及用途影响。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-relax-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 929,
+          "title": "选择不自动生效",
+          "body": "统一确认后才更新接受的条件。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-relax-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-alternatives",
+      "file": "assets/vue-2026-10-31-scene-review/pc-alternatives.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "40bac123663831f601664da50400e6ba5a707defe738653babd05f341a3eb3ba",
+      "title": "两套方案互为选择，保留未调整的条件",
+      "section": "s5-options",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "展示原要求",
+          "body": "按天查看、每天更新为当前条件。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-alternatives-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 598,
+          "title": "分别展示完整方案",
+          "body": "方案A只改查看方式，方案B只改更新频率；每套均说明依据与影响。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-alternatives-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-batch-ready",
+      "file": "assets/vue-2026-10-31-scene-review/pc-batch-ready.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "e8122936b07b7aba56d4f010e41bb3dce8fe673051f92ca5bd6f432bc38fd637",
+      "title": "两项分别选择：运价按月、货运量保留原要求",
+      "section": "s5-batch",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "当前条件尚未改变",
+          "body": "虽然已选择方案，当前仍是按天查看、每天更新和按区县查看。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-batch-ready-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 598,
+          "title": "每项独立选择",
+          "body": "运价选择方案A；货运量选择保留原要求。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-batch-ready-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-batch-confirm",
+      "file": "assets/vue-2026-10-31-scene-review/pc-batch-confirm.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "da5201aa3c11d5774c8e60e71a329750fab1fce25627c51406157ce379625aac",
+      "title": "同一批选择的下半屏：最终统一确认",
+      "section": "s5-batch",
+      "note": "与上一张为同一批次的上下屏实拍，补齐最终确认按钮。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 480,
+          "title": "保留该项原要求",
+          "body": "货运量保留按区县查看。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-batch-confirm-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 811,
+          "title": "统一确认入口",
+          "body": "各项选齐后，用户点击“确认选择并继续”才使决定生效。",
+          "rule_refs": "功能 §10；算法 §8.6",
+          "id": "shot-pc-batch-confirm-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-rejected",
+      "file": "assets/vue-2026-10-31-scene-review/pc-rejected.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "f6b09a1273364851d96061dc08e77fea350e41720ef5a81dd571b4fcb25cd71c",
+      "title": "保留原要求后，展示原条件下的完整结论",
+      "section": "s5-reject",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 527,
+          "title": "原条件保持不变",
+          "body": "按天查看、每天更新继续保留。",
+          "rule_refs": "功能 §10、§11；算法 §7.21",
+          "id": "shot-pc-rejected-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 631,
+          "title": "沿用此前完整搜索结论",
+          "body": "全部保留原要求时不重复检索。",
+          "rule_refs": "功能 §10、§11；算法 §7.21",
+          "id": "shot-pc-rejected-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 674,
+          "title": "无合适商品仍可采数",
+          "body": "结论对应完整搜索的原要求，不等于数据不存在。",
+          "rule_refs": "功能 §10、§11；算法 §7.21",
+          "id": "shot-pc-rejected-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-timeout",
+      "file": "assets/vue-2026-10-31-scene-review/pc-timeout.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "44cfd1a936598df5ba3f775acbb7ded883123039d4dc8b6124e09cd3468cc2fe",
+      "title": "搜索未全部完成：保留条件整批重试",
+      "section": "s-timeout",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留当前整批条件",
+          "body": "两项需求继续属于本轮。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-timeout-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "明确本批未完成",
+          "body": "不把执行失败写成无合适商品。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-timeout-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 598,
+          "title": "用户选择后整批重试",
+          "body": "未发布任何本批新商品，提供重新搜索。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-timeout-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-judgment-failed",
+      "file": "assets/vue-2026-10-31-scene-review/pc-judgment-failed.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "94a784b4246475d688b70a8560c543b7af070ae53413180a3860536ba19a4f39",
+      "title": "检索后的必要匹配判断失败：仍按整批未完成",
+      "section": "s-timeout",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "条件不丢失",
+          "body": "保留本轮煤炭运价与山东货运路线。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-judgment-failed-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "区分匹配执行失败",
+          "body": "必要匹配判断失败也不发布本批商品。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-judgment-failed-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 598,
+          "title": "整批重新搜索与判断",
+          "body": "由用户触发重试；待核实不属于这种执行失败。",
+          "rule_refs": "功能 §13；算法 §7.21、§8.5",
+          "id": "shot-pc-judgment-failed-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-collection-failed",
+      "file": "assets/vue-2026-10-31-scene-review/pc-collection-failed.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "babd21de3f64e5f781b8641a6a65d3938cf4cd0ce05e8e51652d1cec530c4997",
+      "title": "采数提交失败：保留价格和联系方式草稿",
+      "section": "s-failure",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 430,
+          "y": 621,
+          "title": "核对选定需求",
+          "body": "要求、搜索情况、已知缺口、待核实信息分开显示。",
+          "rule_refs": "功能 §11.2—11.3、§13",
+          "id": "shot-pc-collection-failed-1"
+        },
+        {
+          "order": 2,
+          "x": 430,
+          "y": 894,
+          "title": "保留已填内容",
+          "body": "价格、联系人、联系方式在失败后继续保留。",
+          "rule_refs": "功能 §11.2—11.3、§13",
+          "id": "shot-pc-collection-failed-2"
+        },
+        {
+          "order": 3,
+          "x": 430,
+          "y": 1108,
+          "title": "明确失败并可重试",
+          "body": "提示暂时未能提交，不伪造提交成功。",
+          "rule_refs": "功能 §11.2—11.3、§13",
+          "id": "shot-pc-collection-failed-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-dialogue-edit",
+      "file": "assets/vue-2026-10-31-scene-review/pc-dialogue-edit.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "44992db478d2ce17eec01d04e701430229657ad6ef857719fe1f24c22e7d37a1",
+      "title": "通过对话改查2024年，历史2025年结果保留",
+      "section": "s-ops",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 868,
+          "title": "当前条件改为2024年",
+          "body": "只修改明确的年份，按月查看等其他条件保留。",
+          "rule_refs": "功能 §5.3、§12；算法 §8.2",
+          "id": "shot-pc-dialogue-edit-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 477,
+          "title": "旧回答保留原年份",
+          "body": "上方历史匹配说明仍为2025年。",
+          "rule_refs": "功能 §5.3、§12；算法 §8.2",
+          "id": "shot-pc-dialogue-edit-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-shared-edit",
+      "file": "assets/vue-2026-10-31-scene-review/pc-shared-edit.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "6b03fdb95dc0b60aeed5d00c14a791b47676ca6cf27c54b83620aa51dbafde2c",
+      "title": "明确这两项都改为2024年：同时更新指定范围",
+      "section": "s-ops",
+      "note": "本次实拍使用“煤炭运价＋山东货运路线”两项，展示明确范围后的共享年份修改。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 868,
+          "title": "两项共同修改年份",
+          "body": "煤炭运价和山东货运路线均改查2024年；路线按地市查看不变。",
+          "rule_refs": "功能 §5.3、§12；算法 §8.2",
+          "id": "shot-pc-shared-edit-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 442,
+          "title": "历史商品不回写",
+          "body": "上方综合商品仍保留当时的2025年匹配说明。",
+          "rule_refs": "功能 §5.3、§12；算法 §8.2",
+          "id": "shot-pc-shared-edit-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-context-followup",
+      "file": "assets/vue-2026-10-31-scene-review/pc-context-followup.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "6964a09b9f78bcb2bdf2370629444ffb240353d5b1a12993cf3b0e09bcb39390",
+      "title": "对话重新提及苹果销量：新一轮单独处理",
+      "section": "s-resume",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 885,
+          "title": "只接续重新提出的需求",
+          "body": "水果苹果销量沿用此前明确的2025年。",
+          "rule_refs": "功能 §12；算法 §8.4",
+          "id": "shot-pc-context-followup-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 475,
+          "title": "已完成煤炭运价结果保留",
+          "body": "上方煤炭运价商品继续保留，没有并入本次重新搜索。",
+          "rule_refs": "功能 §12；算法 §8.4",
+          "id": "shot-pc-context-followup-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-add-demand",
+      "file": "assets/vue-2026-10-31-scene-review/pc-add-demand.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "9069f2a920180bccd18bbcf8237cd9f92c40887f81fa1b0f393983ec8dead20f",
+      "title": "同一会话新增企业清算案例需求",
+      "section": "s6",
+      "note": "前序操作为2025年煤炭运价→对话改查2024年→新增企业清算案例；原有回答仍在同一会话上方。当前固定样例未提供清算案例商品。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 527,
+          "title": "新增需求单独明确范围",
+          "body": "清算案例为新的找数目标，不自动继承运价的年份和查看方式。",
+          "rule_refs": "功能 §12；算法 §8.4",
+          "id": "shot-pc-add-demand-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 632,
+          "title": "如实展示当前固定样例结论",
+          "body": "当前原型对此新增目标未找到商品，保留采数入口。",
+          "rule_refs": "功能 §12；算法 §8.4",
+          "id": "shot-pc-add-demand-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-pending-scope-ready",
+      "file": "assets/vue-2026-10-31-scene-review/pc-pending-scope-ready.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "70b019eac295bae9dac7b2807de5a585bd345a26c87ce455bad52e576dc2cfa8",
+      "title": "待确认时移出货运量、加入苹果销量，保留运价选择",
+      "section": "s-scope",
+      "note": "输入“山东货运量不找了，再找2025年苹果销量”，回答“水果”后拍摄；旧货运量选择只留在历史。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 868,
+          "title": "更新本轮需求范围",
+          "body": "当前为运价与水果苹果销量，不再包含山东货运量。",
+          "rule_refs": "功能 §12；算法 §8.4、§8.6",
+          "id": "shot-pc-pending-scope-ready-1"
+        },
+        {
+          "order": 2,
+          "x": 405,
+          "y": 1169,
+          "title": "保留已有方案选择",
+          "body": "回答苹果含义后，运价方案A仍被选中，尚未统一确认。",
+          "rule_refs": "功能 §12；算法 §8.4、§8.6",
+          "id": "shot-pc-pending-scope-ready-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-completed-rating",
+      "file": "assets/vue-2026-10-31-scene-review/pc-completed-rating.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "f0ee5afaaa5437717f07532699b8edcb2552ff7b68c0ea150c86b2d9a78a1700",
+      "title": "完整回答可评价与重新搜索",
+      "section": "common-completed",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 596,
+          "title": "这是完整的无合适商品回答",
+          "body": "完整搜索没有找到商品，也可评价。",
+          "rule_refs": "功能 §12.9、§13.4；算法 §8.5",
+          "id": "shot-pc-completed-rating-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 796,
+          "title": "赞、踩与重新搜索",
+          "body": "本图赞已选中；评价互斥且可取消，重新搜索沿当前有效条件执行。",
+          "rule_refs": "功能 §12.9、§13.4；算法 §8.5",
+          "id": "shot-pc-completed-rating-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-delete-confirmation",
+      "file": "assets/vue-2026-10-31-scene-review/pc-delete-confirmation.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "31a9ce77fb24bcc96f503b6bf0653e6e948ad72bf7d48e9eb393c46d02c4d5d4",
+      "title": "只删除整个会话：先确认影响",
+      "section": "common-delete",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 430,
+          "y": 781,
+          "title": "删除范围为整个会话",
+          "body": "聊天记录和未发送草稿一起移除，不是删除单条消息或需求。",
+          "rule_refs": "功能 §12.12",
+          "id": "shot-pc-delete-confirmation-1"
+        },
+        {
+          "order": 2,
+          "x": 430,
+          "y": 914,
+          "title": "明确确认或取消",
+          "body": "已提交采数、购买和试用申请继续保留；本次仅打开确认框并取消，未实际删除。",
+          "rule_refs": "功能 §12.12",
+          "id": "shot-pc-delete-confirmation-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-processing",
+      "file": "assets/vue-2026-10-31-scene-review/pc-processing.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "e6a0441baca415b5d303c3473fc78ab3b4186d023e638fdb156af58ee26dd37a",
+      "title": "处理中：保留条件，可停止当前整批",
+      "section": "common-processing",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "当前生效条件只读",
+          "body": "保留已识别条件，无独立修改表单。",
+          "rule_refs": "功能 §12.3—12.4、§12.7",
+          "id": "shot-pc-processing-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 404,
+          "title": "处理过程摘要",
+          "body": "PC默认收起，点击摘要可查看步骤。",
+          "rule_refs": "功能 §12.3—12.4、§12.7",
+          "id": "shot-pc-processing-2"
+        },
+        {
+          "order": 3,
+          "x": 1250,
+          "y": 1054,
+          "title": "处理期间的停止入口",
+          "body": "处理中可编辑草稿；停止或完成后再发送调整。",
+          "rule_refs": "功能 §12.3—12.4、§12.7",
+          "id": "shot-pc-processing-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-direct-search",
+      "file": "assets/vue-2026-10-31-scene-review/pc-processing.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "e6a0441baca415b5d303c3473fc78ab3b4186d023e638fdb156af58ee26dd37a",
+      "title": "目标明确后直接进入查找",
+      "section": "s0",
+      "note": "与通用能力“处理中”复用同一次实拍，分别说明直接搜索与停止入口。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "无需额外确认就开始",
+          "body": "已明确对象、路线、年份和查看方式，直接处理。",
+          "rule_refs": "功能 §4—§5；算法 §3—§4",
+          "id": "shot-pc-direct-search-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "显示当前处理状态",
+          "body": "原型正在理解需求，未提前展示商品。",
+          "rule_refs": "功能 §4—§5；算法 §3—§4",
+          "id": "shot-pc-direct-search-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-stopped",
+      "file": "assets/vue-2026-10-31-scene-review/pc-stopped.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "c80120f1cd15cdd8bdd9800558e91c5755c409ea912ecf753e03531ce5ac0c34",
+      "title": "已停止：条件保留，等待用户重新搜索",
+      "section": "common-stopped",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "保留当前条件",
+          "body": "停止不回退已确认条件。",
+          "rule_refs": "功能 §12.7—12.9；算法 §8.5",
+          "id": "shot-pc-stopped-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "明确停止状态",
+          "body": "不自动继续运行，不展示本批未完成的新商品。",
+          "rule_refs": "功能 §12.7—12.9；算法 §8.5",
+          "id": "shot-pc-stopped-2"
+        },
+        {
+          "order": 3,
+          "x": 382,
+          "y": 598,
+          "title": "用户选择重新搜索",
+          "body": "按当前条件整批重试。",
+          "rule_refs": "功能 §12.7—12.9；算法 §8.5",
+          "id": "shot-pc-stopped-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-ownership",
+      "file": "assets/vue-2026-10-31-scene-review/pc-ownership.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "b6c4c8444c7ad71ccb2a242f570fafb47d02466d131b31771175cdf962c4cf59",
+      "title": "当前差异实拍：条件归属不清却直接进入放宽",
+      "section": "s3",
+      "note": "当前Vue差异：未出现PRD要求的归属澄清问题，已记录并保留实拍；本轮不修改Vue。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "差异：未先询问归属",
+          "body": "“其中一个要按港口筛选”尚未明确，当前Vue却分配给货运路线。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-ownership-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 660,
+          "title": "差异：提前进入放宽",
+          "body": "PRD要求先澄清归属；本图不能作为该规则的验收通过证据。",
+          "rule_refs": "功能 §4；算法 §4",
+          "id": "shot-pc-ownership-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-ownership-answer",
+      "file": "assets/vue-2026-10-31-scene-review/pc-ownership-answer.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "340bc6d021ad78804bf519c7ebff70294b105e99dc9522e04b7fe37c3f02b0a2",
+      "title": "当前差异实拍：补充归属被重复识别为需求",
+      "section": "s3a",
+      "note": "对应上一场景继续输入的真实结果。正确接续规则仍见正文；此处明确记录原型未达成的部分。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 482,
+          "title": "差异：重复添加需求",
+          "body": "补充“货运路线需要按港口筛选，煤炭运价不用”后，当前Vue重复列出运价与路线。",
+          "rule_refs": "功能 §12.0；算法 §8.2",
+          "id": "shot-pc-ownership-answer-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 629,
+          "title": "差异：没有合并到原需求",
+          "body": "PRD要求只更新明确归属项，不能创建重复需求。",
+          "rule_refs": "功能 §12.0；算法 §8.2",
+          "id": "shot-pc-ownership-answer-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-clarify",
+      "file": "assets/vue-2026-10-31-scene-review/pc-clarify.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "adc416f8d056a69c63cf19a21bf2ac06ac1ba564b927661dfc84a0ac36f0b74a",
+      "title": "核心含义澄清的正常样例：苹果是水果还是品牌",
+      "section": "s3a",
+      "note": "补充一个当前Vue可正常复现的核心含义澄清样例；它不替代上方“条件归属”差异。",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 448,
+          "title": "已有年份保留",
+          "body": "2025年继续保留，仅核心对象含义未明确。",
+          "rule_refs": "功能 §4、§12；算法 §4、§8.2",
+          "id": "shot-pc-clarify-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 553,
+          "title": "只问当前必要问题",
+          "body": "先明确“苹果”的含义。",
+          "rule_refs": "功能 §4、§12；算法 §4、§8.2",
+          "id": "shot-pc-clarify-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-clarify-answer",
+      "file": "assets/vue-2026-10-31-scene-review/pc-clarify-answer.jpg",
+      "width": 1440,
+      "height": 1365,
+      "sha256": "94818b815011b0b5c6858dfd52f415639ea716dc609dc8bde54fdee67fb7b265",
+      "title": "回答水果后接续：保留2025年查找销量",
+      "section": "s3a",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 382,
+          "y": 794,
+          "title": "合并回答与旧条件",
+          "body": "“水果，其他不变”合并为水果苹果销量、2025年。",
+          "rule_refs": "功能 §4、§12；算法 §4、§8.2",
+          "id": "shot-pc-clarify-answer-1"
+        },
+        {
+          "order": 2,
+          "x": 382,
+          "y": 942,
+          "title": "澄清完成后再发布结果",
+          "body": "不要求用户重述年份；旧问题留在上方。",
+          "rule_refs": "功能 §4、§12；算法 §4、§8.2",
+          "id": "shot-pc-clarify-answer-2"
+        }
+      ]
+    },
+    {
+      "name": "mobile-unknown-overview",
+      "file": "assets/vue-2026-10-31-scene-review/mobile-unknown-overview.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "e7466f6e9863b8a6c189f9b0547dd0eeda828f710294b2042bf88244146f310d",
+      "title": "移动端：部分匹配摘要、商品卡片和收藏",
+      "section": "sm",
+      "note": "通过移动端专用演示路由核对同一AI组件的卡片状态；业务主入口仍为找数页内切换，见功能§2.4。",
+      "route": "http://127.0.0.1:5191/#/app/ai-find",
+      "pins": [
+        {
+          "order": 1,
+          "x": 15,
+          "y": 343,
+          "title": "逐项结论与说明",
+          "body": "部分匹配摘要明确哪些支持情况需要核实。",
+          "rule_refs": "功能 §7、§9.4、§15",
+          "id": "shot-mobile-unknown-overview-1"
+        },
+        {
+          "order": 2,
+          "x": 286,
+          "y": 473,
+          "title": "移动端保留收藏",
+          "body": "卡片收藏保留；PC AI页不提供此操作。",
+          "rule_refs": "功能 §7、§9.4、§15",
+          "id": "shot-mobile-unknown-overview-2"
+        }
+      ]
+    },
+    {
+      "name": "mobile-unknown-card",
+      "file": "assets/vue-2026-10-31-scene-review/mobile-unknown-card.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "fe71009f8ec8173565b3292ab346a88f93497419f234869d63361ffa1a6a7fac",
+      "title": "移动端：匹配事实与待核实分区",
+      "section": "sm",
+      "note": "通过移动端专用演示路由核对同一AI组件的卡片状态；业务主入口仍为找数页内切换，见功能§2.4。",
+      "route": "http://127.0.0.1:5191/#/app/ai-find",
+      "pins": [
+        {
+          "order": 1,
+          "x": 16,
+          "y": 363,
+          "title": "已核实事实用一句话概括",
+          "body": "包含2025年指定路线运价。",
+          "rule_refs": "功能 §7、§11、§15；算法 §6.2",
+          "id": "shot-mobile-unknown-card-1"
+        },
+        {
+          "order": 2,
+          "x": 16,
+          "y": 453,
+          "title": "按天查看仍待核实",
+          "body": "资料未说明时单独提示，不擅自认为按天查看满足。",
+          "rule_refs": "功能 §7、§11、§15；算法 §6.2",
+          "id": "shot-mobile-unknown-card-2"
+        },
+        {
+          "order": 3,
+          "x": 15,
+          "y": 645,
+          "title": "部分匹配仍可提报采数",
+          "body": "采数入口与对话补充要求均保留。",
+          "rule_refs": "功能 §7、§11、§15；算法 §6.2",
+          "id": "shot-mobile-unknown-card-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-access-unknown",
+      "file": "assets/vue-2026-10-31-scene-review/pc-access-unknown.jpg",
+      "width": 1440,
+      "height": 1100,
+      "sha256": "af845d1c8b811fa2f49baf14d3cf13d0539f65f05e59804324ae96389351c87e",
+      "title": "权益状态不明：降级查看详情",
+      "section": "s-failure",
+      "note": "",
+      "route": "http://127.0.0.1:5191/#/portal/ai-chat?entry=ai",
+      "pins": [
+        {
+          "order": 1,
+          "x": 853,
+          "y": 603,
+          "title": "状态无法确认",
+          "body": "权益状态暂时无法确认，不推定已购或未购。",
+          "rule_refs": "功能 §9.3、§13.2",
+          "id": "shot-pc-access-unknown-1"
+        },
+        {
+          "order": 2,
+          "x": 853,
+          "y": 807,
+          "title": "降级查看详情",
+          "body": "当前只提供查看详情，不凭空展示购买、试用或使用动作。",
+          "rule_refs": "功能 §9.3、§13.2",
+          "id": "shot-pc-access-unknown-2"
+        }
+      ]
+    }
+  ]
+}

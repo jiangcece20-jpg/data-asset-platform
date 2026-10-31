@@ -1,0 +1,19 @@
+{
+  "newCaptureInstances": 39,
+  "newRawPhotos": 38,
+  "newPins": 96,
+  "totalCurrentFigures": 53,
+  "totalCurrentPins": 134,
+  "preservedOldAnchors": 86,
+  "totalAnnotations": 220,
+  "archivedSketches": 38,
+  "unphotographedScenes": 0,
+  "explicitPrototypeGapScenes": [
+    "s3",
+    "s3a"
+  ],
+  "vueModified": false,
+  "deployed": false,
+  "flowUnchanged": true,
+  "missingAssetsOrFragmentTargets": 0
+}
