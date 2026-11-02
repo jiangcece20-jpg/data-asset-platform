@@ -12,32 +12,24 @@ describe('AI找数前端演示流程', () => {
     expect(demo.current.conditions.join(' ')).toContain('2025')
     expect(demo.current.products[0].name).toContain('苹果')
   })
-  it('keeps each selection pending until all demands are selected and confirmed', async () => {
+  it('publishes each demand conclusion together with non-binding suggestions', async () => {
     const demo = createDemoConversation()
     await demo.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
-    const [a, b] = demo.current.plans
-    expect(demo.current.products).toHaveLength(0)
-    demo.choose(a.taskId, '0')
+    expect(demo.current.tasks.map(t=>t.status)).toEqual(['无合适商品','无合适商品'])
+    expect(demo.current.suggestions).toHaveLength(2)
     expect(demo.tasks[0].grain).toBe('按天查看')
-    await demo.confirm()
-    expect(demo.current.missing).toContain(b.taskId)
-    expect(demo.tasks[0].grain).toBe('按天查看')
-    demo.choose(b.taskId, 'keep')
-    await demo.confirm()
+    await demo.send('煤炭运价改成按月查看')
     expect(demo.tasks[0].grain).toBe('按月查看')
-    expect(demo.tasks[0].frequency).toBe('每天更新')
     expect(demo.tasks[1].grain).toBe('按区县查看')
     expect(demo.current.tasks[1].status).toBe('无合适商品')
   })
-  it('only accepts the explicitly accepted part of a combined plan', async () => {
+  it('only accepts the explicitly accepted part of a suggestion through dialogue', async () => {
     const demo = createDemoConversation()
     await demo.send('找2025年煤炭运价，必须按天查看、每天更新')
     await demo.send('按月查看可以，但仍要每天更新')
-    expect(demo.tasks[0].grain).toBe('按天查看')
-    expect(demo.current.proposed[demo.tasks[0].id].grain).toBe('按月查看')
-    await demo.confirm()
     expect(demo.tasks[0].grain).toBe('按月查看')
     expect(demo.tasks[0].frequency).toBe('每天更新')
+    expect(demo.current.kind).toBe('empty')
   })
   it('keeps effective conditions on a whole-batch failure and retries the same batch', async () => {
     const demo = createDemoConversation()
@@ -65,8 +57,7 @@ describe('AI找数前端演示流程', () => {
   it('rolls back the last relaxation without undoing a later manual year edit', async () => {
     const demo = createDemoConversation()
     await demo.send('找2025年煤炭运价，必须按天查看、每天更新')
-    demo.choose(demo.tasks[0].id, '0')
-    await demo.confirm()
+    await demo.send('可以')
     await demo.edit(demo.tasks[0].id, { year: '2024 年' })
     await demo.rollback()
     expect(demo.tasks[0].year).toBe('2024 年')
@@ -125,8 +116,6 @@ describe('AI找数前端演示流程', () => {
   it('names the known gap of the selected collection demand', async () => {
     const demo = createDemoConversation()
     await demo.send('找山东货运量，必须按区县查看')
-    demo.choose(demo.tasks[0].id, 'keep')
-    await demo.confirm()
     demo.openCollection()
     expect(demo.state.collection.gaps.join(' ')).toContain('按地市查看')
     expect(demo.state.collection.gaps.join(' ')).toContain('按区县查看')
@@ -164,39 +153,23 @@ describe('AI找数前端演示流程', () => {
     expect(demo.current.searchedTaskIds).toEqual([a.id, b.id])
     expect(demo.current.taskIds).toEqual([a.id, b.id])
   })
-  it('stages form edits alongside other pending choices until unified confirmation', async () => {
+  it('applies an explicit dialogue edit without waiting for other suggestions', async () => {
     const demo = createDemoConversation()
     await demo.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
-    const [a, b] = demo.tasks
-    await demo.edit(a.id, { grain: '按月查看' })
-    expect(demo.current.kind).toBe('relax')
-    expect(a.grain).toBe('按天查看')
-    expect(demo.current.proposed[a.id]).toEqual({ grain: '按月查看' })
-    await demo.confirm()
-    expect(demo.current.missing).toEqual([b.id])
-    demo.choose(b.id, 'keep')
-    await demo.confirm()
+    const [a,b] = demo.tasks
+    await demo.send('煤炭运价改成按月查看')
     expect(a.grain).toBe('按月查看')
     expect(demo.current.searchedTaskIds).toEqual([a.id])
-    expect(demo.current.taskIds).toEqual([a.id, b.id])
+    expect(demo.current.taskIds).toEqual([a.id,b.id])
     expect(demo.current.tasks[1].status).toBe('无合适商品')
   })
 
-  it('previews and rolls back the selected demand without touching another demand', async () => {
-    const demo = createDemoConversation()
-    await demo.send('找2025年煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
-    const [a, b] = demo.tasks
-    demo.choose(a.id, '0'); demo.choose(b.id, '0'); await demo.confirm()
-    await demo.edit(a.id, { year: '2024 年' })
-    expect(demo.rollbackPreview(a.id)).toContain('按天查看')
-    expect(demo.rollbackPreview(a.id)).not.toContain('2025')
-    await demo.rollback(a.id)
-    expect(a.grain).toBe('按天查看')
-    expect(a.year).toBe('2024 年')
-    expect(b.grain).toBe('按地市查看')
-    expect(demo.current.taskIds).toEqual([a.id, b.id])
-    expect(demo.current.searchedTaskIds).toEqual([a.id])
-    expect(demo.session.relaxations.map(r => r.taskId)).toEqual([b.id])
+  it('restores a relaxed demand without touching another demand', async () => {
+    const demo=createDemoConversation();await demo.send('找2025年煤炭运价，必须按天查看、每天更新')
+    const a=demo.tasks[0];await demo.send('可以');await demo.send('再找山东货运量，按地市查看');const b=demo.tasks[1]
+    await demo.send('煤炭运价改成2024年');await demo.send('煤炭运价回到放宽前条件')
+    expect(a.grain).toBe('按天查看');expect(a.year).toBe('2024 年');expect(b.grain).toBe('按地市查看')
+    expect(demo.current.taskIds).toEqual([a.id,b.id]);expect(demo.current.searchedTaskIds).toEqual([a.id])
   })
 
   it('keeps undefined quality on the demand side and preserves explicit national coverage', async () => {
@@ -248,30 +221,17 @@ describe('AI找数前端演示流程', () => {
     expect(demo.current.tasks[0].status).toBe('部分匹配')
   })
 
-  it('keeps pending choices active when asking a purchase FAQ', async () => {
-    const demo = createDemoConversation()
-    await demo.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
-    const [a,b] = demo.tasks
-    demo.choose(a.id, '0')
+  it('answers purchase FAQ without changing effective conditions or old results', async () => {
+    const demo=createDemoConversation();await demo.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
+    const old=JSON.stringify(demo.current), conditions=demo.taskConditions(demo.tasks)
     await demo.send('平台的数据怎么买')
-    expect(demo.current.kind).toBe('relax')
-    expect(demo.current.choices[a.id]).toBe('0')
-    expect(demo.current.purchaseGuide).toContain('商品详情')
-    await demo.confirm(); expect(demo.current.missing).toEqual([b.id])
-    expect(a.grain).toBe('按天查看')
-    demo.choose(b.id, 'keep'); await demo.confirm()
-    expect(a.grain).toBe('按月查看')
-    expect(demo.current.taskIds).toEqual([a.id,b.id])
+    expect(demo.current.purchaseGuide).toContain('商品详情');expect(demo.taskConditions(demo.tasks)).toEqual(conditions)
+    expect(JSON.stringify(demo.session.frames[0])).toBe(old)
   })
-  it('merges a later text choice with an earlier staged year', async () => {
-    const demo = createDemoConversation()
-    await demo.send('找2025年煤炭运价，必须按天查看、每天更新')
-    const a = demo.tasks[0]
-    await demo.edit(a.id, {year:'2024 年'})
-    await demo.send('按月查看可以，但仍要每天更新')
-    expect(demo.current.proposed[a.id]).toMatchObject({year:'2024 年',grain:'按月查看'})
-    await demo.confirm()
-    expect(a.year).toBe('2024 年'); expect(a.grain).toBe('按月查看')
+  it('preserves a previously edited year when accepting only part of a later suggestion', async () => {
+    const demo=createDemoConversation();await demo.send('找2025年煤炭运价，必须按天查看、每天更新')
+    const a=demo.tasks[0];await demo.send('煤炭运价改成2024年');await demo.send('按月查看可以，但仍要每天更新')
+    expect(a.year).toBe('2024 年');expect(a.grain).toBe('按月查看');expect(a.frequency).toBe('每天更新')
   })
   it('keeps the original unknown-metadata preset as a partial candidate, including retries', async () => {
     const demo = createDemoConversation()

@@ -5,19 +5,23 @@ import { board, coal, prototypeScenes, route, shared, type ProductPreview } from
 export interface DemoTask {
   id: string; name: string; topic: string; raw: string; year: string; grain: string; frequency: string
   note: string; blocked: string; unknown: boolean; preference: boolean
-  routeCoverageUnknown?: boolean; region?: string; productType?: string; budget?: string
+  regionCoverageUnknown?: boolean; standardUnknown?: boolean; routeCoverageUnknown?: boolean; region?: string; productType?: string; budget?: string
   edits: Record<string, number>
 }
 export interface DemoPlan {
   taskId: string; title: string; original: string
   options: { title: string; changes: Partial<DemoTask>; impact: string; basis?: string }[]
 }
+export interface DemoClarification {
+  mode: 'single' | 'multiple' | 'text'; question: string
+  options: { value: string; label: string }[]; selected: string[]; text: string; submitted: boolean
+}
 export interface DemoStep {
   id: string; label: string; detail?: string
   state: 'pending' | 'active' | 'done' | 'waiting' | 'failed' | 'stopped'
 }
 export interface DemoFrame {
-  purchaseGuide?: string; rating: '' | 'up' | 'down'; feedbackType: string; feedbackText: string
+  clarification?: DemoClarification; suggestions: DemoPlan[]; consultProduct?: ProductPreview; additionalAnswer?: string; purchaseGuide?: string; rating: '' | 'up' | 'down'; feedbackType: string; feedbackText: string
   id: string; searchedTaskIds?: string[]; steps: DemoStep[]; kind: string; query: string; message: string; conditions: string[]; taskIds: string[]
   products: ProductPreview[]; tasks: { id?: string; title: string; status: string; detail: string }[]
   plans: DemoPlan[]; choices: Record<string, string>; proposed: Record<string, Partial<DemoTask>>; proposedText: Record<string, string>; missing: string[]
@@ -26,9 +30,10 @@ interface Relaxation { taskId: string; changes: { key: string; before: string; a
 interface DemoRun { id: string; frameId: string; tasks: DemoTask[]; searchIds?: string[]; stage: number; dueAt: number; decisionsDone: boolean; failure: string }
 export interface DemoSession {
   id: string; title: string; tasks: DemoTask[]; frames: DemoFrame[]; relaxations: Relaxation[]; pending: string[]
+  suggestionQuestion?: DemoPlan[];
   conditionQuestion?: { changes: Partial<DemoTask>; query: string };
   decidedTaskIds?: string[];
-  decisionDraft?: Pick<DemoFrame, 'plans' | 'choices' | 'proposed' | 'proposedText'>; collectionDrafts?: Record<string, {price: string; name: string; contact: string}>;
+  decisionDraft?: Pick<DemoFrame, 'plans' | 'choices' | 'proposed' | 'proposedText'>; collectionDrafts?: Record<string, {price: string; name: string; contact: string; description?: string}>;
   purchaseRulesKnown?: boolean; purchaseQuestion?: boolean; facts?: Record<string, ProductPreview[]>; draft: string; clarificationDraft: string; sendError: string; run: DemoRun | null; decisionsDone: boolean
 }
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -40,6 +45,10 @@ interface DemoOptions {
 /** 仅将预设样例串成前端演示；浏览器快照/阶段时间只用于模拟恢复，不连接真实后台任务。 */
 export function createDemoConversation(pause: () => Promise<void> = () => Promise.resolve(), options: DemoOptions = {}) {
   let serial = 0
+  let accountContact = {name:'王涛',contact:''}
+  function setCollectionContact(profile: {name: string; phone?: string}) {
+    accountContact = {name:profile.name || '',contact: /^\+?[\d\s-]{7,20}$/.test(profile.phone || '') ? profile.phone! : ''}
+  }
   const now = options.now || (() => Date.now()), stepMs = options.stepMs || 0
   const uid = () => `demo-${++serial}`
   const freshSession = (): DemoSession => ({ id: uid(), title: '新会话', tasks: [], frames: [], relaxations: [], pending: [], facts: {}, draft: '', clarificationDraft: '', sendError: '', run: null, decisionsDone: false })
@@ -49,13 +58,13 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     get busy(): boolean { return !!state.sessions.find(s => s.id === state.activeId)?.run },
     nextFailure: '' as '' | 'search' | 'judgment' | 'collection' | 'send',
     catalog: {} as Record<string, ProductPreview>, storageError: '', entryQuery: '',
-    collection: { taskIds: [] as string[], key: '', ownerId: '', searchFinding: '', open: false, price: '', name: '王涛', contact: '', error: '', success: false, conditions: [] as string[], gaps: [] as string[], unknown: [] as string[] }
+    collection: { taskIds: [] as string[], key: '', ownerId: '', searchFinding: '', open: false, description: '', price: '', name: '王涛', contact: '', error: '', success: false, conditions: [] as string[], gaps: [] as string[], unknown: [] as string[] }
   })
   const session = () => state.sessions.find(s => s.id === state.activeId)!
   const current = () => session().frames.at(-1)!
-  const taskConditions = (tasks: DemoTask[]) => tasks.map(t => [t.name, t.region && !t.name.includes(t.region.replace(/省$/, '')) ? t.region : '', t.year, t.grain, t.frequency, t.productType ? `仅 ${t.productType}（必须）` : '', t.budget, ...['矿区内部专用线路', '逐车运价'].filter(value => t.raw.includes(value)), t.note].filter(Boolean).join(' · '))
+  const taskConditions = (tasks: DemoTask[]) => tasks.map(t => [t.name, t.region && !t.name.includes(t.region.replace(/省$/, '')) ? t.region : '', t.year, t.grain, t.frequency, t.productType ? `仅 ${t.productType}（必须）` : '', t.budget, ...['矿区内部专用线路', '专用线路', '逐车运价', '逐车明细'].filter(value => t.raw.includes(value) && !(value === '专用线路' && t.raw.includes('矿区内部专用线路'))), t.note].filter(Boolean).join(' · '))
   function append(query: string, kind = 'notice', message = '', ids = session().pending) {
-    const frame: DemoFrame = { id: uid(), steps: [], rating: '', feedbackType: '', feedbackText: '', kind, query, message, conditions: taskConditions(session().tasks.filter(t => ids.includes(t.id))), taskIds: [...ids], products: [], tasks: [], plans: [], choices: {}, proposed: {}, proposedText: {}, missing: [] }
+    const frame: DemoFrame = { id: uid(), steps: [], rating: '', feedbackType: '', feedbackText: '', kind, query, message, conditions: taskConditions(session().tasks.filter(t => ids.includes(t.id))), taskIds: [...ids], products: [], tasks: [], suggestions: [], plans: [], choices: {}, proposed: {}, proposedText: {}, missing: [] }
     session().frames.push(frame)
     if (query && session().title === '新会话') session().title = query.slice(0, 30)
     return current()
@@ -66,7 +75,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
       { topic: 'route', test: /货运路线|货运线路/, name: /山东/.test(text) ? '山东货运路线' : '货运路线' },
       { topic: 'volume', test: /货运量/, name: /山东/.test(text) ? '山东货运量' : '货运量' },
       { topic: 'apple', test: /苹果/, name: /水果/.test(text) ? '水果苹果销量' : /品牌|手机/.test(text) ? '苹果品牌产品销量' : '苹果销量' },
-      { topic: 'vehicle', test: /汽车|乘用车/, name: /新能源/.test(text) ? '新能源汽车销量' : /乘用车/.test(text) ? '乘用车销量' : '汽车销量' }
+      { topic: 'vehicle', test: /汽车|乘用车|公司销售量/, name: /公司销售量/.test(text) ? '公司口径销售量' : /新能源/.test(text) ? '新能源汽车销量' : /乘用车/.test(text) ? '乘用车销量' : '汽车销量' }
     ].filter(t => t.test.test(text))
     if (!targets.length) targets.push({ topic: 'generic', test: /./, name: text.replace(/^(帮我)?找(一下|一些)?/, '').trim() || '数据需求' })
     return targets.map(target => {
@@ -76,7 +85,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
         : target.topic === 'route' ? (/港口筛选/.test(clause) ? '按港口筛选' : /按地市/.test(clause) ? '按地市查看' : /按月/.test(clause) ? '按月查看' : '')
         : /按天|逐日/.test(clause) ? '按天查看' : /按月/.test(clause) ? '按月查看' : ''
       const blocked = target.topic === 'apple' && !/水果|品牌|手机/.test(clause) ? '含义'
-        : /必须.*(?:口径一致|现有报表)/.test(clause) ? '口径'
+        : /必须.*公司.*(?:华东|业务区)/.test(clause) ? '地区口径'
+        : /(?:必须.*(?:口径一致|现有报表)|公司.*(?:销售量|统计).*口径一致)/.test(clause) ? '口径'
         : /质量必须|必须.*质量.*达标/.test(clause) ? '质量'
         : target.topic === 'generic' && /^(数据需求|数据|一些数据)$/.test(target.name) ? '目标' : ''
       return { id: uid(), name: target.name, topic: target.topic, raw: clause, region: /全国/.test(clause) && (targets.length === 1 || /都|均/.test(clause) || new RegExp(`全国(?:的)?${target.name}`).test(clause)) ? '全国' : target.topic === 'coal' && /榆林.*天津港/.test(clause) ? '榆林 → 天津港' : ['route', 'volume'].includes(target.topic) && /山东/.test(clause) ? '山东省' : '', year: year ? `${year} 年` : /今天/.test(clause) ? '今天' : '', grain,
@@ -91,37 +101,50 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     const topics: Record<string, RegExp> = { coal: /煤炭|运价/, route: /货运路线|货运线路/, volume: /货运量/, apple: /苹果/, vehicle: /汽车|乘用车/ }
     return tasks.filter(t => text.includes(t.name) || topics[t.topic]?.test(text))
   }
-  function pendingChanges(id: string): Partial<DemoTask> {
-    const frame = current()?.kind === 'relax' ? current() : session().decisionDraft
-    if (!frame) return {}
-    const selected = frame.choices[id]
-    if (selected === 'custom') return frame.proposed[id] || {}
-    return frame.plans.find(p => p.taskId === id)?.options[Number(selected)]?.changes || {}
-  }
   const clarification = (task: DemoTask) => task.blocked === '含义' ? '你说的“苹果”是水果，还是苹果品牌的产品？'
-    : task.blocked === '口径' ? '你们现有报表采用什么统计口径？'
+    : task.blocked === '口径' ? '你们公司的销售量统计口径是什么？'
+    : task.blocked === '地区口径' ? '你们公司的华东业务区包含哪些地区？'
     : task.blocked === '质量' ? '你对数据质量的最低要求是什么？' : '你想找哪方面的数据？'
-  function planFor(task: DemoTask, multiple: boolean): DemoPlan | null {
-    if (task.unknown || task.preference || task.routeCoverageUnknown) return null
+  function setClarification(frame: DemoFrame, task?: DemoTask) {
+    frame.clarification = { question: frame.message, mode: task?.blocked === '含义' ? 'single' : task?.blocked === '地区口径' || frame.kind === 'clarify-edit' ? 'multiple' : 'text',
+      options: task?.blocked === '含义' ? [{value:'fruit', label:'水果苹果销量'}, {value:'brand', label:'苹果品牌产品销量'}]
+        : task?.blocked === '地区口径' ? ['上海','江苏','浙江','安徽','福建','江西','山东'].map(label => ({value:label,label}))
+        : frame.kind === 'clarify-edit' && session().conditionQuestion ? session().tasks.filter(t=>session().pending.includes(t.id)).map(t=>({value:t.id,label:[t.name,t.year].filter(Boolean).join(' · ')})) : [],
+      selected: [], text: '', submitted: false }
+    if (!frame.clarification.options.length) frame.clarification.mode = 'text'
+    return frame
+  }
+  function askScope(query: string, message: string) { return setClarification(append(query, 'clarify-edit', message)) }
+  function selectClarification(value: string) {
+    const q = current()?.clarification
+    if (state.busy || !q || q.submitted || !q.options.some(o=>o.value === value)) return
+    q.selected = q.mode === 'single' ? [value] : q.selected.includes(value) ? q.selected.filter(v=>v!==value) : [...q.selected,value]
+  }
+  async function submitClarification() {
+    const q = current()?.clarification
+    if (state.busy || !q || q.submitted) return false
+    const selected = q.options.filter(o=>q.selected.includes(o.value)).map(o=>o.label).join('、')
+    if (!selected && !q.text.trim()) return false
+    return (await send([selected, q.text.trim()].filter(Boolean).join('；'), 'clarification', { targetIds: [...q.selected], text: q.text })) !== false
+  }
+  function planFor(task: DemoTask): DemoPlan | null {
+    if (task.unknown || task.preference || task.routeCoverageUnknown || task.standardUnknown || task.regionCoverageUnknown) return null
     let options: DemoPlan['options'] = []
     if (task.topic === 'coal' && (task.grain === '按天查看' || task.frequency === '每天更新')) {
-      if (multiple && task.grain === '按天查看' && task.frequency === '每天更新') options = [
-        { title: '方案 A · 调整查看方式', changes: { grain: '按月查看' }, impact: '无法查看逐日变化，保留每天更新要求。' },
-        { title: '方案 B · 调整更新频率', changes: { frequency: '每周更新' }, impact: '保留按天查看，无法每天获得最新数据。' }
-      ]
-      else options = [{ title: '方案 A · 调整查看方式与更新频率', changes: {
+      options = [{ title: '调整查看方式与更新频率', changes: {
         ...(task.grain === '按天查看' ? { grain: '按月查看' } : {}), ...(task.frequency === '每天更新' ? { frequency: '每周更新' } : {})
-      }, impact: '查看粒度与更新频率降低，不能满足原来的逐日、每日要求。' }]
+      }, impact: '无法查看逐日变化或每天获得最新数据，请确认是否适合你的用途。' }]
     }
-    if (task.topic === 'route' && task.grain === '按港口筛选') options = [{ title: '方案 A · 按地市筛选', changes: { grain: '按地市查看' }, impact: '不能定位到具体港口。' }]
-    if (task.topic === 'volume' && task.grain === '按区县查看') options = [{ title: '方案 A · 按地市查看', changes: { grain: '按地市查看' }, impact: '不能比较区县层面的差异。' }]
-    options = options.map(option => ({ ...option, basis: task.topic === 'coal' ? `示例候选商品说明：支持${option.changes.grain || task.grain || '未限定查看方式'}、${option.changes.frequency || task.frequency || '未限定更新频率'}；其他要求仍需按本轮条件核对。` : '已核验的示例商品说明：支持按地市查看，不支持原要求的细分维度。' }))
+    if (task.topic === 'route' && task.grain === '按港口筛选') options = [{ title: '按地市筛选', changes: { grain: '按地市查看' }, impact: '不能定位到具体港口。' }]
+    if (task.topic === 'volume' && task.grain === '按区县查看') options = [{ title: '按地市查看', changes: { grain: '按地市查看' }, impact: '不能比较区县层面的差异。' }]
+    options = options.map(option => ({ ...option, basis: task.topic === 'coal' ? '商品资料说明：煤炭公路运价明细数据集支持按月查看、每周更新；其他要求仍需按本轮条件核对。' : '已核验的商品资料：支持按地市查看，不支持原要求的细分维度。' }))
     return options.length ? { taskId: task.id, title: task.name, original: taskConditions([task])[0], options } : null
   }
   function productFor(task: DemoTask): ProductPreview[] {
     if (task.topic === 'generic' || task.year === '今天') return []
+    if (task.topic === 'coal' && task.grain && !['按天查看','按月查看'].includes(task.grain)) return []
     if (task.topic === 'coal' && /北京|上海|广州|青岛|深圳|矿区|逐车|专用线路/.test(task.raw)) return []
-    if (task.topic === 'coal' && !task.unknown && !task.preference && ((task.grain === '按天查看' && task.frequency !== '每周更新') || (task.frequency === '每天更新' && task.grain !== '按月查看'))) return []
+    if (task.topic === 'coal' && !task.unknown && !task.preference && (task.grain === '按天查看' || task.frequency === '每天更新')) return []
     let product: ProductPreview
     if (task.topic === 'coal') {
       product = clone(task.unknown ? board : coal)
@@ -145,6 +168,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
       if (task.year) product.evidence.push({ label: '时间范围', fact: `覆盖 ${task.year}`, state: 'met' })
 
     }
+    if (task.regionCoverageUnknown) { product.evidence.push({label:'地区范围',fact:`是否完整覆盖${task.region}，商品资料待核实`,state:'unknown'}); product.best = false }
+    if (task.standardUnknown) { product.evidence.push({label:'用户统计口径',fact:'是否满足你补充的统计口径，商品资料待核实',state:'unknown'}); product.best = false }
     if (task.routeCoverageUnknown) {
       product.evidence = product.evidence.filter(e => e.label !== '线路方向')
       product.description = '商品资料列有出发地、目的地和运价字段，指定路线覆盖仍待核实。'
@@ -175,7 +200,9 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     : '先查看商品详情，核对价格、购买主体、计价周期和权益。按商品当前主按钮进入购买确认、继续支付或试用申请；已有可用权益时可立即使用。不同商品获取方式以详情页为准，询问购买方式不会创建订单。'
   function publish(frame: DemoFrame, tasks: DemoTask[], owner = session()) {
     owner.decisionDraft = undefined
+    owner.suggestionQuestion = undefined
     const products = (task: DemoTask) => clone(owner.facts?.[task.id] ?? productFor(task))
+    frame.suggestions = tasks.filter(t => !products(t).length && !/矿区|逐车|专用线路/.test(t.raw)).map(t => planFor(t)).filter((p): p is DemoPlan => !!p)
     frame.kind = 'results'
     frame.purchaseGuide = owner.purchaseQuestion ? purchaseGuide(owner) : undefined
     frame.products = tasks.flatMap(products)
@@ -191,8 +218,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     }
     frame.products = [...byId.values()]
     if (tasks.length > 1) frame.products.forEach(p => { p.best = false })
-    frame.tasks = tasks.map(t => ({ id: t.id, title: t.name, status: products(t).length ? t.note ? '找到相关商品' : t.unknown || t.preference || t.routeCoverageUnknown ? '部分匹配' : '有合适商品' : '无合适商品', detail: products(t).length ? t.note ? '已明确条件见商品证据；补充要求的具体标准尚未明确，不据此判断已满足。' : t.unknown || t.routeCoverageUnknown ? '相关商品资料未写明支持情况，请核实标记的信息。' : t.preference ? '必须条件满足，更新偏好有缺口。' : '请查看下方商品的匹配说明及需留意的信息。' : '保留当前要求，可修改条件或提交采数需求。' }))
-    frame.message = frame.products.length ? '本批需求已全部完成，以下一起展示结果。' : '本次搜索未找到符合当前要求的商品，暂时没有可靠的条件调整建议。'
+    frame.tasks = tasks.map(t => ({ id: t.id, title: t.name, status: products(t).length ? t.note && !t.standardUnknown ? '找到相关商品' : t.unknown || t.preference || t.routeCoverageUnknown || t.standardUnknown || t.regionCoverageUnknown ? '部分匹配' : '有合适商品' : '无合适商品', detail: products(t).length ? t.note && !t.standardUnknown ? '已明确条件见商品证据；补充要求的具体标准尚未明确，不据此判断已满足。' : t.unknown || t.routeCoverageUnknown || t.standardUnknown || t.regionCoverageUnknown ? '相关商品资料未写明支持情况，请核实标记的信息。' : t.preference ? '必须条件满足，更新偏好有缺口。' : '请查看下方商品的匹配说明及需留意的信息。' : '保留当前要求，可修改条件或提交采数需求。' }))
+    frame.message = frame.products.length ? '本批需求已全部完成，以下一起展示结果。' : frame.suggestions.length ? '本次搜索未找到符合当前要求的商品。以下提供有商品资料依据的条件调整建议，当前要求保持不变。' : '本次搜索未找到符合当前要求的商品，暂时没有可靠的条件调整建议。'
     if (!frame.products.length) frame.kind = 'empty'
     frame.products.forEach(p => { state.catalog[p.id] = clone(p) })
   }
@@ -234,30 +261,20 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
       }
       owner.facts ||= {}
       for (const task of run.tasks.filter(t => (run.searchIds || run.tasks.map(t => t.id)).includes(t.id))) owner.facts[task.id] = clone(productFor(task))
-      let plans = run.tasks.filter(t => !owner.decidedTaskIds?.includes(t.id)).map(t => planFor(t, run.tasks.length > 1)).filter((p): p is DemoPlan => !!p)
-      if (!run.decisionsDone && owner.decisionDraft) {
-        const retained = owner.decisionDraft.plans.filter(p => run.tasks.some(t => t.id === p.taskId))
-        plans = [...retained, ...plans.filter(p => !retained.some(old => old.taskId === p.taskId))]
-        for (const key of ['choices', 'proposed', 'proposedText'] as const) f[key] = clone(owner.decisionDraft[key])
-      }
-      if (plans.length) {
-        f.kind = 'relax'; f.plans = plans; f.message = '完整搜索后，部分需求需要你决定是否调整。请分别选择，最后一起确认。'
-        f.tasks = run.tasks.filter(t => !plans.some(p => p.taskId === t.id)).map(t => ({ id: t.id, title: t.name, status: '待统一展示', detail: '保持原条件，等待本批决策完成。' }))
-      } else publish(f, run.tasks, owner)
+      publish(f, run.tasks, owner)
       owner.run = null; return
     }
   }
   async function search(ids: string[], query = '', decisionsDone = false, searchIds = ids) {
     if (state.busy) return
     const owner = session()
-    owner.decidedTaskIds ??= decisionsDone ? [...ids] : []
     const activeTasks = owner.tasks.filter(t => ids.includes(t.id))
     if (!activeTasks.length) { owner.pending = []; owner.decisionDraft = undefined; append(query, 'notice', '本轮需求已全部移出，没有发起搜索。', []); return }
     owner.pending = activeTasks.map(t => t.id); owner.decisionsDone = decisionsDone
     for (const id of searchIds) if (owner.facts) delete owner.facts[id]
     const blocked = activeTasks.find(t => t.blocked)
     if (blocked) {
-      const f = append(query, 'clarify', clarification(blocked)); f.missing = [blocked.id]
+      const f = setClarification(append(query, 'clarify', clarification(blocked)), blocked); f.missing = [blocked.id]
       f.steps = [
         { id: 'parse', label: '解析需求', state: 'done' },
         { id: 'split', label: '拆分多需求', detail: `${activeTasks.length} 项需求`, state: 'done' },
@@ -278,22 +295,86 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     owner.run = { id: uid(), frameId: f.id, tasks: clone(activeTasks), searchIds: [...f.searchedTaskIds], stage: 0, dueAt: now() + stepMs, decisionsDone, failure }
     await drive(owner.id, owner.run.id)
   }
-  async function send(raw: string, source: 'composer' | 'clarification' | 'external' = 'composer') {
+  function answerWithoutSearch(text: string, kind: string, message: string) {
+    const pendingQuestion = current()?.clarification && !current().clarification!.submitted ? clone(current()) : null
+    const frame = append(text, pendingQuestion?.kind || kind, pendingQuestion?.message || message, pendingQuestion?.taskIds || [])
+    if (pendingQuestion) { frame.clarification = pendingQuestion.clarification; frame.missing = pendingQuestion.missing; frame.steps = pendingQuestion.steps; frame.additionalAnswer = message }
+    return frame
+  }
+  function productConsultation(text: string) {
+    const history = [...session().frames].reverse().find(f => f.products.length)
+    const products = [...new Map([...Object.values(state.catalog),board,coal,route].map(p=>[p.id,p])).values()]
+    const identified = products.find(p=>text.includes(p.name)) || (/看板/.test(text) && /煤炭|运输/.test(text) ? board : undefined)
+      || (/这个|该商品/.test(text) && history?.products.length === 1 ? history.products[0] : undefined)
+    if (!identified) {
+      const f = answerWithoutSearch(text,'consult','你想了解哪件商品？请提供商品名称，或从已有结果中说明是哪一件。')
+      if (!f.clarification) setClarification(f)
+      return
+    }
+    const requestedText = current()?.kind === 'consult' && current().clarification ? `${current().query}；${text}` : text
+    if (current()?.kind === 'consult' && current().clarification) current().clarification!.submitted = true
+    const requested = /价格|多少钱/.test(requestedText) ? `该商品标价为 ${identified.price}，以商品详情中的当前价格及计价周期为准。`
+      : /更新/.test(requestedText) ? identified.evidence.filter(e=>e.label==='更新频率').map(e=>e.fact).join('；')
+      : /线路|地区|覆盖/.test(requestedText) ? identified.evidence.filter(e=>/线路|地区|范围/.test(e.label)).map(e=>e.fact).join('；')
+      : identified.description
+    const f = answerWithoutSearch(text,'consult',requested || '你询问的信息在现有商品资料中未写明，标为待核实；可以在商品详情进一步确认。')
+    f.consultProduct = clone(identified)
+  }
+  function askSuggestionAcceptance(query: string, suggestions: DemoPlan[]) {
+    session().suggestionQuestion = clone(suggestions)
+    const f = askScope(query, '你想采用哪项需求的哪种调整？请说明需求与要接受的变化，未提及的要求保持不变。')
+    Object.assign(f.clarification!, { mode:'single', options:suggestions.flatMap(p=>p.options.map((option,index)=>({value:`${p.taskId}:${index}`,label:`${p.title}：${Object.values(option.changes).join('、')}`}))) })
+  }
+  async function acceptSuggestion(plan: DemoPlan, changes: Partial<DemoTask>, query: string) {
+    const task = session().tasks.find(t=>t.id === plan.taskId)!
+    const accepted = Object.entries(changes).filter(([key,value])=>value !== task[key as keyof DemoTask] && plan.options.some(o=>o.changes[key as keyof DemoTask] === value))
+    if (accepted.length) session().relaxations.push({taskId:task.id, changes:accepted.map(([key,value])=>({key,before:String(task[key as keyof DemoTask]||''),after:String(value),edit:(task.edits[key]||0)+1}))})
+    session().suggestionQuestion = undefined
+    await applyDialogueChanges([task.id],changes,query)
+  }
+  async function send(raw: string, source: 'composer' | 'clarification' | 'external' = 'composer', answer?: {targetIds: string[]; text: string}) {
     const text = raw.trim(); if (!text || state.busy) return false
+    const scopeText = answer?.text ?? text
+    const scopeTargets = () => {
+      const explicit = /只改|仅改/.test(scopeText) ? scopeText.split(/只改|仅改/).at(-1)! : scopeText
+      const named = referencedTasks(explicit,session().tasks.filter(t=>session().pending.includes(t.id)))
+      return named.length || /全部|所有|都|两项|三项/.test(scopeText) ? conditionTargets(explicit) : answer?.targetIds.length ? answer.targetIds : conditionTargets(text)
+    }
     const asksPurchase = /怎么买|如何购买|购买流程/.test(text)
     if (state.nextFailure === 'send') { state.nextFailure = ''; session().sendError = '消息未能发送，文字已保留，请重试。'; return false }
     session().sendError = ''
     if (source === 'composer') session().draft = ''
     if (source === 'clarification') session().clarificationDraft = ''
-    if (current()?.kind === 'relax' && asksPurchase) {
-      const previous = current()
-      const frame = append(text, 'relax', '已补充购买说明。原有选择及待确认修改保留，请完成本批选择后统一确认。', previous.taskIds)
-      for (const key of ['plans', 'choices', 'proposed', 'proposedText', 'tasks', 'missing'] as const) Object.assign(frame, { [key]: clone(previous[key]) })
-      frame.purchaseGuide = purchaseGuide(); session().purchaseQuestion = true
-      return
+    const explicitFind = /(?:帮我|再|另外)?找|查找|搜索.*(?:数据|商品)/.test(text)
+    if (/你(?:能|可以)做什么|有什么功能|能帮我什么|能力范围/.test(text)) { answerWithoutSearch(text,'faq','你可以描述需要的数据，我会帮你查找平台相关商品、核对匹配与待核实信息；也可以咨询商品和购买方式。'); return }
+    if (asksPurchase && !explicitFind) { const f=answerWithoutSearch(text,'faq','以下是平台数据商品的获取说明。'); f.purchaseGuide=purchaseGuide(); return }
+    if (!explicitFind && (/(?:这个|该|商品|看板|数据集|API).*(?:包含|线路|多少钱|价格|更新|介绍|内容)/.test(text) || Object.values(state.catalog).some(p=>text.includes(p.name)))) { productConsultation(text); return }
+    if (/^(?:你好|您好|谢谢|再见)[。！!？?]?$/.test(text)) { answerWithoutSearch(text,'faq',/谢/.test(text)?'不客气。需要继续找数据时，可以直接描述你的要求。':'你好，可以告诉我你需要什么数据。'); return }
+    const previousQuestion = current()?.clarification
+    if (previousQuestion && ['clarify','clarify-edit'].includes(current().kind)) previousQuestion.submitted = true
+    if (current()?.kind === 'fallback' && /^(可以|同意|好|继续|找相关商品)[。！!]?$/u.test(text)) { await continueFinding(); return }
+    const suggestions = (current()?.suggestions || []).filter(p => { const task=session().tasks.find(t=>t.id===p.taskId); return task && session().pending.includes(p.taskId) && p.original === taskConditions([task])[0] })
+    if (/保留原要求|保持原要求|不接受建议/.test(text)) { session().suggestionQuestion=undefined; session().conditionQuestion=undefined; restoreDecisionFrame(text,'已保留原要求，条件调整建议未生效。'); return }
+    if (session().suggestionQuestion && !explicitFind) {
+      const pending = session().suggestionQuestion!
+      const selected = answer?.targetIds[0]?.split(':')
+      const named = referencedTasks(scopeText,session().tasks.filter(t=>session().pending.includes(t.id)))
+      const targets = named.length ? pending.filter(p=>named.some(t=>t.id===p.taskId)) : selected ? pending.filter(p=>p.taskId===selected[0]) : []
+      const explicitChanges = parseConditionChanges(scopeText)
+      if (targets.length === 1 && (targets[0].options.length === 1 || selected)) {
+        const option = targets[0].options[Number(selected?.[1] || 0)]
+        await acceptSuggestion(targets[0],{...option.changes,...explicitChanges},text); return
+      }
+      if (!Object.keys(explicitChanges).length) { askSuggestionAcceptance(text,pending); return }
+      session().suggestionQuestion=undefined
+    }
+    if (/^(可以|同意|好|接受|按建议来|就按你说的)[。！!]?$/u.test(text)) {
+      if (!suggestions.length) { append(text,'notice','你希望继续哪项操作？可以直接说明需要的数据或要修改的条件。',[]); return }
+      if (suggestions.length !== 1 || suggestions[0].options.length !== 1) { askSuggestionAcceptance(text,suggestions); return }
+      await acceptSuggestion(suggestions[0], suggestions[0].options[0].changes, text); return
     }
     if (/^(重试|重新搜索|再试一次)[。！!]?$/.test(text)) {
-      if (session().conditionQuestion) { restoreDecisionFrame(text, '请先说明原修改的需求范围；未确认条件不会因重试而生效。').kind = 'clarify-edit'; return }
+      if (session().conditionQuestion) { askScope(text, '请先说明原修改的需求范围，未明确范围前不执行搜索。'); return }
       if (!session().pending.length) { append(text, 'notice', '本轮没有待查需求，可以继续描述你需要的数据。', []); return }
       await retry(); return
     }
@@ -304,27 +385,35 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
       else await exclude(text)
       return
     }
-    if (current()?.kind === 'relax' && /^(确认|同意|好|可以|继续|确认选择并继续)[。！!]?$/.test(text)) { await confirm(); return }
-    if (current()?.kind === 'relax' && /全部保留原要求/.test(text)) { current().plans.forEach(p => choose(p.taskId, 'keep')); return }
     if (/回到.*放宽前/.test(text)) { const target = session().tasks.find(t => text.includes(t.name.slice(0, 2))); await rollback(target?.id); return }
     if (/采数|帮我采/.test(text)) { openCollection(); return }
     if (session().conditionQuestion && /先不改了|取消修改|不修改了|全部保留原要求/.test(text)) {
       session().conditionQuestion = undefined
-      restoreDecisionFrame(text, '已取消这次修改，原条件和已有选择保留。')
-      if (/全部保留原要求/.test(text) && current().kind === 'relax') current().plans.forEach(p => choose(p.taskId, 'keep'))
+      restoreDecisionFrame(text, '已取消这次修改，原条件保持不变。')
       return
+    }
+    const addition = text.match(/(?:再找|另外找|新增)(.+)$/)
+    const editPrefix = addition ? text.slice(0,addition.index).replace(/[，,；;\s]+$/,'') : ''
+    if (addition && editPrefix && isConditionChange(editPrefix)) {
+      const changes = parseConditionChanges(editPrefix), assignments = conditionAssignments(editPrefix)
+      const ids = conditionTargets(editPrefix)
+      const added = parse(addition[1]); session().tasks.push(...added); session().pending.push(...added.map(t=>t.id))
+      session().suggestionQuestion=undefined
+      if (assignments?.length || ids.length) { await applyDialogueEdits(assignments?.length ? assignments : ids.map(taskId=>({taskId,changes})),text); return }
+      session().conditionQuestion={changes,query:editPrefix}; askScope(text,'新需求已加入。请说明原条件修改适用于哪项需求，新需求不会自动继承该修改。'); return
     }
     const addsDemand = /^(再找|另外找|新增)/.test(text)
     const negated = text.split(/[，,；;]/).filter(c => /不(?:用|要|必)?改|保持原|保留原/.test(c))
-    if (negated.length && !Object.keys(parseConditionChanges(text)).length) {
+    if (session().conditionQuestion && negated.length && !/只改|仅改/.test(scopeText) && !Object.keys(parseConditionChanges(scopeText)).length) { session().conditionQuestion = undefined; restoreDecisionFrame(text, '已取消这次修改，原条件保持不变。'); return }
+    if (negated.length && !session().conditionQuestion && !Object.keys(parseConditionChanges(text)).length) {
       session().conditionQuestion = undefined
       rememberDecisions(); restoreDecisionFrame(text, '已保留原条件，未执行被否定的修改。'); return
     }
-    if (session().pending.length && isConditionChange(text) && !addsDemand && (!session().conditionQuestion || Object.keys(parseConditionChanges(text)).length)) {
+    if (!(source === 'clarification' && current()?.kind === 'clarify') && session().pending.length && (isConditionChange(text) || (/可以|接受|仍要|还是|只要/.test(text) && Object.keys(parseConditionChanges(text)).length > 0)) && !addsDemand && (!session().conditionQuestion || Object.keys(parseConditionChanges(text)).length)) {
       const remembered = { ...session().conditionQuestion?.changes }
       const rejected = parseConditionChanges(negated.join('；').replace(/不(?:用|要|必)?改/g, '改').replace(/保持原|保留原/g, ''))
       for (const key of Object.keys(rejected)) delete remembered[key as keyof DemoTask]
-      const changes = { ...remembered, ...parseConditionChanges(text) }
+      const changes = { ...remembered, ...parseConditionChanges(scopeText) }
       if (!Object.keys(changes).length) {
         if (/不(?:用|要|必)?改|保持原|保留原/.test(text)) { rememberDecisions(); restoreDecisionFrame(text, '已保留原条件，未执行被否定的修改。'); return }
         const previous = current()
@@ -333,45 +422,65 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
         if (previous) for (const key of ['plans', 'choices', 'proposed', 'proposedText', 'tasks', 'missing', 'steps'] as const) Object.assign(f, { [key]: clone(previous[key]) })
         return
       }
-      const assignments = conditionAssignments(text)
+      const assignments = conditionAssignments(scopeText)
       if (assignments?.length) { const previous = session().conditionQuestion?.changes; session().conditionQuestion = undefined; await applyDialogueEdits(assignments.map(a => ({ ...a, changes: { ...previous, ...a.changes } })), text); return }
-      if (new Set(text.match(/20\d{2}\s*年/g) || []).size > 1) { append(text, 'notice', '这条修改包含不同的年份，请分别说明对应需求，例如：煤炭运价改查2024年；货运量改查2023年。'); return }
-      const ids = conditionTargets(text)
-      if (!ids.length) { rememberDecisions(); session().conditionQuestion = { changes, query: text }; append(text, 'clarify-edit', '你想修改哪一项需求的条件？请说明需求名称，或说明本轮全部需求都修改。'); return }
+      if (new Set(scopeText.match(/20\d{2}\s*年/g) || []).size > 1) { append(text, 'notice', '这条修改包含不同的年份，请分别说明对应需求，例如：煤炭运价改查2024年；货运量改查2023年。'); return }
+      const ids = scopeTargets()
+      if (!ids.length) { rememberDecisions(); session().conditionQuestion = { changes, query: text }; askScope(text, '你想修改哪一项需求的条件？可选择一项或多项，也可以直接说明修改范围。'); return }
       session().conditionQuestion = undefined
-      await applyDialogueChanges(ids, changes, text); return
+      const accepted = ids.length === 1 && /可以|接受|按建议/.test(text) ? suggestions.find(p=>p.taskId===ids[0]) : undefined
+      if (accepted) await acceptSuggestion(accepted,changes,text)
+      else await applyDialogueChanges(ids, changes, text)
+      return
     }
     if (session().conditionQuestion && !addsDemand) {
-      const ids = conditionTargets(text), question = session().conditionQuestion!
-      if (!ids.length) { append(text, 'clarify-edit', '还不能确定修改范围，请说明需求名称，或说明本轮全部需求都修改。'); return }
+      const ids = scopeTargets(), question = session().conditionQuestion!
+      if (!ids.length) { askScope(text, '还不能确定修改范围，请说明需求名称，或说明本轮全部需求都修改。'); return }
       session().conditionQuestion = undefined
       await applyDialogueChanges(ids, question.changes, `${question.query}；${text}`); return
     }
-    if (current()?.kind === 'clarify' && !/再找|另外找|新增/.test(text)) {
-      const task = session().tasks.find(t => current().missing.includes(t.id))!
-      if (task.blocked === '含义' && !/水果|品牌|手机/.test(text)) { append(text, 'clarify', clarification(task)).missing = [task.id]; return }
-      if (task.blocked === '含义') task.name = /水果/.test(text) ? '水果苹果销量' : '苹果品牌产品销量'
+    if (current()?.kind === 'clarify' && (!/再找|另外找|新增/.test(text) || /水果|品牌|手机|iPhone/.test(text.split(/再找|另外找|新增/)[0]))) {
+      const task = session().tasks.find(t => current().missing.includes(t.id))
+      if (!task) { askScope(text, '请说明需要补充哪项需求。'); return }
+      // Read the final explicit correction before the selected labels; never infer an unspoken standard.
+      const correction = text.split(/[；;]|不是|改为|纠正为|只要/).filter(Boolean).at(-1) || text
+      if (task.blocked === '含义' && !/水果|品牌|手机|iPhone/i.test(text)) { setClarification(append(text, 'clarify', clarification(task)), task).missing = [task.id]; return }
+      if (task.blocked === '含义') task.name = /iPhone/i.test(correction) ? 'iPhone手机销量' : /手机/.test(correction) ? '苹果品牌手机销量' : /水果/.test(correction) ? '水果苹果销量' : /品牌/.test(correction) ? '苹果品牌产品销量' : /水果/.test(text) ? '水果苹果销量' : '苹果品牌产品销量'
+      else if (task.blocked === '地区口径') {
+        const areas = (value: string): string[] => value.match(/上海|江苏|浙江|安徽|福建|江西|山东|湖北|湖南|广东|北京|天津|重庆|四川/g) || []
+        const custom = current().clarification?.text || text
+        const replacement = custom.split(/只要|仅要|改成|改为|纠正为/).at(-1)!
+        const excluded = custom.match(/(?:不含|不要|不包括)([^，,；;]+)/)?.[1] || ''
+        task.region = [...new Set(/只要|仅要|改成|改为|纠正为/.test(custom) ? areas(replacement) : areas(text))].filter(area=>!areas(excluded).includes(area)).join('、')
+        task.regionCoverageUnknown = true
+      }
       else if (task.blocked === '目标') {
         const replacement = parse(text)[0]; Object.assign(task, replacement, { id: task.id })
-      } else task.note = `补充要求：${text}`
+      } else { task.note = `补充要求：${text}`; task.standardUnknown = true }
       task.blocked = ''
+      const editText = (answer?.text || text).split(/再找|另外找|新增/)[0]
+      if (isConditionChange(editText)) {
+        const changes = parseConditionChanges(editText)
+        const named = referencedTasks(editText,session().tasks.filter(t=>session().pending.includes(t.id)))
+        for (const target of named.length ? named : [task]) {
+          for (const [key,value] of Object.entries(changes)) { (target as unknown as Record<string,unknown>)[key]=value; target.edits[key]=(target.edits[key]||0)+1 }
+          if (session().facts) delete session().facts![target.id]
+        }
+      }
+      const addedText = text.match(/(?:再找|另外找|新增)(.+)$/)?.[1]
+      if (addedText) { const added=parse(addedText); session().tasks.push(...added); session().pending.push(...added.map(t=>t.id)) }
       current().steps.filter(step => step.id === 'clarify').forEach(step => { step.state = 'done'; step.detail = '已补充' })
       await search([...session().pending], text, false, session().pending.filter(id => !session().facts || !(id in session().facts!))); return
     }
-    if (current()?.kind === 'relax' && /按月.*(可以|接受)|仍.*每天|只.*按月/.test(text)) {
-      const task = session().tasks.find(t => current().plans.some(p => p.taskId === t.id && t.topic === 'coal'))
-      if (task) {
-        const previous = current()
-        const f = append(text, 'relax', `已记录你的选择：按月查看、${task.frequency || '保留原更新要求'}。当前条件尚未改变，请统一确认后继续。`, previous.taskIds)
-        f.plans = clone(previous.plans); f.choices = clone(previous.choices); f.proposed = clone(previous.proposed); f.proposedText = clone(previous.proposedText); f.tasks = clone(previous.tasks)
-        await edit(task.id, { grain: '按月查看', ...parseConditionChanges(text) }); return
-      }
-    }
     if (asksPurchase && !/销量|运价|货运量|货运路线|找/.test(text)) { const f = append(text, 'faq', '以下是平台数据商品的获取说明。', []); f.purchaseGuide = purchaseGuide(); return }
+    if (current()?.kind === 'consult' && current().clarification && !explicitFind) { productConsultation(text); return }
+    session().suggestionQuestion = undefined
     session().purchaseQuestion = asksPurchase
-    const unresolved = ['relax', 'clarify', 'clarify-edit', 'failure', 'stopped'].includes(current()?.kind)
+    const unresolved = ['clarify', 'clarify-edit', 'failure', 'stopped'].includes(current()?.kind) || /^(再找|另外找|新增)/.test(text)
     rememberDecisions()
     const tasks = parse(text)
+    const attribution = tasks.length > 1 && /其中(?:一个|一项).*(按港口筛选)/.test(text)
+    if (attribution) { tasks.forEach(t=>{ if(t.grain==='按港口筛选') t.grain='' }); session().conditionQuestion={changes:{grain:'按港口筛选'},query:text} }
     if (/刚才|之前|继续/.test(text)) for (const task of tasks) {
       const prior = [...session().tasks].reverse().find(t => t.topic === task.topic)
       if (prior) for (const key of ['year', 'grain', 'frequency', 'region', 'productType', 'budget', 'note'] as const) if (!task[key]) task[key] = prior[key]
@@ -379,7 +488,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     const ids = [...(unresolved ? session().pending : []), ...tasks.map(t => t.id)]
     if (!unresolved) session().decisionDraft = undefined
     session().tasks.push(...tasks); session().pending = ids
-    if (session().conditionQuestion) { append(text, 'clarify-edit', '已加入新需求。原条件修改仍待明确范围，请说明修改哪项需求；新需求不自动继承该修改。'); return }
+    if (attribution) { const f=askScope(text,'哪项数据需要按港口筛选？可以选择一项，也可以输入补充或纠正。'); f.clarification!.mode='single'; return }
+    if (session().conditionQuestion) { askScope(text, '已加入新需求。原条件修改仍待明确范围，请说明修改哪项需求；新需求不自动继承该修改。'); return }
     if (/是多少|多少[？?]?$/.test(text) && !/找/.test(text)) { append(text, 'fallback', '我目前不能可靠地直接回答具体数值，可以帮你查找相关的数据商品。要继续找相关商品吗？'); return }
     if (/这个.*(看板|商品).*(包含|线路|多少钱|价格)/.test(text)) { append(text, 'consult', '我目前还不能可靠确认这个商品的具体内容，你可以先查看商品详情。'); return }
     await search(ids, text, false, ids.filter(id => !session().facts || !(id in session().facts!)))
@@ -413,12 +523,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
   }
   function restoreDecisionFrame(query: string, message: string) {
     const blocked = session().tasks.find(t => session().pending.includes(t.id) && t.blocked)
-    const f = append(query, blocked ? 'clarify' : session().decisionDraft ? 'relax' : 'notice', blocked ? clarification(blocked) : message)
-    if (blocked) f.missing = [blocked.id]
-    else if (session().decisionDraft) {
-      for (const key of ['plans', 'choices', 'proposed', 'proposedText'] as const) Object.assign(f, { [key]: clone(session().decisionDraft![key]) })
-      f.tasks = session().tasks.filter(t => session().pending.includes(t.id) && !f.plans.some(p => p.taskId === t.id)).map(t => ({ id: t.id, title: t.name, status: '待统一展示', detail: '保持当前条件，等待本轮必要决策完成。' }))
-    }
+    const f = append(query, blocked ? 'clarify' : 'notice', blocked ? clarification(blocked) : message)
+    if (blocked) { f.missing = [blocked.id]; setClarification(f, blocked) }
     return f
   }
   async function applyDialogueChanges(ids: string[], changes: Partial<DemoTask>, query: string) {
@@ -426,39 +532,8 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
   }
   async function applyDialogueEdits(assignments: { taskId: string; changes: Partial<DemoTask> }[], query: string) {
     rememberDecisions()
-    if (session().decisionDraft) restoreDecisionFrame(query, '已记录拟修改条件，请统一确认后继续。')
     const changed = await editAssignments(assignments, query)
     if (!changed) append(query, 'notice', '这些条件与当前条件相同，已保留原要求，无需重新搜索。')
-  }
-  function choose(taskId: string, value: string) { if (state.busy || current()?.kind !== 'relax') return; current().choices[taskId] = value; current().missing = current().missing.filter(id => id !== taskId) }
-  async function confirm() {
-    const f = current(); if (state.busy || f.kind !== 'relax') return
-    f.missing = f.plans.filter(p => !f.choices[p.taskId]).map(p => p.taskId)
-    if (f.missing.length) return
-    const ids = [...session().pending]
-    const changedIds: string[] = []
-    for (const plan of f.plans) {
-      const selected = f.choices[plan.taskId]; if (selected === 'keep') continue
-      const task = session().tasks.find(t => t.id === plan.taskId)!
-      const changes = selected === 'custom' ? f.proposed[task.id] : plan.options[Number(selected)]?.changes
-      if (!changes) continue
-      const record: Relaxation = { taskId: task.id, changes: [] }
-      for (const [key, value] of Object.entries(changes)) {
-        if (task[key as keyof DemoTask] === value) continue
-        record.changes.push({ key, before: String(task[key as keyof DemoTask] || ''), after: String(value), edit: task.edits[key] || 0 })
-        ;(task as unknown as Record<string, unknown>)[key] = value
-        if (selected === 'custom') task.edits[key] = (task.edits[key] || 0) + 1
-      }
-      if (record.changes.length) {
-        if (selected !== 'custom') session().relaxations.push(record)
-        changedIds.push(task.id)
-      }
-    }
-    session().decidedTaskIds = [...new Set([...(session().decidedTaskIds || []), ...f.plans.map(p => p.taskId)])]
-    session().decisionDraft = undefined
-    const needed = ids.filter(id => changedIds.includes(id) || !(id in (session().facts || {})))
-    if (needed.length) await search(ids, '确认选择并继续', true, needed)
-    else { session().decisionsDone = true; const reply = append('确认选择并继续', 'results', '', ids); reply.searchedTaskIds = []; publish(reply, session().tasks.filter(t => ids.includes(t.id))); reply.message = '已保留原要求，以下是此前完整搜索的结果。' }
   }
   async function edit(id: string, changes: Partial<DemoTask>) { await editMany([id], changes) }
   async function editMany(ids: string[], changes: Partial<DemoTask>, query = '修改条件后继续查找') {
@@ -468,34 +543,19 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (state.busy) return false
     const tasks = session().tasks.filter(t => assignments.some(a => a.taskId === t.id) && session().pending.includes(t.id))
     const changedIds: string[] = []
-    let staged = false
     for (const task of tasks) {
       const id = task.id, changes = assignments.find(a => a.taskId === id)!.changes
       const editable = Object.fromEntries(Object.entries(changes).filter(([key]) => ['year', 'grain', 'frequency', 'productType', 'budget', 'note', 'region'].includes(key))) as Partial<DemoTask>
-      if (current()?.kind === 'relax' || session().decisionDraft) {
-        staged = true
-        const frame = current()?.kind === 'relax' ? current() : session().decisionDraft!, proposed = { ...pendingChanges(id), ...editable }
-        frame.proposed[id] = Object.fromEntries(Object.entries(proposed).filter(([key, value]) => task[key as keyof DemoTask] !== value))
-        frame.proposedText[id] = taskConditions([{ ...task, ...frame.proposed[id] }])[0]
-        if (!frame.plans.some(p => p.taskId === id)) frame.plans.push({ taskId: id, title: task.name, original: taskConditions([task])[0], options: [] })
-        frame.choices[id] = 'custom'
-        if (current().kind === 'relax') current().missing = current().missing.filter(m => m !== id)
-        const pendingNote = '已暂存你修改的条件，当前条件尚未改变。请完成本批选择后统一确认。'
-        current().message = current().kind === 'relax' ? pendingNote : `${current().message} ${pendingNote}`
-      } else {
         const entries = Object.entries(editable).filter(([key, value]) => task[key as keyof DemoTask] !== value)
         if (!entries.length) continue
         for (const [key, value] of entries) { (task as unknown as Record<string, unknown>)[key] = value; task.edits[key] = (task.edits[key] || 0) + 1 }
         changedIds.push(id)
-      }
     }
     if (changedIds.length) {
-      const decided = session().decidedTaskIds || (session().decisionsDone ? [...session().pending] : [])
-      session().decidedTaskIds = decided.filter(id => !changedIds.includes(id))
       const needed = session().pending.filter(id => changedIds.includes(id) || !(id in (session().facts || {})))
       await search([...session().pending], query, false, needed)
     }
-    return staged || changedIds.length > 0
+    return changedIds.length > 0
   }
   function lastRelaxation(taskId: string) { return [...session().relaxations].reverse().find(r => r.taskId === taskId) }
   function rollbackPreview(taskId: string) {
@@ -511,23 +571,14 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     const targets = session().tasks.filter(t => session().pending.includes(t.id) && lastRelaxation(t.id))
     const target = taskId || (targets.length === 1 ? targets[0].id : '')
     const relaxation = lastRelaxation(target)
-    if (!relaxation) { append('', 'notice', targets.length > 1 ? '请在对应需求下选择回到放宽前条件。' : '当前没有可回退的放宽。'); return }
+    if (!relaxation) { append('', 'notice', targets.length > 1 ? '请通过对话说明要恢复哪项需求的放宽前条件。' : '当前没有可回退的放宽。'); return }
     const task = session().tasks.find(t => t.id === relaxation.taskId)!
-    session().decidedTaskIds = (session().decidedTaskIds || []).filter(id => id !== task.id)
     session().relaxations.splice(session().relaxations.lastIndexOf(relaxation), 1)
     for (const change of relaxation.changes) if ((task.edits[change.key] || 0) === change.edit && task[change.key as keyof DemoTask] === change.after) (task as unknown as Record<string, unknown>)[change.key] = change.before
     const scope = session().pending.includes(task.id) ? [...session().pending] : [task.id]
     await search(scope, `回到${task.name}最近一次放宽前的条件`, false, [task.id])
   }
-  function rememberDecisions() {
-    if (current()?.kind === 'relax') {
-      const { plans, choices, proposed, proposedText } = current()
-      const activePlans = plans.filter(p => session().pending.includes(p.taskId))
-      const activeIds = activePlans.map(p => p.taskId)
-      const retained = <T>(values: Record<string, T>) => Object.fromEntries(Object.entries(values).filter(([id]) => activeIds.includes(id)))
-      session().decisionDraft = activePlans.length ? clone({ plans: activePlans, choices: retained(choices), proposed: retained(proposed), proposedText: retained(proposedText) }) : undefined
-    }
-  }
+  function rememberDecisions() { session().decisionDraft = undefined }
   async function exclude(text: string, followup = '', query = text) {
     const owner = session(), active = owner.tasks.filter(t => owner.pending.includes(t.id))
     const exclusion = text.split(/再找|另外找|新增/)[0]
@@ -539,7 +590,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     else if (/这项|这一项/.test(exclusion) && current()?.kind === 'clarify') ids = [...current().missing]
     else if (active.length === 1 && /^(?:这项|这一项|这个)?(?:先)?不找了[。！!，,\s]*$/.test(exclusion)) ids = [active[0].id]
     if (!ids.length) {
-      const previous = current(), f = append(text, previous?.kind || 'notice', '请说明本轮哪项需求不再查找；其他条件和选择保持不变。')
+      const previous = current(), f = append(text, previous?.kind || 'notice', '请说明本轮哪项需求不再查找；其他条件保持不变。')
       if (previous) for (const key of ['plans', 'choices', 'proposed', 'proposedText', 'tasks', 'missing'] as const) Object.assign(f, { [key]: clone(previous[key]) })
       return
     }
@@ -555,11 +606,11 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (followup) { const previous = current(); await send(followup, 'external'); if (current() !== previous) current().query = query; return }
     await search([...owner.pending], text, !!owner.decisionsDone && !extra && !owner.decisionDraft, owner.pending.filter(id => !(id in (owner.facts || {}))))
   }
-  async function retry() { if (state.busy || !current()) return; rememberDecisions(); await search([...session().pending], '沿当前条件重新搜索', session().decisionsDone) }
+  async function retry() { if (state.busy || !current()) return; if (session().conditionQuestion) { askScope('重新搜索', '请先说明要修改哪项需求，当前条件保持不变。'); return } rememberDecisions(); await search([...session().pending], '沿当前条件重新搜索', session().decisionsDone) }
   async function continueFinding() { await search([...session().pending], '继续找相关商品') }
-  watch(() => [state.collection.price, state.collection.name, state.collection.contact], () => {
+  watch(() => [state.collection.price, state.collection.name, state.collection.contact, state.collection.description], () => {
     const form = state.collection, owner = state.sessions.find(s => s.id === form.ownerId)
-    if (owner && form.key) { owner.collectionDrafts ||= {}; owner.collectionDrafts[form.key] = { price: form.price, name: form.name, contact: form.contact } }
+    if (owner && form.key) { owner.collectionDrafts ||= {}; owner.collectionDrafts[form.key] = { price: form.price, name: form.name, contact: form.contact, description: form.description } }
   }, { flush: 'sync' })
   function openCollection(ids = current()?.taskIds || session().pending) {
     if (state.busy) return
@@ -573,7 +624,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     const facts = tasks.flatMap(t => owner.facts?.[t.id] || [])
     // Disconnect the previous key before prefilling; synchronous watches must not overwrite another draft.
     state.collection.key = ''
-    Object.assign(state.collection, { open: true, success: false, error: '', taskIds: tasks.map(t => t.id), price: draft?.price ?? price, name: draft?.name ?? '王涛', contact: draft?.contact ?? '', conditions,
+    Object.assign(state.collection, { open: true, success: false, error: '', description: draft?.description ?? '', taskIds: tasks.map(t => t.id), price: draft?.price ?? price, name: draft?.name ?? accountContact.name, contact: draft?.contact ?? accountContact.contact, conditions,
       searchFinding: tasks.every(t => t.id in (owner.facts || {})) ? facts.length ? '已找到相关候选商品，具体适配情况见缺口与待核实信息。' : '本次完整搜索未找到符合选定要求的商品。' : '选定需求尚未完成检索与判断，暂不作供给结论。',
       gaps: tasks.flatMap(t => {
         if (!(t.id in (owner.facts || {})) || t.unknown || t.routeCoverageUnknown || /矿区|逐车|专用线路/.test(t.raw)) return []
@@ -644,19 +695,14 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     if (id === 'context-followup') { await send('找煤炭运价，再找2025年苹果销量'); await send('苹果先不找了'); await send('继续刚才苹果销量，是水果'); return }
     if (id.startsWith('batch') || id === 'partial-accept' || id === 'all-kept') {
       await send('找煤炭运价，必须按天查看、每天更新；再找山东货运量，必须按区县查看')
-      const f = current()
-      if (['batch-missing', 'batch-ready'].includes(id)) choose(f.plans[0].taskId, '0')
-      if (id === 'batch-ready') choose(f.plans[1].taskId, 'keep')
-      if (id === 'batch-missing') await confirm()
-      if (id === 'partial-accept') { await send('按月查看可以，但仍要每天更新'); choose(f.plans[1].taskId, 'keep') }
-      if (id === 'all-kept') { f.plans.forEach(p => choose(p.taskId, 'keep')); await confirm() }
+      if (id === 'partial-accept') await send('煤炭运价按月查看可以，但仍要每天更新')
+      if (id === 'all-kept') await send('全部保留原要求')
       return
     }
     if (['relax', 'alternatives', 'adjusted', 'rejected', 'rollback'].includes(id)) {
       await send('找2025年煤炭运价，必须按天查看、每天更新')
-      if (id === 'alternatives') current().plans = [planFor(session().tasks[0], true)!]
-      if (['adjusted', 'rollback'].includes(id)) { choose(session().tasks[0].id, '0'); await confirm() }
-      if (id === 'rejected') { choose(session().tasks[0].id, 'keep'); await confirm() }
+      if (['adjusted', 'rollback'].includes(id)) await send('可以')
+      if (id === 'rejected') await send('保留原要求')
       if (id === 'rollback') { await edit(session().tasks[0].id, { year: '2024 年' }); await rollback() }
       return
     }
@@ -687,6 +733,14 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
         serial = saved.serial || serial; state.entryQuery = saved.entryQuery || ''
         state.sessions = saved.sessions
         state.sessions.forEach(s => {
+          s.decisionDraft = undefined
+          s.frames.forEach(f => { f.suggestions ??= []; if (f.kind === 'relax') { f.kind = 'notice'; f.suggestions = clone(f.plans || []); f.message = '以下是历史条件调整建议；尚未接受的变化不会生效，可在对话中说明当前要求。' } })
+          const lastFrame = s.frames.at(-1)
+          if (lastFrame && ['clarify','clarify-edit'].includes(lastFrame.kind) && !lastFrame.clarification) {
+            const task = s.tasks.find(t=>lastFrame.missing.includes(t.id))
+            lastFrame.clarification = { question: lastFrame.message, mode:'text', options:[],selected:[],text:s.clarificationDraft || '',submitted:false }
+            if (task?.blocked === '含义') Object.assign(lastFrame.clarification,{mode:'single',options:[{value:'fruit',label:'水果苹果销量'},{value:'brand',label:'苹果品牌产品销量'}]})
+          }
           s.decidedTaskIds ??= (s.run?.decisionsDone ?? s.decisionsDone) ? [...s.pending] : []
           const legacyIds = s.tasks.filter(t => (t as DemoTask & { deferred?: boolean }).deferred).map(t => t.id)
           s.pending = s.pending.filter(id => !legacyIds.includes(id))
@@ -703,7 +757,7 @@ export function createDemoConversation(pause: () => Promise<void> = () => Promis
     }, { deep: true, flush: 'sync' })
     state.sessions.forEach(owner => { if (owner.run) void drive(owner.id, owner.run.id) })
   }
-  return { state, get session() { return session() }, get current() { return current() }, get tasks() { return session().tasks }, send, choose, confirm, edit, editMany, pendingChanges, rollback, rollbackPreview, retry, continueFinding, openCollection, submitCollection, toggleFavorite, newSession, activate, deleteSession, stop, rate, feedback, status, receiveEntry, preset, taskConditions, get favoriteProducts() { return state.favorites.map(id => state.catalog[id]).filter((p): p is ProductPreview => !!p) } }
+  return { state, get session() { return session() }, get current() { return current() }, get tasks() { return session().tasks }, send, selectClarification, submitClarification, edit, editMany, rollback, rollbackPreview, retry, continueFinding, setCollectionContact, openCollection, submitCollection, toggleFavorite, newSession, activate, deleteSession, stop, rate, feedback, status, receiveEntry, preset, taskConditions, get favoriteProducts() { return state.favorites.map(id => state.catalog[id]).filter((p): p is ProductPreview => !!p) } }
 }
 const controllers = new Map<string, ReturnType<typeof createDemoConversation>>()
 export function useDemoConversation(scope: string) {

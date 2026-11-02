@@ -294,10 +294,10 @@ function confirmLogin() {
           <button
             type="button"
             class="relative inline-flex items-center gap-1 text-xs text-violet-600 transition hover:text-violet-700"
-            @click="router.push('/portal/search')"
+            @click="router.push(route.query.from === 'ai' ? '/portal/ai-chat?entry=ai' : '/portal/search')"
           >
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-            返回找数
+            {{ route.query.from === 'ai' ? '返回AI找数' : '返回找数' }}
           </button>
           <div class="relative mt-3 flex items-start gap-4">
             <ProductTypeIcon :type="product.type" :size="52" />

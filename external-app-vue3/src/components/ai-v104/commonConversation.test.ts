@@ -28,7 +28,7 @@ describe('通用问答规则', () => {
   it('does not repeat a resolved keep-original decision on re-search', async () => {
     const demo = createDemoConversation()
     await demo.send('找煤炭运价，必须按天查看、每天更新')
-    demo.choose(demo.tasks[0].id, 'keep'); await demo.confirm()
+    await demo.send('保留原要求')
     const conditions = [...demo.current.conditions]
     await demo.retry()
     expect(demo.current.kind).toBe('empty')
@@ -91,14 +91,14 @@ describe('通用问答规则', () => {
     expect(restored.session.draft).toBe('改成2024年')
   })
 
-  it('restores a pending unified choice without applying or searching', async () => {
+  it('restores a result suggestion without applying an unsent acceptance', async () => {
     const storage = memoryStorage(), options = { storage, storageKey: 'choice' }
     const demo = createDemoConversation(undefined, options)
     await demo.send('找煤炭运价，必须按天查看、每天更新')
-    demo.choose(demo.tasks[0].id, '0')
+    demo.session.draft='可以'
     const restored = createDemoConversation(undefined, options)
-    expect(restored.current.kind).toBe('relax')
-    expect(restored.current.choices[restored.tasks[0].id]).toBe('0')
+    expect(restored.current.kind).toBe('empty')
+    expect(restored.session.draft).toBe('可以')
     expect(restored.tasks[0].grain).toBe('按天查看')
     expect(restored.current.products).toHaveLength(0)
   })
@@ -128,7 +128,7 @@ describe('通用问答规则', () => {
   it('re-searches accepted conditions, keeping the previous answer and its feedback', async () => {
     const demo = createDemoConversation()
     await demo.send('找煤炭运价，必须按天查看、每天更新')
-    demo.choose(demo.tasks[0].id, '0'); await demo.confirm()
+    await demo.send('可以')
     const oldId = demo.current.id, conditions = [...demo.current.conditions]
     demo.rate(oldId, 'up'); await demo.retry()
     expect(demo.current.conditions).toEqual(conditions)
@@ -185,7 +185,7 @@ describe('通用问答规则', () => {
 it('restores a legacy in-flight confirmed search without asking completed decisions again', async()=>{
  const values=new Map<string,string>();const storage={getItem:(k:string)=>values.get(k)||null,setItem:(k:string,v:string)=>{values.set(k,v)}};let wait=false
  const d=createDemoConversation(()=>wait?new Promise(()=>{}):Promise.resolve(),{storage,storageKey:'legacy'})
- await d.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量');d.choose(d.tasks[0].id,'0');wait=true;void d.confirm()
+ await d.send('找煤炭运价，必须按天查看、每天更新；再找山东货运量');wait=true;void d.send('煤炭运价改成按月查看、每周更新')
  const saved=JSON.parse(values.get('legacy')!);saved.sessions.forEach((s:any)=>delete s.decidedTaskIds);storage.setItem('legacy',JSON.stringify(saved))
  const restored=createDemoConversation(undefined,{storage,storageKey:'legacy'});for(let i=0;i<12;i++)await Promise.resolve()
  expect(restored.current.kind).toBe('results');expect(restored.current.plans).toHaveLength(0);d.stop()

@@ -28,7 +28,9 @@ const fillHeight = computed(() => route.path === '/app/discover' || route.path =
       <div class="flex-1 bg-ink-100" :class="fillHeight ? 'flex min-h-0 flex-col overflow-hidden' : 'phone-scroll overflow-y-auto'">
         <router-view v-slot="{ Component, route: r }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" :key="r.fullPath" />
+            <div :key="r.fullPath" :class="fillHeight ? 'flex min-h-0 flex-1 flex-col' : ''">
+              <component :is="Component" />
+            </div>
           </transition>
         </router-view>
       </div>

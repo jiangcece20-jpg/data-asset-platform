@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ProductCard from '@/components/mobile/ProductCard.vue'
 import AiFindPrototype from '@/components/ai-v104/AiFindPrototype.vue'
+import { aiFindCatalogProduct } from '@/domain/aiFindCatalog'
+import type { ProductPreview } from '@/components/ai-v104/prototypeScenes'
 import { useCatalogStore } from '@/stores/catalog'
 import { useEntitlementStore } from '@/stores/entitlements'
 import { useUserStore } from '@/stores/user'
@@ -18,6 +20,14 @@ const catalog = useCatalogStore()
 const entitlements = useEntitlementStore()
 const user = useUserStore()
 
+function viewAiProduct(product: ProductPreview) {
+  if (!catalog.byId(product.id)) catalog.products.push(aiFindCatalogProduct(product))
+  router.push({ path: `/app/product/${encodeURIComponent(product.id)}` })
+}
+function favoriteAiProduct(product: ProductPreview) {
+  if (!catalog.byId(product.id)) catalog.products.push(aiFindCatalogProduct(product))
+  catalog.toggleFavorite(product.id)
+}
 const query = ref('')
 const modeKey = 'ai-v104-mobile-mode'
 function restoreMode() { try { return localStorage.getItem(modeKey) === 'ai' } catch { return false } }
@@ -254,7 +264,7 @@ function submitKeyword(q?: string) {
     </div>
 
     <div v-if="aiMode" class="flex min-h-0 flex-1 flex-col overflow-hidden" data-testid="discover-ai-panel">
-      <AiFindPrototype compact inline @back="aiMode = false" />
+      <AiFindPrototype compact inline :collection-contact="user.context" :product-favorite="id => catalog.byId(id)?.favorite" @favorite="favoriteAiProduct" @details="viewAiProduct" @back="aiMode = false" />
     </div>
 
     <!-- 更多筛选抽屉：使用范围/排序/来源/空间 + 重置/确定；类型由顶部快捷入口控制 -->

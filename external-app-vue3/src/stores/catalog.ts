@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { seedProducts } from '@/data/seed'
 import { mockProducts } from '@/data/mockProducts'
+import { restoredAiFindCatalogProducts } from '@/domain/aiFindCatalog'
 import { seedResources, unlistedResources, userViewResources } from '@/data/resources'
 import type { Product, ProductStatus, AvailabilityStatus, DashboardDetail, ReportDetail, DatasetField } from '@/types/domain'
 import type { Resource, ListResourceForm, ResourceTypeDetail, PublicDatasetMetadata } from '@/types/resource'
@@ -44,7 +45,7 @@ function cloneProducts(): Product[] {
     const saved: unknown = JSON.parse(localStorage.getItem('market-product-favorites-v1') || '{}')
     if (saved && typeof saved === 'object' && !Array.isArray(saved)) favorites = saved as Record<string, boolean>
   } catch { /* Unavailable or invalid storage must not prevent browsing. */ }
-  return [...seedProducts, ...mockProducts].map((p) => ({
+  return [...seedProducts, ...mockProducts, ...restoredAiFindCatalogProducts()].map((p) => ({
     ...p,
     favorite: typeof favorites[p.id] === 'boolean' ? favorites[p.id] : !!p.favorite,
     availability: p.availability === 'paused' ? 'delisted' : p.availability,
