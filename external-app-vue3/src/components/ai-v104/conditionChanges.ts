@@ -5,6 +5,7 @@ export function isConditionChange(text: string) {
   return /改|调整|换成|不限|取消.*(?:年份|时间|更新|预算|地区)/.test(text) && !/改找|换找|改[成为]找|换成找/.test(text)
 }
 export function parseConditionChanges(text: string): Partial<DemoTask> {
+  text = text.split(/[，,；;]/).filter(clause => !/不(?:用|要|必)?改|保持原|保留原/.test(clause)).join('；')
   const changes: Partial<DemoTask> = {}
   const year = text.match(/20\d{2}\s*年/) || (!/预算/.test(text) && /年份|时间|改(?:成|为|查)?\s*20\d{2}\s*$/.test(text) ? text.match(/20\d{2}/) : null)
   if (year) changes.year = `${year[0].match(/20\d{2}/)![0]} 年`

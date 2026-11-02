@@ -1,0 +1,266 @@
+[
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-market",
+    "loaded": true,
+    "name": "pc-market",
+    "pins": [
+      {
+        "id": "shot-pc-market-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-market-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-ai-home",
+    "loaded": true,
+    "name": "pc-ai-home",
+    "pins": [
+      {
+        "id": "shot-pc-ai-home-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-ai-home-2",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-ai-home-3",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-ai-home-4",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-layout-mobile-home",
+    "loaded": true,
+    "name": "mobile-home",
+    "pins": [
+      {
+        "id": "shot-mobile-home-1",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-home-2",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-home-3",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-process-collapsed",
+    "loaded": true,
+    "name": "pc-process-collapsed",
+    "pins": [
+      {
+        "id": "shot-pc-process-collapsed-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-process-collapsed-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-process-expanded",
+    "loaded": true,
+    "name": "pc-process-expanded",
+    "pins": [
+      {
+        "id": "shot-pc-process-expanded-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-process-expanded-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-mobile-process",
+    "loaded": true,
+    "name": "mobile-process",
+    "pins": [
+      {
+        "id": "shot-mobile-process-1",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-process-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-layout-pc-history",
+    "loaded": true,
+    "name": "pc-history",
+    "pins": [
+      {
+        "id": "shot-pc-history-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-history-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-mobile-detail",
+    "loaded": true,
+    "name": "mobile-detail",
+    "pins": [
+      {
+        "id": "shot-mobile-detail-1",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-detail-2",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-detail-3",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-result",
+    "loaded": true,
+    "name": "pc-result",
+    "pins": [
+      {
+        "id": "shot-pc-result-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-result-2",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-result-3",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-result-4",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-mobile-scope",
+    "loaded": true,
+    "name": "mobile-scope",
+    "pins": [
+      {
+        "id": "shot-mobile-scope-1",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-scope-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-mobile-dialogue",
+    "loaded": true,
+    "name": "mobile-dialogue",
+    "pins": [
+      {
+        "id": "shot-mobile-dialogue-1",
+        "inside": true
+      },
+      {
+        "id": "shot-mobile-dialogue-2",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-staged",
+    "loaded": true,
+    "name": "pc-staged",
+    "pins": [
+      {
+        "id": "shot-pc-staged-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-staged-2",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-staged-3",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-confirmed",
+    "loaded": true,
+    "name": "pc-confirmed",
+    "pins": [
+      {
+        "id": "shot-pc-confirmed-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-confirmed-2",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-confirmed-3",
+        "inside": true
+      }
+    ]
+  },
+  {
+    "hiddenInDetails": false,
+    "id": "vue-integrated-pc-collection",
+    "loaded": true,
+    "name": "pc-collection",
+    "pins": [
+      {
+        "id": "shot-pc-collection-1",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-collection-2",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-collection-3",
+        "inside": true
+      },
+      {
+        "id": "shot-pc-collection-4",
+        "inside": true
+      }
+    ]
+  }
+]

@@ -294,10 +294,10 @@ function confirmLogin() {
           <button
             type="button"
             class="relative inline-flex items-center gap-1 text-xs text-violet-600 transition hover:text-violet-700"
-            @click="router.push('/portal/search')"
+            @click="router.push(route.query.from === 'ai' ? '/portal/ai-chat?entry=ai' : '/portal/search')"
           >
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-            返回找数
+            {{ route.query.from === 'ai' ? '返回AI找数' : '返回找数' }}
           </button>
           <div class="relative mt-3 flex items-start gap-4">
             <ProductTypeIcon :type="product.type" :size="52" />
@@ -334,13 +334,16 @@ function confirmLogin() {
             </div>
             <button
               type="button"
-              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white border border-ink-200 transition hover:border-violet-300 hover:text-violet-600"
+              class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-white border border-ink-200 px-3 transition hover:border-violet-300 hover:text-violet-600"
               :title="product.favorite ? '取消收藏' : '收藏'"
+              :aria-label="product.favorite ? '取消收藏' : '收藏'"
+              :aria-pressed="!!product.favorite"
               @click="toggleFav"
             >
               <svg class="h-5 w-5" viewBox="0 0 24 24" :fill="product.favorite ? '#FFB400' : 'none'" :stroke="product.favorite ? '#FFB400' : '#86909C'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 17.3-6.2 3.6 1.6-6.9L2 9.2l7-.6L12 2.2l3 6.4 7 .6-5.4 4.8 1.6 6.9z" />
               </svg>
+              <span class="text-xs">{{ product.favorite ? '已收藏' : '收藏' }}</span>
             </button>
           </div>
         </section>

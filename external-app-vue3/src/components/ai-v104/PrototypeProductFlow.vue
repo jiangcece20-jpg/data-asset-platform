@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import PrototypeProductCard from './PrototypeProductCard.vue'
 import type { ProductPreview } from './prototypeScenes'
-const props = defineProps<{ product: ProductPreview; start: 'details' | 'action' }>()
-const emit = defineEmits<{ acquired: [action: string]; favorite: []; close: [] }>()
-type View = 'details' | 'use' | 'checkout' | 'application' | 'order' | 'progress'
-const view = ref<View>('details')
+const props = withDefaults(defineProps<{ product: ProductPreview; start: 'action'; showFavorite?: boolean }>(), { showFavorite: true })
+const emit = defineEmits<{ acquired: [action: string]; favorite: []; details: []; close: [] }>()
+type View = 'use' | 'checkout' | 'application' | 'order' | 'progress'
+const view = ref<View>('use')
 const paid = ref(props.product.action === '查看订单' && props.product.state !== '订单待付款')
 const applicationNote = ref('')
 function action() {
   const label = props.product.action
   view.value = label === '立即使用' ? 'use' : label === '查看申请' ? 'progress'
     : label === '查看订单' ? 'order' : /购买|支付/.test(label) ? 'checkout'
-    : /试用|申请/.test(label) ? 'application' : 'details'
+    : /试用|申请/.test(label) ? 'application' : 'use'
 }
 function pay() { paid.value = true; view.value = 'order'; emit('acquired', '查看订单') }
 function apply() { view.value = 'progress'; emit('acquired', '查看申请') }
@@ -21,13 +20,7 @@ if (props.start === 'action') action()
 <template>
   <div class="product-flow" :data-product-view="view">
     <p class="demo-label">前端原型演示 · 示例数据与订单，不产生真实交易</p>
-    <template v-if="view === 'details'">
-      <PrototypeProductCard :product="product" @favorite="emit('favorite')" @action="action" />
-      <section class="flow-section"><h3>商品说明</h3><p>{{ product.description }}</p><p>价格：{{ product.price }}</p><p>获取方式：{{ product.action }}。当前状态：{{ product.state || '请在获取前核对商品权益与购买条件' }}。</p></section>
-      <section class="flow-section"><h3>资料与适用范围</h3><p v-for="evidence in product.evidence" :key="evidence.label">{{ evidence.label }}：{{ evidence.fact }}{{ evidence.state === 'unknown' ? '（待核实）' : '' }}</p></section>
-      <p class="flow-hint">匹配依据以已列出的资料为准，示例画面不能证明资料未说明的具体覆盖范围。</p>
-    </template>
-    <template v-else-if="view === 'use'">
+    <template v-if="view === 'use'">
       <h3>数据预览</h3><p>{{ product.name }}</p><p class="flow-hint">以下为展示使用方式的示例记录，不作为真实商品覆盖证据。</p>
       <div class="flow-table"><table><thead><tr><th>记录</th><th>内容</th><th>示例值</th></tr></thead><tbody><tr><td>1</td><td>示例指标 A</td><td>100</td></tr><tr><td>2</td><td>示例指标 B</td><td>120</td></tr></tbody></table></div>
       <p>当前权益：可用。可在此预览数据，返回后继续查看找数结果。</p>
@@ -45,7 +38,7 @@ if (props.start === 'action') action()
     <template v-else-if="view === 'progress'">
       <h3>试用申请进度</h3><p>{{ product.name }}</p><p class="flow-status">申请已提交，待处理</p><ol><li>申请已提交</li><li>等待业务处理</li><li>结果通知及后续使用安排</li></ol><p>申请提交不等于已开通试用，不自动付款。</p>
     </template>
-    <div class="flow-actions"><button type="button" class="secondary" @click="emit('close')">返回找数结果</button><button v-if="view !== 'details'" type="button" class="text-button" @click="view = 'details'">查看商品说明</button></div>
+    <div class="flow-actions"><button type="button" class="secondary" @click="emit('close')">返回找数结果</button><button type="button" class="text-button" @click="emit('details')">查看商品说明</button></div>
   </div>
 </template>
 <style scoped>

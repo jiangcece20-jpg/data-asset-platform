@@ -113,7 +113,7 @@ describe('DiscoverHome', () => {
     await wrapper.get('[data-testid="prototype-scene-select"]').setValue('timeout')
     await vi.runAllTimersAsync()
     await flushPromises()
-    expect(wrapper.get('[data-testid="prototype-user-screen"]').text()).toContain('本批未完成')
+    expect(wrapper.get('[data-testid="prototype-user-screen"]').text()).toContain('本次搜索未能全部完成')
     expect(wrapper.find('[data-testid="prototype-product-list"]').exists()).toBe(false)
     await wrapper.get('[data-testid="prototype-scene-select"]').setValue('result')
     await vi.runAllTimersAsync()

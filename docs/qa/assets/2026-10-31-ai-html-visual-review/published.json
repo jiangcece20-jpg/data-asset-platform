@@ -1,0 +1,36 @@
+[
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/assets/vue-2026-10-31-ui-integration/pc-ai-home.jpg",
+    "stage": "/private/tmp/ai-html-visual-review/pc-ai-home.jpg",
+    "beforeSha256": "7d3f7c11e4f57e264c2381bdfe110d7c96cb772ce2fc46ff5e1cf1fb033308d7",
+    "afterSha256": "c47e0a4e572e3673565675832bb988996d8fd9ef09b1d9b2bc4748b72d34235d"
+  },
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/assets/vue-2026-10-31-ui-integration/manifest.json",
+    "stage": "/private/tmp/ai-html-visual-review/current-manifest.json",
+    "beforeSha256": "c85b814f6e37ded6058a3260ad61995085137196394cf1641c0097867172a7bf",
+    "afterSha256": "f7f28f0edaa733e292d8b5f5b178932e2c54d97017ad129ba27139044135d091"
+  },
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/assets/vue-2026-10-30-review-fixes/manifest.json",
+    "stage": "/private/tmp/ai-html-visual-review/history-manifest.json",
+    "beforeSha256": "dda2fffb7737e26bc4d2c143aecfc88b45d7ecf55a1b4b7df6c3beb8ebde3eb9",
+    "afterSha256": "37e7d1aa933ba839f78cd538c96b39e7f74a6710590107d8965d2b36a7fcfb7d"
+  },
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/visual-prd.html",
+    "stage": "/private/tmp/ai-html-visual-review/visual-prd.html",
+    "beforeSha256": "ce496515d4f03d99132734af18e5f771664f91b8f4de89410558f3284bc8d71e",
+    "afterSha256": "7e7462c3a9136b8d0162fc3584fa3dc59541dfbc47dc5587b7074264f405add4"
+  },
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/assets/vue-2026-10-31-ui-integration/mobile-process.jpg",
+    "beforeSha256": "9b89a339899910ad972108e479bb0fc1882af44e4d0cf52cc92f2f687d50133f",
+    "afterSha256": "563110a1cbb1f1d1b8dd5456253fe7fa29f620e0bd0e374c7316e2fa0fc41f4c"
+  },
+  {
+    "source": "/Users/jiangpangzi/Documents/13、笔记软件/都是精华/产品/AI找数/PRD/V1.0.4-AI找数需求材料/可视化PRD/assets/vue-2026-10-31-ui-integration/mobile-dialogue.jpg",
+    "beforeSha256": "7fcdd17e71cf62d47808e26e5ff61ea7437f14227a294b0ada41b7c0a3e75f33",
+    "afterSha256": "1abee5abb47b3d321dd5b8694ebeba8dc99038d1bdb7140931bb8d14bb451b51"
+  }
+]

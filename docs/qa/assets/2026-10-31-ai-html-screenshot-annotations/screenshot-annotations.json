@@ -1,0 +1,489 @@
+{
+  "implementationCommit": "05b6565",
+  "branch": "codex/ai-v104-ui-integration",
+  "annotationScope": "每张实拍截图独立从1编号；位置是原图像素坐标，HTML换算为百分比。",
+  "screenshots": [
+    {
+      "name": "pc-market",
+      "file": "assets/vue-2026-10-31-layout-review/pc-market.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "d8ca65b62d675cd0d0d4c420341c9d28068a57e930a150f0e17ad156e5200940",
+      "title": "PC商城：关键词搜索与AI找数主入口",
+      "pins": [
+        {
+          "order": 1,
+          "x": 1110,
+          "y": 408,
+          "title": "AI找数主入口",
+          "body": "PC由商城搜索区进入独立AI对话页；关键词是否带入按入口规则处理。",
+          "rule_refs": "功能 §2.4",
+          "id": "shot-pc-market-1"
+        },
+        {
+          "order": 2,
+          "x": 52,
+          "y": 408,
+          "title": "关键词搜索",
+          "body": "关键词搜索与AI找数分开；本期不增加搜索无结果后的AI入口。",
+          "rule_refs": "功能 §2.4",
+          "id": "shot-pc-market-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-ai-home",
+      "file": "assets/vue-2026-10-31-layout-review/pc-ai-home.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "cdb3a76fde1983c161456d2a02d5917c9b011d0f2f67948d2a563df07de4f9ac",
+      "title": "PC首页：左侧会话、推荐问题与底部输入框",
+      "pins": [
+        {
+          "order": 1,
+          "x": 236,
+          "y": 281,
+          "title": "会话导航",
+          "body": "左侧新建与切换会话，顶部也可打开历史会话。",
+          "rule_refs": "功能 §12.6、§12.8",
+          "id": "shot-pc-ai-home-1"
+        },
+        {
+          "order": 2,
+          "x": 710,
+          "y": 350,
+          "title": "首次进入布局",
+          "body": "当前PC整合版的白底首页与透镜展示。",
+          "rule_refs": "功能 §2.4",
+          "id": "shot-pc-ai-home-2"
+        },
+        {
+          "order": 3,
+          "x": 384,
+          "y": 557,
+          "title": "推荐问题",
+          "body": "可选择推荐问题，也可直接描述需求。",
+          "rule_refs": "功能 §2.2.3",
+          "id": "shot-pc-ai-home-3"
+        },
+        {
+          "order": 4,
+          "x": 384,
+          "y": 892,
+          "title": "对话输入",
+          "body": "通过对话描述或调整条件；PC回车发送，Shift＋回车换行。",
+          "rule_refs": "功能 §5.3、§12.10",
+          "id": "shot-pc-ai-home-4"
+        }
+      ]
+    },
+    {
+      "name": "mobile-home",
+      "file": "assets/vue-2026-10-31-layout-review/mobile-home.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "b8e8b5147b131b1f5b48566ac0e91cf38cb3e1c1f9caaddc25e8300f223472f1",
+      "title": "移动端AI首页：顶部会话入口、推荐问题与底部输入",
+      "pins": [
+        {
+          "order": 1,
+          "x": 363,
+          "y": 164,
+          "title": "会话入口",
+          "body": "移动端通过顶部入口新建、切换会话。",
+          "rule_refs": "功能 §12.6、§12.8",
+          "id": "shot-mobile-home-1"
+        },
+        {
+          "order": 2,
+          "x": 14,
+          "y": 401,
+          "title": "推荐问题",
+          "body": "移动端保留推荐问题入口。",
+          "rule_refs": "功能 §2.2.3",
+          "id": "shot-mobile-home-2"
+        },
+        {
+          "order": 3,
+          "x": 362,
+          "y": 698,
+          "title": "输入与发送",
+          "body": "移动端按钮发送、回车换行；底部输入与导航分开。",
+          "rule_refs": "功能 §12.10",
+          "id": "shot-mobile-home-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-process-collapsed",
+      "file": "assets/vue-2026-10-31-layout-review/pc-process-collapsed.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c6446f05d03998b7e33fdc6f96cb9c2364a729925f4471df01c8d7172b2b4b4c",
+      "title": "PC收起处理过程：摘要保留，条件与结果可读",
+      "pins": [
+        {
+          "order": 1,
+          "x": 384,
+          "y": 398,
+          "title": "收起后的过程摘要",
+          "body": "PC默认收起步骤；当前阶段摘要继续显示。",
+          "rule_refs": "功能 §12.3.4",
+          "id": "shot-pc-process-collapsed-1"
+        },
+        {
+          "order": 2,
+          "x": 384,
+          "y": 453,
+          "title": "条件仍可见",
+          "body": "收起步骤不隐藏生效条件，条件摘要只读。",
+          "rule_refs": "功能 §5.3、§12.3.4",
+          "id": "shot-pc-process-collapsed-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-process-expanded",
+      "file": "assets/vue-2026-10-31-layout-review/pc-process-expanded.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "f40ba524c9810f3bef80e73a06cdbd247cc862486d4f70021d156bc5e7f411c7",
+      "title": "PC展开处理过程：保留步骤与条件",
+      "pins": [
+        {
+          "order": 1,
+          "x": 384,
+          "y": 428,
+          "title": "展开过程",
+          "body": "显示需求解析、拆分、搜索和匹配的真实处理状态。",
+          "rule_refs": "功能 §12.3.4",
+          "id": "shot-pc-process-expanded-1"
+        },
+        {
+          "order": 2,
+          "x": 384,
+          "y": 558,
+          "title": "生效条件",
+          "body": "展开或收起不改变条件，也不折叠历史回答。",
+          "rule_refs": "功能 §5.3、§12.3.4",
+          "id": "shot-pc-process-expanded-2"
+        }
+      ]
+    },
+    {
+      "name": "mobile-process",
+      "file": "assets/vue-2026-10-31-layout-review/mobile-process.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "9c924d106a9b67aa3012a7a247456783a06c5231d30879e5e95f5d33ac2d8957",
+      "title": "移动端处理过程默认展开，条件仍可见",
+      "pins": [
+        {
+          "order": 1,
+          "x": 15,
+          "y": 367,
+          "title": "默认展开步骤",
+          "body": "移动端过程默认展开，按实际进度显示。",
+          "rule_refs": "功能 §12.3.4",
+          "id": "shot-mobile-process-1"
+        },
+        {
+          "order": 2,
+          "x": 15,
+          "y": 531,
+          "title": "当前生效条件",
+          "body": "过程展示不隐藏条件；修改通过对话提出。",
+          "rule_refs": "功能 §5.3、§12.3.4",
+          "id": "shot-mobile-process-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-history",
+      "file": "assets/vue-2026-10-31-layout-review/pc-history.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "c9826e8a9139baeb297a32e4ef0fe2fefc1fa2bad85e759353662044704e2f20",
+      "title": "PC历史会话：侧栏与顶部会话列表",
+      "pins": [
+        {
+          "order": 1,
+          "x": 430,
+          "y": 145,
+          "title": "选择会话",
+          "body": "点击条目进入对应会话，恢复其条件、选择、评价和草稿。",
+          "rule_refs": "功能 §12.6、§12.8",
+          "id": "shot-pc-history-1"
+        },
+        {
+          "order": 2,
+          "x": 1005,
+          "y": 155,
+          "title": "删除整个会话",
+          "body": "删除入口进入确认，不提供单条消息删除。",
+          "rule_refs": "功能 §12.12",
+          "id": "shot-pc-history-2"
+        }
+      ]
+    },
+    {
+      "name": "pc-result",
+      "file": "assets/vue-2026-10-31-layout-review/pc-result.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "0b3312c3b0964bc1ddd7830c1dd7965705fd0fb058fee9b86325da4cb4b9a543",
+      "title": "PC结果：匹配说明、价格与商品操作",
+      "pins": [
+        {
+          "order": 1,
+          "x": 384,
+          "y": 257,
+          "title": "本批完成后的结果",
+          "body": "全部必要处理完成后统一展示，不提前发布某一项商品。",
+          "rule_refs": "功能 §6.1、算法 §7.21",
+          "id": "shot-pc-result-1"
+        },
+        {
+          "order": 2,
+          "x": 407,
+          "y": 573,
+          "title": "最佳匹配",
+          "body": "只有完整搜索、充分证据和明显占优时才标记；本图为已满足门槛的示例。",
+          "rule_refs": "功能 §8、算法 §7.13",
+          "id": "shot-pc-result-2"
+        },
+        {
+          "order": 3,
+          "x": 407,
+          "y": 617,
+          "title": "一句匹配说明",
+          "body": "用已核实事实总结满足信息；差异、风险和待核实分别说明。",
+          "rule_refs": "功能 §7.3—7.4",
+          "id": "shot-pc-result-3"
+        },
+        {
+          "order": 4,
+          "x": 384,
+          "y": 892,
+          "title": "继续对话修改",
+          "body": "搜索完成后可发送明确修改，普通修改不额外确认。",
+          "rule_refs": "功能 §5.3、算法 §8.2",
+          "id": "shot-pc-result-4"
+        }
+      ]
+    },
+    {
+      "name": "pc-staged",
+      "file": "assets/vue-2026-10-31-layout-review/pc-staged.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "d49e6a92586a5fc9ee3e9eea1413c1b2ebeecd6355450b47ffe40e3c1c87fc72",
+      "title": "待统一确认：运价组合暂存，货运量保留原要求",
+      "pins": [
+        {
+          "order": 1,
+          "x": 426,
+          "y": 251,
+          "title": "拟采用组合",
+          "body": "图中按月查看、每天更新仅为待确认组合，不改写当前生效条件。",
+          "rule_refs": "功能 §12.0.6、算法 §8.6",
+          "id": "shot-pc-staged-1"
+        },
+        {
+          "order": 2,
+          "x": 408,
+          "y": 607,
+          "title": "保留另一项的选择",
+          "body": "货运量继续保留原要求，运价的修改不能覆盖这项选择。",
+          "rule_refs": "功能 §12.0.5—12.0.6",
+          "id": "shot-pc-staged-2"
+        },
+        {
+          "order": 3,
+          "x": 400,
+          "y": 762,
+          "title": "统一确认",
+          "body": "各项选齐后一次确认才生效；仅选择或暂存不执行。",
+          "rule_refs": "功能 §12.0.5、算法 §8.6",
+          "id": "shot-pc-staged-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-confirmed",
+      "file": "assets/vue-2026-10-31-layout-review/pc-confirmed.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "df62937727c9e6fc9d6a8f1ad8831f5da57fdbac75779a93d17451913d3166bd",
+      "title": "统一确认后：运价结果与货运量结论一起展示",
+      "pins": [
+        {
+          "order": 1,
+          "x": 384,
+          "y": 321,
+          "title": "新结果商品",
+          "body": "确认后的结果按新条件生成，历史回复仍保留。",
+          "rule_refs": "功能 §10.4、§12.3",
+          "id": "shot-pc-confirmed-1"
+        },
+        {
+          "order": 2,
+          "x": 407,
+          "y": 500,
+          "title": "新条件对应的说明",
+          "body": "本实拍组合为按月查看、每天更新，以图中事实为准。",
+          "rule_refs": "功能 §7.3、算法 §8.6",
+          "id": "shot-pc-confirmed-2"
+        },
+        {
+          "order": 3,
+          "x": 406,
+          "y": 699,
+          "title": "采数入口",
+          "body": "没有合适商品的需求保留采数入口；进入核对后再提交。",
+          "rule_refs": "功能 §11",
+          "id": "shot-pc-confirmed-3"
+        }
+      ]
+    },
+    {
+      "name": "pc-collection",
+      "file": "assets/vue-2026-10-31-layout-review/pc-collection.jpg",
+      "width": 1440,
+      "height": 1000,
+      "sha256": "014845729a140f77f3ddd6e0554c898774f26d3326c1fc6c055e5da43c4d4e9a",
+      "title": "采数：仅提报所选货运量需求，保留缺口和联系方式",
+      "pins": [
+        {
+          "order": 1,
+          "x": 426,
+          "y": 267,
+          "title": "选定提报需求",
+          "body": "只提报选中的山东货运量，不混入其他需求。",
+          "rule_refs": "功能 §11.2",
+          "id": "shot-pc-collection-1"
+        },
+        {
+          "order": 2,
+          "x": 426,
+          "y": 439,
+          "title": "缺口与待核实分开",
+          "body": "明确不支持区县查看是已知缺口；搜索情况和待核实另外说明。",
+          "rule_refs": "功能 §11.2",
+          "id": "shot-pc-collection-2"
+        },
+        {
+          "order": 3,
+          "x": 426,
+          "y": 672,
+          "title": "价格与联系方式",
+          "body": "价格可选填，联系人和联系方式可修改；同一需求保留草稿。",
+          "rule_refs": "功能 §11.2—11.3",
+          "id": "shot-pc-collection-3"
+        },
+        {
+          "order": 4,
+          "x": 426,
+          "y": 807,
+          "title": "核对后提交",
+          "body": "用户确认并通过校验才提交，失败保留内容供重试。",
+          "rule_refs": "功能 §11.3、§13.3",
+          "id": "shot-pc-collection-4"
+        }
+      ]
+    },
+    {
+      "name": "mobile-detail",
+      "file": "assets/vue-2026-10-31-layout-review/mobile-detail.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "cc171ecfda34662de00a3f3b49de8e3faac00446066ad3024759b8b2343b11c1",
+      "title": "移动端详情：价格、匹配说明及收藏入口",
+      "pins": [
+        {
+          "order": 1,
+          "x": 268,
+          "y": 143,
+          "title": "移动端收藏",
+          "body": "移动端详情保留收藏，PC AI无收藏入口。",
+          "rule_refs": "功能 §9.4",
+          "id": "shot-mobile-detail-1"
+        },
+        {
+          "order": 2,
+          "x": 36,
+          "y": 348,
+          "title": "匹配说明",
+          "body": "商品详情保留有依据的匹配说明，不把未知当满足。",
+          "rule_refs": "功能 §7.3—7.4",
+          "id": "shot-mobile-detail-2"
+        },
+        {
+          "order": 3,
+          "x": 36,
+          "y": 461,
+          "title": "商品获取",
+          "body": "主操作沿用同一商品的权益、订单和试用状态规则。",
+          "rule_refs": "功能 §9.1—9.3",
+          "id": "shot-mobile-detail-3"
+        }
+      ]
+    },
+    {
+      "name": "mobile-scope",
+      "file": "assets/vue-2026-10-31-layout-review/mobile-scope.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "0162a871e4d7a1e711d600fbc8049244a1423c8c6901bbd6c6e75737758129e2",
+      "title": "移动端修改范围澄清：先问改哪项，不擅自同时修改",
+      "pins": [
+        {
+          "order": 1,
+          "x": 106,
+          "y": 449,
+          "title": "先问修改范围",
+          "body": "多项需求下不猜“改查2024年”适用于哪项，先问归属。",
+          "rule_refs": "功能 §12.0.3、算法 §8.2",
+          "id": "shot-mobile-scope-1"
+        },
+        {
+          "order": 2,
+          "x": 15,
+          "y": 526,
+          "title": "保留修改值等待回答",
+          "body": "回答时只补范围，不要求重复输入年份；原条件不提前改变。",
+          "rule_refs": "功能 §12.0.3、算法 §8.2",
+          "id": "shot-mobile-scope-2"
+        }
+      ]
+    },
+    {
+      "name": "mobile-dialogue",
+      "file": "assets/vue-2026-10-31-layout-review/mobile-dialogue.jpg",
+      "width": 390,
+      "height": 844,
+      "sha256": "cdcf1c550d1ca84406e7dfcdef823e2aaf599d50af00c5330a62a314a9ea6b39",
+      "title": "回答范围后：仅煤炭运价改为2024年、每周更新",
+      "pins": [
+        {
+          "order": 1,
+          "x": 15,
+          "y": 548,
+          "title": "合并回答与原修改",
+          "body": "运价采用2024年、每周更新，其他需求保留自己的条件。",
+          "rule_refs": "功能 §12.0.3、算法 §8.2",
+          "id": "shot-mobile-dialogue-1"
+        },
+        {
+          "order": 2,
+          "x": 362,
+          "y": 631,
+          "title": "按本轮范围完成",
+          "body": "只重搜变化项，并补齐其他未完成项；完成后一起展示。",
+          "rule_refs": "功能 §6.1.3、算法 §7.21",
+          "id": "shot-mobile-dialogue-2"
+        }
+      ]
+    }
+  ]
+}

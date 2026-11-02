@@ -1,0 +1,69 @@
+# PC 找数页面整合说明
+
+日期：2026-10-31。交付分支：`codex/ai-find-figma-local`。
+基线提交：`6ec9586`（Merge AI find batch scope cleanup）。
+本次为本地前端版本，未部署、未推送；不代表服务端接口已接通。
+
+## 交付范围
+
+本次提交保存同一工作区此前已确认的两部分改动：
+
+1. PC 找数买数列表：Figma 风格、筛选/搜索/视图交互完善、空结果提交需求入口、内部资源信息预览；商城收藏在列表、详情、“我的收藏”之间联动，并按身份在浏览器本地存储。
+2. PC AI 找数：白底对话布局、历史会话侧栏、可折叠处理步骤、玻璃透镜动效、豆包参考的建议问题短条、白底蓝色光晕输入框；原UI交付时曾移除 PC AI 收藏；后续确认已改为双端商品卡片收藏／取消，顶部与侧栏不设页面级收藏。
+
+当前规则：PC与App的商品卡片均开启收藏／取消，与关键词找数及商城详情共用catalog商品收藏状态；AI页面不设置“我的收藏”入口，也不另建收藏列表。商城既有收藏入口保留。
+
+## 主要文件与依赖
+
+- `src/components/ai-v104/AiFindPrototype.vue`：布局、事件接线、入口及展示开关。
+- `src/components/ai-v104/ai-find-figma.css`：桌面样式，主要由 `.figma-ai` / `.ai-find-shell` 限定；辅助描述目前通过样式隐藏，必要业务状态保留。
+- `src/components/ai-v104/AiProcessingSteps.vue`：折叠过程组件，接收现有 frame，不代替搜索状态机。
+- `src/components/ai-v104/PrototypeProductCard.vue`、`PrototypeProductFlow.vue`：`showFavorite` 参数必须同步合并和透传。
+- `src/App.vue`、`src/layouts/PortalShell.vue`：AI 路由的页面 class；App 还包含商城收藏身份切换的监听，处理冲突时不要整文件覆盖。
+- `src/views/portal/PortalSearch.vue`、`portal-market-figma.css`：PC 商城列表。
+- `src/stores/catalog.ts`、`src/components/mine/FavoritesPanel.vue`、`MineShell.vue`、`src/views/portal/PortalProductDetail.vue`：商城收藏与详情联动。
+- `public/ai-search-lens-caustics-soft.png`：最终确认的透明玻璃素材，淡灰蓝投影及折射亮纹已包含在图内；浮动、扫光、数据粒子由 CSS 实现，不依赖 MP4。
+- `public/hero-data-core.png`：PC 商城首页素材。
+
+早期 AI 素材试稿不在本次提交内，整合时不需要复制。
+
+## 和功能分支整合时
+
+以目标分支最新业务逻辑为准，逐段合并布局和样式，不要把本分支的页面文件直接覆盖过去。本次没有修改 `demoConversation.ts` 等搜索状态机文件，也没有移除“修改条件、条件放宽”逻辑；若目标分支正在移除这些功能，继续采用目标分支的流程、数据结构、按钮和对应测试，再套用这里的视觉。
+
+重点核对：
+
+- `AiFindPrototype.vue` 的 `compact` 分支、会话切换/删除/草稿、发送/停止/重试、澄清、结果、采数及商品详情/获取流程。
+- 处理步骤组件使用的 frame 字段与目标分支是否一致；失败、停止不能显示为已完成。
+- 页面 CSS 中关于条件面板的选择器仅为样式，不能作为保留或重新引入功能的依据。
+- 本地整合后的AI卡片通过父页面使用商城catalog收藏状态；纯组件演示保留无商城上下文时的本地回退。没有新增后端接口。
+- 收藏的 localStorage 为本地演示持久化，服务端整合时需要按实际认证身份和接口实现迁移。
+- 当前按根路径提供 `/ai-search-lens-caustics-soft.png` 和 `/hero-data-core.png`；若目标部署使用子路径，调整资源 URL/base 配置并实测。
+- `App.vue` 和 `PortalShell.vue` 同时包含商城和 AI 页面改动。若只摘取 AI UI，保留 AI 路由 class、所需 CSS/组件/素材，商城部分另行选择。
+
+## 验证与验收
+
+2026-10-31 本地验证：
+
+- `npm test`：153 个测试文件、1468 项测试通过。
+- `npm run build`：通过；现有大包体警告仍存在。构建脚本使用 `vue-tsc -b --noCheck`，不能将此结果视为严格类型检查通过。
+- `git diff --check`：通过。
+- 浏览器已检查白底首页、玻璃淡投影、推荐短条、收藏入口移除和蓝色发光输入框。
+
+整合后至少复验：PC/移动端布局、建议问题点击、普通/多任务搜索、澄清、停止/失败重试、会话和草稿、无结果提交需求、商品详情/获取；确认双端AI商品卡片均可收藏／取消，与关键词找数和详情同步；AI顶部、侧栏、会话工具栏不出现页面级收藏入口，商城“我的收藏”保留。
+
+本地启动：在 `external-app-vue3` 运行 `npm run dev -- --host 127.0.0.1`。
+页面：`http://127.0.0.1:5180/#/portal/ai-chat?entry=ai`，列表为 `#/portal/search`。
+本次不包含正式环境部署。请先在整合分支解决兼容问题并验证，再安排测试环境验收。
+
+## 目标分支整合记录（2026-10-31）
+
+以上为原UI交付记录；本次已在 `codex/ai-v104-ui-integration` 三方整合 `main @ 5da1f56` 与已fetch核对的 `4ce2318`。旧条件编辑表单不带回，以对话修改及放宽统一确认为准；共享样式、卡片/详情收藏开关及两张最终素材均已合入。
+
+兼容过程中补齐先前PRD延后的连续对话边界与旧快照恢复；最终154文件、1504测试及构建通过。详见 [本地验收记录](../docs/qa/2026-10-31-ai-ui-integration.md)。尚未合入main、推送或部署。
+
+## 已确认功能规则对齐（2026-10-31 后续）
+
+本记录取代上方“放宽统一确认”的旧整合口径。澄清统一为问题、单选/多选/仅输入与一次提交；放宽只在完整结论提供事实建议，通过对话接续，不保留方案选择和统一确认。停止/失败均为轻量重搜，采数补充说明与联系方式按所选提报草稿保留，商品卡片收藏及既有详情页导航保持。
+
+最新本地验证：157文件、1532测试通过，标准构建通过。严格类型检查的仓库原有错误仍需后续处理。具体边界与PC/App实拍见 [功能对齐验收](../docs/qa/2026-10-31-vue-functional-alignment.md)。尚未合并main、推送或部署。

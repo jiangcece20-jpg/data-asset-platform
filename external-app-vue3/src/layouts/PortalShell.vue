@@ -44,7 +44,7 @@ function isActive(key: string, path?: string) {
 </script>
 
 <template>
-  <div class="min-h-[calc(100vh-93px)]" :class="{ 'tech-shell': ['/portal/search', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path), 'dataset-shell': route.path === '/portal/data-prepare/datasets', 'insights-shell': route.path === '/portal/insights' }">
+  <div class="min-h-[calc(100vh-93px)]" :class="{ 'tech-shell': ['/portal/search', '/portal/data-prepare/datasets', '/portal/insights'].includes(route.path), 'ai-find-shell': route.path === '/portal/ai-chat', 'dataset-shell': route.path === '/portal/data-prepare/datasets', 'insights-shell': route.path === '/portal/insights' }">
     <!-- 顶部全局导航（对齐线上：首页/物贸一体/看数/用数/找数买数/采数/我的） -->
     <header class="z-40 border-b border-ink-100 bg-white">
       <div class="mx-auto flex h-14 max-w-[1200px] items-center px-6">
@@ -89,7 +89,7 @@ function isActive(key: string, path?: string) {
     </header>
 
     <!-- 内容区 -->
-    <main class="px-6 py-5">
+    <main class="px-6 py-5" :class="{ 'market-page-main': route.path === '/portal/search', 'ai-page-main': route.path === '/portal/ai-chat' }">
       <router-view />
     </main>
 

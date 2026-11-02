@@ -1,0 +1,140 @@
+{
+  "badgesOutsideFigure": [],
+  "currentImages": [
+    {
+      "alt": "PC商城：关键词搜索与AI找数主入口",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "PC首页：左侧会话、推荐问题与底部输入框",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "移动端AI首页：顶部会话入口、推荐问题与底部输入",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "PC收起处理过程：摘要保留，条件与结果可读",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "PC展开处理过程：保留步骤与条件",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "移动端处理过程默认展开，条件仍可见",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "PC历史会话：侧栏与顶部会话列表",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "移动端详情：价格、匹配说明及收藏入口",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "PC结果：匹配说明、价格与商品操作",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "移动端修改范围澄清：先问改哪项，不擅自同时修改",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "回答范围后：仅煤炭运价改为2024年、每周更新",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "待统一确认：运价组合暂存，货运量保留原要求",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "统一确认后：运价结果与货运量结论一起展示",
+      "aspectCorrect": true,
+      "loaded": true
+    },
+    {
+      "alt": "采数：仅提报所选货运量需求，保留缺口和联系方式",
+      "aspectCorrect": true,
+      "loaded": true
+    }
+  ],
+  "documentWidth": 390,
+  "largeFlow": {
+    "open": true,
+    "scrollWidth": 1280,
+    "width": 302
+  },
+  "viewport": 390,
+  "errors": [],
+  "steps": [
+    {
+      "name": "01-before-scope",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s-edit-scope",
+      "time": "2026-10-31T09:02:58.122Z"
+    },
+    {
+      "name": "02-before-device",
+      "url": "http://127.0.0.1:5192/visual-prd.html#sm",
+      "time": "2026-10-31T09:03:09.688Z"
+    },
+    {
+      "name": "03-before-history",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s6",
+      "time": "2026-10-31T09:04:04.077Z"
+    },
+    {
+      "name": "04-before-reject",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s5-reject",
+      "time": "2026-10-31T09:04:44.158Z"
+    },
+    {
+      "name": "05-before-options",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s5-options",
+      "time": "2026-10-31T09:04:44.559Z"
+    },
+    {
+      "name": "06-after-device",
+      "url": "http://127.0.0.1:5192/visual-prd.html#sm",
+      "time": "2026-10-31T09:06:07.617Z"
+    },
+    {
+      "name": "07-after-scope-title",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s-edit-scope",
+      "time": "2026-10-31T09:06:12.054Z"
+    },
+    {
+      "name": "08-after-options",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s5-options",
+      "time": "2026-10-31T09:06:37.299Z"
+    },
+    {
+      "name": "09-after-reject",
+      "url": "http://127.0.0.1:5192/visual-prd.html#s5-reject",
+      "time": "2026-10-31T09:06:44.452Z"
+    },
+    {
+      "name": "10-after-device-mobile",
+      "url": "http://127.0.0.1:5192/visual-prd.html#sm",
+      "time": "2026-10-31T09:07:03.699Z"
+    },
+    {
+      "name": "11-flow-mobile",
+      "url": "http://127.0.0.1:5192/visual-prd.html#flow-overview",
+      "time": "2026-10-31T09:07:18.288Z"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "reason": "清除标题及目录中的旧3b1编号",
+    "occurrences": 2
+  },
+  {
+    "reason": "历史回答不自动折叠已确认",
+    "occurrences": 1
+  },
+  {
+    "reason": "会话管理改指真实会话弹窗截图",
+    "occurrences": 1
+  },
+  {
+    "reason": "移除过期的独立修改需求按钮",
+    "occurrences": 1
+  },
+  {
+    "reason": "修正双端入口引用",
+    "occurrences": 1
+  },
+  {
+    "reason": "分端解释位置说明",
+    "occurrences": 1
+  },
+  {
+    "reason": "补齐双端差异表，使2.5标题与内容一致",
+    "occurrences": 1
+  },
+  {
+    "reason": "放宽方案A补事实依据与变化值",
+    "occurrences": 1
+  },
+  {
+    "reason": "放宽方案B补事实依据与变化值",
+    "occurrences": 1
+  },
+  {
+    "reason": "五组实拍补清示例条件和本节核对点，避免误读为同一条件现场",
+    "occurrences": 5
+  },
+  {
+    "reason": "结果场景仅说明完成后的修改差异，通用规则改为引用",
+    "occurrences": 1
+  },
+  {
+    "reason": "位置指引改为稳定链接",
+    "occurrences": 1
+  },
+  {
+    "reason": "明确卡片分区说明引用的当前截图",
+    "occurrences": 1
+  }
+]

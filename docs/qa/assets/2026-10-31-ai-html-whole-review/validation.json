@@ -1,0 +1,18 @@
+{
+  "annotations": 86,
+  "allOriginalAnnotationAnchorsPreserved": true,
+  "continuousOrderWithinEverySection": true,
+  "checkedLocalResources": 274,
+  "missingResources": 0,
+  "currentCaptures": 14,
+  "currentVueSourceDiffFrom05b6565": false,
+  "svgAndFourMermaidDefinitionsUnchanged": true,
+  "vueChanged": false,
+  "deployed": false,
+  "review": "whole HTML after reorganization",
+  "scenarioTitles": "3.1–3.29",
+  "staleHeadingsAndEditButtonRemoved": true,
+  "captureContextNotes": 5,
+  "imageBytesChanged": false,
+  "businessRulesChanged": false
+}
